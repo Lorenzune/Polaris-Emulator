@@ -2,6 +2,7 @@ package com.eu.habbo.messages.incoming.handshake;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.campaign.calendar.CalendarCampaign;
 import com.eu.habbo.habbohotel.catalog.TargetOffer;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
@@ -28,6 +29,15 @@ public class UsernameEvent extends MessageHandler {
 
     @Override
     public void handle() throws Exception {
+        long lastOnline = this.client.getHabbo().getHabboInfo().getLastOnline();
+        if (lastOnline <= 0 || !java.time.Instant.ofEpochSecond(lastOnline)
+                .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                .equals(java.time.LocalDate.now())) {
+            AchievementInteractions.progress(this.client.getHabbo(), "DailyHotelPresence");
+        }
+        if (this.client.getHabbo().getHabboInfo().isMailVerified()) {
+            AchievementInteractions.progress(this.client.getHabbo(), "EmailVerification");
+        }
         if (!this.client.getHabbo().getHabboStats().getAchievementProgress().containsKey(Emulator.getGameEnvironment().getAchievementManager().getAchievement("Login"))) {
             AchievementManager.progressAchievement(this.client.getHabbo(), Emulator.getGameEnvironment().getAchievementManager().getAchievement("Login"));
         } else {
@@ -55,6 +65,9 @@ public class UsernameEvent extends MessageHandler {
                 }
             }
         }
+
+        AchievementInteractions.sync(
+                this.client.getHabbo(), "Profile_Pantheon_", this.client.getHabbo().getHabboStats().getAchievementScore());
 
         if (!this.client.getHabbo().getHabboStats().getAchievementProgress().containsKey(Emulator.getGameEnvironment().getAchievementManager().getAchievement("RegistrationDuration"))) {
             AchievementManager.progressAchievement(this.client.getHabbo(), Emulator.getGameEnvironment().getAchievementManager().getAchievement("RegistrationDuration"), 0);

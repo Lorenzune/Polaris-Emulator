@@ -1,6 +1,7 @@
 package com.eu.habbo.messages.incoming.users;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.permissions.Permission;
 import com.eu.habbo.habbohotel.rooms.RoomChatMessageBubbles;
 import com.eu.habbo.messages.incoming.MessageHandler;
@@ -18,6 +19,9 @@ public class ChangeChatBubbleEvent extends MessageHandler {
             }
         }
 
-        this.client.getHabbo().getHabboStats().chatColor = RoomChatMessageBubbles.getBubble(chatBubble);
+        RoomChatMessageBubbles bubble = RoomChatMessageBubbles.getBubble(chatBubble);
+        this.client.getHabbo().getHabboStats().chatColor = bubble;
+        AchievementInteractions.progressUnique(
+                this.client.getHabbo(), "ChatStyleOwner", Integer.toString(bubble.getType()));
     }
 }

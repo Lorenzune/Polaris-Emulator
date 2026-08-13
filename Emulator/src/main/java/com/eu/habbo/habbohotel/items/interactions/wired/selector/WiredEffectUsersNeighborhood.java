@@ -10,6 +10,7 @@ import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
+import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
 
@@ -62,12 +63,14 @@ public class WiredEffectUsersNeighborhood extends InteractionWiredEffect {
         Room room = ctx.room();
         if (room == null || tileOffsets.isEmpty()) {
             LOGGER.debug("[Neighborhood] Skipping: room={} tileOffsets.size={}", room != null ? room.getId() : "null", tileOffsets.size());
+            ctx.targets().setUsers(Collections.emptyList());
             return;
         }
 
         List<int[]> sourcePositions = resolveSourcePositions(ctx, room);
         if (sourcePositions.isEmpty()) {
             LOGGER.debug("[Neighborhood] No source positions resolved (sourceType={})", sourceType);
+            ctx.targets().setUsers(Collections.emptyList());
             return;
         }
 
@@ -173,17 +176,19 @@ public class WiredEffectUsersNeighborhood extends InteractionWiredEffect {
                         .orElse(Collections.emptyList());
             }
             case SOURCE_USER_SIGNAL: {
-                List<int[]> positions = ctx.targets().users().stream()
-                        .map(user -> new int[]{ user.getX(), user.getY() })
-                        .collect(Collectors.toList());
-
-                if (!positions.isEmpty()) {
-                    return positions;
+                if (ctx.eventType() != com.eu.habbo.habbohotel.wired.core.WiredEvent.Type.SIGNAL_RECEIVED) {
+                    return Collections.emptyList();
                 }
 
-                return ctx.actor()
-                        .map(actor -> Collections.singletonList(new int[]{ actor.getX(), actor.getY() }))
-                        .orElse(Collections.emptyList());
+                List<RoomUnit> signalUsers = WiredSourceUtil.resolveUsers(ctx, WiredSourceUtil.SOURCE_SIGNAL);
+                if (signalUsers.isEmpty()) {
+                    return Collections.emptyList();
+                }
+
+                return signalUsers.stream()
+                        .filter(Objects::nonNull)
+                        .map(user -> new int[]{ user.getX(), user.getY() })
+                        .collect(Collectors.toList());
             }
             case SOURCE_USER_CLICKED: {
                 if (ctx.event().getTargetUnit().isPresent()) {
@@ -215,17 +220,19 @@ public class WiredEffectUsersNeighborhood extends InteractionWiredEffect {
                         .collect(Collectors.toList());
             }
             case SOURCE_FURNI_SIGNAL: {
-                List<int[]> positions = ctx.targets().items().stream()
-                        .map(i -> new int[]{ i.getX(), i.getY() })
-                        .collect(Collectors.toList());
-
-                if (!positions.isEmpty()) {
-                    return positions;
+                if (ctx.eventType() != com.eu.habbo.habbohotel.wired.core.WiredEvent.Type.SIGNAL_RECEIVED) {
+                    return Collections.emptyList();
                 }
 
-                return ctx.sourceItem()
-                        .map(item -> Collections.singletonList(new int[]{ item.getX(), item.getY() }))
-                        .orElse(Collections.emptyList());
+                List<HabboItem> signalItems = WiredSourceUtil.resolveItems(ctx, WiredSourceUtil.SOURCE_SIGNAL, null);
+                if (signalItems.isEmpty()) {
+                    return Collections.emptyList();
+                }
+
+                return signalItems.stream()
+                        .filter(Objects::nonNull)
+                        .map(item -> new int[]{ item.getX(), item.getY() })
+                        .collect(Collectors.toList());
             }
             default:
                 return Collections.emptyList();
@@ -311,11 +318,6 @@ public class WiredEffectUsersNeighborhood extends InteractionWiredEffect {
     @Override
     public boolean isSelector() {
         return true;
-    }
-
-    @Override
-    public boolean hasRequiredSelectorTargets(WiredContext ctx) {
-        return ctx != null && ctx.targets().hasUsers();
     }
 
     @Override

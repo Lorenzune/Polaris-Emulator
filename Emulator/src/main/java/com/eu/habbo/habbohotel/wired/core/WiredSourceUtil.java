@@ -240,6 +240,9 @@ public final class WiredSourceUtil {
                         : Collections.emptyList();
             case SOURCE_SIGNAL:
                 if (ctx.eventType() == WiredEvent.Type.SIGNAL_RECEIVED) {
+                    if (!ctx.event().isSignalPerFurni() && !ctx.event().getSignalSourceItems().isEmpty()) {
+                        return new ArrayList<>(ctx.event().getSignalSourceItems());
+                    }
                     return ctx.sourceItem().map(Collections::singletonList).orElse(Collections.emptyList());
                 }
                 return Collections.emptyList();
@@ -274,6 +277,9 @@ public final class WiredSourceUtil {
                         : Collections.emptyList();
             case SOURCE_SIGNAL:
                 if (ctx.eventType() == WiredEvent.Type.SIGNAL_RECEIVED) {
+                    if (!ctx.event().isSignalPerUser() && !ctx.event().getSignalSourceUsers().isEmpty()) {
+                        return new ArrayList<>(ctx.event().getSignalSourceUsers());
+                    }
                     return ctx.actor().map(Collections::singletonList).orElse(Collections.emptyList());
                 }
                 return Collections.emptyList();

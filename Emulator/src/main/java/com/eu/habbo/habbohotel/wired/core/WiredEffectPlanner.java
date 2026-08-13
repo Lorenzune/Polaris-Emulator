@@ -25,7 +25,7 @@ final class WiredEffectPlanner {
                 continue;
             }
 
-            boolean negativeEffect = isNegativeConditionEffect(effect);
+            boolean negativeEffect = isConditionNegativeEffect(effect);
 
             if (conditionsPassed) {
                 if (!negativeEffect) {
@@ -34,7 +34,7 @@ final class WiredEffectPlanner {
                 continue;
             }
 
-            if (stack.hasConditions() && negativeEffect) {
+            if (stack.hasConditions() && isExecutableNegativeConditionEffect(effect)) {
                 executableEffects.add(effect);
             }
         }
@@ -95,7 +95,7 @@ final class WiredEffectPlanner {
         return List.copyOf(batches);
     }
 
-    private static boolean isNegativeConditionEffect(IWiredEffect effect) {
+    private static boolean isConditionNegativeEffect(IWiredEffect effect) {
         if (!(effect instanceof InteractionWiredEffect interactionEffect)) {
             return false;
         }
@@ -104,6 +104,17 @@ final class WiredEffectPlanner {
         return effectType == WiredEffectType.NEG_CALL_STACKS
                 || effectType == WiredEffectType.NEG_SEND_SIGNAL
                 || effectType == WiredEffectType.NEG_SHOW_MESSAGE
+                || effectType == WiredEffectType.NEG_LOG;
+    }
+
+    private static boolean isExecutableNegativeConditionEffect(IWiredEffect effect) {
+        if (!(effect instanceof InteractionWiredEffect interactionEffect)) {
+            return false;
+        }
+
+        WiredEffectType effectType = interactionEffect.getType();
+        return effectType == WiredEffectType.NEG_CALL_STACKS
+                || effectType == WiredEffectType.NEG_SEND_SIGNAL
                 || effectType == WiredEffectType.NEG_LOG;
     }
 

@@ -27,7 +27,7 @@ public class WiredTriggerHabboWalkOffFurni extends InteractionWiredTrigger {
     public static final WiredTriggerType type = WiredTriggerType.WALKS_OFF_FURNI;
 
     private final Set<HabboItem> items;
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
 
     public WiredTriggerHabboWalkOffFurni(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -65,7 +65,7 @@ public class WiredTriggerHabboWalkOffFurni extends InteractionWiredTrigger {
     @Override
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
         this.items.clear();
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         String wiredData = set.getString("wired_data");
 
         if (wiredData.startsWith("{")) {
@@ -100,14 +100,14 @@ public class WiredTriggerHabboWalkOffFurni extends InteractionWiredTrigger {
                 }
             }
 
-            this.furniSource = this.items.isEmpty() ? WiredSourceUtil.SOURCE_TRIGGER : WiredSourceUtil.SOURCE_SELECTED;
+            this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         }
     }
 
     @Override
     public void onPickUp() {
         this.items.clear();
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
     }
 
     @Override
@@ -160,7 +160,7 @@ public class WiredTriggerHabboWalkOffFurni extends InteractionWiredTrigger {
                 ? this.normalizeFurniSource(settings.getIntParams()[0])
                 : ((settings.getFurniIds().length > 0)
                         ? WiredSourceUtil.SOURCE_SELECTED
-                        : WiredSourceUtil.SOURCE_TRIGGER);
+                        : WiredSourceUtil.SOURCE_SELECTED);
 
         if (this.furniSource != WiredSourceUtil.SOURCE_SELECTED) {
             return true;
@@ -198,10 +198,10 @@ public class WiredTriggerHabboWalkOffFurni extends InteractionWiredTrigger {
     }
 
     private int normalizeFurniSource(int value) {
-        if (value == WiredSourceUtil.SOURCE_SELECTED || value == WiredSourceUtil.SOURCE_SELECTOR) {
-            return value;
+        if (value == WiredSourceUtil.SOURCE_SELECTOR) {
+            return WiredSourceUtil.SOURCE_SELECTOR;
         }
 
-        return WiredSourceUtil.SOURCE_TRIGGER;
+        return WiredSourceUtil.SOURCE_SELECTED;
     }
 }

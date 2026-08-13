@@ -614,6 +614,12 @@ public class Outgoing {
     public static final int EarningsClaimResultComposer = 9408;
     public static final int HotelViewLandingComposer = 9409;
     public static final int RoomUserHabbiconComposer = 9410;
+    public static final int CraftingEditorStateComposer = 10070;
+    public static final int CraftingEditorResultComposer = 10071;
+    public static final int CrackableEditorStateComposer = 10072;
+    public static final int CrackableEditorResultComposer = 10073;
+    public static final int AchievementEditorStateComposer = 10074;
+    public static final int AchievementEditorResultComposer = 10075;
     public static final int TraxEditorSongsComposer = 9430;
     public static final int TraxEditorErrorComposer = 9431;
     public static final int MentionReceivedComposer = 4801;

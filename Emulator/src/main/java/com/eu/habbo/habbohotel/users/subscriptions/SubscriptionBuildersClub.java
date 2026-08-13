@@ -3,6 +3,7 @@ package com.eu.habbo.habbohotel.users.subscriptions;
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.rooms.BuildersClubRoomSupport;
 import com.eu.habbo.habbohotel.users.Habbo;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 
 public class SubscriptionBuildersClub extends Subscription {
     public SubscriptionBuildersClub(Integer id, Integer userId, String subscriptionType, Integer timestampStart, Integer duration, Boolean active) {
@@ -12,6 +13,7 @@ public class SubscriptionBuildersClub extends Subscription {
     @Override
     public void onCreated() {
         super.onCreated();
+        AchievementInteractions.progress(Emulator.getGameEnvironment().getHabboManager().getHabbo(this.getUserId()), "BuildersClub");
         if (BuildersClubRoomSupport.syncOwnedRooms(this.getUserId()) > 0) {
             BuildersClubRoomSupport.sendRoomUnlockedBubble(this.getUserId());
         }

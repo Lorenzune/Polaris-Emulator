@@ -3,6 +3,7 @@ package com.eu.habbo.messages.incoming.rooms.items;
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.commands.FurniDataCommand;
 import com.eu.habbo.habbohotel.dailytasks.DailyTaskActionMatcher;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.items.interactions.InteractionDice;
 import com.eu.habbo.habbohotel.items.interactions.pets.InteractionMonsterPlantSeed;
 import com.eu.habbo.habbohotel.pets.MonsterplantPet;
@@ -18,6 +19,7 @@ import com.eu.habbo.plugin.events.furniture.FurnitureToggleEvent;
 import com.eu.habbo.threading.runnables.QueryDeleteHabboItem;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -153,6 +155,10 @@ public class ToggleFloorItemEvent extends MessageHandler {
             }
 
             item.onClick(this.client, room, new Object[] {state});
+            AchievementInteractions.progress(this.client.getHabbo(), "HabboExplorer");
+            if (item.getBaseItem().getName().toLowerCase(Locale.ROOT).startsWith("hween_c18_lab")) {
+                AchievementInteractions.progress(this.client.getHabbo(), "InfectedLab");
+            }
             DailyTaskActionMatcher.addFurniUseProgress(this.client.getHabbo(), item);
             DailyTaskActionMatcher.addProgress(this.client.getHabbo(), DailyTaskActionMatcher.SWITCH_ITEM_STATE, 1);
             Emulator.getGameEnvironment().getRewardTrackManager()

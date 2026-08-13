@@ -106,7 +106,9 @@ public class WiredMovementsComposer extends MessageComposer {
                     newMovement.duration,
                     newMovement.elapsed,
                     newMovement.anchorType,
-                    newMovement.anchorId);
+                    newMovement.anchorId,
+                    newMovement.overshootingDistance,
+                    newMovement.curveStrength);
         }
 
         if ((previous instanceof UserMovementData) && (current instanceof UserMovementData)) {
@@ -124,7 +126,8 @@ public class WiredMovementsComposer extends MessageComposer {
                     newMovement.movementType,
                     newMovement.bodyDirection,
                     newMovement.headDirection,
-                    newMovement.duration);
+                    newMovement.duration,
+                    newMovement.jumpPower);
         }
 
         return current;
@@ -167,7 +170,26 @@ public class WiredMovementsComposer extends MessageComposer {
             int anchorType,
             int anchorId) {
         return new FurniMovementData(
-                id, fromX, fromY, toX, toY, fromZ, toZ, rotation, duration, elapsed, anchorType, anchorId);
+                id, fromX, fromY, toX, toY, fromZ, toZ, rotation, duration, elapsed, anchorType, anchorId, null, null);
+    }
+
+    public static MovementData furniMovement(
+            int id,
+            int fromX,
+            int fromY,
+            int toX,
+            int toY,
+            double fromZ,
+            double toZ,
+            int rotation,
+            int duration,
+            int elapsed,
+            int anchorType,
+            int anchorId,
+            Integer overshootingDistance,
+            Integer curveStrength) {
+        return new FurniMovementData(
+                id, fromX, fromY, toX, toY, fromZ, toZ, rotation, duration, elapsed, anchorType, anchorId, overshootingDistance, curveStrength);
     }
 
     public static MovementData userWalkMovement(
@@ -182,7 +204,7 @@ public class WiredMovementsComposer extends MessageComposer {
             int headDirection,
             int duration) {
         return new UserMovementData(
-                id, fromX, fromY, toX, toY, fromZ, toZ, USER_MOVEMENT_WALK, bodyDirection, headDirection, duration);
+                id, fromX, fromY, toX, toY, fromZ, toZ, USER_MOVEMENT_WALK, bodyDirection, headDirection, duration, null);
     }
 
     public static MovementData userSlideMovement(
@@ -197,7 +219,7 @@ public class WiredMovementsComposer extends MessageComposer {
             int headDirection,
             int duration) {
         return new UserMovementData(
-                id, fromX, fromY, toX, toY, fromZ, toZ, USER_MOVEMENT_SLIDE, bodyDirection, headDirection, duration);
+                id, fromX, fromY, toX, toY, fromZ, toZ, USER_MOVEMENT_SLIDE, bodyDirection, headDirection, duration, null);
     }
 
     public static MovementData userDirectionUpdate(int id, int headDirection, int bodyDirection) {
@@ -239,6 +261,7 @@ public class WiredMovementsComposer extends MessageComposer {
         private final int bodyDirection;
         private final int headDirection;
         private final int duration;
+        private final Integer jumpPower;
 
         private UserMovementData(
                 int id,
@@ -251,7 +274,8 @@ public class WiredMovementsComposer extends MessageComposer {
                 int movementType,
                 int bodyDirection,
                 int headDirection,
-                int duration) {
+                int duration,
+                Integer jumpPower) {
             super(TYPE_USER_MOVE);
             this.id = id;
             this.fromX = fromX;
@@ -264,6 +288,7 @@ public class WiredMovementsComposer extends MessageComposer {
             this.bodyDirection = bodyDirection;
             this.headDirection = headDirection;
             this.duration = duration;
+            this.jumpPower = jumpPower;
         }
 
         @Override
@@ -279,6 +304,10 @@ public class WiredMovementsComposer extends MessageComposer {
             response.appendInt(this.bodyDirection);
             response.appendInt(this.headDirection);
             response.appendInt(this.duration);
+            response.appendBoolean(this.jumpPower != null);
+            if (this.jumpPower != null) {
+                response.appendInt(this.jumpPower);
+            }
         }
     }
 
@@ -295,6 +324,8 @@ public class WiredMovementsComposer extends MessageComposer {
         private final int elapsed;
         private final int anchorType;
         private final int anchorId;
+        private final Integer overshootingDistance;
+        private final Integer curveStrength;
 
         private FurniMovementData(
                 int id,
@@ -308,7 +339,9 @@ public class WiredMovementsComposer extends MessageComposer {
                 int duration,
                 int elapsed,
                 int anchorType,
-                int anchorId) {
+                int anchorId,
+                Integer overshootingDistance,
+                Integer curveStrength) {
             super(TYPE_FURNI_MOVE);
             this.id = id;
             this.fromX = fromX;
@@ -322,6 +355,8 @@ public class WiredMovementsComposer extends MessageComposer {
             this.elapsed = elapsed;
             this.anchorType = anchorType;
             this.anchorId = anchorId;
+            this.overshootingDistance = overshootingDistance;
+            this.curveStrength = curveStrength;
         }
 
         @Override
@@ -333,8 +368,16 @@ public class WiredMovementsComposer extends MessageComposer {
             response.appendString(Double.toString(this.fromZ));
             response.appendString(Double.toString(this.toZ));
             response.appendInt(this.id);
-            response.appendInt(this.rotation);
             response.appendInt(this.duration);
+            response.appendInt(this.rotation);
+            response.appendBoolean(this.overshootingDistance != null);
+            if (this.overshootingDistance != null) {
+                response.appendInt(this.overshootingDistance);
+            }
+            response.appendBoolean(this.curveStrength != null);
+            if (this.curveStrength != null) {
+                response.appendInt(this.curveStrength);
+            }
             response.appendInt(this.elapsed);
             response.appendInt(this.anchorType);
             response.appendInt(this.anchorId);

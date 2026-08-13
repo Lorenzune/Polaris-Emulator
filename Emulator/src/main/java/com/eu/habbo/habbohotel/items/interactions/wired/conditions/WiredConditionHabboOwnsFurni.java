@@ -33,7 +33,7 @@ public class WiredConditionHabboOwnsFurni extends InteractionWiredCondition {
     public static final WiredConditionType type = WiredConditionType.HAS_ALTITUDE;
 
     protected final HashSet<HabboItem> items;
-    protected int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    protected int furniSource = WiredSourceUtil.SOURCE_SELECTED;
     protected int quantifier = QUANTIFIER_ANY;
 
     public WiredConditionHabboOwnsFurni(ResultSet set, Item baseItem) throws SQLException {
@@ -128,7 +128,7 @@ public class WiredConditionHabboOwnsFurni extends InteractionWiredCondition {
     @Override
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
         this.items.clear();
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.quantifier = QUANTIFIER_ANY;
 
         String wiredData = set.getString("wired_data");
@@ -170,7 +170,7 @@ public class WiredConditionHabboOwnsFurni extends InteractionWiredCondition {
     @Override
     public void onPickUp() {
         this.items.clear();
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.quantifier = QUANTIFIER_ANY;
     }
 

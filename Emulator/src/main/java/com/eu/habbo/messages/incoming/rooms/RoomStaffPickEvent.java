@@ -1,6 +1,7 @@
 package com.eu.habbo.messages.incoming.rooms;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
 import com.eu.habbo.habbohotel.navigation.NavigatorPublicCategory;
 import com.eu.habbo.habbohotel.permissions.Permission;
@@ -27,6 +28,9 @@ public class RoomStaffPickEvent extends MessageHandler {
 
                     if (habbo != null) {
                         AchievementManager.progressAchievement(habbo, Emulator.getGameEnvironment().getAchievementManager().getAchievement("Spr"));
+                        AchievementInteractions.progress(habbo, "StoryChallengeChampion");
+                    } else {
+                        AchievementInteractions.progressUser(room.getOwnerId(), "StoryChallengeChampion");
                     }
 
                     if (publicCategory != null) {

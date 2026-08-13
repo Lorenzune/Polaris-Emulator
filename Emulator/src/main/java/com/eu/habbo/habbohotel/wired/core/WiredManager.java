@@ -105,6 +105,7 @@ public final class WiredManager {
 
     private static final ThreadLocal<Integer> EVENT_HANDLING_DEPTH = new ThreadLocal<>();
     private static final ThreadLocal<ArrayDeque<DeferredEffectEvent>> DEFERRED_EFFECT_EVENTS = new ThreadLocal<>();
+    private static final ThreadLocal<Boolean> DEFER_DEFERRED_VISUAL_UPDATES = new ThreadLocal<>();
 
     private WiredManager() {
         // Static utility class
@@ -233,6 +234,7 @@ public final class WiredManager {
     private static void clearCurrentThreadRuntimeState() {
         EVENT_HANDLING_DEPTH.remove();
         DEFERRED_EFFECT_EVENTS.remove();
+        DEFER_DEFERRED_VISUAL_UPDATES.remove();
         WiredInternalVariableSupport.clearThreadLocalsForCurrentThread();
         WiredMoveCarryHelper.clearThreadLocalsForCurrentThread();
         WiredUserMovementHelper.clearThreadLocalsForCurrentThread();
@@ -325,6 +327,9 @@ public final class WiredManager {
         }
 
         boolean handled = false;
+        WiredRoomUpdateScope visualUpdateScope = shouldBatchVisualUpdatesForRoot(event)
+                ? WiredRoomUpdateScope.batchVisualUpdates()
+                : null;
 
         try {
             handled = engine.handleEvent(event, negateConditions);
@@ -341,15 +346,27 @@ public final class WiredManager {
                         continue;
                     }
 
+                    if (visualUpdateScope == null && shouldBatchVisualUpdatesForDeferred(deferredEvent.event)) {
+                        visualUpdateScope = WiredRoomUpdateScope.batchVisualUpdates();
+                    }
+
                     handled = engine.handleEvent(deferredEvent.event, deferredEvent.negateConditions) || handled;
                 }
             }
 
             return handled;
         } finally {
+            if (visualUpdateScope != null) {
+                visualUpdateScope.close();
+                // Keep the whole signal burst in one client response batch,
+                // but do not defer it until the room's 500ms scheduler tick.
+                event.getRoom().getCycleManager().flushScheduledComposersNow();
+            }
+
             if (previousDepth == null) {
                 EVENT_HANDLING_DEPTH.remove();
                 DEFERRED_EFFECT_EVENTS.remove();
+                DEFER_DEFERRED_VISUAL_UPDATES.remove();
             } else {
                 EVENT_HANDLING_DEPTH.set(previousDepth);
             }
@@ -378,6 +395,10 @@ public final class WiredManager {
             return handleEvent(event, negateConditions);
         }
 
+        if (event.getType() == WiredEvent.Type.SIGNAL_RECEIVED) {
+            DEFER_DEFERRED_VISUAL_UPDATES.set(Boolean.TRUE);
+        }
+
         ArrayDeque<DeferredEffectEvent> deferredEvents = DEFERRED_EFFECT_EVENTS.get();
 
         if (deferredEvents == null) {
@@ -387,6 +408,16 @@ public final class WiredManager {
 
         deferredEvents.addLast(new DeferredEffectEvent(event, negateConditions));
         return true;
+    }
+
+    private static boolean shouldBatchVisualUpdatesForRoot(WiredEvent event) {
+        return event != null && event.getType() == WiredEvent.Type.SIGNAL_RECEIVED;
+    }
+
+    private static boolean shouldBatchVisualUpdatesForDeferred(WiredEvent event) {
+        return event != null
+                && (event.getType() == WiredEvent.Type.SIGNAL_RECEIVED
+                        || Boolean.TRUE.equals(DEFER_DEFERRED_VISUAL_UPDATES.get()));
     }
 
     /**
@@ -1308,7 +1339,7 @@ public final class WiredManager {
             Integer amount = parsePositiveRewardInteger(rewardValue);
             if (amount == null) return false;
 
-            habbo.giveCredits(amount);
+            habbo.giveCredits(amount, "wired.reward");
             completeReward(habbo, wiredBox, reward, WiredRewardAlertComposer.REWARD_RECEIVED_ITEM);
             return true;
         }
@@ -1317,7 +1348,7 @@ public final class WiredManager {
             Integer amount = parsePositiveRewardInteger(rewardValue);
             if (amount == null) return false;
 
-            habbo.givePoints(5, amount);
+            habbo.givePoints(5, amount, "wired.reward");
             completeReward(habbo, wiredBox, reward, WiredRewardAlertComposer.REWARD_RECEIVED_ITEM);
             return true;
         }
@@ -1326,7 +1357,7 @@ public final class WiredManager {
             Integer amount = parsePositiveRewardInteger(rewardValue);
             if (amount == null) return false;
 
-            habbo.givePixels(amount);
+            habbo.givePixels(amount, "wired.reward");
             completeReward(habbo, wiredBox, reward, WiredRewardAlertComposer.REWARD_RECEIVED_ITEM);
             return true;
         }
@@ -1351,7 +1382,7 @@ public final class WiredManager {
                         ignored);
             }
 
-            habbo.givePoints(type, points);
+            habbo.givePoints(type, points, "wired.reward");
             completeReward(habbo, wiredBox, reward, WiredRewardAlertComposer.REWARD_RECEIVED_ITEM);
             return true;
         }

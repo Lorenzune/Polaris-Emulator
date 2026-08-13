@@ -332,6 +332,10 @@ public final class WiredUserMovementHelper {
 
     private static boolean hasBlockingUnits(
             Room room, RoomUnit roomUnit, RoomTile targetTile, WiredMovementPhysics movementPhysics) {
+        if (InteractionStackWalkHelper.allowsMultipleUnits(room, targetTile)) {
+            return false;
+        }
+
         Collection<RoomUnit> units = room.getRoomUnitsAt(targetTile);
 
         if (units == null || units.isEmpty()) {

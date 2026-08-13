@@ -99,15 +99,12 @@ final class RoomItemPlacementService {
 
         Set<RoomTile> occupiedTiles = layout.getTilesAt(
                 tile, item.getBaseItem().getWidth(), item.getBaseItem().getLength(), rotation);
+        boolean canWalkSitLay = item.isWalkable() || item.getBaseItem().allowSit() || item.getBaseItem().allowLay();
         for (RoomTile occupiedTile : occupiedTiles) {
             if (occupiedTile.state == RoomTileState.INVALID) {
                 return FurnitureMovementError.INVALID_MOVE;
             }
-            if (!Emulator.getConfig().getBoolean("wired.place.under", false)
-                    || Emulator.getConfig().getBoolean("wired.place.under", false)
-                            && !item.isWalkable()
-                            && !item.getBaseItem().allowSit()
-                            && !item.getBaseItem().allowLay()) {
+            if (!canWalkSitLay) {
                 if (checkForUnits && this.room.hasHabbosAt(occupiedTile.x, occupiedTile.y)) {
                     return FurnitureMovementError.TILE_HAS_HABBOS;
                 }
@@ -194,6 +191,8 @@ final class RoomItemPlacementService {
         }
         if (RoomAreaHideSupport.isControllerItem(item)) {
             RoomAreaHideSupport.sendState(this.room, item);
+        } else {
+            RoomAreaHideSupport.synchronizeClientVisibility(this.room);
         }
         if (RoomHanditemBlockSupport.isControllerItem(item)) {
             RoomHanditemBlockSupport.sendState(this.room);
@@ -230,6 +229,7 @@ final class RoomItemPlacementService {
         this.facade.addHabboItem(item);
         item.setRoomId(this.room.getId());
         item.onPlace(this.room);
+        RoomAreaHideSupport.synchronizeClientVisibility(this.room);
         Emulator.getThreading().run(item);
         return FurnitureMovementError.NONE;
     }
@@ -250,15 +250,7 @@ final class RoomItemPlacementService {
             return Math.max(helper.getZ(), this.getMinimumTileHeight(occupiedTiles));
         }
 
-        double height = 0.0D;
-        try {
-            if (item.getExtradata() != null && !item.getExtradata().isEmpty()) {
-                height = Double.parseDouble(item.getExtradata()) / 100.0D;
-            }
-        } catch (NumberFormatException ignored) {
-            // Preserve the default height for malformed helper data.
-        }
-        return Math.max(height, this.getMinimumTileHeight(occupiedTiles));
+        return Math.max(item.getZ(), this.getMinimumTileHeight(occupiedTiles));
     }
 
     HabboItem findStackHeightHelperAt(RoomTile tile, HabboItem exclude) {

@@ -6,8 +6,7 @@ import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 public class InventoryBadgesComposer extends MessageComposer {
     private final Habbo habbo;
@@ -21,17 +20,15 @@ public class InventoryBadgesComposer extends MessageComposer {
         if (this.habbo == null)
             return null;
 
-        Set<HabboBadge> equippedBadges = new HashSet<>();
+        List<HabboBadge> badges = this.habbo.getInventory().getBadgesComponent().getBadgesSnapshot();
+        List<HabboBadge> equippedBadges = this.habbo.getInventory().getBadgesComponent().getWearingBadges();
 
         this.response.init(Outgoing.InventoryBadgesComposer);
 
-        this.response.appendInt(this.habbo.getInventory().getBadgesComponent().getBadges().size());
-        for (HabboBadge badge : this.habbo.getInventory().getBadgesComponent().getBadges()) {
+        this.response.appendInt(badges.size());
+        for (HabboBadge badge : badges) {
             this.response.appendInt(badge.getId());
             this.response.appendString(badge.getCode());
-
-            if (badge.getSlot() > 0)
-                equippedBadges.add(badge);
         }
 
         this.response.appendInt(equippedBadges.size());

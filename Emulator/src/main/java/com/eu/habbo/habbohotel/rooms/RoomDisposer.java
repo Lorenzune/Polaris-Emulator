@@ -35,7 +35,8 @@ final class RoomDisposer {
             }
 
             this.room.scheduledTasks.clear();
-            this.room.scheduledComposers.clear();
+            this.room.clearScheduledComposers();
+            this.room.scheduledItemDataUpdates.clear();
             this.room.getChatManager().clearMutes();
 
             RoomSpecialTypes specialTypes = this.room.getRoomSpecialTypes();

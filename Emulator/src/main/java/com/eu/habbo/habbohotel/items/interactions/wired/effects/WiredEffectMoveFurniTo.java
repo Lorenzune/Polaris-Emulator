@@ -35,7 +35,7 @@ public class WiredEffectMoveFurniTo extends InteractionWiredEffect {
     private int direction;
     private int spacing = 1;
     private Map<Integer, Integer> indexOffset = new LinkedHashMap<>();
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
 
     public WiredEffectMoveFurniTo(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -314,7 +314,7 @@ public class WiredEffectMoveFurniTo extends InteractionWiredEffect {
         this.direction = 0;
         this.spacing = 0;
         this.indexOffset.clear();
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
     }
 
     @Override

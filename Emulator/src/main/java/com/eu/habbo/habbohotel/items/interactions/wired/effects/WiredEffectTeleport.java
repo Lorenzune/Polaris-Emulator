@@ -13,6 +13,7 @@ import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
+import com.eu.habbo.habbohotel.wired.core.WiredEvent;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
@@ -29,14 +30,18 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class WiredEffectTeleport extends InteractionWiredEffect {
     public static final WiredEffectType type = WiredEffectType.TELEPORT;
+    private static final long SIGNAL_TELEPORT_BATCH_DELAY_MS = 1L;
+    private static final ConcurrentHashMap<String, PendingSignalTeleport> PENDING_SIGNAL_TELEPORTS = new ConcurrentHashMap<>();
 
     protected List<HabboItem> items;
     private boolean fastTeleport = false;
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
     private int userSource = WiredSourceUtil.SOURCE_TRIGGER;
 
     public WiredEffectTeleport(ResultSet set, Item baseItem) throws SQLException {
@@ -237,8 +242,57 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
 
             RoomTile tile = room.getLayout().getTile(item.getX(), item.getY());
             if (tile != null) {
-                teleportUnitToTile(roomUnit, tile, this.fastTeleport);
+                if (shouldBatchSignalTeleport(ctx)) {
+                    queueSignalTeleport(ctx, roomUnit, tile);
+                } else {
+                    teleportUnitToTile(roomUnit, tile, this.fastTeleport);
+                }
             }
+        }
+    }
+
+    private boolean shouldBatchSignalTeleport(WiredContext ctx) {
+        return ctx != null
+                && this.furniSource == WiredSourceUtil.SOURCE_SIGNAL
+                && ctx.eventType() == WiredEvent.Type.SIGNAL_RECEIVED
+                && ctx.event().isSignalPerFurni()
+                && ctx.event().getSignalFurniCount() > 1;
+    }
+
+    private void queueSignalTeleport(WiredContext ctx, RoomUnit roomUnit, RoomTile tile) {
+        if (roomUnit == null || tile == null) {
+            return;
+        }
+
+        String key = buildSignalTeleportBatchKey(ctx, roomUnit);
+        PendingSignalTeleport pending = PENDING_SIGNAL_TELEPORTS.computeIfAbsent(key,
+                ignored -> new PendingSignalTeleport(roomUnit, this.fastTeleport));
+
+        pending.add(tile);
+
+        if (pending.markScheduled()) {
+            Emulator.getThreading().run(() -> flushSignalTeleport(key), SIGNAL_TELEPORT_BATCH_DELAY_MS);
+        }
+    }
+
+    private String buildSignalTeleportBatchKey(WiredContext ctx, RoomUnit roomUnit) {
+        return ctx.room().getId()
+                + ":" + this.getId()
+                + ":" + roomUnit.getId()
+                + ":" + ctx.event().getCreatedAtMs()
+                + ":" + ctx.event().getSignalChannel()
+                + ":" + ctx.event().getCallStackDepth();
+    }
+
+    private static void flushSignalTeleport(String key) {
+        PendingSignalTeleport pending = PENDING_SIGNAL_TELEPORTS.remove(key);
+        if (pending == null) {
+            return;
+        }
+
+        RoomTile tile = pending.pickTile();
+        if (tile != null) {
+            teleportUnitToTile(pending.roomUnit, tile, pending.fastTeleport);
         }
     }
 
@@ -304,7 +358,7 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
     public void onPickUp() {
         this.items.clear();
         this.fastTeleport = false;
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.userSource = WiredSourceUtil.SOURCE_TRIGGER;
         this.setDelay(0);
     }
@@ -325,11 +379,17 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
     }
 
     private static int getTeleportDelay(boolean fastTeleport) {
-        return fastTeleport ? Math.max(75, WiredManager.TELEPORT_DELAY / 5) : WiredManager.TELEPORT_DELAY;
+        // The SWF's fast teleport option is the short variant of the normal
+        // teleport, not an almost-instant 1/5 delay. Keep both timings tied to
+        // the configured normal duration so the checkbox remains predictable.
+        return fastTeleport
+                ? Math.max(1, WiredManager.TELEPORT_DELAY / 2)
+                : WiredManager.TELEPORT_DELAY;
     }
 
     private static int getTeleportEffectDuration(boolean fastTeleport) {
-        return fastTeleport ? Math.max(300, (WiredManager.TELEPORT_DELAY + 1000) / 3) : (WiredManager.TELEPORT_DELAY + 1000);
+        int normalDuration = WiredManager.TELEPORT_DELAY + 1000;
+        return fastTeleport ? Math.max(300, normalDuration / 2) : normalDuration;
     }
 
     private static void sendTeleportEffect(Room room, RoomUnit roomUnit, boolean fastTeleport) {
@@ -350,6 +410,34 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
             this.fastTeleport = fastTeleport;
             this.furniSource = furniSource;
             this.userSource = userSource;
+        }
+    }
+
+    private static final class PendingSignalTeleport {
+        private final RoomUnit roomUnit;
+        private final boolean fastTeleport;
+        private final AtomicBoolean scheduled = new AtomicBoolean(false);
+        private final List<RoomTile> candidateTiles = new ArrayList<>();
+
+        private PendingSignalTeleport(RoomUnit roomUnit, boolean fastTeleport) {
+            this.roomUnit = roomUnit;
+            this.fastTeleport = fastTeleport;
+        }
+
+        private synchronized void add(RoomTile tile) {
+            this.candidateTiles.add(tile);
+        }
+
+        private boolean markScheduled() {
+            return this.scheduled.compareAndSet(false, true);
+        }
+
+        private synchronized RoomTile pickTile() {
+            if (this.candidateTiles.isEmpty()) {
+                return null;
+            }
+
+            return this.candidateTiles.get(Emulator.getRandom().nextInt(this.candidateTiles.size()));
         }
     }
 }

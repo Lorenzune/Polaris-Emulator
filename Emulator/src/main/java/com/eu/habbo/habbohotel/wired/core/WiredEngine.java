@@ -392,7 +392,11 @@ public final class WiredEngine {
         // Determine which (regular) effects to execute
         List<IWiredEffect> toExecute;
 
-        if (stack.useRandom()) {
+        if (stack.executeInOrder()) {
+            debug(ctx.room(), "Ordered mode: executing effect batches in stack order by delay");
+            executeOrderedEffects(effects, ctx, currentTime);
+            return;
+        } else if (stack.useRandom()) {
             WiredExtraRandom randomExtra = getRandomExtra(ctx.room(), stack);
             if (effects.isEmpty()) {
                 toExecute = new ArrayList<>();
@@ -430,15 +434,13 @@ public final class WiredEngine {
                     debug(ctx.room(), "Unseen mode fallback: selected effect {}/{}", index + 1, effects.size());
                 }
             }
-        } else if (stack.executeInOrder()) {
-            debug(ctx.room(), "Ordered mode: executing effect batches in stack order by delay");
-            executeOrderedEffects(effects, ctx, currentTime);
-            return;
         } else {
-            // Normal mode: preserve the physical stack order.
-            // This matches the legacy handler behavior and avoids visual/state races
-            // for combinations such as Move/Rotate + Match To Snapshot in the same stack.
+            // Normal mode: Habbo executes same-stack effects in a random physical order unless
+            // wf_xtra_exec_in_order is present. The stack list is already built bottom-to-top,
+            // so ordered mode above is the only path that preserves that physical order.
             toExecute = new ArrayList<>(effects);
+            Collections.shuffle(toExecute, ThreadLocalRandom.current());
+            debug(ctx.room(), "Random-order mode: shuffled {} effect(s)", toExecute.size());
         }
 
         WiredMoveCarryHelper.beginMovementCollection();
@@ -977,6 +979,8 @@ public final class WiredEngine {
         clearRoomSourceStackCache(roomId);
         clearRoomDiagnostics(roomId);
         clearRoomBan(roomId);
+        clearUnseenCache();
+        this.effectCooldownService.clear();
     }
 
     /**

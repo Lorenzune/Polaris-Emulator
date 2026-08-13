@@ -85,7 +85,6 @@ public class InteractionGymEquipment extends InteractionEffectTile implements IC
                     if (!achievement.isEmpty()) {
                         AchievementManager.progressAchievement(habbo.getHabboInfo().getId(), Emulator.getGameEnvironment().getAchievementManager().getAchievement(achievement));
                     }
-
                     this.startTime = timestamp;
                 }
             }

@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Locale;
 
 public class Achievement {
 
@@ -15,6 +16,16 @@ public class Achievement {
 
     public final AchievementCategories category;
 
+    /** The exact category code consumed by the SWF client. */
+    public final String categoryCode;
+
+    /** SWF achievement lifecycle state: enabled, archived, off-season, etc. */
+    public final short state;
+
+    public final String subCategory;
+
+    public final int displayMethod;
+
 
     public final Map<Integer, AchievementLevel> levels;
 
@@ -24,9 +35,37 @@ public class Achievement {
 
         this.id = set.getInt("id");
         this.name = set.getString("name");
-        this.category = AchievementCategories.valueOf(set.getString("category").toUpperCase());
+        this.categoryCode = normalizeCategory(set.getString("category"));
+        this.category = toCategory(this.categoryCode);
+        this.state = 1;
+        this.subCategory = "";
+        this.displayMethod = 0;
 
         this.addLevel(new AchievementLevel(set));
+    }
+
+    public Achievement(int id, String name, String categoryCode, short state, String subCategory, int displayMethod) {
+        this.id = id;
+        this.name = name;
+        this.categoryCode = normalizeCategory(categoryCode);
+        this.category = toCategory(this.categoryCode);
+        this.state = state;
+        this.subCategory = subCategory == null ? "" : subCategory;
+        this.displayMethod = displayMethod;
+        this.levels = new HashMap<>();
+    }
+
+    private static String normalizeCategory(String category) {
+        if (category == null || category.isBlank()) return "other";
+        return category.toLowerCase(Locale.ROOT);
+    }
+
+    private static AchievementCategories toCategory(String category) {
+        try {
+            return AchievementCategories.valueOf(category.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            return AchievementCategories.OTHER;
+        }
     }
 
 
@@ -72,5 +111,13 @@ public class Achievement {
 
     public void clearLevels() {
         this.levels.clear();
+    }
+
+    public AchievementLevel getLastLevel() {
+        AchievementLevel result = null;
+        for (AchievementLevel level : this.levels.values()) {
+            if (result == null || level.level > result.level) result = level;
+        }
+        return result;
     }
 }

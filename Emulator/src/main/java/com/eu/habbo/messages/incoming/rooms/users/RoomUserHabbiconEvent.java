@@ -2,6 +2,7 @@ package com.eu.habbo.messages.incoming.rooms.users;
 
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.Habbo;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.Emulator;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserHabbiconComposer;
@@ -24,6 +25,7 @@ public class RoomUserHabbiconEvent extends MessageHandler {
             return;
 
         room.sendComposer(new RoomUserHabbiconComposer(habbo.getRoomUnit(), habbiconId).compose());
+        AchievementInteractions.progress(habbo, "HabbiconUsed");
         Emulator.getGameEnvironment().getRewardTrackManager()
                 .addProgress(habbo.getHabboInfo().getId(), "use_habbicon", 1);
     }

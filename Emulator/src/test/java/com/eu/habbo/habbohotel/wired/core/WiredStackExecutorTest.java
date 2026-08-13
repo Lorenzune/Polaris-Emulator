@@ -4,9 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.eu.habbo.habbohotel.items.interactions.InteractionWiredCondition;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
+import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.api.IWiredCondition;
@@ -35,7 +39,7 @@ class WiredStackExecutorTest {
 
         assertTrue(executor.executeEvent(stack, event(room), 1_000L, false));
         assertEquals(
-                List.of("trigger", "selectors", "filters", "targets", "condition", "finalize:1000", "effect"), calls);
+                List.of("trigger", "selectors", "filters", "finalize:1000", "targets", "condition", "effect"), calls);
     }
 
     @Test
@@ -47,7 +51,44 @@ class WiredStackExecutorTest {
         WiredStackExecutor executor = executor(calls, 2_345L);
 
         assertTrue(executor.executeDirect(stack, event(room), false));
-        assertEquals(List.of("selectors", "filters", "targets", "finalize:2345", "effect"), calls);
+        assertEquals(List.of("selectors", "filters", "finalize:2345", "targets", "effect"), calls);
+    }
+
+    @Test
+    void triggerAndSelectorsAnimateWithoutAFinalEffect() {
+        List<String> calls = new ArrayList<>();
+        Room room = room(95);
+        IWiredTrigger trigger = trigger(calls, true);
+        InteractionWiredEffect selector = mock(InteractionWiredEffect.class);
+        when(selector.isSelector()).thenReturn(true);
+        WiredStack stack = new WiredStack(item(9_501), trigger, List.of(), List.of(selector));
+        WiredStackExecutor executor = executor(calls, 5_000L);
+
+        assertFalse(executor.executeEvent(stack, event(room), 5_000L, false));
+        assertEquals(List.of("trigger", "selectors", "filters", "finalize:5000", "targets"), calls);
+    }
+
+    @Test
+    void onlyIndividuallyPassingConditionsAnimateWhenTheStackFails() {
+        List<String> calls = new ArrayList<>();
+        Room room = room(96);
+        InteractionWiredTrigger trigger = mock(InteractionWiredTrigger.class);
+        InteractionWiredCondition passingCondition = mock(InteractionWiredCondition.class);
+        InteractionWiredCondition failingCondition = mock(InteractionWiredCondition.class);
+        when(trigger.matches(
+                        org.mockito.ArgumentMatchers.any(HabboItem.class),
+                        org.mockito.ArgumentMatchers.any(WiredEvent.class)))
+                .thenReturn(true);
+        when(passingCondition.evaluate(org.mockito.ArgumentMatchers.any())).thenReturn(true);
+        when(failingCondition.evaluate(org.mockito.ArgumentMatchers.any())).thenReturn(false);
+        WiredStack stack = new WiredStack(
+                trigger, trigger, List.of(passingCondition, failingCondition), List.of());
+        WiredStackExecutor executor = executor(calls, 6_000L);
+
+        assertFalse(executor.executeEvent(stack, event(room), 6_000L, false));
+        verify(trigger).activateBox(room, null, 6_000L);
+        verify(passingCondition).activateBox(room, null, 6_000L);
+        verify(failingCondition, never()).activateBox(room, null, 6_000L);
     }
 
     @Test

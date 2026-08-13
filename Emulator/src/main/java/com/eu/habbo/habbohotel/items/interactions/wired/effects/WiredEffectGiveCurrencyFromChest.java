@@ -82,9 +82,9 @@ public class WiredEffectGiveCurrencyFromChest extends InteractionWiredEffect {
 
     private static void grant(Habbo habbo, int currencyType, int amount) {
         if (currencyType < 0) {
-            habbo.giveCredits(amount);
+            habbo.giveCredits(amount, "wired.reward");
         } else {
-            habbo.givePoints(currencyType, amount);
+            habbo.givePoints(currencyType, amount, "wired.reward");
         }
     }
 

@@ -202,6 +202,9 @@ public class RoomFurniVariableManager {
             }
 
             if (changed) {
+                if (extra != null) {
+                    extra.activateBox(this.room);
+                }
                 this.broadcastSnapshot();
             }
 
@@ -237,6 +240,9 @@ public class RoomFurniVariableManager {
         }
 
         this.emitVariableChangedEvents(furniId, extra, definitionInfo, hadBefore, previousValue, true, assignment.getValue());
+        if (extra != null) {
+            extra.activateBox(this.room);
+        }
         this.broadcastSnapshot();
         return true;
     }

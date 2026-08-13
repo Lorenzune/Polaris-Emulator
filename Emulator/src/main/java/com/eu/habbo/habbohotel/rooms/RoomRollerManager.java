@@ -370,22 +370,11 @@ public class RoomRollerManager {
                 HabboItem item = this.room.getTopItemAt(tileInFront.x, tileInFront.y);
 
                 if (item != null && itemsNewTile.contains(item) && !itemsOnRoller.contains(item)) {
-                    final RoomUnit finalUnit = unit;
-                    final RoomTile finalRollerTile = rollerTile;
-                    Emulator.getThreading()
-                            .run(
-                                    () -> {
-                                        if (finalUnit.getGoal() == finalRollerTile) {
-                                            try {
-                                                item.onWalkOn(
-                                                        finalUnit, this.room, new Object[] {finalRollerTile, tileInFront
-                                                        });
-                                            } catch (Exception e) {
-                                                LOGGER.error("Caught exception", e);
-                                            }
-                                        }
-                                    },
-                                    RoomQueueSpeedControlSupport.getEffectiveRollerIntervalMs(this.room));
+                    try {
+                        item.onWalkOn(unit, this.room, new Object[] {rollerTile, tileInFront});
+                    } catch (Exception e) {
+                        LOGGER.error("Caught exception", e);
+                    }
                 }
             }
 

@@ -29,7 +29,7 @@ public class CreditsCommand extends Command {
                 }
                 if (habbo != null) {
                     if (credits != 0) {
-                        habbo.giveCredits(credits);
+                        habbo.giveCredits(credits, "staff.command.credits");
                         if (habbo.getHabboInfo().getCurrentRoom() != null)
                             habbo.whisper(Emulator.getTexts().getValue("commands.generic.cmd_credits.received").replace("%amount%", Integer.parseInt(params[2]) + ""), RoomChatMessageBubbles.ALERT);
                         else

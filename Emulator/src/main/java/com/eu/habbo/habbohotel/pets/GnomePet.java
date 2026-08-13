@@ -2,6 +2,7 @@ package com.eu.habbo.habbohotel.pets;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.ServerMessage;
 import org.slf4j.Logger;
@@ -65,7 +66,9 @@ public class GnomePet extends Pet implements IPetLook {
     public void scratched(Habbo habbo) {
         super.scratched(habbo);
 
-        if (this.getPetData().getType() == 26) {
+        if (this.getPetData().getType() == 31) {
+            AchievementInteractions.progress(habbo, "HaloompaRespectGiver");
+        } else if (this.getPetData().getType() == 26) {
             if (habbo != null) {
                 AchievementManager.progressAchievement(habbo, Emulator.getGameEnvironment().getAchievementManager().getAchievement("GnomeRespectGiver"));
             }
@@ -83,7 +86,9 @@ public class GnomePet extends Pet implements IPetLook {
     protected void levelUp() {
         super.levelUp();
 
-        if (this.getPetData().getType() == 26) {
+        if (this.getPetData().getType() == 31) {
+            AchievementInteractions.progress(Emulator.getGameEnvironment().getHabboManager().getHabbo(this.getUserId()), "HaloompaLevelUp");
+        } else if (this.getPetData().getType() == 26) {
             AchievementManager.progressAchievement(Emulator.getGameEnvironment().getHabboManager().getHabbo(this.getUserId()), Emulator.getGameEnvironment().getAchievementManager().getAchievement("GnomeLevelUp"));
         } else if (this.getPetData().getType() == 27) {
             AchievementManager.progressAchievement(Emulator.getGameEnvironment().getHabboManager().getHabbo(this.getUserId()), Emulator.getGameEnvironment().getAchievementManager().getAchievement("LeprechaunLevelUp"));

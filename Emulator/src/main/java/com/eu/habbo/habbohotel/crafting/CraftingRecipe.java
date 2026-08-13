@@ -21,7 +21,7 @@ public class CraftingRecipe {
     public CraftingRecipe(ResultSet set) throws SQLException {
         this.id = set.getInt("id");
         this.name = set.getString("product_name");
-        this.reward = Emulator.getGameEnvironment().getItemManager().getItem(set.getInt("reward"));
+        this.reward = Emulator.getGameEnvironment().getItemManager().getItem(set.getString("reward_name"));
         this.secret = set.getString("secret").equals("1");
         this.achievement = set.getString("achievement");
         this.limited = set.getString("limited").equals("1");

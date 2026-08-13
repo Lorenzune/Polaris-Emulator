@@ -67,9 +67,9 @@ public final class ChestWiredCurrencyUtil {
             return;
         }
         if (currencyType < 0) {
-            habbo.giveCredits(amount);
+            habbo.giveCredits(amount, "wired.reward");
         } else {
-            habbo.givePoints(currencyType, amount);
+            habbo.givePoints(currencyType, amount, "wired.reward");
         }
     }
 }

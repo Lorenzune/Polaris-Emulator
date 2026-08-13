@@ -106,10 +106,6 @@ final class WiredStackExecutor {
         if (stack.trigger().requiresActor() && event.getActor().isEmpty()) {
             return false;
         }
-        if (!stackHasExecutableOutcome(stack, event)) {
-            return false;
-        }
-
         WiredState state = new WiredState(this.maxStepsPerStack);
         WiredContext context = new WiredContext(event, stack.triggerItem(), stack, this.services, state, null);
         if (captureResult != null) {
@@ -123,16 +119,25 @@ final class WiredStackExecutor {
         int monitorSourceId = monitorSourceId(stack.triggerItem());
         logMatchedStack(room, stack, event, negateConditions, mode);
 
+        RoomUnit actor = event.getActor().orElse(null);
+        if (stack.triggerItem() instanceof InteractionWiredTrigger trigger) {
+            trigger.activateBox(room, actor, currentTime);
+        }
+
         List<InteractionWiredEffect> executedSelectors = Collections.emptyList();
         if (stack.hasEffects()) {
             executedSelectors = this.hooks.executeSelectors(stack, context);
             this.hooks.applySelectionFilterExtras(stack, context, executedSelectors);
         }
+        this.hooks.finalizeSelectors(executedSelectors, context, currentTime);
         if (!this.hooks.selectorsHaveRequiredTargets(executedSelectors, context)) {
             return false;
         }
 
-        boolean conditionsPassed = this.conditionEvaluator.outcomeForExecution(stack, context, negateConditions);
+        WiredConditionEvaluator.EvaluationResult conditionResult =
+                this.conditionEvaluator.evaluateForExecution(stack, context, negateConditions);
+        boolean conditionsPassed = conditionResult.passed();
+        activatePassingConditions(room, actor, currentTime, conditionResult.conditions());
         List<IWiredEffect> executableEffects = this.effectPlanner.executableEffects(stack, conditionsPassed);
         boolean hasSpecialOutcome = conditionsPassed && hasSpecialTriggerOutcome(stack, event);
         if (!shouldContinueAfterConditionCheck(stack, room, conditionsPassed, executableEffects, hasSpecialOutcome)) {
@@ -177,12 +182,9 @@ final class WiredStackExecutor {
             applyClickUserOptions(stack, event, conditionsPassed);
         }
 
-        RoomUnit actor = event.getActor().orElse(null);
-        if (stack.triggerItem() instanceof InteractionWiredTrigger trigger) {
-            trigger.activateBox(room, actor, currentTime);
+        if (conditionsPassed) {
+            activateExtras(room, stack.triggerItem(), actor, currentTime);
         }
-        activateExtras(room, stack.triggerItem(), actor, currentTime);
-        this.hooks.finalizeSelectors(executedSelectors, context, currentTime);
 
         if (!executableEffects.isEmpty()) {
             this.hooks.executeEffects(stack, executableEffects, context, currentTime);
@@ -277,16 +279,6 @@ final class WiredStackExecutor {
         return WiredTextInputCaptureSupport.resolve(stack, event);
     }
 
-    private static boolean stackHasExecutableOutcome(WiredStack stack, WiredEvent event) {
-        if (stack == null) {
-            return false;
-        }
-        if (stack.hasEffects()) {
-            return true;
-        }
-        return hasSpecialTriggerOutcome(stack, event);
-    }
-
     private static boolean hasSpecialTriggerOutcome(WiredStack stack, WiredEvent event) {
         if (stack == null) {
             return false;
@@ -309,6 +301,22 @@ final class WiredStackExecutor {
                 && event.getActor().isPresent()) {
             WiredTriggerHabboClicksUser.applyRuntimeOptions(
                     event.getActor().get(), clickTrigger.isBlockMenuOpen(), clickTrigger.isDoNotRotate());
+        }
+    }
+
+    private static void activatePassingConditions(
+            Room room,
+            RoomUnit roomUnit,
+            long currentTime,
+            List<WiredConditionEvaluator.ConditionResult> conditionResults) {
+        if (conditionResults == null || conditionResults.isEmpty()) {
+            return;
+        }
+
+        for (WiredConditionEvaluator.ConditionResult result : conditionResults) {
+            if (result.passed() && result.condition() instanceof InteractionWiredCondition condition) {
+                condition.activateBox(room, roomUnit, currentTime);
+            }
         }
     }
 

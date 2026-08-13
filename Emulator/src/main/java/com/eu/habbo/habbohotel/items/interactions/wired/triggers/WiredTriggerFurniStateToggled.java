@@ -29,7 +29,7 @@ public class WiredTriggerFurniStateToggled extends InteractionWiredTrigger {
 
     private Set<StateSnapshot> snapshots;
     private int triggerMode = MODE_ALL_STATES;
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
 
     public WiredTriggerFurniStateToggled(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -86,7 +86,7 @@ public class WiredTriggerFurniStateToggled extends InteractionWiredTrigger {
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
         this.snapshots = new LinkedHashSet<>();
         this.triggerMode = MODE_ALL_STATES;
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         String wiredData = set.getString("wired_data");
 
         if (wiredData != null && wiredData.startsWith("{")) {
@@ -142,7 +142,7 @@ public class WiredTriggerFurniStateToggled extends InteractionWiredTrigger {
     public void onPickUp() {
         this.snapshots.clear();
         this.triggerMode = MODE_ALL_STATES;
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
     }
 
     @Override

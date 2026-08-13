@@ -13,6 +13,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.embedded.EmbeddedChannel;
 import java.lang.reflect.Field;
+import java.util.Collection;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,7 +59,7 @@ class RoomCycleFlushBatchTest {
         ServerMessage second = new ServerMessage(101);
         Room room = new Room(41, 7) {
             @Override
-            public void sendComposer(ServerMessage ignored) {
+            public void sendComposers(Collection<ServerMessage> ignored) {
                 client.sendResponse(first);
                 client.sendResponse(second);
             }

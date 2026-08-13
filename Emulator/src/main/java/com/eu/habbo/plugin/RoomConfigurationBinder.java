@@ -126,12 +126,6 @@ final class RoomConfigurationBinder extends ConfigurationBinder {
                 "hotel.rooms.handitem.time",
                 () -> Room.HAND_ITEM_TIME = this.configuration.getInt("hotel.rooms.handitem.time"));
         this.apply(
-                "hotel.roomuser.idle.cycles",
-                () -> Room.IDLE_CYCLES = this.configuration.getInt("hotel.roomuser.idle.cycles", 240));
-        this.apply(
-                "hotel.roomuser.idle.cycles.kick",
-                () -> Room.IDLE_CYCLES_KICK = this.configuration.getInt("hotel.roomuser.idle.cycles.kick", 480));
-        this.apply(
                 "hotel.room.rollers.roll_avatars.max",
                 () -> Room.ROLLERS_MAXIMUM_ROLL_AVATARS =
                         this.configuration.getInt("hotel.room.rollers.roll_avatars.max", 1));

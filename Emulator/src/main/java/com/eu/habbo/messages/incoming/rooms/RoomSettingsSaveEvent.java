@@ -15,6 +15,7 @@ import java.util.Set;
 
 public class RoomSettingsSaveEvent extends MessageHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(RoomSettingsSaveEvent.class);
+    private static final int MAX_ROOM_NAME_LENGTH = 60;
     private static final int MAX_TAGS = 2;
     private static final int MAX_ROOM_PASSWORD_LENGTH = 64;
     private static final int MIN_USERS_MAX = 1;
@@ -35,7 +36,7 @@ public class RoomSettingsSaveEvent extends MessageHandler {
             if (room.isOwner(this.client.getHabbo())) {
                 String name = this.packet.readString();
 
-                if (name.trim().isEmpty() || name.length() > 60) {
+                if (name.trim().isEmpty() || name.length() > MAX_ROOM_NAME_LENGTH) {
                     this.client.sendResponse(new RoomEditSettingsErrorComposer(room.getId(), RoomEditSettingsErrorComposer.ROOM_NAME_MISSING, ""));
                     return;
                 }

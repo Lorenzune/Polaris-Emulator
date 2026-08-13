@@ -6,6 +6,9 @@ import com.eu.habbo.messages.incoming.Incoming;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.incoming.achievements.RequestAchievementConfigurationEvent;
 import com.eu.habbo.messages.incoming.achievements.RequestAchievementsEvent;
+import com.eu.habbo.messages.incoming.achievements.RequestAchievementEditorEvent;
+import com.eu.habbo.messages.incoming.achievements.AchievementEditorSaveEvent;
+import com.eu.habbo.messages.incoming.achievements.AchievementEditorDeleteEvent;
 import com.eu.habbo.messages.incoming.ambassadors.AmbassadorAlertCommandEvent;
 import com.eu.habbo.messages.incoming.ambassadors.AmbassadorVisitCommandEvent;
 import com.eu.habbo.messages.incoming.camera.*;
@@ -17,6 +20,7 @@ import com.eu.habbo.messages.incoming.catalog.recycler.RecycleEvent;
 import com.eu.habbo.messages.incoming.catalog.recycler.ReloadRecyclerEvent;
 import com.eu.habbo.messages.incoming.catalog.recycler.RequestRecyclerLogicEvent;
 import com.eu.habbo.messages.incoming.crafting.*;
+import com.eu.habbo.messages.incoming.crackable.*;
 import com.eu.habbo.messages.incoming.earnings.ClaimAllEarningsRewardsEvent;
 import com.eu.habbo.messages.incoming.earnings.ClaimEarningsRewardEvent;
 import com.eu.habbo.messages.incoming.earnings.RequestEarningsCenterEvent;
@@ -799,6 +803,13 @@ public class PacketManager {
         this.registerHandler(Incoming.CraftingCraftItemEvent, CraftingCraftItemEvent.class);
         this.registerHandler(Incoming.CraftingCraftSecretEvent, CraftingCraftSecretEvent.class);
         this.registerHandler(Incoming.RequestCraftingRecipesAvailableEvent, RequestCraftingRecipesAvailableEvent.class);
+        this.registerHandler(Incoming.CraftingEditorSaveEvent, CraftingEditorSaveEvent.class);
+        this.registerHandler(Incoming.CraftingEditorDeleteEvent, CraftingEditorDeleteEvent.class);
+        this.registerHandler(Incoming.RequestCrackableEditorEvent, RequestCrackableEditorEvent.class);
+        this.registerHandler(Incoming.CrackableEditorSaveEvent, CrackableEditorSaveEvent.class);
+        this.registerHandler(Incoming.RequestAchievementEditorEvent, RequestAchievementEditorEvent.class);
+        this.registerHandler(Incoming.AchievementEditorSaveEvent, AchievementEditorSaveEvent.class);
+        this.registerHandler(Incoming.AchievementEditorDeleteEvent, AchievementEditorDeleteEvent.class);
     }
 
     void registerCamera() throws Exception {

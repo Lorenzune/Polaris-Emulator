@@ -1,6 +1,7 @@
 package com.eu.habbo.habbohotel.earnings;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.catalog.marketplace.MarketPlace;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboBadge;
@@ -84,6 +85,24 @@ public class EarningsCenterManager {
     private EarningsClaimResult claim(Habbo habbo, EarningsCategory category) {
         int userId = getUserId(habbo);
         int now = now();
+
+        try {
+            if (!PendingCurrencyEarnings.rewards(userId, category).isEmpty()) {
+                if (PendingCurrencyEarnings.claim(habbo, category)) {
+                    if (category == EarningsCategory.DAILY_GIFT && habbo != null) {
+                        AchievementInteractions.progress(habbo, "Profile_Gimmegimme_");
+                    }
+                    return new EarningsClaimResult(
+                            category, EarningsClaimResult.Status.SUCCESS, buildEntry(habbo, userId, category, now));
+                }
+                return new EarningsClaimResult(
+                        category, EarningsClaimResult.Status.NO_REWARD, buildEntry(habbo, userId, category, now));
+            }
+        } catch (SQLException e) {
+            LOGGER.error("Pending earnings claim failed userId={} category={}", userId, category.getKey(), e);
+            return new EarningsClaimResult(category, EarningsClaimResult.Status.ERROR, buildEntry(habbo, userId, category, now));
+        }
+
         CategoryDefinition definition = loadDefinition(habbo, category);
 
         if (!definition.enabled()) {
@@ -148,6 +167,15 @@ public class EarningsCenterManager {
     }
 
     private EarningsEntry buildEntry(Habbo habbo, int userId, EarningsCategory category, int now) {
+        try {
+            List<EarningsReward> pendingRewards = PendingCurrencyEarnings.rewards(userId, category);
+            if (!pendingRewards.isEmpty()) {
+                return new EarningsEntry(category, true, true, 0, pendingRewards);
+            }
+        } catch (SQLException e) {
+            LOGGER.error("Pending earnings could not be loaded userId={} category={}", userId, category.getKey(), e);
+        }
+
         CategoryDefinition definition = loadDefinition(habbo, category);
         boolean claimable = false;
         int nextClaimAt = 0;
@@ -188,6 +216,13 @@ public class EarningsCenterManager {
         int cooldown = Math.max(60, this.config.getInt(key + "cooldown.seconds", DEFAULT_COOLDOWN_SECONDS));
         int pointsType = Math.max(0, this.config.getInt(key + "points.type", DEFAULT_POINTS_TYPE));
         List<EarningsReward> rewards = new ArrayList<>();
+
+        // In production the daily gift exists only as a login assignment in
+        // users_earnings_pending. Ignore the old emulator_settings reward path
+        // so the same daily gift cannot be claimed a second time.
+        if (category == EarningsCategory.DAILY_GIFT && this.config.usesLoginAssignedDailyGift()) {
+            return new CategoryDefinition(enabled, cooldown, List.of());
+        }
 
         if (nativeEnabled(category) && this.nativeIntegration.handles(category)) {
             try {
@@ -301,6 +336,10 @@ public class EarningsCenterManager {
         int getInt(String key, int defaultValue);
 
         String getValue(String key, String defaultValue);
+
+        default boolean usesLoginAssignedDailyGift() {
+            return false;
+        }
     }
 
     public interface ClaimRepository {
@@ -337,6 +376,11 @@ public class EarningsCenterManager {
         @Override
         public String getValue(String key, String defaultValue) {
             return Emulator.getConfig().getValue(key, defaultValue);
+        }
+
+        @Override
+        public boolean usesLoginAssignedDailyGift() {
+            return true;
         }
     }
 
@@ -376,9 +420,9 @@ public class EarningsCenterManager {
 
             for (EarningsReward reward : rewards) {
                 switch (reward.getType()) {
-                    case EarningsReward.TYPE_CREDITS -> habbo.giveCredits(reward.getAmount());
-                    case EarningsReward.TYPE_PIXELS -> habbo.givePixels(reward.getAmount());
-                    case EarningsReward.TYPE_POINTS -> habbo.givePoints(reward.getPointsType(), reward.getAmount());
+                    case EarningsReward.TYPE_CREDITS -> habbo.giveCredits(reward.getAmount(), PendingCurrencyEarnings.CLAIM_REASON_PREFIX + "configured");
+                    case EarningsReward.TYPE_PIXELS -> habbo.givePixels(reward.getAmount(), PendingCurrencyEarnings.CLAIM_REASON_PREFIX + "configured");
+                    case EarningsReward.TYPE_POINTS -> habbo.givePoints(reward.getPointsType(), reward.getAmount(), PendingCurrencyEarnings.CLAIM_REASON_PREFIX + "configured");
                     case EarningsReward.TYPE_BADGE -> grantBadge(habbo, reward.getData());
                     case EarningsReward.TYPE_ITEM -> grantItem(habbo, Integer.parseInt(reward.getData()), reward.getAmount());
                     case EarningsReward.TYPE_HC_DAYS -> grantHcDays(habbo, reward.getAmount());

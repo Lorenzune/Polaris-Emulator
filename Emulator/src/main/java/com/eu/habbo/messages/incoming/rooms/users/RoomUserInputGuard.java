@@ -12,6 +12,6 @@ final class RoomUserInputGuard {
     }
 
     static boolean isValidAction(int action) {
-        return action >= MIN_ACTION_ID && action <= MAX_ACTION_ID;
+        return (action >= MIN_ACTION_ID && action <= MAX_ACTION_ID) || action == 67;
     }
 }

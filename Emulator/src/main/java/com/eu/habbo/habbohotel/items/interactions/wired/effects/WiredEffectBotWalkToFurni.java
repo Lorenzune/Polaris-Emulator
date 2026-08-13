@@ -30,7 +30,7 @@ public class WiredEffectBotWalkToFurni extends InteractionWiredEffect {
 
     private List<HabboItem> items;
     private String botName = "";
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
     private int botSource = WiredBotSourceUtil.SOURCE_BOT_NAME;
 
     public WiredEffectBotWalkToFurni(ResultSet set, Item baseItem) throws SQLException {
@@ -233,7 +233,7 @@ public class WiredEffectBotWalkToFurni extends InteractionWiredEffect {
     public void onPickUp() {
         this.items.clear();
         this.botName = "";
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.botSource = WiredBotSourceUtil.SOURCE_BOT_NAME;
         this.setDelay(0);
     }

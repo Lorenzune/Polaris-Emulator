@@ -103,7 +103,7 @@ public class WiredEffectGiveHotelviewBonusRarePoints extends InteractionWiredEff
         for (RoomUnit unit : WiredSourceUtil.resolveUsers(ctx, this.userSource)) {
             Habbo habbo = room.getHabbo(unit);
             if (habbo == null) continue;
-            habbo.givePoints(pointsType, this.amount);
+            habbo.givePoints(pointsType, this.amount, "wired.reward");
             if (habbo.getClient() != null) {
                 habbo.getClient().sendResponse(new BonusRareComposer(habbo));
             }

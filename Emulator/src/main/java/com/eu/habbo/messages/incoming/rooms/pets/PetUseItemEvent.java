@@ -1,6 +1,7 @@
 package com.eu.habbo.messages.incoming.rooms.pets;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
 import com.eu.habbo.habbohotel.pets.HorsePet;
 import com.eu.habbo.habbohotel.pets.MonsterplantPet;
@@ -141,6 +142,7 @@ public class PetUseItemEvent extends MessageHandler {
                             Emulator.getGameEnvironment()
                                     .getAchievementManager()
                                     .getAchievement("MonsterPlantHealer"));
+                    AchievementInteractions.progress(this.client.getHabbo(), "MonsterPlantQuestCompleted");
                     pet.getRoomUnit().removeStatus(RoomUnitStatus.GESTURE);
                     Emulator.getThreading().runPersistence(new QueryDeleteHabboItem(item.getId()));
                 }

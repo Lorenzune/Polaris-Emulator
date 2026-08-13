@@ -124,6 +124,9 @@ public class CameraRoomThumbnailEvent extends MessageHandler {
         }
 
         File imageFile = new File(Emulator.getConfig().getValue("imager.location.output.thumbnail") + room.getId() + ".png");
+        if (imageFile.exists()) {
+            imageFile.delete();
+        }
         try {
             ImageIO.write(theImage, "png", imageFile);
         } catch (IOException e) {

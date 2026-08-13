@@ -34,7 +34,7 @@ public class WiredEffectControlClock extends InteractionWiredEffect {
 
     private final List<HabboItem> items = new ArrayList<>();
     private int action = ACTION_START;
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
 
     public WiredEffectControlClock(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -173,7 +173,7 @@ public class WiredEffectControlClock extends InteractionWiredEffect {
         }
 
         this.action = ACTION_START;
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.setDelay(0);
     }
 
@@ -181,7 +181,7 @@ public class WiredEffectControlClock extends InteractionWiredEffect {
     public void onPickUp() {
         this.items.clear();
         this.action = ACTION_START;
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.setDelay(0);
     }
 

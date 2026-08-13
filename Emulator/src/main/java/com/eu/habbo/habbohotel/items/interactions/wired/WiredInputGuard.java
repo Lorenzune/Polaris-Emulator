@@ -18,9 +18,13 @@ public final class WiredInputGuard {
     }
 
     public static int[] readIntParams(ClientMessage packet) {
+        return readIntArray(packet, MAX_INT_PARAMS, "wired int param count");
+    }
+
+    public static int[] readIntArray(ClientMessage packet, int maxCount, String fieldName) {
         int count = packet.readInt();
-        if (count < 0 || count > MAX_INT_PARAMS) {
-            throw new IllegalArgumentException("Invalid wired int param count");
+        if (count < 0 || count > maxCount || packet.bytesAvailable() < count * Integer.BYTES) {
+            throw new IllegalArgumentException("Invalid " + fieldName);
         }
 
         int[] values = new int[count];

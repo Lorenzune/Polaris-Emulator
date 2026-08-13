@@ -70,6 +70,7 @@ public final class RoomConfInvisSupport {
         }
 
         room.sendComposer(new ConfInvisStateComposer(room).compose());
+        RoomAreaHideSupport.synchronizeClientVisibility(room);
     }
 
     public static void sendState(Room room, GameClient client) {

@@ -33,28 +33,34 @@ final class WiredConditionEvaluator {
     }
 
     boolean outcomeForExecution(WiredStack stack, WiredContext context, boolean negateConditions) {
-        if (!stack.hasConditions()) {
-            return !negateConditions;
-        }
-
-        boolean conditionsPassed = evaluate(stack, context);
-        diagnostics.log(context.room(), "Conditions result: {}", conditionsPassed ? "PASSED" : "FAILED");
-        return negateConditions ? !conditionsPassed : conditionsPassed;
+        return evaluateForExecution(stack, context, negateConditions).passed();
     }
 
-    private boolean evaluate(WiredStack stack, WiredContext context) {
+    EvaluationResult evaluateForExecution(WiredStack stack, WiredContext context, boolean negateConditions) {
+        if (!stack.hasConditions()) {
+            return new EvaluationResult(!negateConditions, List.of());
+        }
+
+        EvaluationResult rawResult = evaluate(stack, context);
+        boolean conditionsPassed = rawResult.passed();
+        diagnostics.log(context.room(), "Conditions result: {}", conditionsPassed ? "PASSED" : "FAILED");
+        return new EvaluationResult(negateConditions ? !conditionsPassed : conditionsPassed, rawResult.conditions());
+    }
+
+    private EvaluationResult evaluate(WiredStack stack, WiredContext context) {
         return evaluateByMode(
                 stack.conditions(), context, stack.conditionEvaluationMode(), stack.conditionEvaluationValue());
     }
 
-    private boolean evaluateByMode(
+    private EvaluationResult evaluateByMode(
             List<IWiredCondition> conditions, WiredContext context, int evaluationMode, int evaluationValue) {
         if (conditions == null || conditions.isEmpty()) {
-            return true;
+            return new EvaluationResult(true, List.of());
         }
 
         Room room = context.room();
         Map<String, List<Boolean>> groupedOrResults = new LinkedHashMap<>();
+        List<ConditionResult> conditionResults = new ArrayList<>(conditions.size());
         int matchedRequirements = 0;
         int totalRequirements = 0;
 
@@ -62,6 +68,7 @@ final class WiredConditionEvaluator {
             context.state().step();
 
             boolean result = condition.evaluate(context);
+            conditionResults.add(new ConditionResult(condition, result));
             String conditionKey = conditionGroupKey(condition);
 
             if (condition.operator() == WiredConditionOperator.OR) {
@@ -108,7 +115,7 @@ final class WiredConditionEvaluator {
                 matchedRequirements,
                 totalRequirements,
                 matches ? "PASS" : "FAIL");
-        return matches;
+        return new EvaluationResult(matches, List.copyOf(conditionResults));
     }
 
     private static String conditionGroupKey(IWiredCondition condition) {
@@ -118,4 +125,8 @@ final class WiredConditionEvaluator {
 
         return condition.getClass().getName();
     }
+
+    record ConditionResult(IWiredCondition condition, boolean passed) {}
+
+    record EvaluationResult(boolean passed, List<ConditionResult> conditions) {}
 }

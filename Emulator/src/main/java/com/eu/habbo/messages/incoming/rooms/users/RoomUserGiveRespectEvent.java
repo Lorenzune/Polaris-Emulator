@@ -8,11 +8,6 @@ import com.eu.habbo.plugin.events.users.UserRespectedEvent;
 public class RoomUserGiveRespectEvent extends MessageHandler {
 
     @Override
-    public int getRatelimit() {
-        return 250;
-    }
-
-    @Override
     public void handle() throws Exception {
         int userId = this.packet.readInt();
 

@@ -12,8 +12,7 @@ public enum EarningsCategory {
     LEVEL_PROGRESS("level_progress"),
     DONATIONS("donations"),
     BONUS_BAG("bonus_bag"),
-    MYSTERY_BOXES("mystery_boxes"),
-    CLUB_JOB("club_job");
+    MYSTERY_BOXES("mystery_boxes");
 
     private final String key;
 

@@ -215,7 +215,21 @@ public class WiredEffectWhisper extends InteractionWiredEffect {
     }
 
     private String buildDeliveryKey(WiredContext ctx, Habbo habbo) {
-        return ctx.room().getId() + ":" + this.getId() + ":" + habbo.getHabboInfo().getId() + ":" + ctx.event().getCreatedAtMs();
+        String sourceItemId = ctx.sourceItem()
+                .map(item -> String.valueOf(item.getId()))
+                .orElse("-");
+        String actorId = ctx.actor()
+                .map(roomUnit -> String.valueOf(roomUnit.getId()))
+                .orElse("-");
+
+        return ctx.room().getId()
+                + ":" + this.getId()
+                + ":" + habbo.getHabboInfo().getId()
+                + ":" + ctx.event().getCreatedAtMs()
+                + ":" + ctx.event().getSignalChannel()
+                + ":" + ctx.event().getCallStackDepth()
+                + ":" + sourceItemId
+                + ":" + actorId;
     }
 
     private static void cleanupDeliveryDedup(long now) {

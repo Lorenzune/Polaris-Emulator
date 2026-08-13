@@ -61,7 +61,7 @@ public class WiredEffectGivePointsType extends InteractionWiredEffect {
         for (RoomUnit unit : WiredSourceUtil.resolveUsers(ctx, this.userSource)) {
             Habbo habbo = room.getHabbo(unit);
             if (habbo == null) continue;
-            habbo.givePoints(this.pointsType, this.amount);
+            habbo.givePoints(this.pointsType, this.amount, "wired.reward");
         }
     }
 

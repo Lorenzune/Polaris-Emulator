@@ -2,6 +2,7 @@ package com.eu.habbo.messages.incoming.users;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.messages.incoming.MessageHandler;
 
 public class UserActivityEvent extends MessageHandler {
@@ -16,6 +17,12 @@ public class UserActivityEvent extends MessageHandler {
         String value = this.packet.readString();
         String action = this.packet.readString();
 
+        if ("settings.terms.and.conditions.seen".equals(action)
+                || "settings.help.terms.and.conditions.seen".equals(action)
+                || "settings.help.terms_of_service.seen".equals(action)) {
+            AchievementInteractions.progress(this.client.getHabbo(), "FairPlay");
+        }
+
         if (type.equals("Quiz")) {
             if (value.equalsIgnoreCase("7")) {
                 AchievementManager.progressAchievement(this.client.getHabbo(), Emulator.getGameEnvironment().getAchievementManager().getAchievement("SafetyQuizGraduate"));
@@ -23,6 +30,9 @@ public class UserActivityEvent extends MessageHandler {
         }
 
         switch (action) {
+            case "achievements.archive.opened":
+                AchievementInteractions.progress(this.client.getHabbo(), "VicGar");
+                break;
             case "forum.can.read.seen":
                 AchievementManager.progressAchievement(this.client.getHabbo(), Emulator.getGameEnvironment().getAchievementManager().getAchievement("SelfModForumCanReadSeen"));
                 break;

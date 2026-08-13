@@ -521,6 +521,13 @@ public class Incoming {
     public static final int ClaimEarningsRewardEvent = 9309;
     public static final int ClaimAllEarningsRewardsEvent = 9310;
     public static final int PressKeybindEvent = 9311;
+    public static final int CraftingEditorSaveEvent = 10070;
+    public static final int CraftingEditorDeleteEvent = 10071;
+    public static final int RequestCrackableEditorEvent = 10072;
+    public static final int CrackableEditorSaveEvent = 10073;
+    public static final int RequestAchievementEditorEvent = 10074;
+    public static final int AchievementEditorSaveEvent = 10075;
+    public static final int AchievementEditorDeleteEvent = 10076;
     public static final int TraxEditorRequestSongsEvent = 9330;
     public static final int TraxEditorBuySongEvent = 9331;
     public static final int TraxEditorSaveSongEvent = 9332;

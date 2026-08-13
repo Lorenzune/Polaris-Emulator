@@ -3,6 +3,7 @@ package com.eu.habbo.habbohotel.rooms;
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.users.LedgerWalletMutation;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.inventory.AddHabboItemComposer;
@@ -249,6 +250,10 @@ public class RoomTrade {
         for (HabboItem item : itemsUserTwo)
             item.setUserId(userOne.getHabbo().getHabboInfo().getId());
 
+        int collectibleOne = collectibleCount(userOne.getItems());
+        int collectibleTwo = collectibleCount(userTwo.getItems());
+        int silverOne = silverCount(userOne.getItems());
+        int silverTwo = silverCount(userTwo.getItems());
         userOne.clearItems();
         userTwo.clearItems();
 
@@ -263,7 +268,32 @@ public class RoomTrade {
 
         userOne.getHabbo().getClient().sendResponse(new InventoryRefreshComposer());
         userTwo.getHabbo().getClient().sendResponse(new InventoryRefreshComposer());
+        AchievementInteractions.progress(userOne.getHabbo(), "TradeCount");
+        AchievementInteractions.progress(userTwo.getHabbo(), "TradeCount");
+        AchievementInteractions.progress(userOne.getHabbo(), "CollectiblesTraded", collectibleTwo);
+        AchievementInteractions.progress(userTwo.getHabbo(), "CollectiblesTraded", collectibleOne);
+        AchievementInteractions.progress(userOne.getHabbo(), "SilverTraded", silverTwo);
+        AchievementInteractions.progress(userTwo.getHabbo(), "SilverTraded", silverOne);
+        AchievementInteractions.progress(userOne.getHabbo(), "CoinValueTraded", committedCreditsForUserOne);
+        AchievementInteractions.progress(userTwo.getHabbo(), "CoinValueTraded", committedCreditsForUserTwo);
         return true;
+    }
+
+    private static int collectibleCount(Iterable<HabboItem> items) {
+        int count = 0;
+        for (HabboItem item : items) {
+            String name = item.getBaseItem().getName().toLowerCase(java.util.Locale.ROOT);
+            if (name.contains("nft") || name.contains("collectible")) count++;
+        }
+        return count;
+    }
+
+    private static int silverCount(Iterable<HabboItem> items) {
+        int count = 0;
+        for (HabboItem item : items) {
+            if (item.getBaseItem().getName().toLowerCase(java.util.Locale.ROOT).contains("silver")) count++;
+        }
+        return count;
     }
 
     private static int resolveCredits(Habbo habbo, int credits) {

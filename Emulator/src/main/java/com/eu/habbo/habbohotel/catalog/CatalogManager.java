@@ -2,6 +2,7 @@ package com.eu.habbo.habbohotel.catalog;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.bots.Bot;
 import com.eu.habbo.habbohotel.catalog.layouts.BadgeDisplayLayout;
 import com.eu.habbo.habbohotel.catalog.layouts.BotsLayout;
@@ -1003,6 +1004,15 @@ public class CatalogManager {
             }
             return snapshot;
         }
+    }
+
+    public int getRecyclerPrizeRarity(int baseItemId) {
+        synchronized (this.prizes) {
+            for (Map.Entry<Integer, Set<Item>> entry : this.prizes.entrySet()) {
+                for (Item item : entry.getValue()) if (item.getId() == baseItemId) return entry.getKey();
+            }
+        }
+        return 0;
     }
 
     public Map<Integer, ClothItem> getClothingSnapshot() {
@@ -2414,6 +2424,13 @@ public class CatalogManager {
         if (purchase.includesMusicDisc()) {
             AchievementManager.progressAchievement(
                     habbo, Emulator.getGameEnvironment().getAchievementManager().getAchievement("MusicCollector"));
+        }
+        CatalogItem purchasedCatalogItem = purchase.event().catalogItem;
+        if (purchasedCatalogItem != null && purchasedCatalogItem.isLimited()) {
+            AchievementInteractions.progress(habbo, "LTDPurchaser");
+            int soldNumber = purchasedCatalogItem.getLimitedSells();
+            int earlyBirdLimit = Math.max(1, Emulator.getConfig().getInt("achievements.ltd.early_bird_limit", 10));
+            if (soldNumber <= earlyBirdLimit) AchievementInteractions.progress(habbo, "LTDEarlyBird");
         }
         habbo.getHabboStats().addPurchase(purchase.event().catalogItem);
         habbo.getClient().sendResponse(new AddHabboItemComposer(unseenItems));

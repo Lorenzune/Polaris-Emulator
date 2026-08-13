@@ -5,6 +5,7 @@ import com.eu.habbo.habbohotel.messenger.Messenger;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.gameclients.GameClientManager;
 import com.eu.habbo.habbohotel.gameclients.SessionResumeManager;
+import com.eu.habbo.habbohotel.earnings.DailyGiftManager;
 import com.eu.habbo.habbohotel.modtool.ModToolSanctionItem;
 import com.eu.habbo.habbohotel.modtool.ModToolSanctions;
 import com.eu.habbo.habbohotel.navigation.NavigatorSavedSearch;
@@ -346,6 +347,8 @@ public class SecureLoginEvent extends MessageHandler {
                         Emulator.getGameServer().getGameClientManager().forceDisposeClient(this.client);
                         return;
                     }
+
+                    DailyGiftManager.assignOnLogin(habbo);
 
                     if (Emulator.getConfig().getBoolean("hotel.welcome.alert.enabled")) {
                         final Habbo finalHabbo = habbo;

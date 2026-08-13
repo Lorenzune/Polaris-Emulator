@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
+import java.util.Map;
 
 public class HabboBadge implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(HabboBadge.class);
@@ -56,14 +57,14 @@ public class HabboBadge implements Runnable {
     }
 
     @Override
-    public void run() {
+    public synchronized void run() {
         try {
             if (this.needsInsert) {
-                try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+                try (Connection connection = openPersistenceConnection()) {
                     this.insert(connection);
                 }
             } else if (this.needsUpdate) {
-                try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("UPDATE users_badges SET slot_id = ?, badge_code = ? WHERE id = ? AND user_id = ?")) {
+                try (Connection connection = openPersistenceConnection(); PreparedStatement statement = connection.prepareStatement("UPDATE users_badges SET slot_id = ?, badge_code = ? WHERE id = ? AND user_id = ?")) {
                     statement.setInt(1, this.slot);
                     statement.setString(2, this.code);
                     statement.setInt(3, this.id);
@@ -75,6 +76,51 @@ public class HabboBadge implements Runnable {
         } catch (SQLException e) {
             LOGGER.error("Caught SQL exception", e);
         }
+    }
+
+    public static boolean persistWearingSlots(Habbo habbo, Map<Integer, HabboBadge> wearingBadges) {
+        if (habbo == null) return false;
+
+        try (Connection connection = openSlotTransactionConnection()) {
+            connection.setAutoCommit(false);
+
+            try (PreparedStatement reset = connection.prepareStatement(
+                    "UPDATE users_badges SET slot_id = 0 WHERE user_id = ?");
+                 PreparedStatement equip = connection.prepareStatement(
+                    "UPDATE users_badges SET slot_id = ? WHERE id = ? AND user_id = ?")) {
+                int userId = habbo.getHabboInfo().getId();
+
+                reset.setInt(1, userId);
+                reset.executeUpdate();
+
+                for (Map.Entry<Integer, HabboBadge> entry : wearingBadges.entrySet()) {
+                    equip.setInt(1, entry.getKey());
+                    equip.setInt(2, entry.getValue().getId());
+                    equip.setInt(3, userId);
+
+                    if (equip.executeUpdate() != 1) {
+                        throw new SQLException("Unable to persist equipped badge " + entry.getValue().getCode());
+                    }
+                }
+
+                connection.commit();
+                return true;
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            }
+        } catch (SQLException exception) {
+            LOGGER.error("Could not persist equipped badges", exception);
+            return false;
+        }
+    }
+
+    private static Connection openPersistenceConnection() throws SQLException {
+        return Emulator.getDatabase().getDataSource().getConnection();
+    }
+
+    private static Connection openSlotTransactionConnection() throws SQLException {
+        return Emulator.getDatabase().getDataSource().getConnection();
     }
 
     public void insert(Connection connection) throws SQLException {

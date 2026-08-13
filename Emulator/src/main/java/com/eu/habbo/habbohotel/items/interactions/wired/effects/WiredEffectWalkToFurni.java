@@ -27,7 +27,7 @@ public class WiredEffectWalkToFurni extends InteractionWiredEffect {
 
     protected List<HabboItem> items;
     private boolean fastTeleport = false;
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
     private int userSource = WiredSourceUtil.SOURCE_TRIGGER;
 
     public WiredEffectWalkToFurni(ResultSet set, Item baseItem) throws SQLException {
@@ -228,7 +228,7 @@ public class WiredEffectWalkToFurni extends InteractionWiredEffect {
     public void onPickUp() {
         this.items.clear();
         this.fastTeleport = false;
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.userSource = WiredSourceUtil.SOURCE_TRIGGER;
         this.setDelay(0);
     }

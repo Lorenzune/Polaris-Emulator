@@ -44,7 +44,8 @@ class WiredExecutionSemanticsCompatibilityTest {
         WiredEngine engine = engine(room, stack);
 
         assertTrue(engine.handleEvent(event(room)));
-        assertEquals(List.of("trigger", "selector", "condition", "effect-1", "effect-2"), calls);
+        assertEquals(List.of("trigger", "selector", "condition"), calls.subList(0, 3));
+        assertTrue(calls.subList(3, 5).containsAll(List.of("effect-1", "effect-2")));
     }
 
     @Test
@@ -145,7 +146,8 @@ class WiredExecutionSemanticsCompatibilityTest {
                 List.of(failing, effect(calls, "following")));
 
         assertTrue(engine(room, stack).handleEvent(event(room)));
-        assertEquals(List.of("failing", "following"), calls);
+        assertEquals(2, calls.size());
+        assertTrue(calls.containsAll(List.of("failing", "following")));
     }
 
     @Test

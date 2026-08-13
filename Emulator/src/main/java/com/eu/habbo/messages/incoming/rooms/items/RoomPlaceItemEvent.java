@@ -7,6 +7,7 @@ import com.eu.habbo.habbohotel.modtool.ScripterManager;
 import com.eu.habbo.habbohotel.rooms.BuildersClubRoomSupport;
 import com.eu.habbo.habbohotel.rooms.*;
 import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.catalog.BuildersClubFurniCountComposer;
 import com.eu.habbo.messages.outgoing.catalog.BuildersClubSubscriptionStatusComposer;
@@ -131,6 +132,11 @@ public class RoomPlaceItemEvent extends MessageHandler {
         this.client.sendResponse(new RemoveHabboItemComposer(item.getGiftAdjustedId()));
         this.client.getHabbo().getInventory().getItemsComponent().removeHabboItem(item.getId());
         item.setFromGift(false);
+        int creditValue = com.eu.habbo.habbohotel.rooms.RoomTrade.getCreditsByItem(item);
+        if (creditValue > 0) AchievementInteractions.progress(this.client.getHabbo(), "PlaceCreditValue", creditValue);
+        if (item instanceof InteractionStackHelper || item instanceof InteractionStackWalkHelper) {
+            AchievementInteractions.progress(this.client.getHabbo(), "FurniOrganizer");
+        }
         Emulator.getGameEnvironment().getRewardTrackManager()
                 .addProgress(this.client.getHabbo().getHabboInfo().getId(), "place_item", 1);
 
@@ -153,6 +159,7 @@ public class RoomPlaceItemEvent extends MessageHandler {
             }
 
             if (trackedUserId == this.client.getHabbo().getHabboInfo().getId()) {
+                AchievementInteractions.progress(this.client.getHabbo(), "RoomDecoBC");
                 this.client.sendResponse(new BuildersClubFurniCountComposer(BuildersClubRoomSupport.getTrackedFurniCount(trackedUserId)));
                 this.client.sendResponse(new BuildersClubSubscriptionStatusComposer(this.client.getHabbo()));
             }

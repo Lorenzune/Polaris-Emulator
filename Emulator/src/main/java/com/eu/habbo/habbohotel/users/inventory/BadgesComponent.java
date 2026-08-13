@@ -4,6 +4,8 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.permissions.Rank;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboBadge;
+import com.eu.habbo.messages.outgoing.inventory.InventoryBadgesComposer;
+import com.eu.habbo.messages.outgoing.users.UserBadgesComposer;
 import com.eu.habbo.networking.gameserver.badges.BadgeLeaderboardHttpHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +17,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class BadgesComponent {
@@ -63,13 +66,48 @@ public class BadgesComponent {
     }
 
     public static void resetSlots(Habbo habbo) {
-        for (HabboBadge badge : habbo.getInventory().getBadgesComponent().getBadges()) {
-            if (badge.getSlot() == 0)
-                continue;
+        habbo.getInventory().getBadgesComponent().replaceWearingBadges(habbo, Map.of());
+    }
 
-            badge.setSlot(0);
-            badge.needsUpdate(true);
-            Emulator.getThreading().run(badge);
+    public boolean replaceWearingBadges(Habbo habbo, Map<Integer, HabboBadge> wearingBadges) {
+        synchronized (this.badges) {
+            for (Map.Entry<Integer, HabboBadge> entry : wearingBadges.entrySet()) {
+                int slot = entry.getKey();
+                HabboBadge badge = entry.getValue();
+
+                if (slot < 1 || slot > 5 || badge == null || !this.badges.contains(badge)) return false;
+
+                // A badge granted immediately before this request may still be waiting
+                // for its insert task. Give it a stable database id before the atomic
+                // slot update so a quick logout can never lose the equipped state.
+                if (badge.getId() <= 0) badge.run();
+                if (badge.getId() <= 0) return false;
+            }
+
+            if (!HabboBadge.persistWearingSlots(habbo, wearingBadges)) return false;
+
+            for (HabboBadge badge : this.badges) badge.setSlot(0);
+            for (Map.Entry<Integer, HabboBadge> entry : wearingBadges.entrySet()) {
+                entry.getValue().setSlot(entry.getKey());
+            }
+
+            return true;
+        }
+    }
+
+    public static void synchronizeBadgeState(Habbo habbo) {
+        if (habbo == null || habbo.getClient() == null) return;
+
+        habbo.getClient().sendResponse(new InventoryBadgesComposer(habbo));
+
+        UserBadgesComposer composer = new UserBadgesComposer(
+                habbo.getInventory().getBadgesComponent().getWearingBadges(),
+                habbo.getHabboInfo().getId());
+
+        if (habbo.getHabboInfo().getCurrentRoom() != null) {
+            habbo.getHabboInfo().getCurrentRoom().sendComposer(composer.compose());
+        } else {
+            habbo.getClient().sendResponse(composer);
         }
     }
 
@@ -129,6 +167,14 @@ public class BadgesComponent {
 
     public Set<HabboBadge> getBadges() {
         return this.badges;
+    }
+
+    public ArrayList<HabboBadge> getBadgesSnapshot() {
+        synchronized (this.badges) {
+            ArrayList<HabboBadge> snapshot = new ArrayList<>(this.badges);
+            snapshot.sort(Comparator.comparingInt(HabboBadge::getId));
+            return snapshot;
+        }
     }
 
     public boolean hasBadge(String badge) {

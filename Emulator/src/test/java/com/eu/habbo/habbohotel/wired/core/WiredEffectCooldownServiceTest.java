@@ -15,6 +15,7 @@ import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.wired.api.IWiredEffect;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 
@@ -25,6 +26,20 @@ class WiredEffectCooldownServiceTest {
         WiredEffectCooldownService service = new WiredEffectCooldownService(() -> true);
         InteractionWiredEffect effect = mock(InteractionWiredEffect.class, Answers.CALLS_REAL_METHODS);
         doReturn(true).when(effect).requiresTriggeringUser();
+        AtomicLong globalClaim = new AtomicLong(Long.MIN_VALUE);
+        doAnswer(invocation -> {
+                    long timestamp = invocation.getArgument(0);
+                    long previous = globalClaim.get();
+                    return previous == Long.MIN_VALUE || timestamp - previous >= 50L;
+                })
+                .when(effect)
+                .canExecute(anyLong());
+        doAnswer(invocation -> {
+                    globalClaim.set(invocation.getArgument(0));
+                    return null;
+                })
+                .when(effect)
+                .setCooldown(anyLong());
         Map<Integer, Long> userClaims = new HashMap<>();
         doAnswer(invocation -> {
                     userClaims.put(invocation.getArgument(0), invocation.getArgument(1));

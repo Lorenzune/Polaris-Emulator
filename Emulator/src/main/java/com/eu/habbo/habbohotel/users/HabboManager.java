@@ -328,7 +328,7 @@ public class HabboManager {
     public void giveCredits(int userId, int credits) {
         Habbo habbo = this.getHabbo(userId);
         if (habbo != null) {
-            habbo.giveCredits(credits, "system.habbo_manager");
+            habbo.giveCredits(credits, "staff.command.credits");
         } else {
             try {
                 EconomyLedger.execute(new EconomyOperation(
@@ -336,7 +336,7 @@ public class HabboManager {
                         userId,
                         userId,
                         credits > 0 ? "credit_grant" : "credit_debit",
-                        "system.habbo_manager",
+                        "staff.command.credits",
                         EconomyLedger.CREDITS,
                         credits,
                         null,

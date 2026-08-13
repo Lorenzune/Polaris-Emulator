@@ -37,7 +37,7 @@ public class WiredEffectRelativeMove extends InteractionWiredEffect {
     private int horizontalDistance = 0;
     private int verticalDirection = VERTICAL_POSITIVE;
     private int verticalDistance = 0;
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
 
     public WiredEffectRelativeMove(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -136,7 +136,7 @@ public class WiredEffectRelativeMove extends InteractionWiredEffect {
         this.horizontalDistance = 0;
         this.verticalDirection = VERTICAL_POSITIVE;
         this.verticalDistance = 0;
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.setDelay(0);
     }
 
@@ -147,7 +147,7 @@ public class WiredEffectRelativeMove extends InteractionWiredEffect {
         this.horizontalDistance = 0;
         this.verticalDirection = VERTICAL_POSITIVE;
         this.verticalDistance = 0;
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.setDelay(0);
     }
 

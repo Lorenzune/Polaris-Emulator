@@ -64,7 +64,7 @@ public class InteractionPuzzleBox extends HabboItem {
         this.needsUpdate(true);
         room.updateItem(this);
 
-        room.scheduledComposers.add(new FloorItemOnRollerComposer(this, null, tile, 0, room).compose());
+        room.scheduleComposer(new FloorItemOnRollerComposer(this, null, tile, 0, room).compose());
         room.scheduledTasks.add(() -> {
             client.getHabbo().getRoomUnit().setGoalLocation(boxLocation);
 

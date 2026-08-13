@@ -1,2 +1,2 @@
-05:08:40.847 [HabExec-1-1] ERROR com.eu.habbo.core.ConfigurationManager - Config key not found youtube.apikey
-05:08:41.695 [main] ERROR com.eu.habbo.util.imager.badges.BadgeImager - BadgeImager output folder: /var/www/testhotel/Cosmic/public/usercontent/badgeparts does not exist!
+00:17:00.141 [GamePacketHandler-8-15] ERROR com.eu.habbo.networking.gameserver.decoders.GameMessageHandler - Plaintext received instead of ssl, closing channel
+00:17:00.152 [GamePacketHandler-8-16] ERROR com.eu.habbo.networking.gameserver.decoders.GameMessageHandler - Plaintext received instead of ssl, closing channel

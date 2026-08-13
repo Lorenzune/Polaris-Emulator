@@ -460,11 +460,8 @@ final class RoomItemMovementService {
                         return FurnitureMovementError.CANT_STACK;
                     }
 
-                    if (!Emulator.getConfig().getBoolean("wired.place.under", false)
-                            || (Emulator.getConfig().getBoolean("wired.place.under", false)
-                                    && !item.isWalkable()
-                                    && !item.getBaseItem().allowSit()
-                                    && !item.getBaseItem().allowLay())) {
+                    boolean canWalkSitLay = item.isWalkable() || item.getBaseItem().allowSit() || item.getBaseItem().allowLay();
+                    if (!canWalkSitLay) {
                         if (checkForUnits) {
                             if (!magicTile && this.room.hasHabbosAt(t.x, t.y)) {
                                 return FurnitureMovementError.TILE_HAS_HABBOS;
@@ -907,10 +904,6 @@ final class RoomItemMovementService {
     private boolean shouldCheckUnits(HabboItem item, boolean checkForUnits) {
         if (!checkForUnits) {
             return false;
-        }
-
-        if (!Emulator.getConfig().getBoolean("wired.place.under", false)) {
-            return true;
         }
 
         return !item.isWalkable()

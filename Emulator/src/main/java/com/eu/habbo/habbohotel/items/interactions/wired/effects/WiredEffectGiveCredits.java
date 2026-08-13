@@ -98,7 +98,7 @@ public class WiredEffectGiveCredits extends InteractionWiredEffect {
         for (RoomUnit unit : WiredSourceUtil.resolveUsers(ctx, this.userSource)) {
             Habbo habbo = room.getHabbo(unit);
             if (habbo == null) continue;
-            habbo.giveCredits(this.amount);
+            habbo.giveCredits(this.amount, "wired.reward");
         }
     }
 

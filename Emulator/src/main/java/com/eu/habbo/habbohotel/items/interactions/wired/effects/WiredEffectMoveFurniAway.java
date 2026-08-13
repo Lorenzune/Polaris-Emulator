@@ -31,7 +31,7 @@ public class WiredEffectMoveFurniAway extends InteractionWiredEffect {
     public static final WiredEffectType type = WiredEffectType.FLEE;
 
     private Set<HabboItem> items = new LinkedHashSet<>();
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
 
     public WiredEffectMoveFurniAway(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -214,7 +214,7 @@ public class WiredEffectMoveFurniAway extends InteractionWiredEffect {
     @Override
     public void onPickUp() {
         this.items.clear();
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.setDelay(0);
     }
 

@@ -16,6 +16,7 @@ import com.eu.habbo.habbohotel.rooms.RoomUserRotation;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
+import com.eu.habbo.habbohotel.wired.core.WiredEvent;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredMoveCarryHelper;
 import com.eu.habbo.habbohotel.wired.core.WiredSimulation;
@@ -41,9 +42,12 @@ public class WiredEffectMoveRotateFurni extends InteractionWiredEffect implement
     private final Set<HabboItem> items = new LinkedHashSet<>(WiredManager.MAXIMUM_FURNI_SELECTION / 2);
     private int direction;
     private int rotation;
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
-    // Use thread-safe set for cooldowns since execute() can be called from async threads
-    private final Set<HabboItem> itemCooldowns = ConcurrentHashMap.newKeySet();
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
+    // Use thread-safe set for cooldowns since execute() can be called from async threads.
+    // For signal-per-furni chains the same effect can validly move the same selected item once per
+    // forwarded source item before the next cycle. Keep those signal sources distinct instead of
+    // collapsing the whole burst to one movement.
+    private final Set<String> itemCooldowns = ConcurrentHashMap.newKeySet();
     // Pre-selected directions from simulation (itemId -> direction)
     private final Map<Integer, RoomUserRotation> preSelectedDirections = new ConcurrentHashMap<>();
 
@@ -70,7 +74,8 @@ public class WiredEffectMoveRotateFurni extends InteractionWiredEffect implement
         }
 
         for (HabboItem item : effectiveItems) {
-            if (this.itemCooldowns.contains(item)) continue;
+            String cooldownKey = movementCooldownKey(ctx, item);
+            if (this.itemCooldowns.contains(cooldownKey)) continue;
 
             int newRotation = this.rotation > 0 ? this.getNewRotation(item) : item.getRotation();
             RoomTile newLocation = room.getLayout().getTile(item.getX(), item.getY());
@@ -121,10 +126,21 @@ public class WiredEffectMoveRotateFurni extends InteractionWiredEffect implement
                 if (WiredMoveCarryHelper.moveFurni(
                                 room, this, item, newLocation, newRotation, null, !slideAnimation, ctx)
                         == FurnitureMovementError.NONE) {
-                    this.itemCooldowns.add(item);
+                    this.itemCooldowns.add(cooldownKey);
                 }
             }
         }
+    }
+
+    private static String movementCooldownKey(WiredContext ctx, HabboItem item) {
+        int itemId = item != null ? item.getId() : 0;
+        if (ctx != null && ctx.eventType() == WiredEvent.Type.SIGNAL_RECEIVED) {
+            int signalSourceItemId = ctx.sourceItem().map(HabboItem::getId).orElse(0);
+            if (signalSourceItemId > 0) {
+                return itemId + ":signal:" + signalSourceItemId;
+            }
+        }
+        return String.valueOf(itemId);
     }
 
     @Override
@@ -272,7 +288,7 @@ public class WiredEffectMoveRotateFurni extends InteractionWiredEffect implement
         this.direction = 0;
         this.rotation = 0;
         this.items.clear();
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.setDelay(0);
     }
 

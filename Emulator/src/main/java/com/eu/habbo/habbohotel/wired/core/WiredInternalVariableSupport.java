@@ -19,12 +19,14 @@ import com.eu.habbo.habbohotel.users.DanceType;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboGender;
 import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameUpCounter;
 import com.eu.habbo.util.HotelDateTimeUtil;
 import java.time.ZonedDateTime;
 import java.time.temporal.WeekFields;
 import java.util.Locale;
 
 public final class WiredInternalVariableSupport {
+    private static final int MAX_HAND_ITEM_ID = 10_000;
     private static final ThreadLocal<Boolean> USER_MOVE_INSTANT_OVERRIDE = new ThreadLocal<>();
     private static final ThreadLocal<UserMoveBatch> USER_MOVE_BATCH = new ThreadLocal<>();
     private static final ThreadLocal<Integer> USER_MOVE_BATCH_DEPTH = new ThreadLocal<>();
@@ -136,6 +138,9 @@ public final class WiredInternalVariableSupport {
                     "@dimensions.x",
                     "@dimensions.y" -> true;
             case "~teleport.target_id" -> item.getTeleportTargetId() > 0;
+            case "~clock.is_game_aware",
+                 "~clock.pulse_count",
+                 "~clock.state" -> item instanceof InteractionGameUpCounter;
             case "@wallitem_offset" -> item.getBaseItem().getType() == FurnitureType.WALL;
             case "@gravity" -> item.getBaseItem().getType() == FurnitureType.FLOOR;
             case "@opacity" -> true;
@@ -235,6 +240,11 @@ public final class WiredInternalVariableSupport {
         }
 
         return switch (normalized) {
+            case "@handitem_id" -> {
+                int handItemId = Math.max(0, Math.min(MAX_HAND_ITEM_ID, value));
+                room.getUnitManager().giveHandItem(roomUnit, handItemId);
+                yield true;
+            }
             case "@position_x" -> moveUserTo(room, roomUnit, value, roomUnit.getY(), animationDuration, noAnimation);
             case "@position_y" -> moveUserTo(room, roomUnit, roomUnit.getX(), value, animationDuration, noAnimation);
             case "@direction" -> {
@@ -278,6 +288,22 @@ public final class WiredInternalVariableSupport {
 
         return switch (normalized) {
             case "~teleport.target_id" -> item.getTeleportTargetId();
+            case "~clock.is_game_aware" -> {
+                if (!(item instanceof InteractionGameUpCounter)) yield null;
+                yield (resolveTeamGame(room, null) != null) ? 1 : 0;
+            }
+            case "~clock.pulse_count" -> {
+                if (item instanceof InteractionGameUpCounter counter) {
+                    yield (int) Math.min(Integer.MAX_VALUE, counter.getElapsedTimeInMs() / 1000L);
+                }
+                yield null;
+            }
+            case "~clock.state" -> {
+                if (item instanceof InteractionGameUpCounter timer) {
+                    yield (timer.isRunning() && !timer.isPaused()) ? 1 : 0;
+                }
+                yield null;
+            }
             case "@id" -> item.getId();
             case "@class_id" ->
                 (item.getBaseItem() != null) ? item.getBaseItem().getId() : null;

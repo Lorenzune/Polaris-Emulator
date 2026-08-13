@@ -1,6 +1,7 @@
 package com.eu.habbo.messages.incoming.crafting;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
 import com.eu.habbo.habbohotel.crafting.CraftingAltar;
 import com.eu.habbo.habbohotel.crafting.CraftingRecipe;
@@ -81,6 +82,9 @@ public class CraftingCraftItemEvent extends MessageHandler {
                             Emulator.getGameEnvironment()
                                     .getAchievementManager()
                                     .getAchievement(recipe.getAchievement()));
+                    if (recipe.getAchievement().equalsIgnoreCase("bazaar17")) {
+                        AchievementInteractions.progress(this.client.getHabbo(), "Bazaar");
+                    }
                 }
 
                 this.client.sendResponse(new CraftingResultComposer(recipe));

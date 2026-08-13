@@ -50,6 +50,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @see com.eu.habbo.habbohotel.rooms.RoomSpecialTypes
  */
 public abstract class InteractionWired extends InteractionDefault {
+    public static final int WIRED_EXTENDED_SETTINGS_MARKER = -2026072509;
+
     private static final Logger LOGGER = LoggerFactory.getLogger(InteractionWired.class);
     
     /**
@@ -143,7 +145,7 @@ public abstract class InteractionWired extends InteractionDefault {
     }
 
     protected long requiredCooldown() {
-        return 50L;
+        return 0L;
     }
 
 
@@ -180,7 +182,12 @@ public abstract class InteractionWired extends InteractionDefault {
         } else {
             if (this.userExecutionCache.containsKey((long)roomUnitId)) {
                 long lastTimestamp = this.userExecutionCache.get((long)roomUnitId);
-                return timestamp - lastTimestamp >= Math.max(100L, this.requiredCooldown());
+                long requiredCooldown = this.requiredCooldown();
+                if (requiredCooldown <= 0L) {
+                    return true;
+                }
+
+                return timestamp - lastTimestamp >= requiredCooldown;
             }
 
             return true;
@@ -234,15 +241,73 @@ public abstract class InteractionWired extends InteractionDefault {
         int[] intParams = WiredInputGuard.readIntParams(packet);
         String stringParam = WiredInputGuard.readStringParam(packet);
         int[] itemIds = WiredInputGuard.readFurniIds(packet);
+        int[] itemIds2 = new int[0];
+        int[] variableIds = new int[0];
+        int[] furniSourceTypes = new int[0];
+        int[] userSourceTypes = new int[0];
+        int delay = 0;
+        int stuffTypeSelectionCode = -1;
 
-        WiredSettings settings = new WiredSettings(intParams, stringParam, itemIds, -1);
-
-        if(isEffect)
+        if (isEffect)
         {
-            settings.setDelay(WiredInputGuard.normalizeDelay(packet.readInt()));
+            delay = WiredInputGuard.normalizeDelay(packet.readInt());
         }
 
-        settings.setStuffTypeSelectionCode(WiredInputGuard.normalizeStuffSelectionCode(packet.readInt()));
-        return settings;
+        /*
+         * Legacy Nitro sends only one trailing int after the shared wired fields:
+         * stuffTypeSelectionCode. SWF-like clients send a richer tail containing
+         * source arrays, variable ids and a second furni selection. New clients
+         * prefix that richer tail with a marker so the format cannot be confused
+         * with the legacy selection code.
+         */
+        if (packet.bytesAvailable() >= Integer.BYTES) {
+            int firstTrailingInt = packet.readInt();
+
+            if (firstTrailingInt == WIRED_EXTENDED_SETTINGS_MARKER) {
+                furniSourceTypes = WiredInputGuard.readIntArray(packet, WiredInputGuard.MAX_INT_PARAMS, "wired furni source type count");
+                userSourceTypes = WiredInputGuard.readIntArray(packet, WiredInputGuard.MAX_INT_PARAMS, "wired user source type count");
+                variableIds = WiredInputGuard.readIntArray(packet, WiredInputGuard.MAX_INT_PARAMS, "wired variable id count");
+                itemIds2 = WiredInputGuard.readFurniIds(packet);
+
+                if (packet.bytesAvailable() >= Integer.BYTES) {
+                    stuffTypeSelectionCode = WiredInputGuard.normalizeStuffSelectionCode(packet.readInt());
+                }
+            } else if (packet.bytesAvailable() > 0) {
+                furniSourceTypes = readIntArrayAfterCount(packet, firstTrailingInt, WiredInputGuard.MAX_INT_PARAMS, "wired furni source type count");
+                userSourceTypes = WiredInputGuard.readIntArray(packet, WiredInputGuard.MAX_INT_PARAMS, "wired user source type count");
+                variableIds = WiredInputGuard.readIntArray(packet, WiredInputGuard.MAX_INT_PARAMS, "wired variable id count");
+                itemIds2 = WiredInputGuard.readFurniIds(packet);
+
+                if (packet.bytesAvailable() >= Integer.BYTES) {
+                    stuffTypeSelectionCode = WiredInputGuard.normalizeStuffSelectionCode(packet.readInt());
+                }
+            } else {
+                stuffTypeSelectionCode = WiredInputGuard.normalizeStuffSelectionCode(firstTrailingInt);
+            }
+        }
+
+        return new WiredSettings(
+            intParams,
+            stringParam,
+            itemIds,
+            itemIds2,
+            variableIds,
+            furniSourceTypes,
+            userSourceTypes,
+            stuffTypeSelectionCode,
+            delay);
+    }
+
+    private static int[] readIntArrayAfterCount(ClientMessage packet, int count, int maxCount, String fieldName) {
+        if (count < 0 || count > maxCount || packet.bytesAvailable() < count * Integer.BYTES) {
+            throw new IllegalArgumentException("Invalid " + fieldName);
+        }
+
+        int[] values = new int[count];
+        for (int i = 0; i < count; i++) {
+            values[i] = packet.readInt();
+        }
+
+        return values;
     }
 }

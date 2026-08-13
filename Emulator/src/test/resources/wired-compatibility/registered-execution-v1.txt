@@ -210,10 +210,10 @@ com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerBotReached
 com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerBotReachedHabbo | TRIGGER | type=BOT_REACHED_AVTR | event=BOT_REACHED_HABBO | actor=true | match=false
 com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerClockCounter | TRIGGER | type=CLOCK_COUNTER | event=CLOCK_COUNTER_REACHED | actor=false | match=false
 com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerCollision | TRIGGER | type=COLLISION | event=BOT_COLLISION | actor=true | match=false
-com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerFurniStateToggled | TRIGGER | type=STATE_CHANGED | event=FURNI_STATE_CHANGED | actor=true | match=true
+com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerFurniStateToggled | TRIGGER | type=STATE_CHANGED | event=FURNI_STATE_CHANGED | actor=true | match=false
 com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerGameEnds | TRIGGER | type=GAME_ENDS | event=GAME_ENDS | actor=false | match=true
 com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerGameStarts | TRIGGER | type=GAME_STARTS | event=GAME_STARTS | actor=false | match=true
-com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboClicksFurni | TRIGGER | type=CLICKS_FURNI | event=USER_CLICKS_FURNI | actor=true | match=true
+com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboClicksFurni | TRIGGER | type=CLICKS_FURNI | event=USER_CLICKS_FURNI | actor=true | match=false
 com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboClicksTile | TRIGGER | type=CLICKS_TILE | event=USER_CLICKS_TILE | actor=true | match=false
 com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboClicksUser | TRIGGER | type=CLICKS_USER | event=USER_CLICKS_USER | actor=true | match=false
 com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboEntersRoom | TRIGGER | type=ENTER_ROOM | event=USER_ENTERS_ROOM | actor=true | match=true
@@ -224,8 +224,8 @@ com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboSaysK
 com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboStartsDancing | TRIGGER | type=STARTS_DANCING | event=USER_STARTS_DANCING | actor=true | match=false
 com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboStopsDancing | TRIGGER | type=STOPS_DANCING | event=USER_STOPS_DANCING | actor=true | match=false
 com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboUnidles | TRIGGER | type=UNIDLES | event=USER_UNIDLES | actor=true | match=false
-com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboWalkOffFurni | TRIGGER | type=WALKS_OFF_FURNI | event=USER_WALKS_OFF | actor=true | match=true
-com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboWalkOnFurni | TRIGGER | type=WALKS_ON_FURNI | event=USER_WALKS_ON | actor=true | match=true
+com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboWalkOffFurni | TRIGGER | type=WALKS_OFF_FURNI | event=USER_WALKS_OFF | actor=true | match=false
+com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboWalkOnFurni | TRIGGER | type=WALKS_ON_FURNI | event=USER_WALKS_ON | actor=true | match=false
 com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerReceiveSignal | TRIGGER | type=RECEIVE_SIGNAL | event=SIGNAL_RECEIVED | actor=false | match=false
 com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerRepeater | TRIGGER | type=PERIODICALLY | event=TIMER_REPEAT | actor=false | match=true
 com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerRepeaterLong | TRIGGER | type=PERIODICALLY_LONG | event=TIMER_REPEAT_LONG | actor=false | match=true

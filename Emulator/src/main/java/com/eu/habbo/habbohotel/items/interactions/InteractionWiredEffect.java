@@ -11,6 +11,7 @@ import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.api.IWiredEffect;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
+import com.eu.habbo.messages.outgoing.rooms.items.ItemStateComposer;
 import com.eu.habbo.messages.outgoing.wired.WiredEffectDataComposer;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -43,17 +44,19 @@ import java.util.function.Predicate;
  */
 public abstract class InteractionWiredEffect extends InteractionWired implements IWiredEffect {
 
-    // Common cooldown constants (in milliseconds)
+    // Common cooldown constants (in milliseconds).
+    // Wired timing is controlled by each box delay slider; no effect should
+    // impose an implicit runtime cooldown.
     /** No cooldown - effect can trigger as fast as possible */
     public static final long COOLDOWN_NONE = 0L;
     /** Default cooldown for most effects */
-    public static final long COOLDOWN_DEFAULT = 50L;
+    public static final long COOLDOWN_DEFAULT = 0L;
     /** Cooldown for movement effects (move to, move towards, move away) */
-    public static final long COOLDOWN_MOVEMENT = 495L;
+    public static final long COOLDOWN_MOVEMENT = 0L;
     /** Cooldown for trigger stacks effect to prevent rapid re-triggering */
-    public static final long COOLDOWN_TRIGGER_STACKS = 250L;
+    public static final long COOLDOWN_TRIGGER_STACKS = 0L;
     /** Cooldown for teleport effect */
-    public static final long COOLDOWN_TELEPORT = 500L;
+    public static final long COOLDOWN_TELEPORT = 0L;
 
     private int delay;
 
@@ -86,6 +89,32 @@ public abstract class InteractionWiredEffect extends InteractionWired implements
     }
 
     public abstract boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException;
+
+    @Override
+    public void activateBox(Room room, RoomUnit roomUnit, long millis) {
+        if (!this.isSelector()) {
+            super.activateBox(room, roomUnit, millis);
+            return;
+        }
+
+        if (roomUnit != null) {
+            this.addUserExecutionCache(roomUnit.getId(), millis);
+        }
+
+        if (room == null || room.isHideWired()) {
+            return;
+        }
+
+        String currentState = this.getExtradata();
+        String nextState = this.usesExistingSelectorTargets()
+                ? ("4".equals(currentState) ? "5" : "4")
+                : ("1".equals(currentState) ? "2" : "1");
+
+        if (!nextState.equals(currentState)) {
+            this.setExtradata(nextState);
+            room.sendComposer(new ItemStateComposer(this).compose());
+        }
+    }
 
     public int getDelay() {
         return this.delay;

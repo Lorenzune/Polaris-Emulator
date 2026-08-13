@@ -2,6 +2,7 @@ package com.eu.habbo.habbohotel.catalog.marketplace;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.economy.EconomyMutationResult;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
@@ -406,6 +407,8 @@ public class MarketPlace {
                                         client.sendResponse(new MarketplaceBuyErrorComposer(
                                                 MarketplaceBuyErrorComposer.REFRESH, 0, offerId, price));
 
+                                        AchievementInteractions.progressUser(
+                                                set.getInt("user_id"), "HabboBuilder_TSale_");
                                         if (habbo != null) {
                                             MarketPlaceOffer offer =
                                                     habbo.getInventory().getOffer(offerId);
@@ -549,9 +552,9 @@ public class MarketPlace {
         offers.clear();
 
         if (MARKETPLACE_CURRENCY == 0) {
-            client.getHabbo().giveCredits(credits);
+            client.getHabbo().giveCredits(credits, "earnings.claim.marketplace");
         } else {
-            client.getHabbo().givePoints(MARKETPLACE_CURRENCY, credits);
+            client.getHabbo().givePoints(MARKETPLACE_CURRENCY, credits, "earnings.claim.marketplace");
         }
     }
 

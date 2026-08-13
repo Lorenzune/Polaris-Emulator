@@ -3,6 +3,7 @@ package com.eu.habbo.habbohotel.dailytasks;
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.economy.EconomyLedger;
 import com.eu.habbo.habbohotel.economy.EconomyOperation;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -111,6 +112,7 @@ public class DailyTaskManager {
                 if (updatedTasks > 0) {
                     connection.commit();
                     LOGGER.debug("DailyTaskManager -> Progress action={} user={} amount={} updatedTasks={}", actionType, userId, amount, updatedTasks);
+                    syncAchievements(userId);
                     return updatedTasks;
                 }
 
@@ -142,6 +144,7 @@ public class DailyTaskManager {
 
                 connection.commit();
                 LOGGER.debug("DailyTaskManager -> Progress action={} user={} amount={} completed={}", actionType, userId, amount, completed);
+                syncAchievements(userId);
                 return 1;
             } catch (SQLException e) {
                 connection.rollback();
@@ -152,6 +155,38 @@ public class DailyTaskManager {
         } catch (SQLException e) {
             LOGGER.warn("DailyTaskManager -> Could not add progress for user {} action {}", userId, actionType, e);
             return 0;
+        }
+    }
+
+    private void syncAchievements(int userId) {
+        Habbo habbo = Emulator.getGameEnvironment().getHabboManager().getHabbo(userId);
+        if (habbo == null) return;
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "SELECT COUNT(*) FROM user_daily_task_progress WHERE user_id = ? AND completed_at > 0")) {
+                statement.setInt(1, userId);
+                try (ResultSet set = statement.executeQuery()) {
+                    if (set.next()) AchievementInteractions.sync(habbo, "DailyTasksCompleted", set.getInt(1));
+                }
+            }
+
+            int streak = 0;
+            LocalDate day = LocalDate.now();
+            while (true) {
+                try (PreparedStatement statement = connection.prepareStatement(
+                        "SELECT 1 FROM user_daily_task_progress WHERE user_id = ? AND task_date = ? AND completed_at > 0 LIMIT 1")) {
+                    statement.setInt(1, userId);
+                    statement.setDate(2, Date.valueOf(day));
+                    try (ResultSet set = statement.executeQuery()) {
+                        if (!set.next()) break;
+                    }
+                }
+                streak++;
+                day = day.minusDays(1);
+            }
+            AchievementInteractions.sync(habbo, "DailyTaskStreakDays", streak);
+        } catch (SQLException e) {
+            LOGGER.debug("DailyTaskManager -> Could not sync achievements for user {}", userId, e);
         }
     }
 

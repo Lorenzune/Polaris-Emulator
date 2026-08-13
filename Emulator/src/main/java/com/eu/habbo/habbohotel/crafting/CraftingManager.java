@@ -2,6 +2,10 @@ package com.eu.habbo.habbohotel.crafting;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.items.Item;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,7 +13,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class CraftingManager {
@@ -26,39 +32,74 @@ public class CraftingManager {
     public void reload() {
         this.dispose();
 
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT * FROM crafting_altars_recipes " +
-                "INNER JOIN crafting_recipes ON crafting_altars_recipes.recipe_id = crafting_recipes.id " +
-                "INNER JOIN crafting_recipes_ingredients ON crafting_recipes.id = crafting_recipes_ingredients.recipe_id " +
-                "WHERE crafting_recipes.enabled = ? ORDER BY altar_id ASC")) {
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT * FROM crafting_recipes WHERE enabled = ? ORDER BY id ASC")) {
             statement.setString(1, "1");
             try (ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
-                    Item item = Emulator.getGameEnvironment().getItemManager().getItem(set.getInt("altar_id"));
+                    final int recipeId = set.getInt("id");
+                    final String productName = set.getString("product_name");
+                    final CraftingRecipe recipe;
 
-                    if (item != null) {
-                        if (!this.altars.containsKey(item)) {
-                            this.altars.put(item, new CraftingAltar(item));
+                    try {
+                        recipe = new CraftingRecipe(set);
+                        if (recipe.getReward() == null) {
+                            LOGGER.warn("Skipping crafting recipe {} ({}): reward item {} is not loaded", recipeId, productName, set.getString("reward_name"));
+                            continue;
                         }
 
-                        CraftingAltar altar = this.altars.get(item);
+                        JsonArray ingredients = JsonParser.parseString(set.getString("ingredients")).getAsJsonArray();
+                        if (ingredients.size() == 0) {
+                            LOGGER.warn("Skipping crafting recipe {} ({}): it has no ingredients", recipeId, productName);
+                            continue;
+                        }
 
-                        if (altar != null) {
-                            CraftingRecipe recipe = altar.getRecipe(set.getInt("crafting_recipes_ingredients.recipe_id"));
+                        for (JsonElement element : ingredients) {
+                            JsonObject ingredient = element.getAsJsonObject();
+                            String classname = ingredient.get("classname").getAsString();
+                            int amount = ingredient.get("amount").getAsInt();
+                            Item ingredientItem = Emulator.getGameEnvironment().getItemManager().getItem(classname);
 
-                            if (recipe == null) {
-                                recipe = new CraftingRecipe(set);
-                                altar.addRecipe(recipe);
+                            if (ingredientItem == null || amount <= 0) {
+                                LOGGER.warn("Skipping crafting recipe {} ({}): unknown/invalid ingredient {} x{}", recipeId, productName, classname, amount);
+                                continue;
                             }
 
-                            Item ingredientItem = Emulator.getGameEnvironment().getItemManager().getItem(set.getInt("crafting_recipes_ingredients.item_id"));
+                            recipe.addIngredient(ingredientItem, amount);
+                        }
 
-                            if (ingredientItem != null) {
-                                recipe.addIngredient(ingredientItem, set.getInt("crafting_recipes_ingredients.amount"));
-                                altar.addIngredient(ingredientItem);
+                        if (recipe.getIngredients().size() != ingredients.size()) {
+                            continue;
+                        }
+
+                        JsonArray stations = JsonParser.parseString(set.getString("station_ids")).getAsJsonArray();
+                        if (stations.size() == 0) {
+                            LOGGER.warn("Crafting recipe {} ({}) has no mapped station", recipeId, productName);
+                            continue;
+                        }
+
+                        List<Item> altarItems = new ArrayList<>(stations.size());
+                        for (JsonElement station : stations) {
+                            Item altarItem = Emulator.getGameEnvironment().getItemManager().getItem(station.getAsInt());
+                            if (altarItem != null) {
+                                altarItems.add(altarItem);
                             } else {
-                                LOGGER.error("Unknown ingredient item {}", set.getInt("crafting_recipes_ingredients.item_id"));
+                                LOGGER.warn("Unknown crafting station {} for recipe {} ({})", station.getAsInt(), recipeId, productName);
                             }
                         }
+
+                        if (altarItems.isEmpty()) {
+                            continue;
+                        }
+
+                        for (Item altarItem : altarItems) {
+                            CraftingAltar altar = this.altars.computeIfAbsent(altarItem, CraftingAltar::new);
+                            altar.addRecipe(recipe);
+                            for (Item ingredientItem : recipe.getIngredients().keySet()) {
+                                altar.addIngredient(ingredientItem);
+                            }
+                        }
+                    } catch (RuntimeException e) {
+                        LOGGER.warn("Skipping malformed crafting recipe {} ({})", recipeId, productName, e);
                     }
                 }
             }

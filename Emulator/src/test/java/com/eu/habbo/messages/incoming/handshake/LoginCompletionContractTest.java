@@ -16,6 +16,9 @@ class LoginCompletionContractTest {
                 "src/main/java/com/eu/habbo/messages/incoming/handshake/UsernameEvent.java"));
 
         assertTrue(secureLogin.contains("UsernameEvent.completeLogin(this.client)"));
+        assertTrue(secureLogin.contains("DailyGiftManager.assignOnLogin(habbo)"));
+        assertTrue(secureLogin.indexOf("DailyGiftManager.assignOnLogin(habbo)")
+                > secureLogin.indexOf("if (!isSessionResume)"));
         assertTrue(completion.contains("public static void completeLogin(GameClient client)"));
     }
 }

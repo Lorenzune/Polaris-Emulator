@@ -28,7 +28,7 @@ public class MassCreditsCommand extends Command {
                 for (Map.Entry<Integer, Habbo> set : Emulator.getGameEnvironment().getHabboManager().getOnlineHabbos().entrySet()) {
                     Habbo habbo = set.getValue();
 
-                    habbo.giveCredits(amount);
+                    habbo.giveCredits(amount, "staff.command.mass_credits");
 
                     if (habbo.getHabboInfo().getCurrentRoom() != null)
                         habbo.whisper(Emulator.getTexts().getValue("commands.generic.cmd_credits.received").replace("%amount%", amount + ""), RoomChatMessageBubbles.ALERT);

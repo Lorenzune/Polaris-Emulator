@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 public class RequestCreateRoomEvent extends MessageHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestCreateRoomEvent.class);
+    private static final int MAX_ROOM_NAME_LENGTH = 60;
 
     @Override
     public int getRatelimit() {
@@ -45,7 +46,7 @@ public class RequestCreateRoomEvent extends MessageHandler {
         if (tradeType > 2)
             return;
 
-        if (name.trim().length() < 3 || name.length() > 25 || !Emulator.getGameEnvironment().getWordFilter().filter(name, this.client.getHabbo()).equals(name))
+        if (name.trim().length() < 3 || name.length() > MAX_ROOM_NAME_LENGTH || !Emulator.getGameEnvironment().getWordFilter().filter(name, this.client.getHabbo()).equals(name))
             return;
 
         if (description.length() > 128 || !Emulator.getGameEnvironment().getWordFilter().filter(description, this.client.getHabbo()).equals(description))

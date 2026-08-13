@@ -41,7 +41,7 @@ public class WiredEffectMoveFurniTowards extends InteractionWiredEffect {
     private Set<HabboItem> items;
 
     private Map<Integer, RoomUserRotation> lastDirections;
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
 
 
     public WiredEffectMoveFurniTowards(ResultSet set, Item baseItem) throws SQLException {
@@ -367,7 +367,7 @@ public class WiredEffectMoveFurniTowards extends InteractionWiredEffect {
     @Override
     public void onPickUp() {
         this.items.clear();
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.setDelay(0);
     }
 

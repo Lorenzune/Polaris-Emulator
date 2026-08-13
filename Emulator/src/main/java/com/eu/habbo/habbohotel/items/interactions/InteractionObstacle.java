@@ -2,6 +2,7 @@ package com.eu.habbo.habbohotel.items.interactions;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.ICycleable;
 import com.eu.habbo.habbohotel.items.Item;
@@ -193,6 +194,7 @@ public class InteractionObstacle extends HabboItem implements ICycleable {
 
         AchievementManager.progressAchievement(rider, Emulator.getGameEnvironment().getAchievementManager().getAchievement("HorseConsecutiveJumpsCount"));
         AchievementManager.progressAchievement(rider, Emulator.getGameEnvironment().getAchievementManager().getAchievement("HorseJumping"));
+        AchievementInteractions.progress(rider, "RoomHorseJumpCount");
     }
 
     private void startJump(RoomUnit horseUnit, Room room, int state) {

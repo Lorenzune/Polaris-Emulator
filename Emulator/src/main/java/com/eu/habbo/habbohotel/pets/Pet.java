@@ -1,6 +1,7 @@
 package com.eu.habbo.habbohotel.pets;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.games.football.InteractionFootball;
@@ -740,7 +741,11 @@ public class Pet implements ISerialize, Runnable {
             this.addHappiness(100);
             this.roomUnit.setStatus(RoomUnitStatus.GESTURE, "exp");
             this.gestureTickTimeout = Emulator.getIntUnixTimestamp();
-            AchievementManager.progressAchievement(Emulator.getGameEnvironment().getHabboManager().getHabbo(this.userId), Emulator.getGameEnvironment().getAchievementManager().getAchievement("PetLevelUp"));
+            Habbo owner = Emulator.getGameEnvironment().getHabboManager().getHabbo(this.userId);
+            AchievementManager.progressAchievement(owner, Emulator.getGameEnvironment().getAchievementManager().getAchievement("PetLevelUp"));
+            if (this.petData != null && this.petData.getType() == 14) {
+                AchievementInteractions.progress(owner, "BadMonkeyLevelUp");
+            }
             this.room.sendComposer(new PetLevelUpdatedComposer(this).compose());
         }
 

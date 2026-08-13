@@ -1,6 +1,7 @@
 package com.eu.habbo.habbohotel.rooms;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
 import com.eu.habbo.habbohotel.bots.Bot;
 import com.eu.habbo.habbohotel.gameclients.GameClientFlushBatch;
@@ -13,6 +14,7 @@ import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredMoveCarryHelper;
 import com.eu.habbo.messages.ServerMessage;
+import com.eu.habbo.messages.outgoing.rooms.items.ItemsDataUpdateComposer;
 import com.eu.habbo.messages.outgoing.rooms.RoomAccessDeniedComposer;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUnitIdleComposer;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserIgnoredComposer;
@@ -21,7 +23,11 @@ import com.eu.habbo.plugin.events.users.UserExitRoomEvent;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,14 +37,16 @@ public class RoomCycleManager {
     private final Room room;
     private boolean cycleOdd;
     private long cycleTimestamp;
-    private int idleHostingCycles;
+    private final ConcurrentHashMap<Integer, Long> hostingVisitorLastCountedAt;
+    private final ConcurrentHashMap<Integer, TimeSpentSession> timeSpentSessions;
     private long rollerCycle = System.currentTimeMillis();
 
     public RoomCycleManager(Room room) {
         this.room = room;
         this.cycleOdd = false;
         this.cycleTimestamp = 0;
-        this.idleHostingCycles = 0;
+        this.hostingVisitorLastCountedAt = new ConcurrentHashMap<>();
+        this.timeSpentSessions = new ConcurrentHashMap<>();
     }
 
     public long getCycleTimestamp() {
@@ -66,6 +74,7 @@ public class RoomCycleManager {
             processScheduledTasks();
             processCycleTasks();
             processDecoHosting();
+            processTimeSpentRoomAchievements();
 
             if (!this.room.getCurrentHabbos().isEmpty()) {
                 this.advanceIdleUnload(false);
@@ -148,24 +157,164 @@ public class RoomCycleManager {
     }
 
     private void processDecoHosting() {
-        if (Emulator.getConfig().getBoolean("hotel.rooms.deco_hosting")) {
-            if (this.idleHostingCycles < 120) {
-                this.idleHostingCycles++;
-            } else {
-                this.idleHostingCycles = 0;
+        if (!Emulator.getConfig().getBoolean("hotel.rooms.deco_hosting")) {
+            this.hostingVisitorLastCountedAt.clear();
+            return;
+        }
 
-                int amount = (int) this.room.getCurrentHabbos().values().stream()
-                        .filter(habbo -> habbo.getHabboInfo().getId() != this.room.getOwnerId())
-                        .count();
-                if (amount > 0) {
-                    AchievementManager.progressAchievement(
-                            this.room.getOwnerId(),
-                            Emulator.getGameEnvironment()
-                                    .getAchievementManager()
-                                    .getAchievement("RoomDecoHosting"),
-                            amount);
-                }
+        long now = System.currentTimeMillis();
+        Set<Integer> activeVisitors = ConcurrentHashMap.newKeySet();
+        for (Habbo visitor : this.room.getCurrentHabbos().values()) {
+            if (visitor.getHabboInfo().getId() == this.room.getOwnerId()) continue;
+
+            int visitorId = visitor.getHabboInfo().getId();
+            activeVisitors.add(visitorId);
+            long enteredAt = visitor.getHabboStats().roomEnterTimestamp * 1000L;
+            long lastCountedAt = this.hostingVisitorLastCountedAt.computeIfAbsent(
+                    visitorId, ignored -> enteredAt > 0 ? enteredAt : now);
+            long minutes = (now - lastCountedAt) / 60_000L;
+            if (minutes <= 0) continue;
+
+            AchievementManager.progressAchievement(
+                    this.room.getOwnerId(),
+                    Emulator.getGameEnvironment().getAchievementManager().getAchievement("RoomDecoHosting"),
+                    Math.toIntExact(Math.min(minutes, Integer.MAX_VALUE)));
+            this.hostingVisitorLastCountedAt.put(visitorId, lastCountedAt + (minutes * 60_000L));
+        }
+
+        this.hostingVisitorLastCountedAt.keySet().removeIf(visitorId -> !activeVisitors.contains(visitorId));
+    }
+
+    /** Flushes the exact completed minutes for a visitor before the room removes them. */
+    void flushDecoHostingVisitor(Habbo visitor) {
+        if (!Emulator.getConfig().getBoolean("hotel.rooms.deco_hosting")
+                || visitor == null
+                || visitor.getHabboInfo().getId() == this.room.getOwnerId()) return;
+
+        long now = System.currentTimeMillis();
+        int visitorId = visitor.getHabboInfo().getId();
+        long enteredAt = visitor.getHabboStats().roomEnterTimestamp * 1000L;
+        long lastCountedAt = this.hostingVisitorLastCountedAt.getOrDefault(
+                visitorId, enteredAt > 0 ? enteredAt : now);
+        long minutes = (now - lastCountedAt) / 60_000L;
+        if (minutes > 0) {
+            AchievementManager.progressAchievement(
+                    this.room.getOwnerId(),
+                    Emulator.getGameEnvironment().getAchievementManager().getAchievement("RoomDecoHosting"),
+                    Math.toIntExact(Math.min(minutes, Integer.MAX_VALUE)));
+        }
+        this.hostingVisitorLastCountedAt.remove(visitorId);
+    }
+
+    private void processTimeSpentRoomAchievements() {
+        long now = System.currentTimeMillis();
+        String achievementName = this.roomTimeAchievement();
+        Set<Integer> activeUsers = ConcurrentHashMap.newKeySet();
+
+        for (Habbo habbo : this.room.getCurrentHabbos().values()) {
+            int userId = habbo.getHabboInfo().getId();
+            activeUsers.add(userId);
+
+            if (achievementName == null) {
+                this.timeSpentSessions.remove(userId);
+                continue;
             }
+
+            long enteredAt = habbo.getHabboStats().roomEnterTimestamp * 1000L;
+            TimeSpentSession session = this.timeSpentSessions.get(userId);
+            if (session == null) {
+                session = new TimeSpentSession(
+                        achievementName, enteredAt > 0 ? enteredAt : now);
+            } else if (!session.achievementName.equals(achievementName)) {
+                this.progressElapsedMinutes(habbo, session, now);
+                session = new TimeSpentSession(achievementName, now);
+            }
+
+            this.progressElapsedMinutes(habbo, session, now);
+            this.timeSpentSessions.put(userId, session);
+        }
+
+        this.timeSpentSessions.keySet().removeIf(userId -> !activeUsers.contains(userId));
+    }
+
+    /** Flushes the exact completed minutes for a user before the room removes them. */
+    void flushTimeSpentVisitor(Habbo visitor) {
+        if (visitor == null) return;
+
+        int userId = visitor.getHabboInfo().getId();
+        TimeSpentSession session = this.timeSpentSessions.remove(userId);
+        if (session == null) {
+            String achievementName = this.roomTimeAchievement();
+            if (achievementName == null) return;
+            long enteredAt = visitor.getHabboStats().roomEnterTimestamp * 1000L;
+            session = new TimeSpentSession(
+                    achievementName, enteredAt > 0 ? enteredAt : System.currentTimeMillis());
+        }
+        this.progressElapsedMinutes(visitor, session, System.currentTimeMillis());
+    }
+
+    private void progressElapsedMinutes(Habbo habbo, TimeSpentSession session, long now) {
+        long minutes = (now - session.lastCountedAt) / 60_000L;
+        if (minutes <= 0) return;
+
+        AchievementInteractions.progress(
+                habbo,
+                session.achievementName,
+                Math.toIntExact(Math.min(minutes, Integer.MAX_VALUE)));
+        session.lastCountedAt += minutes * 60_000L;
+    }
+
+    private String roomTimeAchievement() {
+        if (this.room.isPublicRoom()) return "TimeSpentRoomTypeChat";
+
+        RoomCategory category = Emulator.getGameEnvironment()
+                .getRoomManager()
+                .getCategory(this.room.getCategory());
+        if (category == null) return null;
+
+        String safeCaption = category.getCaptionSave() == null
+                ? ""
+                : category.getCaptionSave().toLowerCase(Locale.ROOT);
+        String caption = category.getCaption() == null
+                ? ""
+                : category.getCaption().toLowerCase(Locale.ROOT);
+
+        if (matchesConfiguredCategory(
+                "achievements.room_time.games.categories", "caption_save_games", safeCaption, caption)) {
+            return "TimeSpentRoomTypeGames";
+        }
+        if (matchesConfiguredCategory(
+                "achievements.room_time.trade.categories", "caption_save_trade,caption_save_marketplace", safeCaption, caption)) {
+            return "TimeSpentRoomTypeTrade";
+        }
+        if (matchesConfiguredCategory(
+                "achievements.room_time.rpg.categories", "caption_save_rpg,caption_save_agency,caption_save_roleplay", safeCaption, caption)) {
+            return "TimeSpentRoomTypeRPG";
+        }
+        if (matchesConfiguredCategory(
+                "achievements.room_time.chat.categories", "caption_save_chat,caption_save_discussion", safeCaption, caption)) {
+            return "TimeSpentRoomTypeChat";
+        }
+        return null;
+    }
+
+    private boolean matchesConfiguredCategory(String key, String fallback, String safeCaption, String caption) {
+        String configured = Emulator.getConfig().getValue(key, fallback);
+        if (configured == null || configured.isBlank()) configured = fallback;
+        for (String token : configured.toLowerCase(Locale.ROOT).split("[,;]")) {
+            String normalized = token.trim();
+            if (!normalized.isEmpty() && (safeCaption.equals(normalized) || caption.equals(normalized))) return true;
+        }
+        return false;
+    }
+
+    private static final class TimeSpentSession {
+        private final String achievementName;
+        private long lastCountedAt;
+
+        private TimeSpentSession(String achievementName, long lastCountedAt) {
+            this.achievementName = achievementName;
+            this.lastCountedAt = lastCountedAt;
         }
     }
 
@@ -346,13 +495,48 @@ public class RoomCycleManager {
         }
     }
 
-    private void processScheduledComposers() {
-        if (!this.room.scheduledComposers.isEmpty()) {
-            for (ServerMessage message : this.room.scheduledComposers) {
-                this.room.sendComposer(message);
-            }
-            this.room.scheduledComposers.clear();
+    /**
+     * Flushes visual updates accumulated by one wired execution as a single
+     * response batch. This is also used outside the room scheduler: wired
+     * signal chains run on the wired tick thread and must not wait for the
+     * 500ms room cycle before the client sees their state changes.
+     */
+    public void flushScheduledComposersNow() {
+        if (!this.room.hasScheduledComposers() && this.room.scheduledItemDataUpdates.isEmpty()) {
+            return;
         }
+
+        ArrayList<ServerMessage> messages = new ArrayList<>();
+        LinkedHashMap<Integer, HabboItem> itemDataUpdates = new LinkedHashMap<>();
+        HabboItem item;
+
+        while ((item = this.room.scheduledItemDataUpdates.poll()) != null) {
+            if (item.getRoomId() != this.room.getId()
+                    || item.getBaseItem() == null
+                    || item.getBaseItem().getType() != com.eu.habbo.habbohotel.items.FurnitureType.FLOOR) {
+                continue;
+            }
+
+            itemDataUpdates.put(item.getId(), item);
+        }
+
+        if (!itemDataUpdates.isEmpty()) {
+            messages.add(new ItemsDataUpdateComposer(new LinkedHashSet<>(itemDataUpdates.values())).compose());
+        }
+
+        ServerMessage message;
+
+        while ((message = this.room.pollScheduledComposer()) != null) {
+            messages.add(message);
+        }
+
+        if (!messages.isEmpty()) {
+            this.room.sendComposers(messages);
+        }
+    }
+
+    private void processScheduledComposers() {
+        this.flushScheduledComposersNow();
     }
 
     public boolean cycleRoomUnit(RoomUnit unit, RoomUnitType type, Habbo habbo) {
@@ -368,7 +552,22 @@ public class RoomCycleManager {
         }
 
         if (unit.isWalking() && unit.getPath() != null && !unit.getPath().isEmpty()) {
-            if (!unit.cycle(this.room)) {
+            RoomTile previousLocation = unit.getCurrentLocation();
+            boolean cycleResult = unit.cycle(this.room);
+            RoomTile currentLocation = unit.getCurrentLocation();
+            if (type == RoomUnitType.USER
+                    && habbo != null
+                    && previousLocation != null
+                    && currentLocation != null
+                    && (previousLocation.x != currentLocation.x || previousLocation.y != currentLocation.y)) {
+                AchievementInteractions.progress(habbo, "LegDay");
+                int effectId = unit.getEffectId();
+                if (effectId == RoomUnitEffect.SKATEBOARD1.getId()
+                        || effectId == RoomUnitEffect.SKATEBOARD2.getId()) {
+                    AchievementInteractions.progress(habbo, "SkateBoardSlide");
+                }
+            }
+            if (!cycleResult) {
                 return true;
             }
         } else {

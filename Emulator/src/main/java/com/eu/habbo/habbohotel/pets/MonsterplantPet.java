@@ -2,6 +2,7 @@ package com.eu.habbo.habbohotel.pets;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.rooms.RoomUnitStatus;
 import com.eu.habbo.habbohotel.users.Habbo;
@@ -155,6 +156,7 @@ public class MonsterplantPet extends Pet implements IPetLook {
 
                 if (!this.hasDied) {
                     AchievementManager.progressAchievement(Emulator.getGameEnvironment().getHabboManager().getHabbo(this.userId), Emulator.getGameEnvironment().getAchievementManager().getAchievement("MonsterPlantGardenOfDeath"));
+                    AchievementInteractions.progress(Emulator.getGameEnvironment().getHabboManager().getHabbo(this.userId), "MonsterPlantUnluckyGardener");
 
                     this.hasDied = true;
                     this.needsUpdate = true;
@@ -332,6 +334,13 @@ public class MonsterplantPet extends Pet implements IPetLook {
             
             this.room.sendComposer(new PetStatusUpdateComposer(pet).compose());
             this.room.sendComposer(new PetStatusUpdateComposer(this).compose());
+
+            Habbo owner = Emulator.getGameEnvironment().getHabboManager().getHabbo(this.userId);
+            Habbo otherOwner = Emulator.getGameEnvironment().getHabboManager().getHabbo(pet.userId);
+            AchievementInteractions.progress(owner, "MonsterPlantShapeCollector");
+            AchievementInteractions.progress(owner, "MonsterPlantColorCollector");
+            AchievementInteractions.progress(otherOwner, "MonsterPlantShapeCollector");
+            AchievementInteractions.progress(otherOwner, "MonsterPlantColorCollector");
 
             this.getRoomUnit().setStatus(RoomUnitStatus.GESTURE, "reb");
             pet.getRoomUnit().setStatus(RoomUnitStatus.GESTURE, "reb");

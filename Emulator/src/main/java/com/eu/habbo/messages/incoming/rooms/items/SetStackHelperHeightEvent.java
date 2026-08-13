@@ -27,6 +27,9 @@ public class SetStackHelperHeightEvent extends MessageHandler {
                 Room room = this.client.getHabbo().getHabboInfo().getCurrentRoom();
                 RoomTile itemTile = room.getLayout().getTile(item.getX(), item.getY());
                 double stackerHeight = this.packet.readInt();
+                Boolean multiWalkEnabled = item instanceof InteractionStackWalkHelper && this.packet.bytesAvailable() > 0
+                        ? this.packet.readBoolean()
+                        : null;
 
                 Set<RoomTile> tiles = room.getLayout().getTilesAt(itemTile, item.getBaseItem().getWidth(), item.getBaseItem().getLength(), item.getRotation());
                 if (stackerHeight == -100) {
@@ -50,7 +53,13 @@ public class SetStackHelperHeightEvent extends MessageHandler {
                 }
 
                 item.setZ(height);
-                item.setExtradata((int) (height * 100) + "");
+                if (item instanceof InteractionStackWalkHelper walkHelper) {
+                    if (multiWalkEnabled != null) {
+                        walkHelper.setMultiWalkEnabled(multiWalkEnabled);
+                    }
+                } else {
+                    item.setExtradata((int) (height * 100) + "");
+                }
                 item.needsUpdate(true);
 
                 if (item instanceof InteractionTileWalkMagic || item instanceof InteractionStackWalkHelper) {

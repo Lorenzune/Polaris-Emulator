@@ -176,7 +176,9 @@ public class RoomTileManager {
         RoomTile tile = layout.getTile(x, y);
 
         if (walkable && tile != null) {
-            if (tile.hasUnits() && !this.room.isAllowWalkthrough()) {
+            boolean allowsMultipleUnits = InteractionStackWalkHelper.allowsMultipleUnits(this.room, tile);
+
+            if (tile.hasUnits() && !this.room.isAllowWalkthrough() && !allowsMultipleUnits) {
                 walkable = false;
             }
         }

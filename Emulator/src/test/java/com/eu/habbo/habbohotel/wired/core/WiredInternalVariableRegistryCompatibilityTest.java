@@ -14,7 +14,7 @@ class WiredInternalVariableRegistryCompatibilityTest {
     @Test
     void everyCurrentCapabilitySetIsFrozenExactly() {
         assertEquals(
-                Set.of("@position_x", "@position_y", "@direction"),
+                Set.of("@handitem_id", "@position_x", "@position_y", "@direction"),
                 keys(WiredInternalVariableRegistry.Capability.USER_DESTINATION));
         assertEquals(
                 Set.of("@state", "@position_x", "@position_y", "@rotation", "@altitude", "@gravity", "@opacity"),
@@ -56,6 +56,9 @@ class WiredInternalVariableRegistryCompatibilityTest {
         assertEquals(
                 Set.of(
                         "~teleport.target_id",
+                        "~clock.is_game_aware",
+                        "~clock.pulse_count",
+                        "~clock.state",
                         "@id",
                         "@class_id",
                         "@height",
@@ -125,6 +128,7 @@ class WiredInternalVariableRegistryCompatibilityTest {
                         Map.entry("@position.x", "@position_x"),
                         Map.entry("@position.y", "@position_y"),
                         Map.entry("@effect", "@effect_id"),
+                        Map.entry("@handitem", "@handitem_id"),
                         Map.entry("@handitems", "@handitem_id"),
                         Map.entry("@is_mute", "@is_muted"),
                         Map.entry("@teams.red.score", "@team_red_score"),
@@ -144,6 +148,7 @@ class WiredInternalVariableRegistryCompatibilityTest {
     @Test
     void currentPublicCapabilityMethodsDelegateWithoutBehaviorChange() {
         assertTrue(WiredInternalVariableSupport.canUseUserReference("@effect"));
+        assertTrue(WiredInternalVariableSupport.canUseUserDestination("@handitem"));
         assertTrue(WiredInternalVariableSupport.canUseFurniDestination(" @altitude "));
         assertTrue(WiredInternalVariableSupport.canUseRoomReference("@teams.red.score"));
         assertTrue(WiredInternalVariableSupport.canUseContextReference("@chat_style"));

@@ -1,6 +1,7 @@
 package com.eu.habbo.habbohotel.economy;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.earnings.PendingCurrencyEarnings;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -78,6 +79,11 @@ public final class EconomyLedger {
         int balanceBefore = lockBalance(connection, operation.userId(), operation.currencyType());
         EconomyMutationResult existing = existingResult(connection, operation);
         if (existing != null) return existing;
+
+        if (PendingCurrencyEarnings.shouldCapture(operation)) {
+            PendingCurrencyEarnings.capture(connection, operation, balanceBefore);
+            return new EconomyMutationResult(balanceBefore, balanceBefore, true);
+        }
 
         int balanceAfter = checkedBalance(balanceBefore, operation.delta());
         persistBalance(connection, operation.userId(), operation.currencyType(), balanceAfter);

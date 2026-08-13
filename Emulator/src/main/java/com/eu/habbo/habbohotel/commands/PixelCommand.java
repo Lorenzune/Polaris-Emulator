@@ -18,7 +18,7 @@ public class PixelCommand extends Command {
             if (habbo != null) {
                 try {
                     if (Integer.parseInt(params[2]) != 0) {
-                        habbo.givePixels(Integer.parseInt(params[2]));
+                        habbo.givePixels(Integer.parseInt(params[2]), "staff.command.duckets");
                         if (habbo.getHabboInfo().getCurrentRoom() != null)
                             habbo.whisper(Emulator.getTexts().getValue("commands.generic.cmd_duckets.received").replace("%amount%", Integer.valueOf(params[2]) + ""), RoomChatMessageBubbles.ALERT);
                         else

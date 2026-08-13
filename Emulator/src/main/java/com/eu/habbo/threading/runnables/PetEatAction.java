@@ -2,6 +2,7 @@ package com.eu.habbo.threading.runnables;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.items.interactions.pets.InteractionPetFood;
 import com.eu.habbo.habbohotel.pets.GnomePet;
 import com.eu.habbo.habbohotel.pets.Pet;
@@ -49,7 +50,9 @@ public class PetEatAction implements Runnable {
                 this.pet.getRoom().updateItem(this.food);
 
                 if (this.pet instanceof GnomePet) {
-                    if (this.pet.getPetData().getType() == 26) {
+                    if (this.pet.getPetData().getType() == 31) {
+                        AchievementInteractions.progress(Emulator.getGameEnvironment().getHabboManager().getHabbo(this.pet.getUserId()), "HaloompaFeeding", 40);
+                    } else if (this.pet.getPetData().getType() == 26) {
                         AchievementManager.progressAchievement(
                                 Emulator.getGameEnvironment().getHabboManager().getHabbo(this.pet.getUserId()),
                                 Emulator.getGameEnvironment()

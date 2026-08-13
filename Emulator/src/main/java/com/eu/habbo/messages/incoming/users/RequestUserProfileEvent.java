@@ -1,6 +1,7 @@
 package com.eu.habbo.messages.incoming.users;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboManager;
 import com.eu.habbo.messages.incoming.MessageHandler;
@@ -14,6 +15,10 @@ public class RequestUserProfileEvent extends MessageHandler {
 
         if (!UserInputGuard.isPositiveId(habboId))
             return;
+
+        if (habboId == this.client.getHabbo().getHabboInfo().getId()) {
+            AchievementInteractions.progress(this.client.getHabbo(), "Profile2");
+        }
 
         Habbo habbo = Emulator.getGameEnvironment().getHabboManager().getHabbo(habboId);
 

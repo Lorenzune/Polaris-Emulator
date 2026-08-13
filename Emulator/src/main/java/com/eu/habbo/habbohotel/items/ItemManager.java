@@ -12,6 +12,7 @@ import com.eu.habbo.habbohotel.items.interactions.InteractionColorPlate;
 import com.eu.habbo.habbohotel.items.interactions.InteractionColorWheel;
 import com.eu.habbo.habbohotel.items.interactions.InteractionConfInvisControl;
 import com.eu.habbo.habbohotel.items.interactions.InteractionCostumeHopper;
+import com.eu.habbo.habbohotel.items.interactions.InteractionAntenna;
 import com.eu.habbo.habbohotel.items.interactions.InteractionCrackable;
 import com.eu.habbo.habbohotel.items.interactions.InteractionCrackableMaster;
 import com.eu.habbo.habbohotel.items.interactions.InteractionDefault;
@@ -553,7 +554,7 @@ public class ItemManager {
         this.interactionsList.add(
                 new ItemInteraction("vendingmachine_no_sides", InteractionNoSidesVendingMachine.class));
         this.interactionsList.add(new ItemInteraction("tile_walkmagic", InteractionTileWalkMagic.class));
-        this.interactionsList.add(new ItemInteraction("antenna", InteractionDefault.class));
+        this.interactionsList.add(new ItemInteraction("antenna", InteractionAntenna.class));
         this.interactionsList.add(new ItemInteraction("room_invisible_click_tile", InteractionDefault.class));
 
         this.interactionsList.add(new ItemInteraction("game_timer", InteractionGameTimer.class));
@@ -1547,6 +1548,19 @@ public class ItemManager {
             for (Item item : this.items.values()) {
                 if (item != null && item.getName() != null && item.getName().equalsIgnoreCase(itemName)) {
                     return item;
+                }
+            }
+
+            // Furnidata classnames can contain a colour/variant suffix (for
+            // example chair_plasty*5). Crafting stores that exact classname,
+            // while the emulator item catalogue is keyed by the base name.
+            int variantSeparator = itemName.indexOf('*');
+            if (variantSeparator > 0) {
+                String baseName = itemName.substring(0, variantSeparator);
+                for (Item item : this.items.values()) {
+                    if (item != null && item.getName() != null && item.getName().equalsIgnoreCase(baseName)) {
+                        return item;
+                    }
                 }
             }
         }

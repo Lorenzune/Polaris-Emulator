@@ -82,8 +82,9 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     public static volatile int MAXIMUM_FURNI = 2500;
     public static volatile int MAXIMUM_POSTITNOTES = 200;
     public static volatile int HAND_ITEM_TIME = 10;
-    public static volatile int IDLE_CYCLES = 240;
-    public static volatile int IDLE_CYCLES_KICK = 480;
+    private static final int MAX_NAME_LENGTH = 60;
+    public static final int IDLE_CYCLES = 600; // 5 minutes (300s * 2 cycles/sec)
+    public static final int IDLE_CYCLES_KICK = 1200; // 10 minutes (600s * 2 cycles/sec)
     public static volatile String PREFIX_FORMAT = "[<font color=\"%color%\">%prefix%</font>] ";
     public static volatile int ROLLERS_MAXIMUM_ROLL_AVATARS = 1;
     public static volatile boolean MUTEAREA_CAN_WHISPER = false;
@@ -135,7 +136,12 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     // Use appropriately. Could potentially cause memory leaks when used incorrectly.
     public volatile boolean preventUnloading = false;
     public volatile boolean preventUncaching = false;
+    /** Legacy plugin ABI: external plugins may still enqueue composers through this field. */
     public Set<ServerMessage> scheduledComposers = ConcurrentHashMap.newKeySet();
+    private final java.util.concurrent.ConcurrentLinkedQueue<ServerMessage> scheduledComposerQueue =
+            new java.util.concurrent.ConcurrentLinkedQueue<>();
+    public final java.util.concurrent.ConcurrentLinkedQueue<HabboItem> scheduledItemDataUpdates =
+            new java.util.concurrent.ConcurrentLinkedQueue<>();
     public final java.util.concurrent.ConcurrentLinkedQueue<Runnable> scheduledTasks =
             new java.util.concurrent.ConcurrentLinkedQueue<>();
     public String wordQuiz = "";
@@ -850,15 +856,15 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     public void setName(String name) {
         this.name = name;
 
-        if (this.name.length() > 50) {
-            this.name = this.name.substring(0, 50);
+        if (this.name.length() > MAX_NAME_LENGTH) {
+            this.name = this.name.substring(0, MAX_NAME_LENGTH);
         }
 
         if (this.hasGuild()) {
             Guild guild = Emulator.getGameEnvironment().getGuildManager().getGuild(this.guild);
 
             if (guild != null) {
-                guild.setRoomName(name);
+                guild.setRoomName(this.name);
             }
         }
     }
@@ -1794,6 +1800,38 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
 
     public void sendComposers(Collection<ServerMessage> messages) {
         this.messagingManager.sendComposers(messages);
+    }
+
+    public void scheduleComposer(ServerMessage message) {
+        if (message != null) {
+            this.scheduledComposerQueue.add(message);
+        }
+    }
+
+    boolean hasScheduledComposers() {
+        return !this.scheduledComposerQueue.isEmpty()
+                || (this.scheduledComposers != null && !this.scheduledComposers.isEmpty());
+    }
+
+    ServerMessage pollScheduledComposer() {
+        ServerMessage message = this.scheduledComposerQueue.poll();
+        if (message != null || this.scheduledComposers == null) return message;
+
+        for (ServerMessage legacyMessage : this.scheduledComposers) {
+            if (this.scheduledComposers.remove(legacyMessage)) return legacyMessage;
+        }
+        return null;
+    }
+
+    void clearScheduledComposers() {
+        this.scheduledComposerQueue.clear();
+        if (this.scheduledComposers != null) this.scheduledComposers.clear();
+    }
+
+    public void scheduleItemDataUpdate(HabboItem item) {
+        if (item != null) {
+            this.scheduledItemDataUpdates.add(item);
+        }
     }
 
     public void sendComposerToHabbosWithRights(ServerMessage message) {

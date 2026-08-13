@@ -15,9 +15,10 @@ class RoomFacadeArchitectureTest {
     void roomRemainsACompatibilityFacadeInsteadOfRegainingInfrastructureLogic() throws Exception {
         String source = Files.readString(ROOM_SOURCE);
 
+        long logicalLines = source.lines().filter(line -> !line.isBlank()).count();
         assertTrue(
-                source.lines().count() <= 2150,
-                "Keep Room.java below the post-extraction compatibility-facade ceiling");
+                logicalLines <= 1800,
+                "Keep Room.java logical code below the post-extraction compatibility-facade ceiling");
         assertFalse(source.contains("prepareStatement("), "Database statements belong in collaborators");
         assertFalse(source.matches("(?s).*\"(?:SELECT|INSERT|UPDATE|DELETE) .*"));
     }

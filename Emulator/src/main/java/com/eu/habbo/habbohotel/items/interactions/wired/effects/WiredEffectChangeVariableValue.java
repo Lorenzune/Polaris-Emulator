@@ -12,6 +12,7 @@ import com.eu.habbo.habbohotel.games.freeze.FreezeGame;
 import com.eu.habbo.habbohotel.games.wired.WiredGame;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
+import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.FurnitureMovementError;
 import com.eu.habbo.habbohotel.rooms.Room;
@@ -97,6 +98,16 @@ public class WiredEffectChangeVariableValue extends InteractionWiredEffect {
             case TARGET_FURNI -> this.executeFurni(ctx, room);
             case TARGET_CONTEXT -> this.executeContext(ctx, room);
             case TARGET_ROOM -> this.executeRoom(ctx, room);
+        }
+
+        this.activateVariableBox(room);
+    }
+
+    private void activateVariableBox(Room room) {
+        if (room == null || room.getRoomSpecialTypes() == null || this.destinationVariableItemId <= 0) return;
+        InteractionWiredExtra extra = room.getRoomSpecialTypes().getExtra(this.destinationVariableItemId);
+        if (extra != null) {
+            extra.activateBox(room);
         }
     }
 

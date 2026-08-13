@@ -32,7 +32,7 @@ public class WiredConditionSameHeight extends InteractionWiredCondition {
     public static final WiredConditionType type = WiredConditionType.HAS_ALTITUDE;
 
     private final HashSet<HabboItem> items;
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
     private int quantifier = QUANTIFIER_ALL;
 
     public WiredConditionSameHeight(ResultSet set, Item baseItem) throws SQLException {
@@ -94,7 +94,7 @@ public class WiredConditionSameHeight extends InteractionWiredCondition {
     @Override
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
         this.items.clear();
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.quantifier = QUANTIFIER_ALL;
 
         String wiredData = set.getString("wired_data");
@@ -136,7 +136,7 @@ public class WiredConditionSameHeight extends InteractionWiredCondition {
     @Override
     public void onPickUp() {
         this.items.clear();
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.quantifier = QUANTIFIER_ALL;
     }
 

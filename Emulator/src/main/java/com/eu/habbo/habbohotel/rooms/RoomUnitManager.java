@@ -1054,8 +1054,14 @@ public class RoomUnitManager {
     public void dance(RoomUnit unit, DanceType danceType) {
         if (unit.getDanceType() != danceType) {
             boolean isDancing = !unit.getDanceType().equals(DanceType.NONE);
+            boolean wasIdleEffectVisible = unit.isIdle() && unit.getDanceType() == DanceType.NONE;
             unit.setDanceType(danceType);
             this.room.sendComposer(new RoomUserDanceComposer(unit).compose());
+
+            boolean isIdleEffectVisible = unit.isIdle() && unit.getDanceType() == DanceType.NONE;
+            if (wasIdleEffectVisible != isIdleEffectVisible) {
+                this.room.sendComposer(new RoomUnitIdleComposer(unit).compose());
+            }
 
             if (danceType.equals(DanceType.NONE) && isDancing) {
                 WiredManager.triggerUserStopsDancing(this.room, unit);

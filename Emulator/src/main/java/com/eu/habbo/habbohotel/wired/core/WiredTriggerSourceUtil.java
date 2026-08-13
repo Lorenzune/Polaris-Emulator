@@ -25,6 +25,9 @@ public final class WiredTriggerSourceUtil {
                 return resolveSelectorItems(trigger, event);
             case WiredSourceUtil.SOURCE_SIGNAL:
                 if (event.getType() == WiredEvent.Type.SIGNAL_RECEIVED) {
+                    if (!event.isSignalPerFurni() && !event.getSignalSourceItems().isEmpty()) {
+                        return new ArrayList<>(event.getSignalSourceItems());
+                    }
                     return event.getSourceItem().map(Collections::singletonList).orElse(Collections.emptyList());
                 }
                 return Collections.emptyList();
@@ -44,6 +47,9 @@ public final class WiredTriggerSourceUtil {
                 return resolveSelectorUsers(trigger, event);
             case WiredSourceUtil.SOURCE_SIGNAL:
                 if (event.getType() == WiredEvent.Type.SIGNAL_RECEIVED) {
+                    if (!event.isSignalPerUser() && !event.getSignalSourceUsers().isEmpty()) {
+                        return new ArrayList<>(event.getSignalSourceUsers());
+                    }
                     return event.getActor().map(Collections::singletonList).orElse(Collections.emptyList());
                 }
                 return Collections.emptyList();

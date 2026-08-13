@@ -28,7 +28,7 @@ public class MassPixelsCommand extends Command {
                 for (Map.Entry<Integer, Habbo> set : Emulator.getGameEnvironment().getHabboManager().getOnlineHabbos().entrySet()) {
                     Habbo habbo = set.getValue();
 
-                    habbo.givePixels(amount);
+                    habbo.givePixels(amount, "staff.command.mass_duckets");
 
                     if (habbo.getHabboInfo().getCurrentRoom() != null)
                         habbo.whisper(Emulator.getTexts().getValue("commands.generic.cmd_duckets.received").replace("%amount%", amount + ""), RoomChatMessageBubbles.ALERT);

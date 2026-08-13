@@ -33,7 +33,7 @@ public class WiredEffectAdjustClock extends InteractionWiredEffect {
 
     private final List<HabboItem> items = new ArrayList<>();
     private int operator = OPERATOR_SET;
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
     private int minutes = 0;
     private int halfSecondSteps = 0;
 
@@ -116,7 +116,7 @@ public class WiredEffectAdjustClock extends InteractionWiredEffect {
         }
 
         this.operator = OPERATOR_SET;
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.minutes = 0;
         this.halfSecondSteps = 0;
         this.setDelay(0);
@@ -126,7 +126,7 @@ public class WiredEffectAdjustClock extends InteractionWiredEffect {
     public void onPickUp() {
         this.items.clear();
         this.operator = OPERATOR_SET;
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.minutes = 0;
         this.halfSecondSteps = 0;
         this.setDelay(0);

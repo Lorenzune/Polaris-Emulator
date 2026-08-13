@@ -17529,6 +17529,214 @@
   ],
   "exemptions": [
     {
+      "name": "CRAFTING_EDITOR_SAVE",
+      "direction": "client_to_server",
+      "header": 10070,
+      "java": {
+        "symbol": "CraftingEditorSaveEvent",
+        "className": "CraftingEditorSaveEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/crafting/CraftingEditorSaveEvent.java"
+      },
+      "typescript": {
+        "symbol": "CRAFTING_EDITOR_SAVE",
+        "className": "CraftingEditorSaveComposer",
+        "path": "packages/communication/src/messages/outgoing/crafting/CraftingEditorSaveComposer.ts"
+      },
+      "reason": "Administrative editor payload contains data-dependent recipe collections"
+    },
+    {
+      "name": "CRAFTING_EDITOR_DELETE",
+      "direction": "client_to_server",
+      "header": 10071,
+      "java": {
+        "symbol": "CraftingEditorDeleteEvent",
+        "className": "CraftingEditorDeleteEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/crafting/CraftingEditorDeleteEvent.java"
+      },
+      "typescript": {
+        "symbol": "CRAFTING_EDITOR_DELETE",
+        "className": "CraftingEditorDeleteComposer",
+        "path": "packages/communication/src/messages/outgoing/crafting/CraftingEditorDeleteComposer.ts"
+      },
+      "reason": "Administrative editor packet is intentionally outside the generated public protocol catalog"
+    },
+    {
+      "name": "REQUEST_CRACKABLE_EDITOR",
+      "direction": "client_to_server",
+      "header": 10072,
+      "java": {
+        "symbol": "RequestCrackableEditorEvent",
+        "className": "RequestCrackableEditorEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/crackable/RequestCrackableEditorEvent.java"
+      },
+      "typescript": {
+        "symbol": "REQUEST_CRACKABLE_EDITOR",
+        "className": "RequestCrackableEditorComposer",
+        "path": "packages/communication/src/messages/outgoing/crackable/RequestCrackableEditorComposer.ts"
+      },
+      "reason": "Administrative editor packet is intentionally outside the generated public protocol catalog"
+    },
+    {
+      "name": "CRACKABLE_EDITOR_SAVE",
+      "direction": "client_to_server",
+      "header": 10073,
+      "java": {
+        "symbol": "CrackableEditorSaveEvent",
+        "className": "CrackableEditorSaveEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/crackable/CrackableEditorSaveEvent.java"
+      },
+      "typescript": {
+        "symbol": "CRACKABLE_EDITOR_SAVE",
+        "className": "CrackableEditorSaveComposer",
+        "path": "packages/communication/src/messages/outgoing/crackable/CrackableEditorSaveComposer.ts"
+      },
+      "reason": "Administrative editor payload contains data-dependent reward collections"
+    },
+    {
+      "name": "REQUEST_ACHIEVEMENT_EDITOR",
+      "direction": "client_to_server",
+      "header": 10074,
+      "java": {
+        "symbol": "RequestAchievementEditorEvent",
+        "className": "RequestAchievementEditorEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/achievements/RequestAchievementEditorEvent.java"
+      },
+      "typescript": {
+        "symbol": "REQUEST_ACHIEVEMENT_EDITOR",
+        "className": "RequestAchievementEditorComposer",
+        "path": "packages/communication/src/messages/outgoing/achievementeditor/RequestAchievementEditorComposer.ts"
+      },
+      "reason": "Administrative editor packet is intentionally outside the generated public protocol catalog"
+    },
+    {
+      "name": "ACHIEVEMENT_EDITOR_SAVE",
+      "direction": "client_to_server",
+      "header": 10075,
+      "java": {
+        "symbol": "AchievementEditorSaveEvent",
+        "className": "AchievementEditorSaveEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/achievements/AchievementEditorSaveEvent.java"
+      },
+      "typescript": {
+        "symbol": "ACHIEVEMENT_EDITOR_SAVE",
+        "className": "AchievementEditorSaveComposer",
+        "path": "packages/communication/src/messages/outgoing/achievementeditor/AchievementEditorSaveComposer.ts"
+      },
+      "reason": "Administrative editor payload contains data-dependent level collections"
+    },
+    {
+      "name": "ACHIEVEMENT_EDITOR_DELETE",
+      "direction": "client_to_server",
+      "header": 10076,
+      "java": {
+        "symbol": "AchievementEditorDeleteEvent",
+        "className": "AchievementEditorDeleteEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/achievements/AchievementEditorDeleteEvent.java"
+      },
+      "typescript": {
+        "symbol": "ACHIEVEMENT_EDITOR_DELETE",
+        "className": "AchievementEditorDeleteComposer",
+        "path": "packages/communication/src/messages/outgoing/achievementeditor/AchievementEditorDeleteComposer.ts"
+      },
+      "reason": "Administrative editor packet is intentionally outside the generated public protocol catalog"
+    },
+    {
+      "name": "CRAFTING_EDITOR_STATE",
+      "direction": "server_to_client",
+      "header": 10070,
+      "java": {
+        "symbol": "CraftingEditorStateComposer",
+        "className": "CraftingEditorStateComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/crafting/CraftingEditorStateComposer.java"
+      },
+      "typescript": {
+        "symbol": "CRAFTING_EDITOR_STATE",
+        "className": "CraftingEditorStateMessageParser",
+        "path": "packages/communication/src/messages/parser/crafting/CraftingEditorStateMessageParser.ts"
+      },
+      "reason": "Administrative editor payload contains data-dependent recipe collections"
+    },
+    {
+      "name": "CRAFTING_EDITOR_RESULT",
+      "direction": "server_to_client",
+      "header": 10071,
+      "java": {
+        "symbol": "CraftingEditorResultComposer",
+        "className": "CraftingEditorResultComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/crafting/CraftingEditorResultComposer.java"
+      },
+      "typescript": {
+        "symbol": "CRAFTING_EDITOR_RESULT",
+        "className": "CraftingEditorResultMessageParser",
+        "path": "packages/communication/src/messages/parser/crafting/CraftingEditorResultMessageParser.ts"
+      },
+      "reason": "Administrative editor result is intentionally outside the generated public protocol catalog"
+    },
+    {
+      "name": "CRACKABLE_EDITOR_STATE",
+      "direction": "server_to_client",
+      "header": 10072,
+      "java": {
+        "symbol": "CrackableEditorStateComposer",
+        "className": "CrackableEditorStateComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/crackable/CrackableEditorStateComposer.java"
+      },
+      "typescript": {
+        "symbol": "CRACKABLE_EDITOR_STATE",
+        "className": "CrackableEditorStateMessageParser",
+        "path": "packages/communication/src/messages/parser/crackable/CrackableEditorStateMessageParser.ts"
+      },
+      "reason": "Administrative editor payload contains data-dependent reward collections"
+    },
+    {
+      "name": "CRACKABLE_EDITOR_RESULT",
+      "direction": "server_to_client",
+      "header": 10073,
+      "java": {
+        "symbol": "CrackableEditorResultComposer",
+        "className": "CrackableEditorResultComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/crackable/CrackableEditorResultComposer.java"
+      },
+      "typescript": {
+        "symbol": "CRACKABLE_EDITOR_RESULT",
+        "className": "CrackableEditorResultMessageParser",
+        "path": "packages/communication/src/messages/parser/crackable/CrackableEditorResultMessageParser.ts"
+      },
+      "reason": "Administrative editor result is intentionally outside the generated public protocol catalog"
+    },
+    {
+      "name": "ACHIEVEMENT_EDITOR_STATE",
+      "direction": "server_to_client",
+      "header": 10074,
+      "java": {
+        "symbol": "AchievementEditorStateComposer",
+        "className": "AchievementEditorStateComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/achievements/AchievementEditorStateComposer.java"
+      },
+      "typescript": {
+        "symbol": "ACHIEVEMENT_EDITOR_STATE",
+        "className": "AchievementEditorStateMessageParser",
+        "path": "packages/communication/src/messages/parser/achievementeditor/AchievementEditorStateMessageParser.ts"
+      },
+      "reason": "Administrative editor payload contains data-dependent achievement collections"
+    },
+    {
+      "name": "ACHIEVEMENT_EDITOR_RESULT",
+      "direction": "server_to_client",
+      "header": 10075,
+      "java": {
+        "symbol": "AchievementEditorResultComposer",
+        "className": "AchievementEditorResultComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/achievements/AchievementEditorResultComposer.java"
+      },
+      "typescript": {
+        "symbol": "ACHIEVEMENT_EDITOR_RESULT",
+        "className": "AchievementEditorResultMessageParser",
+        "path": "packages/communication/src/messages/parser/achievementeditor/AchievementEditorResultMessageParser.ts"
+      },
+      "reason": "Administrative editor result is intentionally outside the generated public protocol catalog"
+    },
+    {
       "name": "PICK_ISSUES",
       "direction": "client_to_server",
       "header": 15,

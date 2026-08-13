@@ -6,6 +6,7 @@ import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomTile;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.users.LedgerWalletMutation;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.rooms.UpdateStackHeightComposer;
 import com.eu.habbo.messages.outgoing.rooms.items.RemoveFloorItemComposer;
@@ -159,6 +160,9 @@ public class RedeemItemEvent extends MessageHandler {
                     room.sendComposer(
                             new UpdateStackHeightComposer(item.getX(), item.getY(), t.z, t.relativeHeight()).compose());
                     publishCurrencyGrant(currencyGrant);
+                    if (currencyGrant.currencyType() == FurnitureRedeemedEvent.CREDITS) {
+                        AchievementInteractions.progress(this.client.getHabbo(), "MoneyPrinter");
+                    }
                 }
             }
         }

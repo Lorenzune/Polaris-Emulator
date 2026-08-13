@@ -1,6 +1,7 @@
 package com.eu.habbo.habbohotel.catalog.layouts;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.bots.Bot;
 import com.eu.habbo.habbohotel.catalog.CatalogItem;
 import com.eu.habbo.habbohotel.items.Item;
@@ -241,6 +242,11 @@ public class RoomBundleLayout extends SingleBundle {
 
         if (habbo != null) {
             habbo.getClient().sendResponse(new BubbleAlertComposer(BubbleAlertKeys.PURCHASING_ROOM.key, keys));
+            AchievementInteractions.progress(habbo, "HabboBuilder_MDesign_");
+        }
+
+        if (this.room.getOwnerId() > 0 && this.room.getOwnerId() != userId) {
+            AchievementInteractions.progressUser(this.room.getOwnerId(), "HabboBuilder_LDesign_");
         }
     }
 }

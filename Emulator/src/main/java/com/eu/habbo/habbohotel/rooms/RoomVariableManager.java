@@ -195,6 +195,9 @@ public class RoomVariableManager {
             }
 
             if (changed) {
+                if (extra != null) {
+                    extra.activateBox(this.room);
+                }
                 this.broadcastSnapshot();
             }
 
@@ -211,6 +214,9 @@ public class RoomVariableManager {
             }
 
             if (changed) {
+                if (extra != null) {
+                    extra.activateBox(this.room);
+                }
                 this.broadcastSnapshot();
             }
 
@@ -242,6 +248,9 @@ public class RoomVariableManager {
         }
 
         this.emitVariableChangedEvents(extra, definitionInfo, previousValue, assignment.getValue());
+        if (extra != null) {
+            extra.activateBox(this.room);
+        }
         this.broadcastSnapshot();
         return true;
     }

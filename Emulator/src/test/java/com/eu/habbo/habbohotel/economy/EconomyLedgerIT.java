@@ -63,6 +63,29 @@ class EconomyLedgerIT {
                     SELECT COUNT(*) FROM logs_economy
                     WHERE operation_id LIKE 'rollback:%'
                     """));
+
+            try (Connection connection = dataSource.getConnection()) {
+                connection.setAutoCommit(false);
+                EconomyMutationResult pending = EconomyLedger.apply(
+                        connection, operation("pending:diamonds", 5, 25));
+                connection.commit();
+
+                assertEquals(180, pending.balanceBefore());
+                assertEquals(180, pending.balanceAfter());
+            }
+            assertEquals(180, value(dataSource, """
+                    SELECT amount FROM users_currency
+                    WHERE user_id = 910001 AND type = 5
+                    """));
+            assertEquals(25, value(dataSource, """
+                    SELECT amount FROM users_earnings_pending
+                    WHERE operation_id = 'pending:diamonds'
+                    """));
+            assertEquals(1, value(dataSource, """
+                    SELECT COUNT(*) FROM logs_economy
+                    WHERE operation_id = 'pending:diamonds'
+                      AND balance_before = balance_after
+                    """));
         }
     }
 

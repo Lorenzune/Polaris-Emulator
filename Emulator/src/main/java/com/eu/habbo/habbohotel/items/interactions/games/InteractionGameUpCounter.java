@@ -12,6 +12,8 @@ public class InteractionGameUpCounter extends InteractionGameTimer {
     private static final int ONE_SECOND_MS = 1000;
     private static final int HALF_SECOND_MS = 500;
     private static final int MAX_UPCOUNTER_TIME = ((99 * 60) + 59);
+    private static final long VISUAL_COUNTER_CYCLE_MS = 6000L * ONE_SECOND_MS;
+    private long elapsedTimeInMs;
     private int subSecondOffsetMs = 0;
 
     public InteractionGameUpCounter(ResultSet set, Item baseItem) throws SQLException {
@@ -99,6 +101,11 @@ public class InteractionGameUpCounter extends InteractionGameTimer {
         return (this.timeNow * ONE_SECOND_MS) + this.subSecondOffsetMs;
     }
 
+    /** Returns the continuous elapsed time, while getCurrentTimeInMs remains the visible 0..5999 cycle. */
+    public long getElapsedTimeInMs() {
+        return this.elapsedTimeInMs;
+    }
+
     public int getMaximumTimeInMs() {
         return this.baseTime * ONE_SECOND_MS;
     }
@@ -108,15 +115,25 @@ public class InteractionGameUpCounter extends InteractionGameTimer {
     }
 
     public void setCurrentTimeInMs(int totalMs) {
-        int clamped = Math.max(0, Math.min(totalMs, this.getMaximumTimeInMs()));
-        int remainder = clamped % ONE_SECOND_MS;
+        this.setElapsedTimeInMs(Math.max(0, totalMs));
+    }
 
-        this.timeNow = (clamped / ONE_SECOND_MS);
+    private void setElapsedTimeInMs(long totalMs) {
+        long normalized = Math.max(0L, totalMs);
+        long visualTime = normalized % VISUAL_COUNTER_CYCLE_MS;
+        int remainder = (int) (visualTime % ONE_SECOND_MS);
+
+        this.elapsedTimeInMs = normalized;
+        this.timeNow = (int) (visualTime / ONE_SECOND_MS);
         this.subSecondOffsetMs = (remainder >= HALF_SECOND_MS) ? HALF_SECOND_MS : 0;
     }
 
     public void advanceCounterInMs(int deltaMs) {
-        this.setCurrentTimeInMs(this.getCurrentTimeInMs() + deltaMs);
+        this.setElapsedTimeInMs(this.elapsedTimeInMs + deltaMs);
+    }
+
+    public void publishCounterState(Room room) {
+        this.applyCounterState(room, true);
     }
 
     private void applyCounterState(Room room, boolean updateRoom) {

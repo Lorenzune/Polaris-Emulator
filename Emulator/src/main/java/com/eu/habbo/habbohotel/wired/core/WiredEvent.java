@@ -6,6 +6,7 @@ import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.WiredTriggerType;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -193,6 +194,10 @@ public final class WiredEvent {
     private final int chatStyle;        // bubble style for USER_SAYS
     private final int signalUserCount;  // forwarded users in SIGNAL_RECEIVED
     private final int signalFurniCount; // forwarded furni in SIGNAL_RECEIVED
+    private final List<RoomUnit> signalSourceUsers; // all users forwarded by the same send-signal emission
+    private final List<HabboItem> signalSourceItems; // all furni forwarded by the same send-signal emission
+    private final boolean signalPerUser;
+    private final boolean signalPerFurni;
     private final int variableTargetType;
     private final int variableDefinitionItemId;
     private final boolean variableCreated;
@@ -221,6 +226,10 @@ public final class WiredEvent {
         this.chatStyle = builder.chatStyle;
         this.signalUserCount = builder.signalUserCount;
         this.signalFurniCount = builder.signalFurniCount;
+        this.signalSourceUsers = List.copyOf(builder.signalSourceUsers);
+        this.signalSourceItems = List.copyOf(builder.signalSourceItems);
+        this.signalPerUser = builder.signalPerUser;
+        this.signalPerFurni = builder.signalPerFurni;
         this.variableTargetType = builder.variableTargetType;
         this.variableDefinitionItemId = builder.variableDefinitionItemId;
         this.variableCreated = builder.variableCreated;
@@ -364,6 +373,22 @@ public final class WiredEvent {
         return signalFurniCount;
     }
 
+    public List<RoomUnit> getSignalSourceUsers() {
+        return signalSourceUsers;
+    }
+
+    public List<HabboItem> getSignalSourceItems() {
+        return signalSourceItems;
+    }
+
+    public boolean isSignalPerUser() {
+        return signalPerUser;
+    }
+
+    public boolean isSignalPerFurni() {
+        return signalPerFurni;
+    }
+
     public int getVariableTargetType() {
         return variableTargetType;
     }
@@ -450,6 +475,10 @@ public final class WiredEvent {
         private int chatStyle = -1;
         private int signalUserCount;
         private int signalFurniCount;
+        private List<RoomUnit> signalSourceUsers = List.of();
+        private List<HabboItem> signalSourceItems = List.of();
+        private boolean signalPerUser;
+        private boolean signalPerFurni;
         private int variableTargetType = -1;
         private int variableDefinitionItemId;
         private boolean variableCreated;
@@ -592,6 +621,30 @@ public final class WiredEvent {
 
         public Builder signalFurniCount(int signalFurniCount) {
             this.signalFurniCount = Math.max(0, signalFurniCount);
+            return this;
+        }
+
+        public Builder signalSourceUsers(List<RoomUnit> signalSourceUsers) {
+            this.signalSourceUsers = signalSourceUsers != null
+                    ? signalSourceUsers.stream().filter(unit -> unit != null).toList()
+                    : List.of();
+            return this;
+        }
+
+        public Builder signalSourceItems(List<HabboItem> signalSourceItems) {
+            this.signalSourceItems = signalSourceItems != null
+                    ? signalSourceItems.stream().filter(item -> item != null).toList()
+                    : List.of();
+            return this;
+        }
+
+        public Builder signalPerUser(boolean signalPerUser) {
+            this.signalPerUser = signalPerUser;
+            return this;
+        }
+
+        public Builder signalPerFurni(boolean signalPerFurni) {
+            this.signalPerFurni = signalPerFurni;
             return this;
         }
 

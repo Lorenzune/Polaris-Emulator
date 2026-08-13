@@ -48,7 +48,7 @@ public class WiredEffectToggleFurni extends InteractionWiredEffect {
 
     private final Set<HabboItem> items;
     private int toggleType = TOGGLE_TYPE_NEXT;
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
 
     private static final List<Class<? extends HabboItem>> FORBIDDEN_TYPES = new ArrayList<Class<? extends HabboItem>>() {
         {
@@ -294,7 +294,7 @@ public class WiredEffectToggleFurni extends InteractionWiredEffect {
     public void onPickUp() {
         this.items.clear();
         this.toggleType = TOGGLE_TYPE_NEXT;
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.setDelay(0);
     }
 

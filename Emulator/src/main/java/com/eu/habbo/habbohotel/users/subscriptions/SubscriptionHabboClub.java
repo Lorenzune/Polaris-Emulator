@@ -4,6 +4,7 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.database.Database;
 import com.eu.habbo.habbohotel.achievements.Achievement;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.messenger.Messenger;
 import com.eu.habbo.habbohotel.rooms.RoomManager;
 import com.eu.habbo.habbohotel.users.Habbo;
@@ -88,8 +89,11 @@ public class SubscriptionHabboClub extends Subscription {
         Emulator.getThreading().run(stats);
 
         progressAchievement(habboInfo);
+        Habbo onlineHabbo = Emulator.getGameEnvironment().getHabboManager().getHabbo(this.getUserId());
+        AchievementInteractions.progress(onlineHabbo, "HC");
+        AchievementInteractions.progress(onlineHabbo, "BasicClub");
 
-        Habbo habbo = Emulator.getGameEnvironment().getHabboManager().getHabbo(this.getUserId());
+        Habbo habbo = onlineHabbo;
         if (habbo != null && habbo.getClient() != null) {
 
             if (habbo.getHabboStats().getRemainingClubGifts() > 0) {
@@ -429,13 +433,13 @@ public class SubscriptionHabboClub extends Subscription {
             case "coins":
             case "credit":
             case "coin":
-                habbo.getClient().getHabbo().giveCredits(amount);
+                habbo.getClient().getHabbo().giveCredits(amount, "earnings.claim.hc_payday");
                 break;
 
             case "diamonds":
             case "diamond":
                 pointCurrency = 5;
-                habbo.getClient().getHabbo().givePoints(pointCurrency, amount);
+                habbo.getClient().getHabbo().givePoints(pointCurrency, amount, "earnings.claim.hc_payday");
                 break;
 
             case "duckets":
@@ -443,7 +447,7 @@ public class SubscriptionHabboClub extends Subscription {
             case "pixels":
             case "pixel":
                 pointCurrency = 0;
-                habbo.getClient().getHabbo().givePoints(pointCurrency, amount);
+                habbo.getClient().getHabbo().givePoints(pointCurrency, amount, "earnings.claim.hc_payday");
                 break;
 
             default:
@@ -457,7 +461,7 @@ public class SubscriptionHabboClub extends Subscription {
                 }
 
                 if (pointCurrency >= 0) {
-                    habbo.getClient().getHabbo().givePoints(pointCurrency, amount);
+                    habbo.getClient().getHabbo().givePoints(pointCurrency, amount, "earnings.claim.hc_payday");
                 }
                 break;
         }

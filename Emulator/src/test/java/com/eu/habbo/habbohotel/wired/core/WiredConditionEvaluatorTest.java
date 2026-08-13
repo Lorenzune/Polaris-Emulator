@@ -33,7 +33,10 @@ class WiredConditionEvaluatorTest {
         WiredConditionEvaluator evaluator =
                 new WiredConditionEvaluator((ignoredRoom, format, arguments) -> diagnostics.add(format));
 
-        assertTrue(evaluator.outcomeForExecution(stack, normalContext, false));
+        WiredConditionEvaluator.EvaluationResult result = evaluator.evaluateForExecution(stack, normalContext, false);
+
+        assertTrue(result.passed());
+        assertEquals(List.of(true, false, true), result.conditions().stream().map(WiredConditionEvaluator.ConditionResult::passed).toList());
         assertEquals(List.of("and", "or-false", "or-true"), evaluationOrder);
         assertEquals(3, normalState.steps());
         assertTrue(diagnostics.contains("Conditions result: {}"));

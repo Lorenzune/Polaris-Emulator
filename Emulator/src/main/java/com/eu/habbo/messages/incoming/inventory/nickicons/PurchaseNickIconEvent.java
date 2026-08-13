@@ -1,6 +1,7 @@
 package com.eu.habbo.messages.incoming.inventory.nickicons;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.customization.UserCustomizationPurchaseService;
 import com.eu.habbo.habbohotel.users.customization.UserCustomizationPurchaseService.PurchaseResult;
@@ -50,10 +51,27 @@ public class PurchaseNickIconEvent extends MessageHandler {
             }
             result.nickIcon().run();
             habbo.getInventory().getNickIconsComponent().addNickIcon(result.nickIcon());
+            AchievementInteractions.progress(habbo, "HabbiconCollected");
+            this.syncHabbiconCollection(habbo);
             this.client.sendResponse(new UserNickIconsComposer(habbo));
         } catch (SQLException exception) {
             LOGGER.error("Caught SQL exception", exception);
             this.fail("Unable to purchase this nick icon right now.");
+        }
+    }
+
+    private void syncHabbiconCollection(Habbo habbo) {
+        try (var connection = Emulator.getDatabase().getDataSource().getConnection();
+                var statement = connection.prepareStatement(
+                        "SELECT COUNT(*) FROM custom_nick_icons_catalog WHERE enabled = 1")) {
+            try (var set = statement.executeQuery()) {
+                if (set.next() && set.getInt(1) > 0
+                        && habbo.getInventory().getNickIconsComponent().getNickIcons().size() >= set.getInt(1)) {
+                    AchievementInteractions.progress(habbo, "HabbiconCollectionCompleted");
+                }
+            }
+        } catch (SQLException exception) {
+            LOGGER.debug("Unable to evaluate Habbicon collection achievement", exception);
         }
     }
 

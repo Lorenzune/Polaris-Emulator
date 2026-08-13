@@ -35,5 +35,11 @@ public enum AchievementCategories {
     INVISIBLE,
 
 
-    EVENTS
+    EVENTS,
+
+    CRACKABLES,
+
+    CRAFTING,
+
+    COLLECTIBLES
 }

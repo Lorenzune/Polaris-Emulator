@@ -1,6 +1,7 @@
 package com.eu.habbo.habbohotel.games.freeze;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
 import com.eu.habbo.habbohotel.games.*;
 import com.eu.habbo.habbohotel.items.interactions.games.freeze.InteractionFreezeBlock;
@@ -289,6 +290,7 @@ public class FreezeGame extends Game {
                 if (p.getScoreAchievementValue() > 0) {
                     if (team.equals(winningTeam)) {
                         AchievementManager.progressAchievement(p.getHabbo(), Emulator.getGameEnvironment().getAchievementManager().getAchievement("FreezeWinner"), p.getScoreAchievementValue());
+                        AchievementInteractions.progress(p.getHabbo(), "FreezeQuestCompleted");
                         this.room.sendComposer(new RoomUserActionComposer(p.getHabbo().getRoomUnit(), RoomUserAction.WAVE).compose());
                     }
 

@@ -136,29 +136,25 @@ public class RoomUnitOnRollerComposer extends MessageComposer {
                 }
             }
             
-            // Delay the walk on/off events to allow the visual animation to complete
-            Emulator.getThreading().run(() -> {
-                if (!this.roomUnit.isWalking()) {
-                    HabboItem topItem = this.room.getTopItemAt(this.oldLocation.x, this.oldLocation.y);
-                    HabboItem topItemNewLocation = this.room.getTopItemAt(this.newLocation.x, this.newLocation.y);
+            // Execute walk on/off events immediately for roller movement
+            HabboItem topItem = this.room.getTopItemAt(this.oldLocation.x, this.oldLocation.y);
+            HabboItem topItemNewLocation = this.room.getTopItemAt(this.newLocation.x, this.newLocation.y);
 
-                    if (topItem != null && (oldTopItem == null || oldTopItem != topItemNewLocation)) {
-                        try {
-                            topItem.onWalkOff(this.roomUnit, this.room, new Object[]{this});
-                        } catch (Exception e) {
-                            LOGGER.error("Caught exception", e);
-                        }
-                    }
-
-                    if (topItemNewLocation != null && topItemNewLocation != roller && oldTopItem != topItemNewLocation) {
-                        try {
-                            topItemNewLocation.onWalkOn(this.roomUnit, this.room, new Object[]{this});
-                        } catch (Exception e) {
-                            LOGGER.error("Caught exception", e);
-                        }
-                    }
+            if (topItem != null && (oldTopItem == null || oldTopItem != topItemNewLocation)) {
+                try {
+                    topItem.onWalkOff(this.roomUnit, this.room, new Object[]{this});
+                } catch (Exception e) {
+                    LOGGER.error("Caught exception", e);
                 }
-            }, RoomQueueSpeedControlSupport.getEffectiveRollerIntervalMs(this.room));
+            }
+
+            if (topItemNewLocation != null && topItemNewLocation != roller && oldTopItem != topItemNewLocation) {
+                try {
+                    topItemNewLocation.onWalkOn(this.roomUnit, this.room, new Object[]{this});
+                } catch (Exception e) {
+                    LOGGER.error("Caught exception", e);
+                }
+            }
             /*
             RoomTile rollerTile = room.getLayout().getTile(this.roller.getX(), this.roller.getY());
             Emulator.getThreading().run(() -> {

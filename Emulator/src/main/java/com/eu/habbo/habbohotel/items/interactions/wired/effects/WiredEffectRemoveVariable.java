@@ -5,6 +5,7 @@ import com.eu.habbo.WiredCompatibilityDiagnostics;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
+import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
@@ -35,7 +36,7 @@ public class WiredEffectRemoveVariable extends InteractionWiredEffect {
     private int variableItemId = 0;
     private int targetType = TARGET_USER;
     private int userSource = WiredSourceUtil.SOURCE_TRIGGER;
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
     private final Set<HabboItem> selectedFurni;
 
     public WiredEffectRemoveVariable(ResultSet set, Item baseItem) throws SQLException {
@@ -60,15 +61,25 @@ public class WiredEffectRemoveVariable extends InteractionWiredEffect {
         switch (this.targetType) {
             case TARGET_USER:
                 this.executeUserVariables(ctx, room);
-                return;
+                break;
             case TARGET_FURNI:
                 this.executeFurniVariables(ctx, room);
-                return;
+                break;
             case TARGET_CONTEXT:
                 this.executeContextVariables(ctx, room);
-                return;
+                break;
             default:
                 return;
+        }
+
+        this.activateVariableBox(room);
+    }
+
+    private void activateVariableBox(Room room) {
+        if (room == null || room.getRoomSpecialTypes() == null || this.variableItemId <= 0) return;
+        InteractionWiredExtra extra = room.getRoomSpecialTypes().getExtra(this.variableItemId);
+        if (extra != null) {
+            extra.activateBox(room);
         }
     }
 
@@ -319,7 +330,7 @@ public class WiredEffectRemoveVariable extends InteractionWiredEffect {
         this.variableItemId = 0;
         this.targetType = TARGET_USER;
         this.userSource = WiredSourceUtil.SOURCE_TRIGGER;
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.selectedFurni.clear();
         this.setDelay(0);
     }

@@ -1,6 +1,7 @@
 package com.eu.habbo.habbohotel.items.interactions;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.CrackableReward;
@@ -17,6 +18,7 @@ import com.eu.habbo.util.pathfinding.Rotation;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Locale;
 
 public class InteractionCrackable extends HabboItem {
     private final Object lock = new Object();
@@ -109,6 +111,9 @@ public class InteractionCrackable extends HabboItem {
                 this.needsUpdate(true);
                 room.updateItem(this);
 
+                boolean petEgg = this.getBaseItem().getName().toLowerCase(Locale.ROOT).contains("egg");
+                if (petEgg) AchievementInteractions.progress(habbo, "EggCracker");
+
                 if (!rewardData.achievementTick.isEmpty()) {
                     AchievementManager.progressAchievement(habbo, Emulator.getGameEnvironment().getAchievementManager().getAchievement(rewardData.achievementTick));
                 }
@@ -119,6 +124,8 @@ public class InteractionCrackable extends HabboItem {
                     if (!rewardData.achievementCracked.isEmpty()) {
                         AchievementManager.progressAchievement(habbo, Emulator.getGameEnvironment().getAchievementManager().getAchievement(rewardData.achievementCracked));
                     }
+
+                    if (petEgg) AchievementInteractions.progress(habbo, "EggMaster");
 
                     if (rewardData.subscriptionType != null && rewardData.subscriptionDuration > 0) {
                         // subscriptions are given immediately upon cracking

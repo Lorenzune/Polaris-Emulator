@@ -40,7 +40,7 @@ public class TeleportActionOne implements Runnable {
             this.client.getHabbo().getRoomUnit().setLocation(this.room.getLayout().getTile(this.currentTeleport.getX(), this.currentTeleport.getY()));
             this.client.getHabbo().getRoomUnit().setRotation(RoomUserRotation.values()[(this.currentTeleport.getRotation() + 4) % 8]);
             this.client.getHabbo().getRoomUnit().setStatus(RoomUnitStatus.MOVE, this.currentTeleport.getX() + "," + this.currentTeleport.getY() + "," + this.currentTeleport.getZ());
-            this.room.scheduledComposers.add(new RoomUserStatusComposer(this.client.getHabbo().getRoomUnit()).compose());
+            this.room.scheduleComposer(new RoomUserStatusComposer(this.client.getHabbo().getRoomUnit()).compose());
             this.client.getHabbo().getRoomUnit().setLocation(this.room.getLayout().getTile(this.currentTeleport.getX(), this.currentTeleport.getY()));
         }
 

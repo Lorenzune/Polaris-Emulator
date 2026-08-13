@@ -1,6 +1,7 @@
 package com.eu.habbo.messages.incoming.catalog.recycler;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.items.interactions.InteractionGift;
 import com.eu.habbo.habbohotel.permissions.Permission;
 import com.eu.habbo.habbohotel.rooms.*;
@@ -52,6 +53,7 @@ public class OpenRecycleBoxEvent extends MessageHandler {
                         this.client.sendResponse(new InventoryRefreshComposer());
 
                         this.client.sendResponse(new PresentItemOpenedComposer(reward, item.getExtradata(), true));
+                        AchievementInteractions.progress(this.client.getHabbo(), "RecycleBoxOpener");
                     }
                 }
                 room.sendComposer(new RemoveFloorItemComposer(item).compose());

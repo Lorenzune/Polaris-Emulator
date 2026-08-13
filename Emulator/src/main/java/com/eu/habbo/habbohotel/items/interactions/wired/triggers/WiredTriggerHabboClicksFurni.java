@@ -28,7 +28,7 @@ public class WiredTriggerHabboClicksFurni extends InteractionWiredTrigger {
     public static final WiredTriggerType type = WiredTriggerType.CLICKS_FURNI;
 
     protected final Set<HabboItem> items;
-    protected int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    protected int furniSource = WiredSourceUtil.SOURCE_SELECTED;
 
     public WiredTriggerHabboClicksFurni(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -149,7 +149,7 @@ public class WiredTriggerHabboClicksFurni extends InteractionWiredTrigger {
     @Override
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
         this.items.clear();
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         String wiredData = set.getString("wired_data");
 
         if (wiredData.startsWith("{")) {
@@ -188,14 +188,14 @@ public class WiredTriggerHabboClicksFurni extends InteractionWiredTrigger {
                 }
             }
 
-            this.furniSource = this.items.isEmpty() ? WiredSourceUtil.SOURCE_TRIGGER : WiredSourceUtil.SOURCE_SELECTED;
+            this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         }
     }
 
     @Override
     public void onPickUp() {
         this.items.clear();
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
     }
 
     @Override
@@ -222,11 +222,11 @@ public class WiredTriggerHabboClicksFurni extends InteractionWiredTrigger {
     }
 
     protected int normalizeFurniSource(int value) {
-        if (value == WiredSourceUtil.SOURCE_SELECTED || value == WiredSourceUtil.SOURCE_SELECTOR) {
-            return value;
+        if (value == WiredSourceUtil.SOURCE_SELECTOR) {
+            return WiredSourceUtil.SOURCE_SELECTOR;
         }
 
-        return WiredSourceUtil.SOURCE_TRIGGER;
+        return WiredSourceUtil.SOURCE_SELECTED;
     }
 
     private Iterable<HabboItem> resolveCandidateItems(HabboItem triggerItem, WiredEvent event) {

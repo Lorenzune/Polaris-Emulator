@@ -550,6 +550,10 @@ final class WiredDelayedExecutionSnapshot {
             int chatStyle,
             int signalUserCount,
             int signalFurniCount,
+            List<UnitReference> signalSourceUsers,
+            List<ItemReference> signalSourceItems,
+            boolean signalPerUser,
+            boolean signalPerFurni,
             int variableTargetType,
             int variableDefinitionItemId,
             boolean variableCreated,
@@ -580,6 +584,14 @@ final class WiredDelayedExecutionSnapshot {
                     event.getChatStyle(),
                     event.getSignalUserCount(),
                     event.getSignalFurniCount(),
+                    event.getSignalSourceUsers().stream()
+                            .map(UnitReference::capture)
+                            .toList(),
+                    event.getSignalSourceItems().stream()
+                            .map(item -> ItemReference.capture(item, room))
+                            .toList(),
+                    event.isSignalPerUser(),
+                    event.isSignalPerFurni(),
                     event.getVariableTargetType(),
                     event.getVariableDefinitionItemId(),
                     event.isVariableCreated(),
@@ -610,6 +622,16 @@ final class WiredDelayedExecutionSnapshot {
                     .chatStyle(this.chatStyle)
                     .signalUserCount(this.signalUserCount)
                     .signalFurniCount(this.signalFurniCount)
+                    .signalSourceUsers(this.signalSourceUsers.stream()
+                            .map(reference -> reference.resolve(room))
+                            .filter(unit -> unit != null)
+                            .toList())
+                    .signalSourceItems(this.signalSourceItems.stream()
+                            .map(reference -> reference.resolve(room))
+                            .filter(item -> item != null)
+                            .toList())
+                    .signalPerUser(this.signalPerUser)
+                    .signalPerFurni(this.signalPerFurni)
                     .variableTargetType(this.variableTargetType)
                     .variableDefinitionItemId(this.variableDefinitionItemId)
                     .variableCreated(this.variableCreated)

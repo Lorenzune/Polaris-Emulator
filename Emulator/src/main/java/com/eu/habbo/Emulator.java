@@ -670,7 +670,6 @@ public final class Emulator {
         Emulator.config.register("earnings.enabled", "0");
 
         String[] categories = {
-            "daily_gift",
             "games",
             "achievements",
             "marketplace",
@@ -678,8 +677,7 @@ public final class Emulator {
             "level_progress",
             "donations",
             "bonus_bag",
-            "mystery_boxes",
-            "club_job"
+            "mystery_boxes"
         };
 
         for (String category : categories) {

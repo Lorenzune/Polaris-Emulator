@@ -35,6 +35,7 @@ public final class WiredTextPlaceholderUtil {
     private static final char PRESERVED_SPACE = '\u00A0';
     private static final int MAX_PLACEHOLDER_EXPANSION_LENGTH = 16384;
     private static final int MAX_PLACEHOLDER_REPLACEMENTS = 512;
+    private static final int PLACEHOLDER_TYPE_MULTIPLE = 2;
 
     private WiredTextPlaceholderUtil() {
     }
@@ -227,7 +228,9 @@ public final class WiredTextPlaceholderUtil {
     }
 
     private static String buildUsernameReplacement(WiredContext ctx, WiredExtraTextOutputUsername extra) {
-        List<RoomUnit> users = WiredSourceUtil.resolveUsers(ctx, extra.getUserSource());
+        List<RoomUnit> users = shouldUseWholeSignalUsers(ctx, extra.getUserSource(), extra.getPlaceholderType())
+                ? ctx.event().getSignalSourceUsers()
+                : WiredSourceUtil.resolveUsers(ctx, extra.getUserSource());
         if (users.isEmpty()) {
             return "";
         }
@@ -261,7 +264,9 @@ public final class WiredTextPlaceholderUtil {
 
     private static String buildFurniNameReplacement(WiredContext ctx, WiredExtraTextOutputFurniName extra) {
         List<HabboItem> items;
-        if (extra.getFurniSource() == WiredSourceUtil.SOURCE_SELECTOR) {
+        if (shouldUseWholeSignalItems(ctx, extra.getFurniSource(), extra.getPlaceholderType())) {
+            items = ctx.event().getSignalSourceItems();
+        } else if (extra.getFurniSource() == WiredSourceUtil.SOURCE_SELECTOR) {
             items = WiredSourceUtil.resolveSelectorItems(ctx, true);
         } else {
             items = WiredSourceUtil.resolveItems(ctx, extra.getFurniSource(), extra.getItems());
@@ -323,7 +328,9 @@ public final class WiredTextPlaceholderUtil {
 
     private static List<String> collectUserVariableValues(WiredContext ctx, WiredExtraTextOutputVariable extra) {
         Room room = ctx.room();
-        List<RoomUnit> users = WiredSourceUtil.resolveUsers(ctx, extra.getUserSource());
+        List<RoomUnit> users = shouldUseWholeSignalUsers(ctx, extra.getUserSource(), extra.getPlaceholderType())
+                ? ctx.event().getSignalSourceUsers()
+                : WiredSourceUtil.resolveUsers(ctx, extra.getUserSource());
         if (room == null || users.isEmpty()) {
             return List.of();
         }
@@ -353,7 +360,9 @@ public final class WiredTextPlaceholderUtil {
 
         extra.refresh(room);
 
-        List<HabboItem> items = (extra.getFurniSource() == WiredSourceUtil.SOURCE_SELECTOR)
+        List<HabboItem> items = shouldUseWholeSignalItems(ctx, extra.getFurniSource(), extra.getPlaceholderType())
+                ? ctx.event().getSignalSourceItems()
+                : (extra.getFurniSource() == WiredSourceUtil.SOURCE_SELECTOR)
                 ? WiredSourceUtil.resolveSelectorItems(ctx, true)
                 : WiredSourceUtil.resolveItems(ctx, extra.getFurniSource(), extra.getItems());
 
@@ -376,6 +385,22 @@ public final class WiredTextPlaceholderUtil {
         }
 
         return values;
+    }
+
+    private static boolean shouldUseWholeSignalUsers(WiredContext ctx, int source, int placeholderType) {
+        return source == WiredSourceUtil.SOURCE_SIGNAL
+                && ctx.eventType() == WiredEvent.Type.SIGNAL_RECEIVED
+                && placeholderType == PLACEHOLDER_TYPE_MULTIPLE
+                && !ctx.event().isSignalPerUser()
+                && !ctx.event().getSignalSourceUsers().isEmpty();
+    }
+
+    private static boolean shouldUseWholeSignalItems(WiredContext ctx, int source, int placeholderType) {
+        return source == WiredSourceUtil.SOURCE_SIGNAL
+                && ctx.eventType() == WiredEvent.Type.SIGNAL_RECEIVED
+                && placeholderType == PLACEHOLDER_TYPE_MULTIPLE
+                && !ctx.event().isSignalPerFurni()
+                && !ctx.event().getSignalSourceItems().isEmpty();
     }
 
     private static List<String> collectRoomVariableValues(WiredContext ctx, WiredExtraTextOutputVariable extra) {

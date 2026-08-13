@@ -28,7 +28,7 @@ public class WiredConditionNotFurniHaveFurni extends InteractionWiredCondition {
 
     private boolean all;
     private Set<HabboItem> items;
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
 
     public WiredConditionNotFurniHaveFurni(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -154,7 +154,7 @@ public class WiredConditionNotFurniHaveFurni extends InteractionWiredCondition {
     public void onPickUp() {
         this.all = false;
         this.items.clear();
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
     }
 
     @Override

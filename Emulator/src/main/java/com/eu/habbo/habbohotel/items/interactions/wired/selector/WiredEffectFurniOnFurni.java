@@ -38,7 +38,7 @@ public class WiredEffectFurniOnFurni extends InteractionWiredEffect {
 
     private final Set<HabboItem> items = new LinkedHashSet<>();
     private int selectionType = SELECT_FURNI_ABOVE;
-    private int furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
     private boolean filterExisting = false;
     private boolean invert = false;
 
@@ -184,7 +184,7 @@ public class WiredEffectFurniOnFurni extends InteractionWiredEffect {
     public void onPickUp() {
         this.items.clear();
         this.selectionType = SELECT_FURNI_ABOVE;
-        this.furniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.filterExisting = false;
         this.invert = false;
         this.setDelay(0);

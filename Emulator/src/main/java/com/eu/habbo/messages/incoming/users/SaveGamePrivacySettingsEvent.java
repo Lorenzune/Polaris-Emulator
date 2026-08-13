@@ -2,6 +2,7 @@ package com.eu.habbo.messages.incoming.users;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.users.Habbo;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.plugin.events.users.UserSavedSettingsEvent;
 
@@ -15,6 +16,7 @@ public class SaveGamePrivacySettingsEvent extends MessageHandler {
         boolean blockFriendRequests = !this.packet.readBoolean();
 
         habbo.getHabboStats().setGamePrivacy(hideOnline, blockFollowing, blockFriendRequests);
+        AchievementInteractions.progress(habbo, "Profile1");
 
         habbo.getMessenger().connectionChanged(
                 habbo,

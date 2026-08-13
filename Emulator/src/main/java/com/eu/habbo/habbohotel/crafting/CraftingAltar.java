@@ -93,6 +93,10 @@ public class CraftingAltar {
         for (Map.Entry<Integer, CraftingRecipe> set : this.recipes.entrySet()) {
             CraftingRecipe recipe = set.getValue();
 
+            if (items.size() != recipe.getIngredients().size()) {
+                continue;
+            }
+
             for (Map.Entry<Item, Integer> entry : recipe.getIngredients().entrySet()) {
                 if (!(items.containsKey(entry.getKey()) && items.get(entry.getKey()).equals(entry.getValue()))) {
                     recipe = null;

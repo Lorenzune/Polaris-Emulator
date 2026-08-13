@@ -56,7 +56,7 @@ public class RoomPointsCommand extends Command {
             final String message = Emulator.getTexts().getValue("commands.generic.cmd_points.received").replace("%amount%", amount + "").replace("%type%", Emulator.getTexts().getValue("seasonal.name." + type));
 
             for (Habbo habbo : gameClient.getHabbo().getHabboInfo().getCurrentRoom().getHabbos()) {
-                habbo.givePoints(type, amount);
+                habbo.givePoints(type, amount, "staff.command.room_points");
                 habbo.whisper(message, RoomChatMessageBubbles.ALERT);
             }
         }

@@ -35,20 +35,25 @@ public class AchievementListComposer extends MessageComposer {
                 achievementProgress = this.habbo.getHabboStats().getAchievementProgress(achievement);
                 currentLevel = achievement.getLevelForProgress(achievementProgress);
                 nextLevel = achievement.getNextLevel(currentLevel != null ? currentLevel.level : 0);
+                boolean achieved = AchievementManager.hasAchieved(this.habbo, achievement);
+                AchievementLevel targetLevel = nextLevel != null ? nextLevel : currentLevel;
+                int targetLevelNumber = targetLevel != null ? targetLevel.level : 1;
+                int scoreAtStartOfLevel = currentLevel != null ? currentLevel.progress : 0;
 
                 this.response.appendInt(achievement.id); //ID
-                this.response.appendInt(nextLevel != null ? nextLevel.level : currentLevel != null ? currentLevel.level : 0); //
-                this.response.appendString("ACH_" + achievement.name + (nextLevel != null ? nextLevel.level : currentLevel != null ? currentLevel.level : 0)); //Target badge code
-                this.response.appendInt(currentLevel != null ? currentLevel.progress : 0); //Last level progress needed
-                this.response.appendInt(nextLevel != null ? nextLevel.progress : -1); //Progress needed
-                this.response.appendInt(nextLevel != null ? nextLevel.rewardAmount : -1); //Reward amount
-                this.response.appendInt(nextLevel != null ? nextLevel.rewardType : -1); //Reward currency ID
+                this.response.appendInt(targetLevelNumber); // Target level
+                this.response.appendString("ACH_" + achievement.name + targetLevelNumber); // Target badge code
+                this.response.appendInt(scoreAtStartOfLevel); // Score at start of current level
+                this.response.appendInt(targetLevel != null ? targetLevel.progress : scoreAtStartOfLevel); // Score limit
+                this.response.appendInt(targetLevel != null ? targetLevel.rewardAmount : 0); // Reward points
+                this.response.appendInt(targetLevel != null ? targetLevel.rewardType : 0); // Reward point type
                 this.response.appendInt(Math.max(achievementProgress, 0)); //Current progress
-                this.response.appendBoolean(AchievementManager.hasAchieved(this.habbo, achievement)); //Achieved? (Current Progress == MaxLevel.Progress)
-                this.response.appendString(achievement.category.toString().toLowerCase()); //Category
-                this.response.appendString(""); //Empty, completly unused in client code
+                this.response.appendBoolean(achieved); // Final level
+                this.response.appendString(achievement.categoryCode); // Category
+                this.response.appendString(achievement.subCategory); // Sub-category
                 this.response.appendInt(achievement.levels.size()); //Count of total levels in this achievement
-                this.response.appendInt(AchievementManager.hasAchieved(this.habbo, achievement) ? 1 : 0); //1 = Progressbar visible if the achievement is completed
+                this.response.appendInt(achievement.displayMethod); // SWF display method
+                this.response.appendShort(achievement.state); // SWF lifecycle state
             }
 
             this.response.appendString("");

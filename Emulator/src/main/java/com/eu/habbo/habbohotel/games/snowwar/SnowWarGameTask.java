@@ -1,6 +1,7 @@
 package com.eu.habbo.habbohotel.games.snowwar;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.games.snowwar.events.SnowWarAvatarMoveEvent;
 import com.eu.habbo.habbohotel.games.snowwar.events.SnowWarDeleteObjectEvent;
 import com.eu.habbo.habbohotel.games.snowwar.events.SnowWarGameEvent;
@@ -283,6 +284,7 @@ public class SnowWarGameTask implements Runnable {
                 case HIT:
                     attr.getHealth().set(attr.getPendingHealth());
                     throwerAttr.getScore().addAndGet(SnowWarConstants.HIT_SCORE);
+                    AchievementInteractions.progress(event.getBall().getThrower().getHabbo(), "SnowStormHit_");
                     break;
 
                 case STUN:

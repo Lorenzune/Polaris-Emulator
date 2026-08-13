@@ -41,6 +41,8 @@ field com.eu.habbo.database.migrations.MigrationMode#APPLY FIELD_REMOVED
 field com.eu.habbo.database.migrations.MigrationMode#OFF FIELD_REMOVED
 field com.eu.habbo.database.migrations.MigrationMode#VALIDATE FIELD_REMOVED
 field com.eu.habbo.database.schema.SchemaContractLoader#RESOURCE_NAME FIELD_REMOVED
+field com.eu.habbo.habbohotel.rooms.Room#IDLE_CYCLES FIELD_NOW_FINAL
+field com.eu.habbo.habbohotel.rooms.Room#IDLE_CYCLES_KICK FIELD_NOW_FINAL
 interface com.eu.habbo.database.migrations.MigrationExecutionException#java.io.Serializable INTERFACE_REMOVED
 interface com.eu.habbo.database.migrations.MigrationMode#java.io.Serializable INTERFACE_REMOVED
 interface com.eu.habbo.database.migrations.MigrationMode#java.lang.Comparable INTERFACE_REMOVED

@@ -5,6 +5,7 @@ import com.eu.habbo.habbohotel.games.Game;
 import com.eu.habbo.habbohotel.games.GamePlayer;
 import com.eu.habbo.habbohotel.games.GameTeam;
 import com.eu.habbo.habbohotel.games.GameTeamColors;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.items.interactions.games.tag.InteractionTagField;
 import com.eu.habbo.habbohotel.items.interactions.games.tag.InteractionTagPole;
 import com.eu.habbo.habbohotel.rooms.Room;
@@ -111,6 +112,7 @@ public abstract class TagGame extends Game {
             }
         } else {
             if (tagger != null) {
+                AchievementInteractions.progress(tagger, "TagB");
                 room.giveEffect(tagger, this.getEffect(tagger), -1);
                 this.taggers.remove(tagger);
             }

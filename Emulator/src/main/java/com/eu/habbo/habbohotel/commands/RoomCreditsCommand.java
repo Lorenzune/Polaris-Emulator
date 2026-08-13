@@ -25,7 +25,7 @@ public class RoomCreditsCommand extends Command {
             if (amount != 0) {
                 final String message = Emulator.getTexts().getValue("commands.generic.cmd_credits.received").replace("%amount%", amount + "");
                 for (Habbo habbo : gameClient.getHabbo().getHabboInfo().getCurrentRoom().getHabbos()) {
-                    habbo.giveCredits(amount);
+                    habbo.giveCredits(amount, "staff.command.room_credits");
                     habbo.whisper(message, RoomChatMessageBubbles.ALERT);
                 }
             }

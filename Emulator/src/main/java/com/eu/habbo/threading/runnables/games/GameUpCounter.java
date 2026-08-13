@@ -33,16 +33,10 @@ public class GameUpCounter implements Runnable {
             WiredManager.triggerClockCounter(room, timer);
         }
 
-        if (timer.getCurrentTimeInMs() < timer.getMaximumTimeInMs()) {
-            if (timer.tryActivateTimerThread()) {
-                Emulator.getThreading().run(this, timer.getNextTickDelayMs());
-            }
-        } else {
-            timer.setCurrentTimeInMs(timer.getMaximumTimeInMs());
-            timer.endGame(room);
-            WiredManager.triggerGameEnds(room);
+        if (timer.tryActivateTimerThread()) {
+            Emulator.getThreading().run(this, timer.getNextTickDelayMs());
         }
 
-        room.updateItem(timer);
+        timer.publishCounterState(room);
     }
 }

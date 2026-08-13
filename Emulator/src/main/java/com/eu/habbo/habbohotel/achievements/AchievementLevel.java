@@ -26,4 +26,12 @@ public class AchievementLevel {
         this.points = set.getInt("points");
         this.progress = set.getInt("progress_needed");
     }
+
+    public AchievementLevel(int level, int rewardAmount, int rewardType, int points, int progress) {
+        this.level = level;
+        this.rewardAmount = rewardAmount;
+        this.rewardType = rewardType;
+        this.points = points;
+        this.progress = progress;
+    }
 }

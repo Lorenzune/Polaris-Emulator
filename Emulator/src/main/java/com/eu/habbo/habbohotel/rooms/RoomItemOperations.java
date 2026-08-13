@@ -3,6 +3,8 @@ package com.eu.habbo.habbohotel.rooms;
 import com.eu.habbo.habbohotel.items.FurnitureType;
 import com.eu.habbo.habbohotel.items.interactions.InteractionMultiHeight;
 import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.habbohotel.wired.core.WiredRoomUpdateScope;
+import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.rooms.items.FloorItemUpdateComposer;
 import com.eu.habbo.messages.outgoing.rooms.items.ItemStateComposer;
 import com.eu.habbo.messages.outgoing.rooms.items.WallItemUpdateComposer;
@@ -24,7 +26,7 @@ final class RoomItemOperations {
         }
 
         if (item.getBaseItem().getType() == FurnitureType.FLOOR) {
-            this.room.sendComposer(new FloorItemUpdateComposer(item).compose());
+            this.sendOrSchedule(new FloorItemUpdateComposer(item).compose());
             this.room.updateTiles(this.room
                     .getLayout()
                     .getTilesAt(
@@ -38,7 +40,11 @@ final class RoomItemOperations {
             }
             this.room.onFurnitureTopologyChanged();
         } else if (item.getBaseItem().getType() == FurnitureType.WALL) {
-            this.room.sendComposer(new WallItemUpdateComposer(item).compose());
+            this.sendOrSchedule(new WallItemUpdateComposer(item).compose());
+        }
+
+        if (!RoomAreaHideSupport.isControllerItem(item)) {
+            RoomAreaHideSupport.synchronizeClientVisibility(this.room);
         }
     }
 
@@ -53,9 +59,9 @@ final class RoomItemOperations {
         }
 
         if (!item.isLimited()) {
-            this.room.sendComposer(new ItemStateComposer(item).compose());
+            this.sendStateOrSchedule(item);
         } else {
-            this.room.sendComposer(new FloorItemUpdateComposer(item).compose());
+            this.sendOrSchedule(new FloorItemUpdateComposer(item).compose());
         }
 
         if (item.getBaseItem().getType() == FurnitureType.FLOOR) {
@@ -88,5 +94,33 @@ final class RoomItemOperations {
         if (item.getBaseItem().getType() == FurnitureType.FLOOR) {
             this.room.onFurnitureTopologyChanged();
         }
+    }
+
+    private void sendOrSchedule(ServerMessage message) {
+        if (message == null) {
+            return;
+        }
+
+        if (WiredRoomUpdateScope.shouldDeferVisualUpdates()) {
+            this.room.scheduleComposer(message);
+            return;
+        }
+
+        this.room.sendComposer(message);
+    }
+
+    private void sendStateOrSchedule(HabboItem item) {
+        if (item == null) {
+            return;
+        }
+
+        if (WiredRoomUpdateScope.shouldDeferVisualUpdates()
+                && item.getBaseItem() != null
+                && item.getBaseItem().getType() == FurnitureType.FLOOR) {
+            this.room.scheduleItemDataUpdate(item);
+            return;
+        }
+
+        this.room.sendComposer(new ItemStateComposer(item).compose());
     }
 }

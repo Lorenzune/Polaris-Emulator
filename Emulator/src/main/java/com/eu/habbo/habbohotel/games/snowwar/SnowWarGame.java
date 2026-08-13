@@ -10,6 +10,7 @@ import com.eu.habbo.habbohotel.games.snowwar.objects.SnowWarGameObject;
 import com.eu.habbo.habbohotel.games.snowwar.objects.SnowWarMachineObject;
 import com.eu.habbo.habbohotel.games.snowwar.objects.SnowWarSnowballObject;
 import com.eu.habbo.habbohotel.users.Habbo;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.snowwar.*;
@@ -267,6 +268,14 @@ public class SnowWarGame {
         }
 
         this.state = SnowWarGameState.ENDING;
+        SnowWarGamePlayer best = null;
+        for (SnowWarGamePlayer player : this.getActivePlayers()) {
+            int score = Math.max(0, player.getAttributes().getScore().get());
+            AchievementInteractions.progress(player.getHabbo(), "SnowWarTotalScore", score);
+            if (best == null || score > best.getAttributes().getScore().get()) best = player;
+        }
+        SnowWarWeeklyLeaderboard.recordGame(this.getActivePlayers());
+        if (best != null) AchievementInteractions.progress(best.getHabbo(), "SnowStormWin_");
 
         this.broadcast(new SnowStormOnStageEndingComposer());
         this.broadcast(new SnowStormOnGameEndingComposer(this.restartSeconds, this));
@@ -465,6 +474,7 @@ public class SnowWarGame {
         this.task.addSnowball(snowball);
         attr.getSnowballCount().decrementAndGet();
         attr.setLastThrowTime(System.currentTimeMillis());
+        AchievementInteractions.progress(player.getHabbo(), "SnowStormThrow_");
 
         // Update facing direction.
         int currentWorldX = SnowWarMath.tileToWorld(attr.getCurrentPosition().getX());

@@ -20,16 +20,19 @@ class WiredEffectPlannerTest {
         WiredEffectPlanner planner = new WiredEffectPlanner();
         IWiredEffect regular = new TestEffect(0, false, false, false);
         IWiredEffect selector = new TestEffect(0, false, true, false);
-        InteractionWiredEffect negative = interactionEffect(WiredEffectType.NEG_LOG);
+        InteractionWiredEffect negativeStack = interactionEffect(WiredEffectType.NEG_CALL_STACKS);
+        InteractionWiredEffect negativeSignal = interactionEffect(WiredEffectType.NEG_SEND_SIGNAL);
+        InteractionWiredEffect negativeLog = interactionEffect(WiredEffectType.NEG_LOG);
+        InteractionWiredEffect unsupportedNegative = interactionEffect(WiredEffectType.NEG_SHOW_MESSAGE);
         InteractionWiredEffect positive = interactionEffect(WiredEffectType.SHOW_MESSAGE);
         IWiredCondition condition = context -> true;
         WiredStack withCondition =
-                new WiredStack(null, null, List.of(condition), List.of(selector, negative, regular, positive));
+                new WiredStack(null, null, List.of(condition), List.of(selector, negativeStack, negativeSignal, negativeLog, unsupportedNegative, regular, positive));
         WiredStack withoutCondition =
-                new WiredStack(null, null, List.of(), List.of(selector, negative, regular, positive));
+                new WiredStack(null, null, List.of(), List.of(selector, negativeStack, negativeSignal, negativeLog, unsupportedNegative, regular, positive));
 
         assertEquals(List.of(regular, positive), planner.executableEffects(withCondition, true));
-        assertEquals(List.of(negative), planner.executableEffects(withCondition, false));
+        assertEquals(List.of(negativeStack, negativeSignal, negativeLog), planner.executableEffects(withCondition, false));
         assertEquals(List.of(), planner.executableEffects(withoutCondition, false));
     }
 

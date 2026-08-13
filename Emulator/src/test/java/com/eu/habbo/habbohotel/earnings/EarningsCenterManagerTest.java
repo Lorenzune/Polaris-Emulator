@@ -81,6 +81,23 @@ class EarningsCenterManagerTest {
     }
 
     @Test
+    void productionDailyGiftPathIgnoresLegacyConfiguredRewards() {
+        TestConfig config = enabledConfig()
+                .with("earnings.daily_gift.credits", "25")
+                .withLoginAssignedDailyGift();
+        EarningsCenterManager manager = new EarningsCenterManager(
+                config, new TestClaims(), new TestRewards(), FIXED_CLOCK);
+
+        EarningsEntry entry = manager.getEntries(null).getFirst();
+        EarningsClaimResult result = manager.claim(null, "daily_gift");
+
+        assertTrue(entry.isEnabled());
+        assertFalse(entry.isClaimable());
+        assertTrue(entry.getRewards().isEmpty());
+        assertEquals(EarningsClaimResult.Status.NO_REWARD, result.getStatus());
+    }
+
+    @Test
     void configurableBadgeItemAndHcRewardsAreIncludedInEntryState() {
         TestConfig config = enabledConfig()
                 .with("earnings.bonus_bag.badge", "ACH_Test1")
@@ -217,9 +234,15 @@ class EarningsCenterManagerTest {
 
     private static class TestConfig implements ConfigSource {
         private final Map<String, String> values = new HashMap<>();
+        private boolean loginAssignedDailyGift;
 
         TestConfig with(String key, String value) {
             this.values.put(key, value);
+            return this;
+        }
+
+        TestConfig withLoginAssignedDailyGift() {
+            this.loginAssignedDailyGift = true;
             return this;
         }
 
@@ -236,6 +259,11 @@ class EarningsCenterManagerTest {
         @Override
         public String getValue(String key, String defaultValue) {
             return this.values.getOrDefault(key, defaultValue);
+        }
+
+        @Override
+        public boolean usesLoginAssignedDailyGift() {
+            return this.loginAssignedDailyGift;
         }
     }
 

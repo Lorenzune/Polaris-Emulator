@@ -2,6 +2,7 @@ package com.eu.habbo.habbohotel.rooms;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.core.RoomUserPetComposer;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
 import com.eu.habbo.habbohotel.bots.Bot;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
@@ -586,10 +587,11 @@ public class RoomManager {
                 h.getClient().sendResponse(new RoomScoreComposer(room.getScore(), !this.hasVotedForRoom(h, room)));
             }
 
-            try {
-                this.roomRepository.recordVote(
-                        room.getId(), habbo.getHabboInfo().getId());
-            } catch (SQLException e) {
+              try {
+                  this.roomRepository.recordVote(
+                          room.getId(), habbo.getHabboInfo().getId());
+                  AchievementInteractions.progress(habbo, "RoomCompetitionVoter");
+              } catch (SQLException e) {
                 LOGGER.error("Caught SQL exception", e);
             }
         }
@@ -1138,6 +1140,8 @@ public class RoomManager {
             habbo.getRoomUnit().setPathFinderRoom(null);
 
             this.logExit(habbo);
+            room.getCycleManager().flushDecoHostingVisitor(habbo);
+            room.getCycleManager().flushTimeSpentVisitor(habbo);
             room.removeHabbo(habbo, true);
             BuildersClubRoomSupport.sendCurrentRoomPlacementStatus(room);
 
@@ -1146,14 +1150,6 @@ public class RoomManager {
             }
             habbo.getHabboInfo().setCurrentRoom(null);
             habbo.getRoomUnit().isKicked = false;
-
-            if (room.getOwnerId() != habbo.getHabboInfo().getId()) {
-                AchievementManager.progressAchievement(
-                        room.getOwnerId(),
-                        Emulator.getGameEnvironment().getAchievementManager().getAchievement("RoomDecoHosting"),
-                        (int) Math.floor(
-                                (Emulator.getIntUnixTimestamp() - habbo.getHabboStats().roomEnterTimestamp) / 60000));
-            }
 
             habbo.getMessenger().connectionChanged(habbo, habbo.isOnline(), false);
         }

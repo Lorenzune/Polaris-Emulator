@@ -17,7 +17,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.habbohotel.wired.core.WiredTriggerSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredTriggerSaveException;
-import com.eu.habbo.messages.outgoing.rooms.items.ItemStateComposer;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -26,20 +25,17 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 public class WiredTriggerReceiveSignal extends InteractionWiredTrigger {
     public static final WiredTriggerType type = WiredTriggerType.RECEIVE_SIGNAL;
 
-    private static final long ACTIVATION_PULSE_MS = 300L;
     private static final String ANTENNA_INTERACTION = "antenna";
     private static final String REQUIRE_ANTENNA_ERROR = "You can only select antenna furni.";
 
     private int channel = 0; // signal channel (0-based)
     private Set<HabboItem> items;
     private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
-    private final AtomicLong activationToken = new AtomicLong();
 
     public WiredTriggerReceiveSignal(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -167,13 +163,19 @@ public class WiredTriggerReceiveSignal extends InteractionWiredTrigger {
         message.appendInt(this.getBaseItem().getSpriteId());
         message.appendInt(this.getId());
         message.appendString("");
-        message.appendInt(4);
+        message.appendInt(3);
         message.appendInt(channel);
         message.appendInt(senderCount);
         message.appendInt(RoomSpecialTypes.MAX_SENDERS_PER_RECEIVER);
-        message.appendInt(this.furniSource);
         message.appendInt(0);
         message.appendInt(this.getType().code);
+        message.appendInt(0);
+        message.appendInt(WIRED_EXTENDED_SETTINGS_MARKER);
+
+        message.appendInt(1);
+        message.appendInt(this.furniSource);
+
+        message.appendInt(0);
         message.appendInt(0);
         message.appendInt(0);
     }
@@ -192,9 +194,16 @@ public class WiredTriggerReceiveSignal extends InteractionWiredTrigger {
 
         int[] params = settings.getIntParams();
         this.channel = params.length > 0 ? params[0] : 0;
-        this.furniSource = (params.length > 1)
-                ? this.normalizeFurniSource(params[params.length - 1])
-                : WiredSourceUtil.SOURCE_SELECTED;
+
+        if (params.length >= 4) {
+            this.furniSource = this.normalizeFurniSource(params[3]);
+        } else if (params.length >= 2) {
+            this.furniSource = this.normalizeFurniSource(params[1]);
+        } else if (settings.getFurniSourceTypes().length > 0) {
+            this.furniSource = this.normalizeFurniSource(settings.getFurniSourceTypes()[0]);
+        } else {
+            this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
+        }
 
         if (this.furniSource == WiredSourceUtil.SOURCE_SELECTED && room != null) {
             for (int i = 0; i < count; i++) {
@@ -216,31 +225,7 @@ public class WiredTriggerReceiveSignal extends InteractionWiredTrigger {
 
     @Override
     public void activateBox(Room room, RoomUnit roomUnit, long millis) {
-        if (roomUnit != null) {
-            this.addUserExecutionCache(roomUnit.getId(), millis);
-        }
-
-        if (room == null || room.isHideWired() || this.getBaseItem().getStateCount() <= 1) {
-            return;
-        }
-
-        final long token = this.activationToken.incrementAndGet();
-
-        if ("1".equals(this.getExtradata())) {
-            this.setExtradata("0");
-            room.sendComposer(new ItemStateComposer(this).compose());
-        }
-
-        this.setExtradata("1");
-        room.sendComposer(new ItemStateComposer(this).compose());
-
-        Emulator.getThreading().run(() -> {
-            if (!room.isLoaded()) return;
-            if (this.activationToken.get() != token) return;
-
-            this.setExtradata("0");
-            room.sendComposer(new ItemStateComposer(this).compose());
-        }, ACTIVATION_PULSE_MS);
+        super.activateBox(room, roomUnit, millis);
     }
 
     @Override

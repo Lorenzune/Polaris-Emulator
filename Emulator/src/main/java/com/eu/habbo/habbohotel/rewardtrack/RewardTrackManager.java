@@ -4,6 +4,7 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.economy.EconomyLedger;
 import com.eu.habbo.habbohotel.economy.EconomyOperation;
 import com.eu.habbo.habbohotel.users.Habbo;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -182,11 +183,30 @@ public class RewardTrackManager {
             statement.setString(4, actionType);
             int updated = statement.executeUpdate();
             Emulator.getGameEnvironment().getDailyTaskManager().addProgress(userId, actionType, amount);
+            syncCompletionAchievement(userId);
             LOGGER.debug("RewardTrackManager -> Progress action={} user={} amount={} rows={}", actionType, userId, amount, updated);
             return updated;
         } catch (SQLException e) {
             LOGGER.warn("RewardTrackManager -> Could not add progress for user {} action {}", userId, actionType, e);
             return 0;
+        }
+    }
+
+    private void syncCompletionAchievement(int userId) {
+        Habbo habbo = Emulator.getGameEnvironment().getHabboManager().getHabbo(userId);
+        if (habbo == null) return;
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT COUNT(*) FROM reward_tracks rt WHERE rt.enabled = 1 AND NOT EXISTS (" +
+                             "SELECT 1 FROM reward_track_tasks t LEFT JOIN user_reward_track_progress p " +
+                             "ON p.task_id = t.id AND p.user_id = ? WHERE t.track_id = rt.id AND t.enabled = 1 " +
+                             "AND COALESCE(p.progress, 0) < (SELECT COALESCE(MAX(target), 1) FROM reward_track_task_levels l WHERE l.task_id = t.id))")) {
+            statement.setInt(1, userId);
+            try (ResultSet set = statement.executeQuery()) {
+                if (set.next()) AchievementInteractions.sync(habbo, "RewardTracksCompleted", set.getInt(1));
+            }
+        } catch (SQLException e) {
+            LOGGER.debug("RewardTrackManager -> Could not sync completion achievement for user {}", userId, e);
         }
     }
 

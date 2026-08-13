@@ -2,6 +2,8 @@ package com.eu.habbo.habbohotel.games;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
+import com.eu.habbo.habbohotel.games.battlebanzai.BattleBanzaiGame;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore;
 import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameTimer;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredBlob;
@@ -149,6 +151,15 @@ public abstract class Game implements Runnable {
                     totalPointsGained);
         }
 
+        for (GameTeam team : this.teams.values()) {
+            for (GamePlayer player : team.getMembers()) {
+                if (player.getHabbo() != null && player.getScore() > 0) {
+                    AchievementInteractions.progress(
+                            player.getHabbo(), "GamePlayerExperience", player.getScore());
+                }
+            }
+        }
+
         GameTeam winningTeam = null;
         if (totalPointsGained > 0) {
             for (GameTeam team : this.teams.values()) {
@@ -164,11 +175,11 @@ public abstract class Game implements Runnable {
 
                 Habbo winner = player.getHabbo();
                 if (winner != null) {
-                    AchievementManager.progressAchievement(
-                            roomOwner,
-                            Emulator.getGameEnvironment()
-                                    .getAchievementManager()
-                                    .getAchievement("GamePlayerExperience"));
+                    if (player.getScore() <= 0) {
+                        AchievementInteractions.progress(winner, "GamePlayerExperience");
+                    }
+                    AchievementInteractions.progress(winner, "GamerPaycheck");
+                    if (this instanceof BattleBanzaiGame) AchievementInteractions.progress(winner, "BattleBallQuestCompleted");
                 }
             }
 

@@ -99,6 +99,8 @@ final class RoomItemOwnershipService {
             }
             BuildersClubRoomSupport.sendPlacementStatusForPool(this.room, trackedUserId);
         }
+
+        RoomAreaHideSupport.synchronizeClientVisibility(this.room);
     }
 
     int uniqueItemCount(int userId) {

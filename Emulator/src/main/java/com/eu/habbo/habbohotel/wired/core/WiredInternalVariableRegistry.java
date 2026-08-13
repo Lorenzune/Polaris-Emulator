@@ -95,10 +95,14 @@ final class WiredInternalVariableRegistry {
                 "@bot_id",
                 "@pet_id",
                 "@pet_owner_id");
-        builder.register(Capability.USER_DESTINATION, "@position_x", "@position_y", "@direction");
+        builder.register(
+                Capability.USER_DESTINATION, "@handitem_id", "@position_x", "@position_y", "@direction");
         builder.register(
                 Capability.FURNI_REFERENCE,
                 "~teleport.target_id",
+                "~clock.is_game_aware",
+                "~clock.pulse_count",
+                "~clock.state",
                 "@id",
                 "@class_id",
                 "@height",
@@ -164,6 +168,7 @@ final class WiredInternalVariableRegistry {
         builder.alias("@position.x", "@position_x");
         builder.alias("@position.y", "@position_y");
         builder.alias("@effect", "@effect_id");
+        builder.alias("@handitem", "@handitem_id");
         builder.alias("@handitems", "@handitem_id");
         builder.alias("@is_mute", "@is_muted");
         builder.alias("@teams.red.score", "@team_red_score");
