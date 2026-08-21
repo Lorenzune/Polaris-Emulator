@@ -24,15 +24,40 @@ public class CraftingManager {
     private final Map<Item, CraftingAltar> altars;
 
     public CraftingManager() {
+        this(true);
+    }
+
+    CraftingManager(boolean initialize) {
         this.altars = new HashMap<>();
 
-        this.reload();
+        if (initialize) {
+            this.reload();
+        }
     }
 
     public void reload() {
-        this.dispose();
+        this.persistLimitedRecipeRemaining();
+        Map<Item, CraftingAltar> loadedAltars = this.loadAltars();
 
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT * FROM crafting_recipes WHERE enabled = ? ORDER BY id ASC")) {
+        synchronized (this.altars) {
+            this.altars.clear();
+            this.altars.putAll(loadedAltars);
+        }
+    }
+
+    /** Loads crafting data into an isolated instance that can be published atomically. */
+    public static CraftingManager loadSnapshot() {
+        CraftingManager snapshot = new CraftingManager(false);
+        snapshot.altars.putAll(snapshot.loadAltars());
+        return snapshot;
+    }
+
+    private Map<Item, CraftingAltar> loadAltars() {
+        Map<Item, CraftingAltar> loadedAltars = new HashMap<>();
+
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        "SELECT * FROM crafting_recipes WHERE enabled = ? ORDER BY id ASC")) {
             statement.setString(1, "1");
             try (ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
@@ -92,7 +117,7 @@ public class CraftingManager {
                         }
 
                         for (Item altarItem : altarItems) {
-                            CraftingAltar altar = this.altars.computeIfAbsent(altarItem, CraftingAltar::new);
+                            CraftingAltar altar = loadedAltars.computeIfAbsent(altarItem, CraftingAltar::new);
                             altar.addRecipe(recipe);
                             for (Item ingredientItem : recipe.getIngredients().keySet()) {
                                 altar.addIngredient(ingredientItem);
@@ -106,6 +131,8 @@ public class CraftingManager {
         } catch (SQLException e) {
             LOGGER.error("Caught SQL exception", e);
         }
+
+        return loadedAltars;
     }
 
     public int getRecipesWithItemCount(final Item item) {
@@ -123,12 +150,14 @@ public class CraftingManager {
     }
 
     public CraftingRecipe getRecipe(String recipeName) {
-        CraftingRecipe recipe;
-        for (CraftingAltar altar : this.altars.values()) {
-            recipe = altar.getRecipe(recipeName);
+        synchronized (this.altars) {
+            CraftingRecipe recipe;
+            for (CraftingAltar altar : this.altars.values()) {
+                recipe = altar.getRecipe(recipeName);
 
-            if (recipe != null) {
-                return recipe;
+                if (recipe != null) {
+                    return recipe;
+                }
             }
         }
 
@@ -136,26 +165,42 @@ public class CraftingManager {
     }
 
     public CraftingAltar getAltar(Item item) {
-        return this.altars.get(item);
+        synchronized (this.altars) {
+            return this.altars.get(item);
+        }
     }
 
-    public void dispose() {
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("UPDATE crafting_recipes SET remaining = ? WHERE id = ? LIMIT 1")) {
+    /** Persists limited-recipe counters without invalidating the live snapshot. */
+    public void persistLimitedRecipeRemaining() {
+        List<CraftingRecipe> limitedRecipes = new ArrayList<>();
+        synchronized (this.altars) {
             for (CraftingAltar altar : this.altars.values()) {
                 for (CraftingRecipe recipe : altar.getRecipes()) {
                     if (recipe.isLimited()) {
-                        statement.setInt(1, recipe.getRemaining());
-                        statement.setInt(2, recipe.getId());
-
-                        statement.addBatch();
+                        limitedRecipes.add(recipe);
                     }
                 }
+            }
+        }
+
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        "UPDATE crafting_recipes SET remaining = ? WHERE id = ? LIMIT 1")) {
+            for (CraftingRecipe recipe : limitedRecipes) {
+                statement.setInt(1, recipe.getRemaining());
+                statement.setInt(2, recipe.getId());
+                statement.addBatch();
             }
             statement.executeBatch();
         } catch (SQLException e) {
             LOGGER.error("Caught SQL exception", e);
         }
+    }
 
-        this.altars.clear();
+    public void dispose() {
+        this.persistLimitedRecipeRemaining();
+        synchronized (this.altars) {
+            this.altars.clear();
+        }
     }
 }

@@ -3,8 +3,6 @@ package com.eu.habbo.habbohotel.commands;
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.rooms.RoomChatMessageBubbles;
-import com.eu.habbo.messages.outgoing.catalog.*;
-import com.eu.habbo.messages.outgoing.catalog.marketplace.MarketplaceConfigComposer;
 
 public class UpdateCatalogCommand extends Command {
 
@@ -14,15 +12,20 @@ public class UpdateCatalogCommand extends Command {
 
     @Override
     public boolean handle(GameClient gameClient, String[] params) {
-        Emulator.getGameEnvironment().getCatalogManager().initialize();
-        Emulator.getGameServer().getGameClientManager().sendBroadcastResponse(new CatalogUpdatedComposer());
-        Emulator.getGameServer().getGameClientManager().sendBroadcastResponse(new CatalogModeComposer(0));
-        Emulator.getGameServer().getGameClientManager().sendBroadcastResponse(new DiscountComposer());
-        Emulator.getGameServer().getGameClientManager().sendBroadcastResponse(new MarketplaceConfigComposer());
-        Emulator.getGameServer().getGameClientManager().sendBroadcastResponse(new GiftConfigurationComposer());
-        Emulator.getGameServer().getGameClientManager().sendBroadcastResponse(new RecyclerLogicComposer());
-        Emulator.getGameEnvironment().getCraftingManager().reload();
-        gameClient.getHabbo().whisper(Emulator.getTexts().getValue("commands.succes.cmd_update_catalog"), RoomChatMessageBubbles.ALERT);
+        boolean scheduled = Emulator.getGameEnvironment().reloadCatalogAndCraftingAsync(() -> {
+            Emulator.getGameEnvironment().broadcastCatalogReload();
+
+            if (gameClient.getChannel().isOpen() && gameClient.getHabbo() != null) {
+                gameClient.getHabbo().whisper(
+                        Emulator.getTexts().getValue("commands.succes.cmd_update_catalog"),
+                        RoomChatMessageBubbles.ALERT);
+            }
+        });
+
+        if (!scheduled && gameClient.getChannel().isOpen() && gameClient.getHabbo() != null) {
+            gameClient.getHabbo().whisper("Catalog update is already in progress.", RoomChatMessageBubbles.ALERT);
+        }
+
         return true;
     }
 }

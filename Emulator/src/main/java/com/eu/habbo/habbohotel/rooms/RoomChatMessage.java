@@ -169,6 +169,10 @@ public class RoomChatMessage implements Runnable, ISerialize, DatabaseLoggable {
         return this.bubble;
     }
 
+    public void setBubble(RoomChatMessageBubbles bubble) {
+        this.bubble = bubble;
+    }
+
     public Habbo getHabbo() {
         return this.habbo;
     }

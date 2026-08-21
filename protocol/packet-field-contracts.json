@@ -8022,6 +8022,22 @@
       ]
     },
     {
+      "name": "WIRED_ROOM_ROLLBACK",
+      "direction": "client_to_server",
+      "header": 10034,
+      "java": {
+        "symbol": "WiredRoomRollbackEvent",
+        "className": "WiredRoomRollbackEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/wired/WiredRoomRollbackEvent.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_ROOM_ROLLBACK",
+        "className": "WiredRoomRollbackComposer",
+        "path": "packages/communication/src/messages/outgoing/roomevents/WiredRoomRollbackComposer.ts"
+      },
+      "fields": []
+    },
+    {
       "name": "FURNI_EDITOR_SEARCH",
       "direction": "client_to_server",
       "header": 10040,
@@ -14220,6 +14236,11 @@
           "kind": "scalar",
           "type": "int",
           "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "ducketCost"
         }
       ]
     },
@@ -17525,6 +17546,86 @@
       "symbol": "FIREWORK_CHARGE_DATA",
       "path": "packages/communication/src/messages/parser/catalog/FireworkChargeDataParser.ts",
       "reason": "Header is registered only by the Nitro Renderer packet registry"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9328,
+      "symbol": "ChestBatchLockEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/rooms/items/ChestBatchLockEvent.java",
+      "reason": "Custom WIRED chest batch-lock packet is handled by the local Nitro extension"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9329,
+      "symbol": "ChestRequestRoomLogsEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/rooms/items/ChestRequestRoomLogsEvent.java",
+      "reason": "Custom WIRED chest room-log request is handled by the local Nitro extension"
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 9340,
+      "symbol": "ChestRoomLogComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/items/ChestRoomLogComposer.java",
+      "reason": "Custom WIRED chest room-log response is consumed by the local Nitro extension"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9341,
+      "symbol": "ChestCloseEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/rooms/items/ChestCloseEvent.java",
+      "reason": "Custom WIRED chest close packet is handled by the local Nitro extension"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9345,
+      "symbol": "RoomVoiceSignalEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/rooms/RoomVoiceSignalEvent.java",
+      "reason": "Local room-voice signalling packet is handled by the local Nitro extension"
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 9346,
+      "symbol": "RoomVoiceSignalComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/RoomVoiceSignalComposer.java",
+      "reason": "Local room-voice signalling packet is consumed by the local Nitro extension"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 10064,
+      "symbol": "RecyclerAdminRequestEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/recycler/RecyclerAdminRequestEvent.java",
+      "reason": "Custom Furni-Matic editor request has no upstream Nitro Renderer protocol counterpart"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 10065,
+      "symbol": "RecyclerAdminSaveEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/recycler/RecyclerAdminSaveEvent.java",
+      "reason": "Custom Furni-Matic editor save payload is handled by the local Nitro extension"
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 10064,
+      "symbol": "RecyclerAdminStateComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/catalog/recycler/RecyclerAdminStateComposer.java",
+      "reason": "Custom Furni-Matic editor state is consumed by the local Nitro extension"
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 10065,
+      "symbol": "RecyclerAdminResultComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/catalog/recycler/RecyclerAdminResultComposer.java",
+      "reason": "Custom Furni-Matic editor result is consumed by the local Nitro extension"
     }
   ],
   "exemptions": [

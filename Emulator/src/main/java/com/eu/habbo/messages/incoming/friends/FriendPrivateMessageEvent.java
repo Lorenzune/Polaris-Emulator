@@ -13,7 +13,9 @@ public class FriendPrivateMessageEvent extends MessageHandler {
         int userId = this.packet.readInt();
         String message = FriendInputGuard.normalizeMessage(this.packet.readString());
 
-        if (!FriendInputGuard.isPositiveId(userId) || message.isEmpty()) {
+        // -1 is the virtual Staff Chat buddy. It is authorized again through
+        // the loaded buddy and StaffChatBuddy before anything is broadcast.
+        if ((userId != -1 && !FriendInputGuard.isPositiveId(userId)) || message.isEmpty()) {
             return;
         }
 

@@ -26,7 +26,7 @@ public final class ChestFurniWithdrawHelper {
         int withdrawn = removedItems.size();
         chest.getContents().addLog(new ChestStorage.LogEntry(
                 "withdraw", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), withdrawn, 0));
-        chest.persistContents();
+        chest.persistContents(habbo.getHabboInfo().getCurrentRoom());
 
         client.sendResponse(new ChestDataComposer(chest));
         ChestFurniPackets.sendDelta(client, chest.getId(),

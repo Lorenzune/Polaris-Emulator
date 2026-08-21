@@ -93,6 +93,38 @@ final class WiredGravityService {
         return isEligibleFloorItem(item) && item.getRoomId() == room.getId() && enabledItemIds.contains(item.getId());
     }
 
+    synchronized Snapshot createSnapshot(Set<Integer> itemIds) {
+        if (itemIds == null || itemIds.isEmpty()) {
+            return new Snapshot(Set.of());
+        }
+
+        Set<Integer> enabled = new HashSet<>();
+        for (Integer itemId : itemIds) {
+            if (itemId != null && enabledItemIds.contains(itemId)) {
+                enabled.add(itemId);
+            }
+        }
+        return new Snapshot(Set.copyOf(enabled));
+    }
+
+    synchronized void restoreSnapshot(Snapshot snapshot, Set<Integer> itemIds) {
+        if (snapshot == null || itemIds == null || itemIds.isEmpty()) {
+            return;
+        }
+
+        enabledItemIds.removeIf(itemIds::contains);
+        movingUntil.keySet().removeIf(itemIds::contains);
+
+        for (Integer itemId : snapshot.enabledItemIds()) {
+            HabboItem item = room.getHabboItem(itemId);
+            if (isEligibleFloorItem(item) && item.getRoomId() == room.getId()) {
+                enabledItemIds.add(itemId);
+            }
+        }
+
+        onTopologyChanged();
+    }
+
     void forget(HabboItem item) {
         if (item == null) {
             return;
@@ -393,6 +425,8 @@ final class WiredGravityService {
                 : WiredPlatform.configuration().getInt(key, fallback);
         return Math.max(minimum, Math.min(maximum, configured));
     }
+
+    record Snapshot(Set<Integer> enabledItemIds) {}
 
     @FunctionalInterface
     interface Scheduler {

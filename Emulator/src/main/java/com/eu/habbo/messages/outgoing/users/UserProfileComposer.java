@@ -54,14 +54,17 @@ public class UserProfileComposer extends MessageComposer {
         this.response.appendString(new SimpleDateFormat("dd-MM-yyyy").format(new Date(this.habboInfo.getAccountCreated() * 1000L)));
 
         int achievementScore = 0;
+        int accountLevel = 0;
         if (this.habbo != null) {
             achievementScore = this.habbo.getHabboStats().getAchievementScore();
+            accountLevel = this.habbo.getHabboStats().citizenshipLevel;
         } else {
-            try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT achievement_score FROM users_settings WHERE user_id = ? LIMIT 1")) {
+            try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT achievement_score, talent_track_citizenship_level FROM users_settings WHERE user_id = ? LIMIT 1")) {
                 statement.setInt(1, this.habboInfo.getId());
                 try (ResultSet set = statement.executeQuery()) {
                     if (set.next()) {
                         achievementScore = set.getInt("achievement_score");
+                        accountLevel = set.getInt("talent_track_citizenship_level");
                     }
                 }
             } catch (SQLException e) {
@@ -126,6 +129,7 @@ public class UserProfileComposer extends MessageComposer {
         this.response.appendString(customizationData.prefixFont);
         this.response.appendString(customizationData.displayOrder);
         this.response.appendInt(this.getTotalBadges());
+        this.response.appendInt(accountLevel);
 
         return this.response;
     }

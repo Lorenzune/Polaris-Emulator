@@ -48,7 +48,7 @@ final class RoomPostureService {
         this.room.dance(habbo, DanceType.NONE);
         unit.cmdSit = true;
         this.alignBodyRotation(unit);
-        unit.setStatus(RoomUnitStatus.SIT, "0.5");
+        unit.setStatus(RoomUnitStatus.SIT, "0");
         this.room.sendComposer(new RoomUserStatusComposer(unit).compose());
         WiredManager.triggerUserPerformsAction(this.room, unit, WiredUserActionType.SIT, -1);
     }

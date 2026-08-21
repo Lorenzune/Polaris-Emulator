@@ -15,6 +15,10 @@ public class Incoming {
     public static final int ChestDepositInventoryItemEvent = 9325; // Deposit one inventory row into active chest
     public static final int ChestWithdrawAllFurniEvent = 9326; // Withdraw all furni (official Vefehonuj shape)
     public static final int ChestOpenEvent = 9327; // Open wired chest (official Nod)
+    public static final int ChestBatchLockEvent = 9328;
+    public static final int ChestRequestRoomLogsEvent = 9329;
+    public static final int ChestCloseEvent = 9341;
+    public static final int RoomVoiceSignalEvent = 9345;
     public static final int ChangeNameCheckUsernameEvent = 3950;
     public static final int ConfirmChangeNameEvent = 2977;
     public static final int ActivateEffectEvent = 2959;
@@ -433,6 +437,7 @@ public class Incoming {
     public static final int WiredUserInspectMoveEvent = 10027;
     public static final int WiredFurniRuntimeStateRequestEvent = 10028;
     public static final int WiredFeatureCapabilitiesEvent = 10029;
+    public static final int WiredRoomRollbackEvent = 10034;
     public static final int TranslationLanguagesRequestEvent = 10032;
     public static final int TranslationTextRequestEvent = 10033;
     public static final int RequestInventoryPetDelete = 10030;
@@ -463,6 +468,8 @@ public class Incoming {
     public static final int CatalogAdminSavePageIconEvent = 10061;
     public static final int CatalogAdminLoadOfferEvent = 10062;
     public static final int CatalogAdminLoadPageEvent = 10063;
+    public static final int RecyclerAdminRequestEvent = 10064;
+    public static final int RecyclerAdminSaveEvent = 10065;
 
     // Custom Prefixes
     public static final int RequestUserPrefixesEvent = 7011;

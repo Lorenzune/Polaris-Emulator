@@ -151,6 +151,7 @@ final class RoomLoadOperations implements RoomLoader.Operations {
 
     @Override
     public boolean finish(long generation) {
+        this.room.getWiredRuntime().resetForRoomLoad();
         TraxManager traxManager = new TraxManager(this.room, this.database);
         this.room.replaceTraxManager(traxManager);
 
@@ -176,6 +177,7 @@ final class RoomLoadOperations implements RoomLoader.Operations {
                                 .threading()
                                 .getService()
                                 .scheduleAtFixedRate(this.room, 500, 500, TimeUnit.MILLISECONDS))) {
+                    this.room.getRollbackState().capture();
                     this.room.pluginManager().fireEvent(new RoomLoadedEvent(this.room));
                     return true;
                 }

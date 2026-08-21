@@ -10,6 +10,8 @@ public class Outgoing {
     public static final int ChestFurniChunkComposer = 9322;
     public static final int ChestFurniDeltaComposer = 9323;
     public static final int ChestOpenComposer = 9327;
+    public static final int ChestRoomLogComposer = 9340;
+    public static final int RoomVoiceSignalComposer = 9346;
     public static final int FavoriteRoomsCountComposer = 151;
     public static final int UserCurrencyComposer = 2018;
     public static final int RedeemVoucherOKComposer = 3336;
@@ -579,6 +581,8 @@ public class Outgoing {
     public static final int CatalogAdminResultComposer = 10059;
     public static final int CatalogAdminOfferDetailsComposer = 10062;
     public static final int CatalogAdminPageDetailsComposer = 10063;
+    public static final int RecyclerAdminStateComposer = 10064;
+    public static final int RecyclerAdminResultComposer = 10065;
 
     // Custom Prefixes
     public static final int UserPrefixesComposer = 7001;

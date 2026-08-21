@@ -15,10 +15,7 @@ import com.eu.habbo.messages.incoming.camera.*;
 import com.eu.habbo.messages.incoming.catalog.*;
 import com.eu.habbo.messages.incoming.catalog.catalogadmin.*;
 import com.eu.habbo.messages.incoming.catalog.marketplace.*;
-import com.eu.habbo.messages.incoming.catalog.recycler.OpenRecycleBoxEvent;
-import com.eu.habbo.messages.incoming.catalog.recycler.RecycleEvent;
-import com.eu.habbo.messages.incoming.catalog.recycler.ReloadRecyclerEvent;
-import com.eu.habbo.messages.incoming.catalog.recycler.RequestRecyclerLogicEvent;
+import com.eu.habbo.messages.incoming.catalog.recycler.*;
 import com.eu.habbo.messages.incoming.crafting.*;
 import com.eu.habbo.messages.incoming.crackable.*;
 import com.eu.habbo.messages.incoming.earnings.ClaimAllEarningsRewardsEvent;
@@ -363,6 +360,8 @@ public class PacketManager {
         this.registerHandler(Incoming.CatalogAdminSavePageIconEvent, CatalogAdminSavePageIconEvent.class);
         this.registerHandler(Incoming.CatalogAdminLoadOfferEvent, CatalogAdminLoadOfferEvent.class);
         this.registerHandler(Incoming.CatalogAdminLoadPageEvent, CatalogAdminLoadPageEvent.class);
+        this.registerHandler(Incoming.RecyclerAdminRequestEvent, RecyclerAdminRequestEvent.class);
+        this.registerHandler(Incoming.RecyclerAdminSaveEvent, RecyclerAdminSaveEvent.class);
     }
 
     private void registerEvent() throws Exception {
@@ -543,6 +542,9 @@ public class PacketManager {
         this.registerHandler(Incoming.ChestSaveNotificationsEvent, ChestSaveNotificationsEvent.class);
         this.registerHandler(Incoming.ChestUpgradeCapacityEvent, ChestUpgradeCapacityEvent.class);
         this.registerHandler(Incoming.ChestRequestLogEvent, ChestRequestLogEvent.class);
+        this.registerHandler(Incoming.ChestBatchLockEvent, ChestBatchLockEvent.class);
+        this.registerHandler(Incoming.ChestRequestRoomLogsEvent, ChestRequestRoomLogsEvent.class);
+        this.registerHandler(Incoming.ChestCloseEvent, ChestCloseEvent.class);
         this.registerHandler(Incoming.RoomBackgroundEvent, RoomBackgroundEvent.class);
         this.registerHandler(Incoming.MannequinSaveNameEvent, MannequinSaveNameEvent.class);
         this.registerHandler(Incoming.MannequinSaveLookEvent, MannequinSaveLookEvent.class);
@@ -619,6 +621,7 @@ public class PacketManager {
         this.registerHandler(Incoming.YoutubeRequestStateChange, YoutubeRequestStateChange.class);
         this.registerHandler(Incoming.YoutubeRequestPlaylistChange, YoutubeRequestPlaylistChange.class);
         this.registerHandler(Incoming.EmbeddedMediaControlEvent, EmbeddedMediaControlEvent.class);
+        this.registerHandler(Incoming.RoomVoiceSignalEvent, com.eu.habbo.messages.incoming.rooms.RoomVoiceSignalEvent.class);
         this.registerHandler(Incoming.RoomFavoriteEvent, RoomFavoriteEvent.class);
         this.registerHandler(Incoming.LoveLockStartConfirmEvent, LoveLockStartConfirmEvent.class);
         this.registerHandler(Incoming.RoomUnFavoriteEvent, RoomUnFavoriteEvent.class);
@@ -752,6 +755,7 @@ public class PacketManager {
         this.registerHandler(Incoming.WiredUserInspectMoveEvent, WiredUserInspectMoveEvent.class);
         this.registerHandler(Incoming.WiredFurniRuntimeStateRequestEvent, WiredFurniRuntimeStateRequestEvent.class);
         this.registerHandler(Incoming.WiredFeatureCapabilitiesEvent, WiredFeatureCapabilitiesEvent.class);
+        this.registerHandler(Incoming.WiredRoomRollbackEvent, WiredRoomRollbackEvent.class);
     }
 
     void registerTranslation() throws Exception {

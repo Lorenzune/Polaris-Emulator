@@ -44,7 +44,7 @@ public class ChestWithdrawEvent extends MessageHandler {
         if (taken <= 0) return;
 
         contents.addLog(new ChestStorage.LogEntry("withdraw", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), taken, 0));
-        chest.persistContents();
+        chest.persistContents(room);
 
         if (currencyType < 0) habbo.giveCredits(taken);
         else habbo.givePoints(currencyType, taken);

@@ -269,6 +269,7 @@ public class CommandHandler {
         addCommand(new HotelAlertLinkCommand());
         addCommand(new InvisibleCommand());
         addCommand(new IPBanCommand());
+        addCommand(new KissCommand());
         addCommand(new LayCommand());
         addCommand(new MachineBanCommand());
         addCommand(new MassBadgeCommand());

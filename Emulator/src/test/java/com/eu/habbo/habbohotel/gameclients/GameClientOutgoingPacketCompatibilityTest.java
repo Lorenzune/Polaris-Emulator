@@ -23,6 +23,7 @@ import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.embedded.EmbeddedChannel;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,7 @@ class GameClientOutgoingPacketCompatibilityTest {
     private FlushCountingHandler flushCounter;
     private EmbeddedChannel channel;
     private GameClient client;
+    private GameClientManager clientManager;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -56,6 +58,8 @@ class GameClientOutgoingPacketCompatibilityTest {
         this.flushCounter = new FlushCountingHandler();
         this.channel = new EmbeddedChannel(this.flushCounter);
         this.client = new GameClient(this.channel);
+        this.clientManager = new GameClientManager();
+        this.clientManager.getSessions().put(this.channel.id(), this.client);
     }
 
     @AfterEach
@@ -238,6 +242,31 @@ class GameClientOutgoingPacketCompatibilityTest {
 
         this.client.sendResponses(new ArrayList<>(java.util.List.of(first, second)));
 
+        ByteBuf actualFirst = this.channel.readOutbound();
+        ByteBuf actualSecond = this.channel.readOutbound();
+        try {
+            assertEquals(expectedFirst, actualFirst);
+            assertEquals(expectedSecond, actualSecond);
+        } finally {
+            expectedFirst.release();
+            expectedSecond.release();
+            actualFirst.release();
+            actualSecond.release();
+        }
+    }
+
+    @Test
+    void broadcastResponseBatchPreparesPacketsAndFlushesEachClientOnce() {
+        ServerMessage first = new ServerMessage(100);
+        first.appendInt(1);
+        ServerMessage second = new ServerMessage(101);
+        second.appendInt(2);
+        ByteBuf expectedFirst = first.get();
+        ByteBuf expectedSecond = second.get();
+
+        this.clientManager.sendBroadcastResponses(List.of(first, second));
+
+        assertEquals(1, this.flushCounter.flushes);
         ByteBuf actualFirst = this.channel.readOutbound();
         ByteBuf actualSecond = this.channel.readOutbound();
         try {

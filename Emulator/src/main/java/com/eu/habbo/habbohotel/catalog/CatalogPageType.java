@@ -33,4 +33,9 @@ public enum CatalogPageType {
 
         return this == requestedType;
     }
+
+    /** Canonical wire value understood by both Nitro catalog modes. */
+    public String toWireMode() {
+        return this == BUILDER ? "BUILDERS_CLUB" : "NORMAL";
+    }
 }

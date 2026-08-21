@@ -35,13 +35,12 @@ public class InteractionCrackable extends HabboItem {
 
     @Override
     public void serializeExtradata(ServerMessage serverMessage) {
-        if (this.getExtradata().length() == 0)
-            this.setExtradata("0");
+        int ticks = this.getStoredTicks();
 
         serverMessage.appendInt(7 + (this.isLimited() ? 256 : 0));
 
-        serverMessage.appendString(Emulator.getGameEnvironment().getItemManager().calculateCrackState(Integer.parseInt(this.getExtradata()), Emulator.getGameEnvironment().getItemManager().getCrackableCount(this.getBaseItem().getId()), this.getBaseItem()) + "");
-        serverMessage.appendInt(Integer.valueOf(this.getExtradata()));
+        serverMessage.appendString(Emulator.getGameEnvironment().getItemManager().calculateCrackState(ticks, Emulator.getGameEnvironment().getItemManager().getCrackableCount(this.getBaseItem().getId()), this.getBaseItem()) + "");
+        serverMessage.appendInt(ticks);
         serverMessage.appendInt(Emulator.getGameEnvironment().getItemManager().getCrackableCount(this.getBaseItem().getId()));
 
         super.serializeExtradata(serverMessage);
@@ -104,7 +103,7 @@ public class InteractionCrackable extends HabboItem {
                 if(this.ticks < 1)
                 {
                     // If there are no ticks (for example because the room has been reloaded), check the current extradata of the item and update the ticks.
-                    this.ticks = Integer.parseInt(this.getExtradata());
+                    this.ticks = this.getStoredTicks();
                 }
                 this.ticks++;
                 this.setExtradata("" + (this.ticks));
@@ -160,6 +159,27 @@ public class InteractionCrackable extends HabboItem {
 
     public boolean allowAnyone() {
         return false;
+    }
+
+    private int getStoredTicks() {
+        String extradata = this.getExtradata();
+
+        if (extradata == null || extradata.isBlank()) {
+            this.setExtradata("0");
+            this.needsUpdate(true);
+            return 0;
+        }
+
+        try {
+            return Math.max(0, Integer.parseInt(extradata));
+        } catch (NumberFormatException ignored) {
+            // A recycler box stores a creation date as extradata. If a box was
+            // mistakenly assigned the crackable interaction, do not prevent
+            // everyone from loading the room; reset its invalid crack counter.
+            this.setExtradata("0");
+            this.needsUpdate(true);
+            return 0;
+        }
     }
 
     protected boolean placeInRoom() {

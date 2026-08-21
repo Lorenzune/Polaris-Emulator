@@ -3,9 +3,12 @@ package com.eu.habbo.habbohotel.mentions;
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.messenger.MessengerBuddy;
 import com.eu.habbo.habbohotel.rooms.Room;
+import com.eu.habbo.habbohotel.rooms.RoomChatMessage;
+import com.eu.habbo.habbohotel.rooms.RoomChatMessageBubbles;
 import com.eu.habbo.habbohotel.rooms.RoomChatType;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboManager;
+import com.eu.habbo.messages.outgoing.rooms.users.RoomUserWhisperComposer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -197,11 +200,32 @@ public class MentionManager {
             String storedMessage = truncate(message, MESSAGE_MAX_LENGTH);
 
             for (Habbo target : targets) {
+                this.sendWhisperNotification(target, sender, room, storedMessage);
                 this.store(target, sender, room, storedMessage, mentionType, timestamp, roomName);
             }
         } catch (Exception e) {
             LOGGER.error("Failed to process mentions.", e);
         }
+    }
+
+    private void sendWhisperNotification(Habbo target, Habbo sender, Room sourceRoom, String message) {
+        if (target == null || target.getClient() == null || target.getHabboInfo() == null) {
+            return;
+        }
+        if (target.getHabboInfo().getId() == sender.getHabboInfo().getId()) {
+            return;
+        }
+
+        String notification = "@" + sender.getHabboInfo().getUsername() + " ti ha taggato: " + message;
+
+        Room targetRoom = target.getHabboInfo().getCurrentRoom();
+        if (targetRoom == sourceRoom && sender.getRoomUnit().isInRoom()) {
+            target.getClient().sendResponse(new RoomUserWhisperComposer(new RoomChatMessage(
+                    notification, sender, target, RoomChatMessageBubbles.NORMAL)));
+            return;
+        }
+
+        target.whisper(notification, RoomChatMessageBubbles.NORMAL);
     }
 
     private void collectRoomTargets(Room room, int senderId, List<Habbo> targets, Set<Integer> seen, int maxTargets, boolean isBroadcast) {

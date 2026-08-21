@@ -149,6 +149,13 @@ final class WiredOpacityService {
         this.stateCount = 0;
     }
 
+    synchronized void resetForRoomLoad() {
+        this.disposed = false;
+        this.globalStates.clear();
+        this.userStates.clear();
+        this.stateCount = 0;
+    }
+
     synchronized int stateCount() {
         return this.stateCount;
     }
@@ -157,6 +164,54 @@ final class WiredOpacityService {
     synchronized int globalOpacity(int itemId) {
         VisualState state = this.globalStates.get(itemId);
         return state == null ? VisualState.DEFAULT.opacity() : state.opacity();
+    }
+
+    synchronized Snapshot createSnapshot(Set<Integer> itemIds) {
+        if (this.disposed || itemIds == null || itemIds.isEmpty()) {
+            return new Snapshot(Map.of());
+        }
+
+        Map<Integer, VisualState> copiedStates = new HashMap<>();
+        for (Integer itemId : itemIds) {
+            if (itemId == null) {
+                continue;
+            }
+            VisualState state = this.globalStates.get(itemId);
+            if (state != null) {
+                copiedStates.put(itemId, state);
+            }
+        }
+        return new Snapshot(Map.copyOf(copiedStates));
+    }
+
+    /** Restores only room-wide opacity, which is the state exposed by the {@code @opacity} variable. */
+    synchronized Set<Integer> restoreSnapshot(Snapshot snapshot, Set<Integer> itemIds) {
+        if (this.disposed || snapshot == null || itemIds == null || itemIds.isEmpty()) {
+            return Set.of();
+        }
+
+        Set<Integer> changedItemIds = new HashSet<>();
+        for (Integer itemId : itemIds) {
+            HabboItem item = itemId == null ? null : this.room.getHabboItem(itemId);
+            if (!isCurrentRoomItem(item)) {
+                continue;
+            }
+
+            VisualState previous = this.globalStates.remove(itemId);
+            VisualState restored = snapshot.globalStates().get(itemId);
+            if (restored != null && !restored.isDefault()) {
+                this.globalStates.put(itemId, restored);
+            }
+
+            VisualState effectivePrevious = previous == null ? VisualState.DEFAULT : previous;
+            VisualState effectiveRestored = restored == null ? VisualState.DEFAULT : restored;
+            if (!effectivePrevious.equals(effectiveRestored)) {
+                changedItemIds.add(itemId);
+            }
+        }
+
+        this.recalculateStateCount();
+        return Set.copyOf(changedItemIds);
     }
 
     /** Current room-wide click-through for one item, ignoring per-user overlays. */
@@ -197,6 +252,14 @@ final class WiredOpacityService {
         return true;
     }
 
+    private void recalculateStateCount() {
+        int total = this.globalStates.size();
+        for (Map<Integer, VisualState> states : this.userStates.values()) {
+            total += states.size();
+        }
+        this.stateCount = total;
+    }
+
     private static WiredOpacityState state(HabboItem item, VisualState state) {
         return new WiredOpacityState(
                 item.getId(),
@@ -228,4 +291,6 @@ final class WiredOpacityService {
             return this.opacity == 100 && !this.clickThrough;
         }
     }
+
+    record Snapshot(Map<Integer, VisualState> globalStates) {}
 }

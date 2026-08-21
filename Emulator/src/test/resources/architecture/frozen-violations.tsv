@@ -116,8 +116,8 @@ U|com/eu/habbo/habbohotel/catalog/CatalogLimitedConfiguration.java|CALL|getDatab
 U|com/eu/habbo/habbohotel/catalog/CatalogLimitedConfiguration.java|CALL|getGameEnvironment|4
 U|com/eu/habbo/habbohotel/catalog/CatalogLimitedConfiguration.java|CALL|getIntUnixTimestamp|1
 U|com/eu/habbo/habbohotel/catalog/CatalogManager.java|CALL|getConfig|18
-U|com/eu/habbo/habbohotel/catalog/CatalogManager.java|CALL|getDatabase|14
-U|com/eu/habbo/habbohotel/catalog/CatalogManager.java|CALL|getGameEnvironment|41
+U|com/eu/habbo/habbohotel/catalog/CatalogManager.java|CALL|getDatabase|15
+U|com/eu/habbo/habbohotel/catalog/CatalogManager.java|CALL|getGameEnvironment|42
 U|com/eu/habbo/habbohotel/catalog/CatalogManager.java|CALL|getIntUnixTimestamp|5
 U|com/eu/habbo/habbohotel/catalog/CatalogManager.java|CALL|getPluginManager|9
 U|com/eu/habbo/habbohotel/catalog/CatalogManager.java|CALL|getRandom|5
@@ -129,6 +129,8 @@ U|com/eu/habbo/habbohotel/catalog/ClubOffer.java|CALL|getIntUnixTimestamp|2
 U|com/eu/habbo/habbohotel/catalog/TargetOffer.java|CALL|getIntUnixTimestamp|1
 U|com/eu/habbo/habbohotel/catalog/Voucher.java|CALL|getDatabase|2
 U|com/eu/habbo/habbohotel/catalog/Voucher.java|CALL|getIntUnixTimestamp|1
+U|com/eu/habbo/habbohotel/catalog/RecyclerBoxOpener.java|CALL|getGameEnvironment|1
+U|com/eu/habbo/habbohotel/catalog/RecyclerBoxOpener.java|CALL|getTexts|1
 U|com/eu/habbo/habbohotel/catalog/layouts/FrontPageFeaturedLayout.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/habbohotel/catalog/layouts/RoomBundleLayout.java|CALL|getConfig|1
 U|com/eu/habbo/habbohotel/catalog/layouts/RoomBundleLayout.java|CALL|getDatabase|1
@@ -226,6 +228,7 @@ U|com/eu/habbo/habbohotel/commands/IPBanCommand.java|CALL|getGameEnvironment|3
 U|com/eu/habbo/habbohotel/commands/IPBanCommand.java|CALL|getGameServer|1
 U|com/eu/habbo/habbohotel/commands/IPBanCommand.java|CALL|getTexts|5
 U|com/eu/habbo/habbohotel/commands/InvisibleCommand.java|CALL|getTexts|3
+U|com/eu/habbo/habbohotel/commands/KissCommand.java|CALL|getTexts|5
 U|com/eu/habbo/habbohotel/commands/LayCommand.java|CALL|getTexts|1
 U|com/eu/habbo/habbohotel/commands/ListPrefixesCommand.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/habbohotel/commands/ListPrefixesCommand.java|CALL|getTexts|5
@@ -576,7 +579,7 @@ U|com/eu/habbo/habbohotel/items/interactions/wired/WiredNumericInputGuard.java|C
 U|com/eu/habbo/habbohotel/items/interactions/wired/chest/ChestFurniDepositHelper.java|CALL|getThreading|1
 U|com/eu/habbo/habbohotel/items/interactions/wired/chest/ChestWiredFurniUtil.java|CALL|getGameEnvironment|4
 U|com/eu/habbo/habbohotel/items/interactions/wired/chest/ChestWiredFurniUtil.java|CALL|getThreading|1
-U|com/eu/habbo/habbohotel/items/interactions/wired/chest/InteractionWiredChest.java|CALL|getGameEnvironment|3
+U|com/eu/habbo/habbohotel/items/interactions/wired/chest/InteractionWiredChest.java|CALL|getGameEnvironment|6
 U|com/eu/habbo/habbohotel/items/interactions/wired/chest/InteractionWiredChestFurni.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/habbohotel/items/interactions/wired/chest/InteractionWiredContract.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/habbohotel/items/interactions/wired/conditions/WiredConditionCounterTimeMatches.java|CALL|getConfig|1
@@ -934,6 +937,7 @@ U|com/eu/habbo/habbohotel/rooms/RoomPromotionManager.java|CALL|getIntUnixTimesta
 U|com/eu/habbo/habbohotel/rooms/RoomRightsManager.java|CALL|getGameEnvironment|3
 U|com/eu/habbo/habbohotel/rooms/RoomRightsManager.java|CALL|getIntUnixTimestamp|3
 U|com/eu/habbo/habbohotel/rooms/RoomRightsManager.java|CALL|getPluginManager|1
+U|com/eu/habbo/habbohotel/rooms/RoomRollbackState.java|CALL|getThreading|1
 U|com/eu/habbo/habbohotel/rooms/RoomRollerManager.java|CALL|getPluginManager|4
 U|com/eu/habbo/habbohotel/rooms/RoomSpecialTypes.java|CALL|getRandom|1
 U|com/eu/habbo/habbohotel/rooms/RoomSpecialTypes.java|CALL|getThreading|2
@@ -1143,9 +1147,12 @@ U|com/eu/habbo/messages/incoming/catalog/recycler/OpenRecycleBoxEvent.java|CALL|
 U|com/eu/habbo/messages/incoming/catalog/recycler/OpenRecycleBoxEvent.java|CALL|getTexts|1
 U|com/eu/habbo/messages/incoming/catalog/recycler/OpenRecycleBoxEvent.java|CALL|getThreading|1
 U|com/eu/habbo/messages/incoming/catalog/recycler/RecycleEvent.java|CALL|getConfig|1
-U|com/eu/habbo/messages/incoming/catalog/recycler/RecycleEvent.java|CALL|getGameEnvironment|5
+U|com/eu/habbo/messages/incoming/catalog/recycler/RecycleEvent.java|CALL|getGameEnvironment|6
 U|com/eu/habbo/messages/incoming/catalog/recycler/RecycleEvent.java|CALL|getIntUnixTimestamp|1
-U|com/eu/habbo/messages/incoming/catalog/recycler/RecycleEvent.java|CALL|getThreading|1
+U|com/eu/habbo/messages/incoming/catalog/recycler/RecycleEvent.java|CALL|getThreading|2
+U|com/eu/habbo/messages/incoming/catalog/recycler/RecyclerAdminRequestEvent.java|CALL|getGameEnvironment|1
+U|com/eu/habbo/messages/incoming/catalog/recycler/RecyclerAdminSaveEvent.java|CALL|getGameEnvironment|2
+U|com/eu/habbo/messages/incoming/catalog/recycler/RecyclerAdminSaveEvent.java|CALL|getGameServer|2
 U|com/eu/habbo/messages/incoming/crackable/CrackableEditorSaveEvent.java|CALL|getDatabase|1
 U|com/eu/habbo/messages/incoming/crackable/CrackableEditorSaveEvent.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/messages/incoming/crackable/CrackableEditorSupport.java|CALL|getGameEnvironment|1
@@ -1635,6 +1642,7 @@ U|com/eu/habbo/messages/outgoing/catalog/GiftConfigurationComposer.java|CALL|get
 U|com/eu/habbo/messages/outgoing/catalog/GiftConfigurationComposer.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/outgoing/catalog/RecyclerLogicComposer.java|CALL|getConfig|1
 U|com/eu/habbo/messages/outgoing/catalog/RecyclerLogicComposer.java|CALL|getGameEnvironment|1
+U|com/eu/habbo/messages/outgoing/catalog/ReloadRecyclerComposer.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/outgoing/catalog/marketplace/MarketplaceOwnItemsComposer.java|CALL|getIntUnixTimestamp|2
 U|com/eu/habbo/messages/outgoing/catalog/marketplace/MarketplaceOwnItemsComposer.java|CALL|getThreading|1
 U|com/eu/habbo/messages/outgoing/commands/AvailableCommandsComposer.java|CALL|getTexts|1

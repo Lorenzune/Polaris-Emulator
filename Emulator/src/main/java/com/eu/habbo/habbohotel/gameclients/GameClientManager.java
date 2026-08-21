@@ -3,6 +3,7 @@ package com.eu.habbo.habbohotel.gameclients;
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.ServerMessage;
+import com.eu.habbo.messages.ServerMessageFrame;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.networking.gameserver.GameServerAttributes;
 import io.netty.channel.Channel;
@@ -192,16 +193,52 @@ public class GameClientManager {
     }
 
     public void sendBroadcastResponse(MessageComposer composer) {
-        this.sendBroadcastResponse(composer.compose());
+        if (composer != null) {
+            this.sendBroadcastResponse(composer.compose());
+        }
     }
 
     public void sendBroadcastResponse(ServerMessage message) {
+        if (message == null) {
+            return;
+        }
+
+        ServerMessageFrame.prepareBroadcast(message);
         for (GameClient client : this.clients.values()) {
             client.sendResponse(message);
         }
     }
 
+    /**
+     * Broadcasts several already-composed packets in their supplied order while
+     * flushing every recipient channel only once. Packet hooks still run for
+     * every packet and recipient, exactly as they do for individual broadcasts.
+     */
+    public void sendBroadcastResponses(List<ServerMessage> messages) {
+        if (messages == null || messages.isEmpty()) {
+            return;
+        }
+
+        try (GameClientFlushBatch ignored = GameClientFlushBatch.open()) {
+            for (ServerMessage message : messages) {
+                if (message == null) {
+                    continue;
+                }
+
+                ServerMessageFrame.prepareBroadcast(message);
+                for (GameClient client : this.clients.values()) {
+                    client.sendResponse(message);
+                }
+            }
+        }
+    }
+
     public void sendBroadcastResponse(ServerMessage message, GameClient exclude) {
+        if (message == null) {
+            return;
+        }
+
+        ServerMessageFrame.prepareBroadcast(message);
         for (GameClient client : this.clients.values()) {
             if (client.equals(exclude)) continue;
 
@@ -210,6 +247,11 @@ public class GameClientManager {
     }
 
     public void sendBroadcastResponse(ServerMessage message, String minPermission, GameClient exclude) {
+        if (message == null) {
+            return;
+        }
+
+        ServerMessageFrame.prepareBroadcast(message);
         for (GameClient client : this.clients.values()) {
             if (client.equals(exclude)) continue;
 

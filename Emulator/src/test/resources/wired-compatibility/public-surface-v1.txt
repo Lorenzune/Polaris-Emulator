@@ -241,7 +241,9 @@ METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorag
 METHOD public synchronized com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#has(int,int,int):boolean throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#isAccessDonate(-):boolean throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#isAccessOpen(-):boolean throws -
+METHOD public synchronized com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#isAutoLock(-):boolean throws -
 METHOD public synchronized com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#isEmpty(-):boolean throws -
+METHOD public synchronized com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#isLocked(-):boolean throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#isNotifyDonation(-):boolean throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#isNotifyEmpty(-):boolean throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#isNotifyFull(-):boolean throws -
@@ -255,8 +257,10 @@ METHOD public synchronized com.eu.habbo.habbohotel.items.interactions.wired.ches
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#setAccessDonate(boolean):void throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#setAccessOpen(boolean):void throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#setAppearanceState(int):void throws -
+METHOD public synchronized com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#setAutoLock(boolean):void throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#setCapacityMax(int):void throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#setDescription(java.lang.String):void throws -
+METHOD public synchronized com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#setLocked(boolean):void throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#setName(java.lang.String):void throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#setNotifications(boolean,boolean,boolean,boolean,boolean,int):void throws -
 METHOD public synchronized com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage#take(int,int,int):int throws -
@@ -333,14 +337,20 @@ TYPE public abstract com.eu.habbo.habbohotel.items.interactions.wired.chest.Inte
 FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest#contents:com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage
 CONSTRUCTOR protected com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest(int,int,com.eu.habbo.habbohotel.items.Item,java.lang.String,int,int) throws -
 CONSTRUCTOR protected com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest(java.sql.ResultSet,com.eu.habbo.habbohotel.items.Item) throws java.sql.SQLException
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest#addViewer(int,com.eu.habbo.habbohotel.rooms.Room):void throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest#execute(com.eu.habbo.habbohotel.rooms.RoomUnit,com.eu.habbo.habbohotel.rooms.Room,java.lang.Object[]):boolean throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest#getContents(-):com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest#getWiredData(-):java.lang.String throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest#hasConfiguration(-):boolean throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest#hasContents(-):boolean throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest#loadWiredData(java.sql.ResultSet,com.eu.habbo.habbohotel.rooms.Room):void throws java.sql.SQLException
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest#onPickUp(-):void throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest#onPlace(com.eu.habbo.habbohotel.rooms.Room):void throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest#onWalk(com.eu.habbo.habbohotel.rooms.RoomUnit,com.eu.habbo.habbohotel.rooms.Room,java.lang.Object[]):void throws java.lang.Exception
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest#persistContents(-):void throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest#persistContents(com.eu.habbo.habbohotel.rooms.Room):void throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest#removeViewer(int,com.eu.habbo.habbohotel.rooms.Room):void throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest#updateAppearanceState(com.eu.habbo.habbohotel.rooms.Room):void throws -
 
 TYPE public com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChestCurrency extends com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest
 FIELD public static final com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChestCurrency#CODE:int
@@ -5881,6 +5891,11 @@ TYPE public com.eu.habbo.messages.incoming.wired.WiredMonitorRequestEvent extend
 CONSTRUCTOR public com.eu.habbo.messages.incoming.wired.WiredMonitorRequestEvent(-) throws -
 METHOD public com.eu.habbo.messages.incoming.wired.WiredMonitorRequestEvent#getRatelimit(-):int throws -
 METHOD public com.eu.habbo.messages.incoming.wired.WiredMonitorRequestEvent#handle(-):void throws java.lang.Exception
+
+TYPE public com.eu.habbo.messages.incoming.wired.WiredRoomRollbackEvent extends com.eu.habbo.messages.incoming.MessageHandler
+CONSTRUCTOR public com.eu.habbo.messages.incoming.wired.WiredRoomRollbackEvent(-) throws -
+METHOD public com.eu.habbo.messages.incoming.wired.WiredRoomRollbackEvent#getRatelimit(-):int throws -
+METHOD public com.eu.habbo.messages.incoming.wired.WiredRoomRollbackEvent#handle(-):void throws java.lang.Exception
 
 TYPE public com.eu.habbo.messages.incoming.wired.WiredRoomSettingsRequestEvent extends com.eu.habbo.messages.incoming.MessageHandler
 CONSTRUCTOR public com.eu.habbo.messages.incoming.wired.WiredRoomSettingsRequestEvent(-) throws -

@@ -15,12 +15,20 @@ public class CatalogAdminPublishEvent extends MessageHandler {
             return;
         }
 
-        // Reload the entire catalog from database
-        Emulator.getGameEnvironment().getCatalogManager().initialize();
+        boolean scheduled = Emulator.getGameEnvironment().reloadCatalogAsync(() -> {
+            // Keep the catalog-admin protocol unchanged: it has historically
+            // sent CatalogUpdated only, rather than the full staff-command
+            // refresh sequence.
+            Emulator.getGameServer().getGameClientManager().sendBroadcastResponse(
+                    new CatalogUpdatedComposer());
 
-        // Notify all connected clients that the catalog has been updated
-        Emulator.getGameServer().getGameClientManager().sendBroadcastResponse(new CatalogUpdatedComposer());
+            if (this.client.getChannel().isOpen()) {
+                this.client.sendResponse(new CatalogAdminResultComposer(true, "Catalog published"));
+            }
+        });
 
-        this.client.sendResponse(new CatalogAdminResultComposer(true, "Catalog published"));
+        if (!scheduled) {
+            this.client.sendResponse(new CatalogAdminResultComposer(false, "Catalog publish already in progress"));
+        }
     }
 }

@@ -35,4 +35,26 @@ public final class WiredOpacityBroadcaster {
                         .supportsWiredFeature(
                                 GameClient.WIRED_FEATURE_PROTOCOL_VERSION, GameClient.WIRED_FEATURE_OPACITY);
     }
+
+    /** Sends each recipient its effective state so per-user opacity overlays stay intact. */
+    static void broadcastEffective(Room room, Collection<Integer> itemIds, int easing, int durationMs) {
+        if (room == null || itemIds == null || itemIds.isEmpty()) {
+            return;
+        }
+
+        List<Integer> payload = itemIds.stream().filter(id -> id != null && id > 0).sorted().toList();
+        if (payload.isEmpty()) {
+            return;
+        }
+
+        for (Habbo habbo : room.getHabbos()) {
+            if (!supportsOpacity(habbo)) {
+                continue;
+            }
+
+            List<WiredOpacityState> effective = room.getWiredRuntime()
+                    .effectiveOpacity(habbo.getHabboInfo().getId(), payload);
+            habbo.getClient().sendResponse(new WiredFurniOpacityComposer(room.getId(), effective, easing, durationMs));
+        }
+    }
 }

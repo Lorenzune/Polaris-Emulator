@@ -56,7 +56,10 @@ class RoomLoaderConcurrencyTest {
                     await(room::isLoaded, Duration.ofSeconds(1)),
                     "room load starved while its only worker waited for child tasks");
             assertFalse(this.injectedDataSource.calls().isEmpty());
-            assertTrue(this.legacyGlobalDataSource.calls().isEmpty());
+            assertTrue(
+                    this.legacyGlobalDataSource.calls().isEmpty(),
+                    () -> "room load unexpectedly used the legacy global datasource: "
+                            + this.legacyGlobalDataSource.calls());
         } finally {
             ((ScheduledThreadPoolExecutor) this.threading.getService()).setCorePoolSize(8);
             await(() -> !room.isLoadingInProgress(), Duration.ofSeconds(2));

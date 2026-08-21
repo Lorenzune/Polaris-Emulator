@@ -8,6 +8,9 @@ public enum EarningsCategory {
     GAMES("games"),
     ACHIEVEMENTS("achievements"),
     MARKETPLACE("marketplace"),
+    /** Retained for plugins compiled against the released Polaris API. */
+    @Deprecated
+    CLUB_JOB("club_job"),
     HC_PAYDAY("hc_payday"),
     LEVEL_PROGRESS("level_progress"),
     DONATIONS("donations"),

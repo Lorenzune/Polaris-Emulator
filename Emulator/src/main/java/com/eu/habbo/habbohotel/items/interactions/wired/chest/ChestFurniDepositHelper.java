@@ -41,7 +41,7 @@ public final class ChestFurniDepositHelper {
         }
         contents.addLog(new ChestStorage.LogEntry(
                 "deposit", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), 0, 1));
-        chest.persistContents();
+        chest.persistContents(room);
 
         habbo.getClient().sendResponse(new RemoveHabboItemComposer(removed.getGiftAdjustedId()));
         habbo.getClient().sendResponse(new InventoryRefreshComposer());

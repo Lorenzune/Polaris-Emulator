@@ -1162,7 +1162,7 @@ public class RoomUnitManager {
                         RoomUserRotation.values()[
                                 habbo.getRoomUnit().getBodyRotation().getValue()
                                         - habbo.getRoomUnit().getBodyRotation().getValue() % 2]);
-        habbo.getRoomUnit().setStatus(RoomUnitStatus.SIT, 0.5 + "");
+        habbo.getRoomUnit().setStatus(RoomUnitStatus.SIT, "0");
         this.room.sendComposer(new RoomUserStatusComposer(habbo.getRoomUnit()).compose());
     }
 
