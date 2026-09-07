@@ -62,6 +62,21 @@ class RoomItemOwnershipBehaviorTest {
     }
 
     @Test
+    void databaseOwnerCountsIncludeVirtualBuildersClubFurniture() {
+        Room room = new Room(41, 77);
+        Item chair = mock(Item.class);
+        Item table = mock(Item.class);
+        TestItem first = new TestItem(1001, 77, chair);
+        TestItem second = new TestItem(1002, 77, table);
+        second.setVirtualUserId(BuildersClubRoomSupport.VIRTUAL_OWNER_ID);
+        room.getItemManager().getRoomItems().put(first.getId(), first);
+        room.getItemManager().getRoomItems().put(second.getId(), second);
+
+        assertEquals(2, room.getDatabaseUserFurniCount(77));
+        assertEquals(2, room.getDatabaseUserUniqueFurniCount(77));
+    }
+
+    @Test
     void itemIndexesKeepTheirLiveIdentityWhenCleared() {
         Room room = new Room(41, 7);
         RoomItemManager manager = room.getItemManager();
@@ -112,7 +127,11 @@ class RoomItemOwnershipBehaviorTest {
 
     private static final class TestItem extends HabboItem {
         private TestItem(int id, int ownerId) {
-            super(id, ownerId, (Item) null, "0", 0, 0);
+            this(id, ownerId, null);
+        }
+
+        private TestItem(int id, int ownerId, Item item) {
+            super(id, ownerId, item, "0", 0, 0);
         }
 
         @Override

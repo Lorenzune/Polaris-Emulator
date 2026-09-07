@@ -28,7 +28,7 @@ public class SetRoomTemplateCommand extends Command {
 
         String yes = Emulator.getTexts().getValue("generic.yes");
 
-        if (params.length < 2 || !params[1].equalsIgnoreCase(yes)) {
+        if (params.length < 2 || !isConfirmation(params[1], yes)) {
             gameClient.getHabbo().alert(
                     Emulator.getTexts().getValue("commands.succes.cmd_setroom_template.verify")
                             .replace("%generic.yes%", yes)
@@ -112,5 +112,18 @@ public class SetRoomTemplateCommand extends Command {
                 RoomChatMessageBubbles.ALERT);
 
         return true;
+    }
+
+    static boolean isConfirmation(String value, String localizedYes) {
+        if (value == null) {
+            return false;
+        }
+
+        String confirmation = value.trim();
+
+        return confirmation.equalsIgnoreCase(localizedYes)
+                || confirmation.equalsIgnoreCase("yes")
+                || confirmation.equalsIgnoreCase("si")
+                || confirmation.equalsIgnoreCase("sì");
     }
 }

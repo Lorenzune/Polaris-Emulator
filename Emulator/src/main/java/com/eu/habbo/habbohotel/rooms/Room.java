@@ -129,6 +129,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     private final RoomWiredAccessService wiredAccess;
     private final RoomWiredVisibilityService wiredVisibility = new RoomWiredVisibilityService(this);
     private final RoomWiredRuntime wiredRuntime = new RoomWiredRuntime(this);
+    private final RoomRollbackState rollbackState = new RoomRollbackState(this);
     private final RoomUserCountPersistence userCountPersistence;
     public volatile double lastCycleCpuMs = 0.0;
     public volatile String lastCycleThread = "N/A";
@@ -197,6 +198,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     private int idleSleepTimeoutSeconds;
     private boolean idleAutokickEnabled;
     private int idleAutokickTimeoutSeconds;
+    private boolean vocalChatEnabled;
     private boolean jukeboxActive;
     private boolean hideWired;
     private boolean buildersClubTrialLocked;
@@ -393,7 +395,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         this.messagingManager = new RoomMessagingManager(this);
         this.cycleManager = new RoomCycleManager(this);
         this.userVariableManager = new RoomUserVariableManager(this);
-        this.furniVariableManager = new RoomFurniVariableManager(this);
+        this.furniVariableManager = new RoomFurniVariableManager(this, this.dependencies.database());
         this.roomVariableManager = new RoomVariableManager(this);
     }
 
@@ -1158,6 +1160,14 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         this.idleAutokickTimeoutSeconds = idleAutokickTimeoutSeconds;
     }
 
+    public boolean isVocalChatEnabled() {
+        return this.vocalChatEnabled || (this.tags != null && this.tags.contains("vocal")) || (this.name != null && this.name.toLowerCase().startsWith("[vocal]"));
+    }
+
+    public void setVocalChatEnabled(boolean vocalChatEnabled) {
+        this.vocalChatEnabled = vocalChatEnabled;
+    }
+
     public boolean isAllowBotsWalk() {
         return this.allowBotsWalk;
     }
@@ -1437,6 +1447,14 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
 
     public RoomWiredRuntime getWiredRuntime() {
         return this.wiredRuntime;
+    }
+
+    RoomRollbackState getRollbackState() {
+        return this.rollbackState;
+    }
+
+    public boolean rollbackWiredRoomState() {
+        return this.rollbackState.restore();
     }
 
     void onFurnitureTopologyChanged() {
@@ -1983,6 +2001,14 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
 
     public int getUserUniqueFurniCount(int userId) {
         return this.itemManager.getUserUniqueFurniCount(userId);
+    }
+
+    public int getDatabaseUserFurniCount(int userId) {
+        return this.itemManager.getDatabaseUserFurniCount(userId);
+    }
+
+    public int getDatabaseUserUniqueFurniCount(int userId) {
+        return this.itemManager.getDatabaseUserUniqueFurniCount(userId);
     }
 
     public void ejectUserFurni(int userId) {

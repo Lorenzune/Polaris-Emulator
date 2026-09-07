@@ -105,7 +105,18 @@ public final class FurnidataSourceResolver {
     public static String expandRendererUrl(JsonObject rendererObj, String key) {
         if (rendererObj == null || !rendererObj.has(key)) return "";
 
-        String value = rendererObj.get(key).getAsString();
+        com.google.gson.JsonElement element = rendererObj.get(key);
+        String value;
+        if (element.isJsonArray()) {
+            com.google.gson.JsonArray arr = element.getAsJsonArray();
+            if (arr.size() == 0) return "";
+            value = arr.get(0).getAsString();
+        } else if (element.isJsonPrimitive()) {
+            value = element.getAsString();
+        } else {
+            return "";
+        }
+
         for (int i = 0; i < 10; i++) {
             int start = value.indexOf("${");
             if (start < 0) break;
@@ -116,7 +127,9 @@ public final class FurnidataSourceResolver {
             String placeholder = value.substring(start + 2, end);
             if (!rendererObj.has(placeholder)) break;
 
-            value = value.substring(0, start) + rendererObj.get(placeholder).getAsString() + value.substring(end + 1);
+            com.google.gson.JsonElement placeholderElem = rendererObj.get(placeholder);
+            String replacement = placeholderElem.isJsonPrimitive() ? placeholderElem.getAsString() : "";
+            value = value.substring(0, start) + replacement + value.substring(end + 1);
         }
 
         return value;

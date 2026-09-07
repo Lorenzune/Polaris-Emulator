@@ -1,6 +1,7 @@
 package com.eu.habbo.habbohotel.items.interactions;
 
 import com.eu.habbo.habbohotel.bots.Bot;
+import com.eu.habbo.habbohotel.catalog.RecyclerBoxOpener;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.rooms.*;
@@ -65,6 +66,12 @@ public class InteractionDefault extends HabboItem {
 
     @Override
     public void onClick(GameClient client, Room room, Object[] objects) throws Exception {
+        // Nitro sends a normal ToggleFloorItem packet for the classic recycler
+        // box. Keep its DB interaction as `default`, but still open the prize.
+        if (RecyclerBoxOpener.tryOpen(client, room, this)) {
+            return;
+        }
+
         if (room != null && (client == null || this.canToggle(client.getHabbo(), room) || (objects.length >= 2 && objects[1] instanceof WiredEffectType && objects[1] == WiredEffectType.TOGGLE_STATE))) {
             super.onClick(client, room, objects);
 

@@ -774,9 +774,22 @@ public class ItemManager {
         // Player-facing wired chest (Scrigno) — currency + furni storage
         this.interactionsList.add(new ItemInteraction("wf_storage_coins1", InteractionWiredChestCurrency.class));
         this.interactionsList.add(new ItemInteraction("wf_storage_coins2", InteractionWiredChestCurrency.class));
+        this.interactionsList.add(new ItemInteraction("wf_storage_coins", InteractionWiredChestCurrency.class));
+        this.interactionsList.add(new ItemInteraction("wired_chest_coins", InteractionWiredChestCurrency.class));
+        this.interactionsList.add(new ItemInteraction("wired_chest_currency", InteractionWiredChestCurrency.class));
+        this.interactionsList.add(new ItemInteraction("wf_chest_coins", InteractionWiredChestCurrency.class));
+        this.interactionsList.add(new ItemInteraction("chest_coins", InteractionWiredChestCurrency.class));
+        this.interactionsList.add(new ItemInteraction("coin_chest", InteractionWiredChestCurrency.class));
+        this.interactionsList.add(new ItemInteraction("coins_chest", InteractionWiredChestCurrency.class));
         this.interactionsList.add(new ItemInteraction("wf_storage_furni1", InteractionWiredChestFurni.class));
         this.interactionsList.add(new ItemInteraction("wf_storage_furni2", InteractionWiredChestFurni.class));
         this.interactionsList.add(new ItemInteraction("wf_storage_furni_starter", InteractionWiredChestFurni.class));
+        this.interactionsList.add(new ItemInteraction("wf_storage_furni", InteractionWiredChestFurni.class));
+        this.interactionsList.add(new ItemInteraction("wired_chest_furni", InteractionWiredChestFurni.class));
+        this.interactionsList.add(new ItemInteraction("wf_chest_furni", InteractionWiredChestFurni.class));
+        this.interactionsList.add(new ItemInteraction("chest_furni", InteractionWiredChestFurni.class));
+        this.interactionsList.add(new ItemInteraction("furni_chest", InteractionWiredChestFurni.class));
+        this.interactionsList.add(new ItemInteraction("wired_chest", InteractionWiredChestFurni.class));
 
         // Wired chest trading/contracts: give-from-chest, has-item conditions, scanner,
         // transactions, place/remove-furni, contracts and quests. Each key is registered once;

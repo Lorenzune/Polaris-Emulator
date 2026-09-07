@@ -38,7 +38,7 @@ class WiredEffectGiveDucketsTest {
         assertTrue(effect.saveData(settings, null));
         effect.execute(context);
 
-        verify(habbo).givePixels(25);
+        verify(habbo).givePixels(25, "wired.reward");
         verify(habbo, never()).givePoints(0, 25);
     }
 }

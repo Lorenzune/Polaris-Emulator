@@ -2,9 +2,7 @@ package com.eu.habbo.habbohotel.commands;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
-import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomChatMessageBubbles;
-import com.eu.habbo.messages.outgoing.rooms.RoomRelativeMapComposer;
 
 public class UpdateItemsCommand extends Command {
     public UpdateItemsCommand() {
@@ -12,20 +10,18 @@ public class UpdateItemsCommand extends Command {
     }
 
     @Override
-    public boolean handle(GameClient gameClient, String[] params) throws Exception {
-        Emulator.getGameEnvironment().getItemManager().loadItems();
-        Emulator.getGameEnvironment().getItemManager().loadCrackable();
-        Emulator.getGameEnvironment().getItemManager().loadSoundTracks();
-
-        synchronized (Emulator.getGameEnvironment().getRoomManager().getActiveRooms()) {
-            for (Room room : Emulator.getGameEnvironment().getRoomManager().getActiveRooms()) {
-                if (room.isLoaded() && room.getUserCount() > 0 && room.getLayout() != null) {
-                    room.sendComposer(new RoomRelativeMapComposer(room).compose());
-                }
+    public boolean handle(GameClient gameClient, String[] params) {
+        boolean scheduled = Emulator.getGameEnvironment().reloadItemsAsync(() -> {
+            if (gameClient.getChannel().isOpen() && gameClient.getHabbo() != null) {
+                gameClient.getHabbo().whisper(
+                        Emulator.getTexts().getValue("commands.succes.cmd_update_items"),
+                        RoomChatMessageBubbles.ALERT);
             }
-        }
+        });
 
-        gameClient.getHabbo().whisper(Emulator.getTexts().getValue("commands.succes.cmd_update_items"), RoomChatMessageBubbles.ALERT);
+        if (!scheduled && gameClient.getChannel().isOpen() && gameClient.getHabbo() != null) {
+            gameClient.getHabbo().whisper("Item update is already in progress.", RoomChatMessageBubbles.ALERT);
+        }
 
         return true;
     }

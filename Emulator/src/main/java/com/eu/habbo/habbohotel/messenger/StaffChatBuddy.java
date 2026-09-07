@@ -31,10 +31,11 @@ public class StaffChatBuddy extends MessengerBuddy {
         }
 
         Message chatMessage = new Message(from.getHabboInfo().getId(), BUDDY_ID, message);
+        String rankName = from.getHabboInfo().getRank() == null ? "" : from.getHabboInfo().getRank().getName();
         Emulator.getGameServer().getGameClientManager().sendBroadcastResponse(
-                new FriendChatMessageComposer(chatMessage, BUDDY_ID, from.getHabboInfo().getId()).compose(),
+                new FriendChatMessageComposer(chatMessage, BUDDY_ID, from.getHabboInfo().getId(), rankName).compose(),
                 PERMISSION_KEY,
-                from.getClient());
+                null);
     }
 
     @Override

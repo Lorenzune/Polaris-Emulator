@@ -20,8 +20,11 @@ public class UserCustomizationData {
     public final String prefixIcon;
     public final String prefixEffect;
     public final String prefixFont;
+    public final String nickColor;
+    public final String nickEffect;
+    public final String nickFont;
 
-    private UserCustomizationData(String nickIcon, String displayOrder, String prefixText, String prefixColor, String prefixIcon, String prefixEffect, String prefixFont) {
+    private UserCustomizationData(String nickIcon, String displayOrder, String prefixText, String prefixColor, String prefixIcon, String prefixEffect, String prefixFont, String nickColor, String nickEffect, String nickFont) {
         this.nickIcon = nickIcon != null ? nickIcon : "";
         this.displayOrder = UserVisualSettingsComponent.sanitizeDisplayOrder(displayOrder);
         this.prefixText = prefixText != null ? prefixText : "";
@@ -29,11 +32,18 @@ public class UserCustomizationData {
         this.prefixIcon = prefixIcon != null ? prefixIcon : "";
         this.prefixEffect = prefixEffect != null ? prefixEffect : "";
         this.prefixFont = prefixFont != null ? prefixFont : "";
+        this.nickColor = nickColor != null ? nickColor : "";
+        this.nickEffect = nickEffect != null ? nickEffect : "";
+        this.nickFont = nickFont != null ? nickFont : "";
     }
 
     public static UserCustomizationData fromHabbo(Habbo habbo) {
         if (habbo == null) {
             return empty();
+        }
+
+        if (habbo.getInventory() == null && habbo.getHabboInfo() != null) {
+            return fromUserId(habbo.getHabboInfo().getId());
         }
 
         String nickIcon = "";
@@ -43,6 +53,9 @@ public class UserCustomizationData {
         String prefixIcon = "";
         String prefixEffect = "";
         String prefixFont = "";
+        String nickColor = "";
+        String nickEffect = "";
+        String nickFont = "";
 
         if (habbo.getInventory() != null) {
             if (habbo.getInventory().getNickIconsComponent() != null) {
@@ -65,12 +78,22 @@ public class UserCustomizationData {
                 }
             }
 
+            if (habbo.getInventory().getUserNicksComponent() != null) {
+                UserNick activeNick = habbo.getInventory().getUserNicksComponent().getActiveNick();
+
+                if (activeNick != null) {
+                    nickColor = activeNick.getColor();
+                    nickEffect = activeNick.getEffect();
+                    nickFont = activeNick.getFont();
+                }
+            }
+
             if (habbo.getInventory().getUserVisualSettingsComponent() != null) {
                 displayOrder = habbo.getInventory().getUserVisualSettingsComponent().getDisplayOrder();
             }
         }
 
-        return new UserCustomizationData(nickIcon, displayOrder, prefixText, prefixColor, prefixIcon, prefixEffect, prefixFont);
+        return new UserCustomizationData(nickIcon, displayOrder, prefixText, prefixColor, prefixIcon, prefixEffect, prefixFont, nickColor, nickEffect, nickFont);
     }
 
     public static UserCustomizationData fromUserId(int userId) {
@@ -80,6 +103,9 @@ public class UserCustomizationData {
         String prefixIcon = "";
         String prefixEffect = "";
         String prefixFont = "";
+        String nickColor = "";
+        String nickEffect = "";
+        String nickFont = "";
         String displayOrder = UserVisualSettingsComponent.loadDisplayOrder(userId);
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
@@ -108,14 +134,27 @@ public class UserCustomizationData {
                     }
                 }
             }
+
+            try (PreparedStatement nickStyleStatement = connection.prepareStatement(
+                "SELECT color, effect, font FROM user_nicks WHERE user_id = ? AND active = 1 LIMIT 1")) {
+                nickStyleStatement.setInt(1, userId);
+
+                try (ResultSet set = nickStyleStatement.executeQuery()) {
+                    if (set.next()) {
+                        nickColor = set.getString("color");
+                        nickEffect = set.getString("effect");
+                        nickFont = set.getString("font");
+                    }
+                }
+            }
         } catch (SQLException e) {
             LOGGER.error("Caught SQL exception while loading user customization data", e);
         }
 
-        return new UserCustomizationData(nickIcon, displayOrder, prefixText, prefixColor, prefixIcon, prefixEffect, prefixFont);
+        return new UserCustomizationData(nickIcon, displayOrder, prefixText, prefixColor, prefixIcon, prefixEffect, prefixFont, nickColor, nickEffect, nickFont);
     }
 
     public static UserCustomizationData empty() {
-        return new UserCustomizationData("", UserVisualSettingsComponent.DEFAULT_DISPLAY_ORDER, "", "", "", "", "");
+        return new UserCustomizationData("", UserVisualSettingsComponent.DEFAULT_DISPLAY_ORDER, "", "", "", "", "", "", "", "");
     }
 }

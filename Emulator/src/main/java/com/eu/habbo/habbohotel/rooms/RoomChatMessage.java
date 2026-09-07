@@ -64,6 +64,10 @@ public class RoomChatMessage implements Runnable, ISerialize, DatabaseLoggable {
                     break;
                 }
             }
+
+            if (this.bubble != null && this.bubble.getPermission() != null && !this.bubble.getPermission().isEmpty() && !message.client.getHabbo().hasPermission(this.bubble.getPermission())) {
+                this.bubble = RoomChatMessageBubbles.NORMAL;
+            }
         }
 
         this.habbo = message.client.getHabbo();
@@ -142,9 +146,10 @@ public class RoomChatMessage implements Runnable, ISerialize, DatabaseLoggable {
     public void run() {
         if (this.habbo == null) return;
 
-        if (this.message.length() > RoomChatMessage.MAXIMUM_LENGTH) {
+        int maxAllowedLength = (this.message.startsWith("Da ") && this.message.contains(": ")) ? 255 : RoomChatMessage.MAXIMUM_LENGTH;
+        if (this.message.length() > maxAllowedLength) {
             try {
-                this.message = this.message.substring(0, RoomChatMessage.MAXIMUM_LENGTH - 1);
+                this.message = this.message.substring(0, maxAllowedLength - 1);
             } catch (Exception e) {
                 LOGGER.error("Caught exception", e);
             }
@@ -167,6 +172,10 @@ public class RoomChatMessage implements Runnable, ISerialize, DatabaseLoggable {
 
     public RoomChatMessageBubbles getBubble() {
         return this.bubble;
+    }
+
+    public void setBubble(RoomChatMessageBubbles bubble) {
+        this.bubble = bubble;
     }
 
     public Habbo getHabbo() {
@@ -219,6 +228,9 @@ public class RoomChatMessage implements Runnable, ISerialize, DatabaseLoggable {
             message.appendString(customizationData.prefixFont);
             message.appendString(customizationData.nickIcon);
             message.appendString(customizationData.displayOrder);
+            message.appendString(customizationData.nickColor);
+            message.appendString(customizationData.nickEffect);
+            message.appendString(customizationData.nickFont);
         } catch (Exception e) {
             LOGGER.error("Caught exception", e);
         }

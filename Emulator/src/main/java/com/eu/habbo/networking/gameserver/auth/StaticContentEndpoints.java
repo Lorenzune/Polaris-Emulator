@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import static com.eu.habbo.networking.gameserver.auth.AuthHttpUtil.applyCors;
 import static com.eu.habbo.networking.gameserver.auth.AuthHttpUtil.errorPayload;
@@ -47,9 +48,17 @@ final class StaticContentEndpoints {
     private StaticContentEndpoints() {
     }
 
+    private static Connection openConnection() throws Exception {
+        return Emulator.getDatabase().getDataSource().getConnection();
+    }
+
+    private static int contentLimit(String configKey, int fallback) {
+        return Math.max(1, Math.min(20, Emulator.getConfig().getInt(configKey, fallback)));
+    }
+
     static void handleRoomTemplates(ChannelHandlerContext ctx, FullHttpRequest req) {
         JsonArray templates = new JsonArray();
-        try (Connection conn = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection conn = openConnection();
              PreparedStatement stmt = conn.prepareStatement(
                      "SELECT template_id, title, description, thumbnail " +
                              "FROM room_templates WHERE enabled = '1' " +
@@ -80,12 +89,12 @@ final class StaticContentEndpoints {
 
         if (cached == null || cached.expiresAt < now) {
             JsonArray items = new JsonArray();
-            int limit = Math.max(1, Math.min(20, Emulator.getConfig().getInt("login.news.limit", 5)));
-            try (Connection conn = Emulator.getDatabase().getDataSource().getConnection();
+            int limit = contentLimit("login.news.limit", 5);
+            try (Connection conn = openConnection();
                  PreparedStatement stmt = conn.prepareStatement(
                          "SELECT id, title, body, image, link_text, link_url " +
-                                 "FROM ui_news WHERE enabled = 1 " +
-                                 "ORDER BY sort_order ASC, id DESC LIMIT ?")) {
+                             "FROM ui_news WHERE enabled = 1 " +
+                             "ORDER BY created_at DESC, id DESC LIMIT ?")) {
                 stmt.setInt(1, limit);
                 try (ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
@@ -132,6 +141,115 @@ final class StaticContentEndpoints {
         if (keepAlive) response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
         var future = ctx.writeAndFlush(response);
         if (!keepAlive) future.addListener(ChannelFutureListener.CLOSE);
+    }
+
+    static void handlePhotos(ChannelHandlerContext ctx, FullHttpRequest req) {
+        JsonArray items = new JsonArray();
+        int limit = contentLimit("login.photos.limit", 100);
+
+        String sqlWithCaption =
+                "SELECT camera_web.id, camera_web.user_id, camera_web.room_id, camera_web.timestamp, camera_web.url, " +
+                        "COALESCE(camera_web.caption, '') AS caption, " +
+                        "COALESCE(users.username, '') AS username, COALESCE(users.look, '') AS look, COALESCE(rooms.name, '') AS room_name " +
+                        "FROM camera_web " +
+                        "LEFT JOIN users ON users.id = camera_web.user_id " +
+                        "LEFT JOIN rooms ON rooms.id = camera_web.room_id " +
+                        "WHERE camera_web.url IS NOT NULL AND TRIM(camera_web.url) <> '' " +
+                        "ORDER BY camera_web.timestamp DESC, camera_web.id DESC LIMIT ?";
+
+        String sqlFallback =
+                "SELECT camera_web.id, camera_web.user_id, camera_web.room_id, camera_web.timestamp, camera_web.url, " +
+                        "'' AS caption, " +
+                        "COALESCE(users.username, '') AS username, COALESCE(users.look, '') AS look, COALESCE(rooms.name, '') AS room_name " +
+                        "FROM camera_web " +
+                        "LEFT JOIN users ON users.id = camera_web.user_id " +
+                        "LEFT JOIN rooms ON rooms.id = camera_web.room_id " +
+                        "WHERE camera_web.url IS NOT NULL AND TRIM(camera_web.url) <> '' " +
+                        "ORDER BY camera_web.timestamp DESC, camera_web.id DESC LIMIT ?";
+
+        try (Connection conn = openConnection()) {
+            boolean loaded = false;
+            try (PreparedStatement stmt = conn.prepareStatement(sqlWithCaption)) {
+                stmt.setInt(1, limit);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        JsonObject photo = new JsonObject();
+                        photo.addProperty("id", rs.getInt("id"));
+                        photo.addProperty("userId", rs.getInt("user_id"));
+                        photo.addProperty("roomId", rs.getInt("room_id"));
+                        photo.addProperty("timestamp", rs.getInt("timestamp"));
+                        photo.addProperty("url", rs.getString("url"));
+                        photo.addProperty("caption", rs.getString("caption"));
+                        photo.addProperty("username", rs.getString("username"));
+                        photo.addProperty("look", rs.getString("look"));
+                        photo.addProperty("roomName", rs.getString("room_name"));
+                        items.add(photo);
+                    }
+                    loaded = true;
+                }
+            } catch (SQLException ex) {
+                LOGGER.warn("Failed querying camera_web with caption, trying fallback query: {}", ex.getMessage());
+            }
+
+            if (!loaded) {
+                try (PreparedStatement stmt = conn.prepareStatement(sqlFallback)) {
+                    stmt.setInt(1, limit);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            JsonObject photo = new JsonObject();
+                            photo.addProperty("id", rs.getInt("id"));
+                            photo.addProperty("userId", rs.getInt("user_id"));
+                            photo.addProperty("roomId", rs.getInt("room_id"));
+                            photo.addProperty("timestamp", rs.getInt("timestamp"));
+                            photo.addProperty("url", rs.getString("url"));
+                            photo.addProperty("caption", "");
+                            photo.addProperty("username", rs.getString("username"));
+                            photo.addProperty("look", rs.getString("look"));
+                            photo.addProperty("roomName", rs.getString("room_name"));
+                            items.add(photo);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("camera photos list failed", e);
+            sendJson(ctx, req, HttpResponseStatus.INTERNAL_SERVER_ERROR, errorPayload("Server error."));
+            return;
+        }
+
+        JsonObject res = new JsonObject();
+        res.add("photos", items);
+        sendJson(ctx, req, HttpResponseStatus.OK, res);
+    }
+
+    static void handleInstaduckCaption(ChannelHandlerContext ctx, FullHttpRequest req, JsonObject body) {
+        int photoId = AuthHttpUtil.readInt(body, "photoId", 0);
+        String caption = AuthHttpUtil.readString(body, "caption").trim();
+
+        if (photoId <= 0) {
+            sendJson(ctx, req, HttpResponseStatus.BAD_REQUEST, errorPayload("Invalid photo ID."));
+            return;
+        }
+
+        if (caption.length() > 255) {
+            caption = caption.substring(0, 255);
+        }
+
+        try (Connection conn = openConnection();
+             PreparedStatement stmt = conn.prepareStatement("UPDATE camera_web SET caption = ? WHERE id = ?")) {
+            stmt.setString(1, caption);
+            stmt.setInt(2, photoId);
+            stmt.executeUpdate();
+
+            JsonObject ok = new JsonObject();
+            ok.addProperty("status", "ok");
+            ok.addProperty("photoId", photoId);
+            ok.addProperty("caption", caption);
+            sendJson(ctx, req, HttpResponseStatus.OK, ok);
+        } catch (Exception e) {
+            LOGGER.error("instaduck caption update failed", e);
+            sendJson(ctx, req, HttpResponseStatus.INTERNAL_SERVER_ERROR, errorPayload("Server error."));
+        }
     }
 
     static void handleServerKey(ChannelHandlerContext ctx, FullHttpRequest req) {

@@ -49,7 +49,11 @@ public class FriendChatMessageComposer extends MessageComposer {
                     name = "UNKNOWN";
                 }
             }
-            this.response.appendString(name + "/" + look + "/" + this.fromId);
+            // The virtual Staff Chat buddy carries the sender identity in this
+            // legacy field. A fourth segment is optional and consumed only by
+            // the client group-chat renderer as the staff rank label.
+            String rank = this.extraData == null ? "" : this.extraData.replace('/', ' ');
+            this.response.appendString(name + "/" + look + "/" + this.fromId + "/" + rank);
         } else if (this.extraData != null) {
             this.response.appendString(this.extraData);
         }

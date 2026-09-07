@@ -79,6 +79,9 @@ public class RoomUsersComposer extends MessageComposer {
             this.response.appendString(this.habbo.getHabboInfo().getRoomEntryMethod());
             this.response.appendInt(this.habbo.getHabboInfo().getRoomEntryTeleportId());
             this.response.appendInt(this.habbo.getHabboInfo().getInfostandBorder());
+            this.response.appendString(customizationData.nickColor);
+            this.response.appendString(customizationData.nickEffect);
+            this.response.appendString(customizationData.nickFont);
         } else if (this.habbos != null) {
             this.response.appendInt(this.habbos.size());
             for (Habbo habbo : this.habbos) {
@@ -122,6 +125,9 @@ public class RoomUsersComposer extends MessageComposer {
                     this.response.appendString(habbo.getHabboInfo().getRoomEntryMethod());
                     this.response.appendInt(habbo.getHabboInfo().getRoomEntryTeleportId());
                     this.response.appendInt(habbo.getHabboInfo().getInfostandBorder());
+                    this.response.appendString(customizationData.nickColor);
+                    this.response.appendString(customizationData.nickEffect);
+                    this.response.appendString(customizationData.nickFont);
                 }
             }
         } else if (this.bot != null) {

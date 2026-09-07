@@ -155,7 +155,7 @@ public class NavigatorManager {
                 rooms = Emulator.getGameEnvironment().getRoomManager().getRoomsFavourite(habbo);
                 break;
             case "history_freq":
-                rooms = Emulator.getGameEnvironment().getRoomManager().getRoomsVisited(habbo, false, 10);
+                rooms = Emulator.getGameEnvironment().getRoomManager().getRoomsVisited(habbo, false, 20);
                 break;
             case "my_groups":
                 rooms = Emulator.getGameEnvironment().getRoomManager().getGroupRooms(habbo, 25);

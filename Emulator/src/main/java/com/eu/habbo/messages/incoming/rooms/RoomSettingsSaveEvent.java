@@ -210,7 +210,33 @@ public class RoomSettingsSaveEvent extends MessageHandler {
                     room.setIdleAutokickTimeoutSeconds(idleAutokickEnabled ? idleAutokickTimeoutSeconds : 0);
                 }
 
+                if (this.packet.bytesAvailable() > 0) {
+                    boolean vocalChatEnabled = this.packet.readBoolean();
+                    room.setVocalChatEnabled(vocalChatEnabled);
+                    if (vocalChatEnabled) {
+                        if (!room.getTags().contains("vocal")) {
+                            room.setTags((room.getTags().isEmpty() ? "" : room.getTags() + ";") + "vocal");
+                        }
+                    } else {
+                        if (room.getTags().contains("vocal")) {
+                            String newTags = java.util.Arrays.stream(room.getTags().split(";"))
+                                .filter(t -> !t.equalsIgnoreCase("vocal"))
+                                .collect(java.util.stream.Collectors.joining(";"));
+                            room.setTags(newTags);
+                        }
+                    }
+                }
+
                 room.setNeedsUpdate(true);
+
+                // RoomData is the renderer's authoritative live snapshot for
+                // trade permissions, pets, door mode and moderation settings.
+                // It is user-specific, so it must be composed per occupant.
+                room.getHabbos().forEach(habbo -> {
+                    if (habbo.getClient() != null) {
+                        habbo.getClient().sendResponse(new RoomDataComposer(room, habbo, false, false));
+                    }
+                });
 
                 room.sendComposer(new RoomThicknessComposer(room).compose());
                 room.sendComposer(new RoomChatSettingsComposer(room).compose());

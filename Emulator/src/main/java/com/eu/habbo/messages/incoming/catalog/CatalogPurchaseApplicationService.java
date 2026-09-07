@@ -229,10 +229,17 @@ final class CatalogPurchaseApplicationService {
                 }
 
                 if (totalDays > 0) {
-                    if (this.client.getHabbo().getHabboInfo().getCurrencyAmount(item.getPointsType()) < totalDuckets)
+                    if (this.client.getHabbo().getHabboInfo().getCurrencyAmount(item.getPointsType()) < totalDuckets) {
+                        this.client.sendResponse(
+                                new AlertPurchaseUnavailableComposer(AlertPurchaseUnavailableComposer.ILLEGAL));
                         return;
+                    }
 
-                    if (this.client.getHabbo().getHabboInfo().getCredits() < totalCredits) return;
+                    if (this.client.getHabbo().getHabboInfo().getCredits() < totalCredits) {
+                        this.client.sendResponse(
+                                new AlertPurchaseUnavailableComposer(AlertPurchaseUnavailableComposer.ILLEGAL));
+                        return;
+                    }
 
                     int paidCredits =
                             this.client.getHabbo().hasPermission(Permission.ACC_INFINITE_CREDITS) ? 0 : totalCredits;

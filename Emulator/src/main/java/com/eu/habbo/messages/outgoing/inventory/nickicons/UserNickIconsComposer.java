@@ -56,14 +56,25 @@ public class UserNickIconsComposer extends MessageComposer {
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                 "SELECT icon_key, display_name, points, points_type FROM custom_nick_icons_catalog WHERE enabled = 1 ORDER BY sort_order ASC, id ASC")) {
+                 "SELECT c.icon_key, c.display_name, c.points, c.points_type, COALESCE(cat.name, '') AS category_name " +
+                 "FROM custom_nick_icons_catalog c " +
+                 "LEFT JOIN custom_icon_category cat ON (cat.id = c.category_id AND cat.enabled = 1) " +
+                 "WHERE c.enabled = 1 " +
+                 "ORDER BY COALESCE(cat.sort_order, 999) ASC, c.sort_order ASC, c.id ASC")) {
             try (ResultSet set = statement.executeQuery()) {
                 List<CatalogNickIcon> catalogNickIcons = new ArrayList<>();
 
                 while (set.next()) {
+                    String rawName = set.getString("display_name");
+                    String catName = set.getString("category_name");
+                    String finalName = rawName != null ? rawName : "";
+                    if (catName != null && !catName.isEmpty() && !finalName.startsWith("[")) {
+                        finalName = "[" + catName + "] " + finalName;
+                    }
+
                     catalogNickIcons.add(new CatalogNickIcon(
                         set.getString("icon_key"),
-                        set.getString("display_name"),
+                        finalName,
                         set.getInt("points"),
                         set.getInt("points_type")));
                 }
@@ -99,21 +110,42 @@ public class UserNickIconsComposer extends MessageComposer {
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                 "SELECT id, display_name, text, color, icon, effect, font, points, points_type FROM custom_prefixes_catalog WHERE enabled = 1 ORDER BY sort_order ASC, id ASC")) {
+                 "SELECT c.id, c.display_name, c.text, c.color, c.icon, c.effect, c.font, c.credits, c.points, c.points_type, " +
+                 "COALESCE(cat.name, '') AS category_name " +
+                 "FROM custom_prefixes_catalog c " +
+                 "LEFT JOIN custom_nick_category cat ON (cat.id = c.category_id AND cat.enabled = 1) " +
+                 "WHERE c.enabled = 1 " +
+                 "ORDER BY COALESCE(cat.sort_order, 999) ASC, c.sort_order ASC, c.id ASC")) {
             try (ResultSet set = statement.executeQuery()) {
                 List<CatalogPrefix> catalogPrefixes = new ArrayList<>();
 
                 while (set.next()) {
+                    String rawName = set.getString("display_name");
+                    String catName = set.getString("category_name");
+                    String finalName = rawName != null ? rawName : "";
+                    if (catName != null && !catName.isEmpty() && !finalName.startsWith("[")) {
+                        finalName = "[" + catName + "] " + finalName;
+                    }
+
+                    int credits = set.getInt("credits");
+                    int points = set.getInt("points");
+                    int pointsType = set.getInt("points_type");
+
+                    if (points == 0 && credits > 0) {
+                        points = credits;
+                        pointsType = -1;
+                    }
+
                     catalogPrefixes.add(new CatalogPrefix(
                         set.getInt("id"),
-                        set.getString("display_name"),
+                        finalName,
                         set.getString("text"),
                         set.getString("color"),
                         set.getString("icon"),
                         set.getString("effect"),
                         set.getString("font"),
-                        set.getInt("points"),
-                        set.getInt("points_type")));
+                        points,
+                        pointsType));
                 }
 
                 this.response.appendInt(catalogPrefixes.size());

@@ -10,6 +10,8 @@ public class Outgoing {
     public static final int ChestFurniChunkComposer = 9322;
     public static final int ChestFurniDeltaComposer = 9323;
     public static final int ChestOpenComposer = 9327;
+    public static final int ChestRoomLogComposer = 9340;
+    public static final int RoomVoiceSignalComposer = 9346;
     public static final int FavoriteRoomsCountComposer = 151;
     public static final int UserCurrencyComposer = 2018;
     public static final int RedeemVoucherOKComposer = 3336;
@@ -579,6 +581,8 @@ public class Outgoing {
     public static final int CatalogAdminResultComposer = 10059;
     public static final int CatalogAdminOfferDetailsComposer = 10062;
     public static final int CatalogAdminPageDetailsComposer = 10063;
+    public static final int RecyclerAdminStateComposer = 10064;
+    public static final int RecyclerAdminResultComposer = 10065;
 
     // Custom Prefixes
     public static final int UserPrefixesComposer = 7001;
@@ -586,6 +590,11 @@ public class Outgoing {
     public static final int ActivePrefixUpdatedComposer = 7003;
     public static final int UserNickIconsComposer = 7004;
     public static final int CustomPrefixPurchaseFailedComposer = 7005;
+    public static final int UserNickStylesComposer = 7010;
+    public static final int ActiveNickStyleUpdatedComposer = 7011;
+    public static final int CustomNickPurchaseFailedComposer = 7012;
+    public static final int UserChatBubblesComposer = 7030;
+    public static final int UserHabbiconsComposer = 7032;
     public static final int AvailableCommandsComposer = 4050;
 
     // YouTube Room Broadcast
@@ -630,4 +639,10 @@ public class Outgoing {
     public static final int MessengerMessageFailedComposer = 4903;
     public static final int MessengerMessageComposer = 4904;
     public static final int MessengerReadCursorComposer = 4905;
+    public static final int BlockedUsersComposer = 4810;
+    public static final int RoomUserBlockedComposer = 4811;
+
+    // Profile Cosmetics
+    public static final int UserProfileCosmeticsComposer = 7040;
+    public static final int ProfileCosmeticsPurchaseFailedComposer = 7041;
 }

@@ -3,15 +3,18 @@ package com.eu.habbo.habbohotel.rooms;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 /** Room-owned WIRED runtime state. */
 public final class RoomWiredRuntime {
+    private final Room room;
     private final AtomicLong cacheGeneration = new AtomicLong();
     private final WiredGravityService gravity;
     private final WiredOpacityService opacity;
 
     RoomWiredRuntime(Room room) {
+        this.room = room;
         this.gravity = new WiredGravityService(room);
         this.opacity = new WiredOpacityService(room);
     }
@@ -26,6 +29,20 @@ public final class RoomWiredRuntime {
 
     public boolean setGravityEnabled(HabboItem item, boolean enabled) {
         return this.gravity.setEnabled(item, enabled);
+    }
+
+    RollbackSnapshot createRollbackSnapshot(Set<Integer> itemIds) {
+        return new RollbackSnapshot(this.gravity.createSnapshot(itemIds), this.opacity.createSnapshot(itemIds));
+    }
+
+    void restoreRollbackSnapshot(RollbackSnapshot snapshot, Set<Integer> itemIds) {
+        if (snapshot == null) {
+            return;
+        }
+
+        this.gravity.restoreSnapshot(snapshot.gravity(), itemIds);
+        Set<Integer> changedOpacityItems = this.opacity.restoreSnapshot(snapshot.opacity(), itemIds);
+        WiredOpacityBroadcaster.broadcastEffective(this.room, changedOpacityItems, 0, 0);
     }
 
     public boolean isGravityEnabled(HabboItem item) {
@@ -99,4 +116,11 @@ public final class RoomWiredRuntime {
         this.gravity.dispose();
         this.opacity.dispose();
     }
+
+    void resetForRoomLoad() {
+        this.gravity.dispose();
+        this.opacity.resetForRoomLoad();
+    }
+
+    record RollbackSnapshot(WiredGravityService.Snapshot gravity, WiredOpacityService.Snapshot opacity) {}
 }

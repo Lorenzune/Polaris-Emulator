@@ -52,7 +52,7 @@ final class RoomEntryService {
             return;
         }
 
-        if (room.isBanned(habbo)
+        if ((room.isBanned(habbo) || (habbo.getHabboInfo().getId() != room.getOwnerId() && com.eu.habbo.habbohotel.users.HabboStats.isUserBlocked(room.getOwnerId(), habbo.getHabboInfo().getId())))
                 && !habbo.hasPermission(Permission.ACC_ANYROOMOWNER)
                 && !habbo.hasPermission(Permission.ACC_ENTERANYROOM)) {
             habbo.getClient().sendResponse(new RoomEnterErrorComposer(RoomEnterErrorComposer.ROOM_ERROR_BANNED));

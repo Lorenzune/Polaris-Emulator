@@ -246,10 +246,12 @@ public class SecureLoginEvent extends MessageHandler {
                 messages.add(new UserClothesComposer(this.client.getHabbo()).compose());
                 messages.add(new NewUserIdentityComposer(habbo).compose());
                 messages.add(new UserPermissionsComposer(this.client.getHabbo()).compose());
+                var gameEnvironment = Emulator.getGameEnvironment();
                 messages.add(new AvailableCommandsComposer(
-                        Emulator.getGameEnvironment().getCommandHandler().getCommandsForRank(
+                        gameEnvironment.getCommandHandler().getCommandsForRank(
                                 this.client.getHabbo().getHabboInfo().getRank().getId()
-                        )
+                        ),
+                        gameEnvironment.getPermissionsManager().getAllRanks()
                 ).compose());
                 messages.add(new AvailabilityStatusMessageComposer(true, false, true).compose());
                 messages.add(new PingComposer().compose());

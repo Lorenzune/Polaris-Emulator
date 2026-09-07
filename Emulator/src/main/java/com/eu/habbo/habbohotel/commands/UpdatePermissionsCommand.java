@@ -2,57 +2,43 @@ package com.eu.habbo.habbohotel.commands;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
-import com.eu.habbo.habbohotel.permissions.PermissionsManager;
-import com.eu.habbo.habbohotel.permissions.Rank;
 import com.eu.habbo.habbohotel.rooms.RoomChatMessageBubbles;
-import com.eu.habbo.habbohotel.users.Habbo;
-import com.eu.habbo.habbohotel.users.HabboManager;
-import com.eu.habbo.messages.outgoing.users.UserPermissionsComposer;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UpdatePermissionsCommand extends Command {
+    private final AtomicBoolean updateInProgress = new AtomicBoolean();
+
     public UpdatePermissionsCommand() {
         super("cmd_update_permissions", Emulator.getTexts().getValue("commands.keys.cmd_update_permissions").split(";"));
     }
 
     @Override
-    public boolean handle(GameClient gameClient, String[] params) throws Exception {
-        Emulator.getGameEnvironment().getPermissionsManager().reload();
-
-        // PermissionsManager.reload() rebuilt the rank table — each online
-        // Habbo's HabboInfo still references the OLD Rank object, so
-        // server-side hasPermission() / wire composers would keep
-        // reporting stale data until relogin. Re-bind every connected
-        // user to the freshly-loaded Rank by id, then ship the new
-        // UserPermissionsComposer (which carries clubLevel,
-        // securityLevel, isAmbassador, rank metadata and the resolved
-        // permission_definitions map) so Nitro clients' React-side
-        // useHasPermission(key) / useUserRank() / useUserPermissions()
-        // consumers re-render against the updated tables without an F5.
-        HabboManager habboManager = Emulator.getGameEnvironment().getHabboManager();
-        PermissionsManager permissions = Emulator.getGameEnvironment().getPermissionsManager();
-
-        int refreshed = 0;
-
-        for (Habbo habbo : habboManager.getOnlineHabbos().values()) {
-            if (habbo == null || habbo.getHabboInfo() == null || habbo.getClient() == null) continue;
-
-            int currentRankId = habbo.getHabboInfo().getRank().getId();
-            // Defensive fallback: if the admin deleted the rank from the
-            // permission_ranks table between sessions, fall back to rank 1
-            // (Member) so the user isn't stranded with a null Rank.
-            Rank freshRank = permissions.rankExists(currentRankId)
-                    ? permissions.getRank(currentRankId)
-                    : permissions.getRank(1);
-
-            habbo.getHabboInfo().setRank(freshRank);
-            habbo.getClient().sendResponse(new UserPermissionsComposer(habbo));
-            refreshed++;
+    public boolean handle(GameClient gameClient, String[] params) {
+        if (!this.updateInProgress.compareAndSet(false, true)) {
+            gameClient.getHabbo().whisper("Permissions update is already in progress.", RoomChatMessageBubbles.ALERT);
+            return true;
         }
 
-        gameClient.getHabbo().whisper(
-                Emulator.getTexts().getValue("commands.succes.cmd_update_permissions") + " (" + refreshed + " online refreshed)",
-                RoomChatMessageBubbles.ALERT
-        );
+        if (Emulator.getThreading().run(() -> {
+            try {
+                int refreshed = Emulator.getGameEnvironment().reloadPermissionsAndBroadcast();
+
+                if (refreshed < 0 && gameClient.getChannel().isOpen() && gameClient.getHabbo() != null) {
+                    gameClient.getHabbo().whisper(
+                            "Permissions update is already in progress.",
+                            RoomChatMessageBubbles.ALERT);
+                } else if (gameClient.getChannel().isOpen() && gameClient.getHabbo() != null) {
+                    gameClient.getHabbo().whisper(
+                            Emulator.getTexts().getValue("commands.succes.cmd_update_permissions")
+                                    + " (" + refreshed + " online refreshed)",
+                            RoomChatMessageBubbles.ALERT);
+                }
+            } finally {
+                this.updateInProgress.set(false);
+            }
+        }) == null) {
+            this.updateInProgress.set(false);
+        }
 
         return true;
     }

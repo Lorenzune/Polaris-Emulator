@@ -52,7 +52,8 @@ class WiredInteractionProtocolContractTest {
             "WiredUserVariableManageEvent",
             "WiredUserInspectMoveEvent",
             "WiredFurniRuntimeStateRequestEvent",
-            "WiredFeatureCapabilitiesEvent");
+            "WiredFeatureCapabilitiesEvent",
+            "WiredRoomRollbackEvent");
 
     private static final List<String> OUTGOING_HEADERS = List.of(
             "WiredTriggerDataComposer",

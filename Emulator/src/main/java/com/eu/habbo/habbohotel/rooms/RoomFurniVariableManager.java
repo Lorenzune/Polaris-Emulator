@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,12 +35,18 @@ public class RoomFurniVariableManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(RoomFurniVariableManager.class);
 
     private final Room room;
+    private final RoomDependencies.ConnectionProvider database;
     private final ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, VariableAssignment>> activeAssignmentsByFurniId;
     private volatile boolean permanentAssignmentsLoaded;
     private final java.util.concurrent.atomic.AtomicBoolean broadcastRequested = new java.util.concurrent.atomic.AtomicBoolean(false);
 
     public RoomFurniVariableManager(Room room) {
+        this(room, () -> Emulator.getDatabase().getDataSource().getConnection());
+    }
+
+    RoomFurniVariableManager(Room room, RoomDependencies.ConnectionProvider database) {
         this.room = room;
+        this.database = Objects.requireNonNull(database, "database");
         this.activeAssignmentsByFurniId = new ConcurrentHashMap<>();
         this.permanentAssignmentsLoaded = false;
     }
@@ -56,7 +63,7 @@ public class RoomFurniVariableManager {
 
             List<int[]> staleRows = new ArrayList<>();
 
-            try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+            try (Connection connection = this.database.openConnection();
                  PreparedStatement statement = connection.prepareStatement("SELECT furni_id, variable_item_id, value, created_at, updated_at FROM room_furni_wired_variables WHERE room_id = ?")) {
                 statement.setInt(1, this.room.getId());
 
@@ -591,6 +598,99 @@ public class RoomFurniVariableManager {
         return new Snapshot(this.room.getId(), definitions, furnis);
     }
 
+    /**
+     * Captures the direct furni-variable assignments for a room-state rollback baseline.
+     * Echoes and derived variables are intentionally excluded: they resolve from their source
+     * state after the underlying furniture and direct assignments have been restored.
+     */
+    public synchronized RollbackSnapshot createRollbackSnapshot(Set<Integer> furniIds) {
+        this.ensurePermanentAssignmentsLoaded();
+
+        if (furniIds == null || furniIds.isEmpty()) {
+            return new RollbackSnapshot(Map.of());
+        }
+
+        Map<Integer, Map<Integer, RollbackAssignment>> assignmentsByFurniId = new HashMap<>();
+        for (Integer furniId : furniIds) {
+            if (furniId == null || this.room.getHabboItem(furniId) == null) {
+                continue;
+            }
+
+            ConcurrentHashMap<Integer, VariableAssignment> assignments =
+                    this.activeAssignmentsByFurniId.get(furniId);
+            if (assignments == null || assignments.isEmpty()) {
+                continue;
+            }
+
+            Map<Integer, RollbackAssignment> copiedAssignments = new HashMap<>();
+            for (Map.Entry<Integer, VariableAssignment> entry : assignments.entrySet()) {
+                WiredExtraFurniVariable definition = this.getDefinition(entry.getKey());
+                if (definition == null) {
+                    continue;
+                }
+
+                VariableAssignment assignment = entry.getValue();
+                copiedAssignments.put(
+                        entry.getKey(),
+                        new RollbackAssignment(
+                                assignment.getValue(), assignment.getCreatedAt(), assignment.getUpdatedAt()));
+            }
+
+            if (!copiedAssignments.isEmpty()) {
+                assignmentsByFurniId.put(furniId, Map.copyOf(copiedAssignments));
+            }
+        }
+
+        return new RollbackSnapshot(Map.copyOf(assignmentsByFurniId));
+    }
+
+    /** Restores only baseline items; assignments for furniture placed after load are untouched. */
+    public synchronized void restoreRollbackSnapshot(RollbackSnapshot snapshot, Set<Integer> furniIds) {
+        this.ensurePermanentAssignmentsLoaded();
+
+        if (snapshot == null || furniIds == null || furniIds.isEmpty()) {
+            return;
+        }
+
+        for (Integer furniId : furniIds) {
+            if (furniId == null || this.room.getHabboItem(furniId) == null) {
+                continue;
+            }
+
+            Map<Integer, RollbackAssignment> baselineAssignments =
+                    snapshot.assignmentsByFurniId().getOrDefault(furniId, Map.of());
+            ConcurrentHashMap<Integer, VariableAssignment> restoredAssignments = new ConcurrentHashMap<>();
+
+            for (Map.Entry<Integer, RollbackAssignment> entry : baselineAssignments.entrySet()) {
+                WiredExtraFurniVariable definition = this.getDefinition(entry.getKey());
+                if (definition == null) {
+                    continue;
+                }
+
+                RollbackAssignment assignment = entry.getValue();
+                restoredAssignments.put(
+                        entry.getKey(),
+                        new VariableAssignment(assignment.value(), assignment.createdAt(), assignment.updatedAt()));
+            }
+
+            if (restoredAssignments.isEmpty()) {
+                this.activeAssignmentsByFurniId.remove(furniId);
+            } else {
+                this.activeAssignmentsByFurniId.put(furniId, restoredAssignments);
+            }
+
+            this.deletePersistentAssignmentsForFurni(furniId);
+            for (Map.Entry<Integer, VariableAssignment> entry : restoredAssignments.entrySet()) {
+                WiredExtraFurniVariable definition = this.getDefinition(entry.getKey());
+                if (definition != null && definition.isPermanentAvailability()) {
+                    this.upsertPersistentAssignment(furniId, entry.getKey(), entry.getValue());
+                }
+            }
+        }
+
+        this.broadcastSnapshot();
+    }
+
     public void sendSnapshot(Habbo habbo) {
         if (habbo == null || habbo.getClient() == null || !this.room.canInspectWired(habbo)) {
             return;
@@ -837,7 +937,7 @@ public class RoomFurniVariableManager {
     }
 
     private void upsertPersistentAssignment(int furniId, int definitionItemId, VariableAssignment assignment) {
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = this.database.openConnection();
              PreparedStatement statement = connection.prepareStatement("INSERT INTO room_furni_wired_variables (room_id, furni_id, variable_item_id, value, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at)")) {
             statement.setInt(1, this.room.getId());
             statement.setInt(2, furniId);
@@ -860,7 +960,7 @@ public class RoomFurniVariableManager {
     }
 
     private void deletePersistentAssignment(int furniId, int definitionItemId) {
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = this.database.openConnection();
              PreparedStatement statement = connection.prepareStatement("DELETE FROM room_furni_wired_variables WHERE room_id = ? AND furni_id = ? AND variable_item_id = ?")) {
             statement.setInt(1, this.room.getId());
             statement.setInt(2, furniId);
@@ -872,7 +972,7 @@ public class RoomFurniVariableManager {
     }
 
     private void deletePersistentAssignmentsForDefinition(int definitionItemId) {
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = this.database.openConnection();
              PreparedStatement statement = connection.prepareStatement("DELETE FROM room_furni_wired_variables WHERE room_id = ? AND variable_item_id = ?")) {
             statement.setInt(1, this.room.getId());
             statement.setInt(2, definitionItemId);
@@ -883,7 +983,7 @@ public class RoomFurniVariableManager {
     }
 
     private void deletePersistentAssignmentsForFurni(int furniId) {
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = this.database.openConnection();
              PreparedStatement statement = connection.prepareStatement("DELETE FROM room_furni_wired_variables WHERE room_id = ? AND furni_id = ?")) {
             statement.setInt(1, this.room.getId());
             statement.setInt(2, furniId);
@@ -916,6 +1016,10 @@ public class RoomFurniVariableManager {
             return this.furnis;
         }
     }
+
+    public record RollbackSnapshot(Map<Integer, Map<Integer, RollbackAssignment>> assignmentsByFurniId) {}
+
+    public record RollbackAssignment(Integer value, int createdAt, int updatedAt) {}
 
     public static class DefinitionEntry {
         private final int itemId;

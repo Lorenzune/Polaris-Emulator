@@ -2,8 +2,10 @@ package com.eu.habbo.messages.incoming.catalog.recycler;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
+import com.eu.habbo.habbohotel.economy.EconomyOperationId;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.ItemManager;
+import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.catalog.AlertPurchaseFailedComposer;
@@ -16,8 +18,13 @@ import com.eu.habbo.threading.runnables.QueryDeleteHabboItem;
 import com.eu.habbo.threading.runnables.ShutdownEmulator;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 
 public class RecycleEvent extends MessageHandler {
+    private static final long RECYCLER_PROCESSING_DELAY_MS = 10_000L;
+    private static final Set<Integer> PENDING_RECYCLER_USERS = ConcurrentHashMap.newKeySet();
+
     @Override
     public void handle() throws Exception {
         if (ShutdownEmulator.timestamp > 0) {
@@ -70,39 +77,84 @@ public class RecycleEvent extends MessageHandler {
                 this.client.sendResponse(new AlertPurchaseFailedComposer(AlertPurchaseFailedComposer.SERVER_ERROR));
                 return;
             }
-            HabboItem reward = Emulator.getGameEnvironment()
-                    .getItemManager()
-                    .handleRecycle(
-                            this.client.getHabbo(),
-                            recyclerPrize.getId() + "");
-            if (reward == null) {
+            Habbo habbo = this.client.getHabbo();
+            int habboId = habbo.getHabboInfo().getId();
+
+            // This lock is server-side: the client countdown alone must not
+            // allow duplicate recycle packets during the 10-second animation.
+            if (!PENDING_RECYCLER_USERS.add(habboId)) {
+                this.client.sendResponse(new AlertPurchaseFailedComposer(AlertPurchaseFailedComposer.SERVER_ERROR));
+                return;
+            }
+
+            int ducketCost = Emulator.getGameEnvironment().getCatalogManager().getRecyclerDucketCost();
+            String recyclerOperationId = EconomyOperationId.create("catalog.recycler:" + habboId);
+            if (ducketCost > 0 && !habbo.tryTakePoints(
+                    0, ducketCost, "catalog.recycler", recyclerOperationId, habboId)) {
+                PENDING_RECYCLER_USERS.remove(habboId);
+                this.client.sendResponse(new AlertPurchaseFailedComposer(AlertPurchaseFailedComposer.SERVER_ERROR));
+                return;
+            }
+
+            int recyclerPrizeId = recyclerPrize.getId();
+            int recycledItemCount = items.size();
+            int recycledPrizeItemCount = recycledPrizeCount;
+            ScheduledFuture<?> rewardDelivery = Emulator.getThreading().run(
+                    () -> deliverReward(habbo, recyclerPrizeId, recycledItemCount, recycledPrizeItemCount),
+                    RECYCLER_PROCESSING_DELAY_MS);
+
+            if (rewardDelivery == null) {
+                PENDING_RECYCLER_USERS.remove(habboId);
+                if (ducketCost > 0) habbo.givePoints(0, ducketCost, "catalog.recycler.refund");
                 this.client.sendResponse(new AlertPurchaseFailedComposer(AlertPurchaseFailedComposer.SERVER_ERROR));
                 return;
             }
 
             for (HabboItem item : items) {
-                this.client.getHabbo().getInventory().getItemsComponent().removeHabboItem(item);
+                habbo.getInventory().getItemsComponent().removeHabboItem(item);
                 this.client.sendResponse(new RemoveHabboItemComposer(item.getGiftAdjustedId()));
                 Emulator.getThreading().runPersistence(new QueryDeleteHabboItem(item.getId()));
             }
-
-            this.client.sendResponse(new AddHabboItemComposer(reward));
-            this.client.getHabbo().getInventory().getItemsComponent().addItem(reward);
-            this.client.sendResponse(new RecyclerCompleteComposer(RecyclerCompleteComposer.RECYCLING_COMPLETE));
-            this.client.sendResponse(new InventoryRefreshComposer());
-
-            AchievementInteractions.progress(this.client.getHabbo(), "RecycledItems", items.size());
-            AchievementInteractions.progress(this.client.getHabbo(), "FurnimaticQuest");
-            if (recycledPrizeCount > 0) {
-                AchievementInteractions.progress(
-                        this.client.getHabbo(), "RecycleEcoprizes", recycledPrizeCount);
-            }
-            int rewardRarity = Emulator.getGameEnvironment().getCatalogManager()
-                    .getRecyclerPrizeRarity(recyclerPrize.getId());
-            if (rewardRarity >= 5) AchievementInteractions.progress(this.client.getHabbo(), "RecyclerGrandPrize");
-            else if (rewardRarity >= 3) AchievementInteractions.progress(this.client.getHabbo(), "RecyclerRarePrize");
         } else {
             this.client.sendResponse(new RecyclerCompleteComposer(RecyclerCompleteComposer.RECYCLING_CLOSED));
+        }
+    }
+
+    private static void deliverReward(Habbo habbo, int recyclerPrizeId, int recycledItemCount, int recycledPrizeCount) {
+        int habboId = habbo.getHabboInfo().getId();
+
+        try {
+            HabboItem reward = Emulator.getGameEnvironment()
+                    .getItemManager()
+                    .handleRecycle(habbo, Integer.toString(recyclerPrizeId));
+
+            if (reward == null) {
+                if (habbo.getClient() != null) {
+                    habbo.getClient().sendResponse(new AlertPurchaseFailedComposer(AlertPurchaseFailedComposer.SERVER_ERROR));
+                    habbo.getClient().sendResponse(new RecyclerCompleteComposer(RecyclerCompleteComposer.RECYCLING_CLOSED));
+                }
+                return;
+            }
+
+            habbo.getInventory().getItemsComponent().addItem(reward);
+
+            if (habbo.getClient() != null) {
+                habbo.getClient().sendResponse(new AddHabboItemComposer(reward));
+                habbo.getClient().sendResponse(new RecyclerCompleteComposer(RecyclerCompleteComposer.RECYCLING_COMPLETE));
+                habbo.getClient().sendResponse(new InventoryRefreshComposer());
+            }
+
+            AchievementInteractions.progress(habbo, "RecycledItems", recycledItemCount);
+            if (recycledPrizeCount > 0) {
+                AchievementInteractions.progress(
+                        habbo, "RecycleEcoprizes", recycledPrizeCount);
+            }
+            int rewardRarity = Emulator.getGameEnvironment().getCatalogManager()
+                    .getRecyclerPrizeRarity(recyclerPrizeId);
+            if (rewardRarity >= 5) AchievementInteractions.progress(habbo, "RecyclerGrandPrize");
+            else if (rewardRarity >= 3) AchievementInteractions.progress(habbo, "RecyclerRarePrize");
+        } finally {
+            PENDING_RECYCLER_USERS.remove(habboId);
         }
     }
 }

@@ -720,7 +720,7 @@ public class RoomManager {
         }
 
         habbo.getRoomUnit().setRoomUnitType(RoomUnitType.USER);
-        if (room.isBanned(habbo)) {
+        if (room.isBanned(habbo) || (habbo.getHabboInfo().getId() != room.getOwnerId() && com.eu.habbo.habbohotel.users.HabboStats.isUserBlocked(room.getOwnerId(), habbo.getHabboInfo().getId()) && !habbo.hasPermission(Permission.ACC_ANYROOMOWNER) && !habbo.hasPermission(Permission.ACC_ENTERANYROOM))) {
             habbo.getClient().sendResponse(new RoomEnterErrorComposer(RoomEnterErrorComposer.ROOM_ERROR_BANNED));
             return;
         }
@@ -1336,7 +1336,7 @@ public class RoomManager {
                         "SELECT rooms.* FROM room_enter_log INNER JOIN rooms ON room_enter_log.room_id = rooms.id WHERE user_id = ? AND timestamp >= ? AND rooms.owner_id != ? GROUP BY rooms.id ORDER BY MAX(timestamp) DESC LIMIT "
                                 + limit)) {
             statement.setInt(1, habbo.getHabboInfo().getId());
-            statement.setInt(2, Emulator.getIntUnixTimestamp() - 259200);
+            statement.setInt(2, Emulator.getIntUnixTimestamp() - 2592000);
             statement.setInt(3, (includeSelf ? 0 : habbo.getHabboInfo().getId()));
             try (ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
@@ -1354,8 +1354,6 @@ public class RoomManager {
         } catch (SQLException e) {
             LOGGER.error("Caught SQL exception", e);
         }
-
-        Collections.sort(rooms);
 
         return rooms;
     }
@@ -1435,7 +1433,9 @@ public class RoomManager {
             if (friend == null || friend.getHabboInfo() == null) continue;
 
             Room room = friend.getHabboInfo().getCurrentRoom();
-            if (room != null && !rooms.contains(room) && room.hasRights(habbo)) rooms.add(room);
+            if (room != null && !rooms.contains(room)) {
+                rooms.add(room);
+            }
 
             if (rooms.size() >= limit) break;
         }

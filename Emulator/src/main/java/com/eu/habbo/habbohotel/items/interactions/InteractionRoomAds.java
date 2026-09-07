@@ -34,6 +34,10 @@ public class InteractionRoomAds extends InteractionCustomValues {
         {
             this.put("scale", "100");
         }
+
+        {
+            this.put("layers", "");
+        }
     };
 
     public InteractionRoomAds(ResultSet set, Item baseItem) throws SQLException {

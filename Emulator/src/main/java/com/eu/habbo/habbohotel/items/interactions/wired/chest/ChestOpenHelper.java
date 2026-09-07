@@ -16,6 +16,8 @@ public final class ChestOpenHelper {
         if (client == null || chest == null || room == null) return;
         if (!chest.getContents().isAccessOpen() && !room.hasRights(client.getHabbo())) return;
 
+        chest.addViewer(client.getHabbo().getHabboInfo().getId(), room);
+
         client.sendResponse(new ChestOpenComposer(chest.getId()));
         client.sendResponse(new ChestDataComposer(chest));
 

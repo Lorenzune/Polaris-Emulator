@@ -17,9 +17,18 @@ public class UserWearBadgeEvent extends MessageHandler {
     public void handle() throws Exception {
         Map<Integer, HabboBadge> requestedBadges = new LinkedHashMap<>();
 
-        for (int i = 0; i < 5; i++) {
+        int maxSlots = 5;
+        if (this.client.getHabbo() != null && this.client.getHabbo().getInventory() != null && this.client.getHabbo().getInventory().getProfileCosmeticsComponent() != null) {
+            if (this.client.getHabbo().getInventory().getProfileCosmeticsComponent().hasAnyCosmetic("slot")
+                    || this.client.getHabbo().getInventory().getProfileCosmeticsComponent().hasCosmetic("slot", 2001)
+                    || this.client.getHabbo().getInventory().getProfileCosmeticsComponent().hasCosmetic("slot", 7)) {
+                maxSlots = 7;
+            }
+        }
+
+        while (this.packet.getBuffer().readableBytes() >= 4) {
             int slot = this.packet.readInt();
-            if (slot < 1 || slot > 5) return;
+            if (slot < 1 || slot > maxSlots) return;
 
             String badgeId = this.packet.readString();
             if (badgeId.isEmpty()) continue;

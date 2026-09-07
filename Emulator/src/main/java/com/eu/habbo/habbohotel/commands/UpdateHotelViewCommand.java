@@ -9,12 +9,22 @@ public class UpdateHotelViewCommand extends Command {
     }
 
     @Override
-    public boolean handle(GameClient gameClient, String[] params) throws Exception {
-        Emulator.getGameEnvironment().getHotelViewManager().getNewsList().reload();
-        Emulator.getGameEnvironment().getHotelViewManager().getHallOfFame().reload();
-        Emulator.getGameEnvironment().getHotelViewManager().reloadAndBroadcastLandingView();
+    public boolean handle(GameClient gameClient, String[] params) {
+        boolean scheduled = Emulator.getGameEnvironment().getHotelViewManager().reloadAndBroadcastLandingViewAsync(
+                () -> {
+                    Emulator.getGameEnvironment().getHotelViewManager().getNewsList().reload();
+                    Emulator.getGameEnvironment().getHotelViewManager().getHallOfFame().reload();
+                },
+                () -> {
+                    if (gameClient.getChannel().isOpen() && gameClient.getHabbo() != null) {
+                        gameClient.getHabbo().whisper(
+                                Emulator.getTexts().getValue("commands.succes.cmd_update_hotel_view"));
+                    }
+                });
 
-        gameClient.getHabbo().whisper(Emulator.getTexts().getValue("commands.succes.cmd_update_hotel_view"));
+        if (!scheduled && gameClient.getChannel().isOpen() && gameClient.getHabbo() != null) {
+            gameClient.getHabbo().whisper("Hotel view update is already in progress.");
+        }
 
         return true;
     }

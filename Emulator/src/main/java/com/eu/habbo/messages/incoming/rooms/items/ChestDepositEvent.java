@@ -56,7 +56,7 @@ public class ChestDepositEvent extends MessageHandler {
         else habbo.givePoints(currencyType, -accepted);
 
         contents.addLog(new ChestStorage.LogEntry("deposit", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), 0, accepted));
-        chest.persistContents();
+        chest.persistContents(room);
 
         this.client.sendResponse(new ChestDataComposer(chest));
     }

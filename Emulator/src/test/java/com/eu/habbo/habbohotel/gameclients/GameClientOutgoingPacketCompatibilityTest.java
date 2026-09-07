@@ -15,14 +15,17 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.core.CryptoConfig;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.ServerMessageFrame;
+import com.eu.habbo.networking.gameserver.GameServerAttributes;
 import com.eu.habbo.plugin.PluginManager;
 import com.eu.habbo.plugin.events.emulator.OutgoingPacketEvent;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.embedded.EmbeddedChannel;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +43,7 @@ class GameClientOutgoingPacketCompatibilityTest {
     private FlushCountingHandler flushCounter;
     private EmbeddedChannel channel;
     private GameClient client;
+    private GameClientManager clientManager;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -56,6 +60,8 @@ class GameClientOutgoingPacketCompatibilityTest {
         this.flushCounter = new FlushCountingHandler();
         this.channel = new EmbeddedChannel(this.flushCounter);
         this.client = new GameClient(this.channel);
+        this.clientManager = new GameClientManager();
+        this.clientManager.getSessions().put(this.channel.id(), this.client);
     }
 
     @AfterEach
@@ -77,6 +83,28 @@ class GameClientOutgoingPacketCompatibilityTest {
         ArgumentCaptor<OutgoingPacketEvent> event = ArgumentCaptor.forClass(OutgoingPacketEvent.class);
         verify(this.pluginManager).fireEvent(event.capture());
         assertSame(response, event.getValue().getOriginalMessage());
+        assertSame(response, this.channel.readOutbound());
+    }
+
+    @Test
+    void gamePacketsAreDroppedBeforeWebSocketUpgrade() {
+        this.channel.pipeline().addFirst("wsProtocolHandler", new ChannelInboundHandlerAdapter());
+
+        this.client.sendResponse(new ServerMessage(1234));
+        this.client.sendKeepAlive();
+
+        verify(this.pluginManager, never()).fireEvent(any(OutgoingPacketEvent.class));
+        assertNull(this.channel.readOutbound());
+    }
+
+    @Test
+    void gamePacketsResumeAfterWebSocketUpgrade() {
+        this.channel.pipeline().addFirst("wsProtocolHandler", new ChannelInboundHandlerAdapter());
+        this.channel.attr(GameServerAttributes.WS_UPGRADED).set(Boolean.TRUE);
+        ServerMessage response = new ServerMessage(1234);
+
+        this.client.sendResponse(response);
+
         assertSame(response, this.channel.readOutbound());
     }
 
@@ -238,6 +266,31 @@ class GameClientOutgoingPacketCompatibilityTest {
 
         this.client.sendResponses(new ArrayList<>(java.util.List.of(first, second)));
 
+        ByteBuf actualFirst = this.channel.readOutbound();
+        ByteBuf actualSecond = this.channel.readOutbound();
+        try {
+            assertEquals(expectedFirst, actualFirst);
+            assertEquals(expectedSecond, actualSecond);
+        } finally {
+            expectedFirst.release();
+            expectedSecond.release();
+            actualFirst.release();
+            actualSecond.release();
+        }
+    }
+
+    @Test
+    void broadcastResponseBatchPreparesPacketsAndFlushesEachClientOnce() {
+        ServerMessage first = new ServerMessage(100);
+        first.appendInt(1);
+        ServerMessage second = new ServerMessage(101);
+        second.appendInt(2);
+        ByteBuf expectedFirst = first.get();
+        ByteBuf expectedSecond = second.get();
+
+        this.clientManager.sendBroadcastResponses(List.of(first, second));
+
+        assertEquals(1, this.flushCounter.flushes);
         ByteBuf actualFirst = this.channel.readOutbound();
         ByteBuf actualSecond = this.channel.readOutbound();
         try {

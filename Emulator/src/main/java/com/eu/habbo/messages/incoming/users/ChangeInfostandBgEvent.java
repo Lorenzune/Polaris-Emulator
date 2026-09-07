@@ -76,6 +76,7 @@ public class ChangeInfostandBgEvent extends MessageHandler {
 
     private static int resolve(InfostandBackgroundManager manager, Habbo habbo, Category category, int requested, int current) {
         if (manager == null) return requested;
-        return manager.canUse(habbo, category, requested) ? requested : current;
+        if (requested == current) return current;
+        return manager.tryPurchaseAndEquip(habbo, category, requested) ? requested : current;
     }
 }

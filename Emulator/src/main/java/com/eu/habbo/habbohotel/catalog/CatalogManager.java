@@ -123,6 +123,11 @@ public class CatalogManager {
 
     public record GiftWrappingSnapshot(Map<Integer, Integer> wrappers, Map<Integer, Integer> furniture) {}
 
+    /** A recycler rarity is selected by its SWF probability denominator ("1 in N"). */
+    public record RecyclerPrizeLevel(int rarity, int probabilityDenominator, List<Item> items) {}
+
+    public record RecyclerConfiguration(int ducketCost, List<RecyclerPrizeLevel> levels) {}
+
     public static final Map<String, Class<? extends CatalogPage>> pageDefinitions =
             new ConcurrentHashMap<String, Class<? extends CatalogPage>>(CatalogPageLayouts.values().length) {
                 {
@@ -278,6 +283,8 @@ public class CatalogManager {
     public final Int2ObjectMap<CatalogPage> buildersClubCatalogPages;
     public final Int2ObjectMap<CatalogFeaturedPage> catalogFeaturedPages;
     public final Map<Integer, Set<Item>> prizes;
+    private final Map<Integer, Integer> recyclerPrizeProbabilities;
+    private volatile int recyclerDucketCost;
     public final Map<Integer, Integer> giftWrappers;
     public final Map<Integer, Integer> giftFurnis;
     public final Set<CatalogItem> clubItems;
@@ -297,11 +304,17 @@ public class CatalogManager {
     }
 
     CatalogManager(boolean initialize) {
+        this(initialize, initialize);
+    }
+
+    private CatalogManager(boolean initialize, boolean resolveEcotronItem) {
         long millis = System.currentTimeMillis();
         this.catalogPages = Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>());
         this.buildersClubCatalogPages = Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>());
         this.catalogFeaturedPages = new Int2ObjectOpenHashMap<>();
         this.prizes = new HashMap<>();
+        this.recyclerPrizeProbabilities = new HashMap<>();
+        this.recyclerDucketCost = 0;
         this.giftWrappers = new HashMap<>();
         this.giftFurnis = new HashMap<>();
         this.clubItems = new HashSet<>();
@@ -313,14 +326,24 @@ public class CatalogManager {
         this.vouchers = new ArrayList<>();
         this.limitedNumbers = new HashMap<>();
         this.furnitureValues = new Int2ObjectOpenHashMap<>();
+        this.ecotronItem = resolveEcotronItem
+                ? Emulator.getGameEnvironment().getItemManager().getItem("ecotron_box")
+                : null;
 
         if (initialize) {
             this.initialize();
-            this.ecotronItem = Emulator.getGameEnvironment().getItemManager().getItem("ecotron_box");
             LOGGER.info("Catalog Manager -> Loaded! ({} MS)", System.currentTimeMillis() - millis);
-        } else {
-            this.ecotronItem = null;
         }
+    }
+
+    /**
+     * Loads a complete, detached catalog instance. The caller can publish it
+     * atomically after every table and derived cache has been rebuilt.
+     */
+    public static CatalogManager loadSnapshot() {
+        CatalogManager snapshot = new CatalogManager(false, true);
+        snapshot.initialize();
+        return snapshot;
     }
 
     public synchronized void initialize() {
@@ -736,26 +759,47 @@ public class CatalogManager {
 
     public void loadRecycler() {
         Map<Integer, Set<Item>> loadedPrizes = new HashMap<>();
+        Map<Integer, Integer> loadedProbabilities = new HashMap<>();
+        int loadedDucketCost = 0;
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-                Statement statement = connection.createStatement();
-                ResultSet set = statement.executeQuery("SELECT * FROM recycler_prizes")) {
-            while (set.next()) {
-                Item item = Emulator.getGameEnvironment().getItemManager().getItem(set.getInt("item_id"));
-
-                if (item != null) {
-                    loadedPrizes
-                            .computeIfAbsent(set.getInt("rarity"), ignored -> new HashSet<>())
-                            .add(item);
-                } else {
-                    LOGGER.error("Cannot load item with ID: {} as recycler reward!", set.getInt("item_id"));
+                Statement statement = connection.createStatement()) {
+            try (ResultSet set = statement.executeQuery(
+                    "SELECT rarity, probability_denominator FROM recycler_prize_levels ORDER BY rarity ASC")) {
+                while (set.next()) {
+                    int rarity = set.getInt("rarity");
+                    int denominator = Math.max(1, set.getInt("probability_denominator"));
+                    loadedProbabilities.put(rarity, denominator);
                 }
+            }
+
+            try (ResultSet set = statement.executeQuery("SELECT rarity, item_id FROM recycler_prizes ORDER BY rarity ASC, item_id ASC")) {
+                while (set.next()) {
+                    Item item = Emulator.getGameEnvironment().getItemManager().getItem(set.getInt("item_id"));
+
+                    if (item != null) {
+                        loadedPrizes
+                                .computeIfAbsent(set.getInt("rarity"), ignored -> new HashSet<>())
+                                .add(item);
+                    } else {
+                        LOGGER.error("Cannot load item with ID: {} as recycler reward!", set.getInt("item_id"));
+                    }
+                }
+            }
+
+            try (ResultSet set = statement.executeQuery("SELECT ducket_cost FROM recycler_settings WHERE id = 1")) {
+                if (set.next()) loadedDucketCost = Math.max(0, set.getInt("ducket_cost"));
             }
         } catch (SQLException e) {
             LOGGER.error("Caught SQL exception", e);
         }
 
-        replaceContents(this.prizes, loadedPrizes);
+        synchronized (this.prizes) {
+            replaceContents(this.prizes, loadedPrizes);
+            this.recyclerPrizeProbabilities.clear();
+            this.recyclerPrizeProbabilities.putAll(loadedProbabilities);
+            this.recyclerDucketCost = loadedDucketCost;
+        }
     }
 
     public void loadGiftWrappers() {
@@ -1015,6 +1059,91 @@ public class CatalogManager {
         return 0;
     }
 
+    public RecyclerConfiguration getRecyclerConfigurationSnapshot() {
+        synchronized (this.prizes) {
+            List<RecyclerPrizeLevel> levels = new ArrayList<>();
+            List<Integer> rarities = new ArrayList<>(this.recyclerPrizeProbabilities.keySet());
+            Collections.sort(rarities);
+
+            for (int rarity : rarities) {
+                List<Item> levelPrizes = new ArrayList<>(this.prizes.getOrDefault(rarity, Collections.emptySet()));
+                levelPrizes.sort(Comparator.comparingInt(Item::getId));
+                levels.add(new RecyclerPrizeLevel(rarity, this.recyclerPrizeProbabilities.get(rarity), levelPrizes));
+            }
+
+            return new RecyclerConfiguration(this.recyclerDucketCost, levels);
+        }
+    }
+
+    public int getRecyclerDucketCost() {
+        return this.recyclerDucketCost;
+    }
+
+    /** Persists a complete recycler configuration, then swaps the live snapshot only after SQL succeeds. */
+    public boolean saveRecyclerConfiguration(
+            int ducketCost, Map<Integer, Integer> probabilities, Map<Integer, Set<Integer>> prizeItemIds) {
+        if (ducketCost < 0 || probabilities == null || prizeItemIds == null || probabilities.isEmpty()) return false;
+
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+            connection.setAutoCommit(false);
+
+            try (PreparedStatement deletePrizes = connection.prepareStatement("DELETE FROM recycler_prizes");
+                    PreparedStatement deleteLevels = connection.prepareStatement("DELETE FROM recycler_prize_levels");
+                    PreparedStatement insertLevel = connection.prepareStatement(
+                            "INSERT INTO recycler_prize_levels (rarity, probability_denominator) VALUES (?, ?)");
+                    PreparedStatement insertPrize = connection.prepareStatement(
+                            "INSERT INTO recycler_prizes (rarity, item_id) VALUES (?, ?)");
+                    PreparedStatement saveSettings = connection.prepareStatement(
+                            "INSERT INTO recycler_settings (id, ducket_cost) VALUES (1, ?) "
+                                    + "ON DUPLICATE KEY UPDATE ducket_cost = VALUES(ducket_cost)")) {
+                deletePrizes.executeUpdate();
+                deleteLevels.executeUpdate();
+
+                List<Integer> rarities = new ArrayList<>(probabilities.keySet());
+                Collections.sort(rarities);
+
+                for (int rarity : rarities) {
+                    int denominator = probabilities.getOrDefault(rarity, 0);
+                    if (rarity < 1 || denominator < 1 || denominator > 1_000_000) {
+                        connection.rollback();
+                        return false;
+                    }
+
+                    insertLevel.setInt(1, rarity);
+                    insertLevel.setInt(2, denominator);
+                    insertLevel.addBatch();
+
+                    for (int itemId : prizeItemIds.getOrDefault(rarity, Collections.emptySet())) {
+                        if (Emulator.getGameEnvironment().getItemManager().getItem(itemId) == null) {
+                            connection.rollback();
+                            return false;
+                        }
+                        insertPrize.setInt(1, rarity);
+                        insertPrize.setInt(2, itemId);
+                        insertPrize.addBatch();
+                    }
+                }
+
+                insertLevel.executeBatch();
+                insertPrize.executeBatch();
+                saveSettings.setInt(1, ducketCost);
+                saveSettings.executeUpdate();
+                connection.commit();
+            } catch (SQLException | RuntimeException exception) {
+                connection.rollback();
+                throw exception;
+            } finally {
+                connection.setAutoCommit(true);
+            }
+        } catch (SQLException exception) {
+            LOGGER.error("Unable to save recycler configuration", exception);
+            return false;
+        }
+
+        this.loadRecycler();
+        return true;
+    }
+
     public Map<Integer, ClothItem> getClothingSnapshot() {
         synchronized (this.clothing) {
             return new HashMap<>(this.clothing);
@@ -1058,31 +1187,34 @@ public class CatalogManager {
     }
 
     public Item getRandomRecyclerPrize() {
-        int level = 1;
-
-        if (Emulator.getRandom().nextInt(Emulator.getConfig().getInt("hotel.ecotron.rarity.chance.5")) + 1
-                == Emulator.getConfig().getInt("hotel.ecotron.rarity.chance.5")) {
-            level = 5;
-        } else if (Emulator.getRandom().nextInt(Emulator.getConfig().getInt("hotel.ecotron.rarity.chance.4")) + 1
-                == Emulator.getConfig().getInt("hotel.ecotron.rarity.chance.4")) {
-            level = 4;
-        } else if (Emulator.getRandom().nextInt(Emulator.getConfig().getInt("hotel.ecotron.rarity.chance.3")) + 1
-                == Emulator.getConfig().getInt("hotel.ecotron.rarity.chance.3")) {
-            level = 3;
-        } else if (Emulator.getRandom().nextInt(Emulator.getConfig().getInt("hotel.ecotron.rarity.chance.2")) + 1
-                == Emulator.getConfig().getInt("hotel.ecotron.rarity.chance.2")) {
-            level = 2;
-        }
-
         synchronized (this.prizes) {
-            Set<Item> levelPrizes = this.prizes.get(level);
-            if (levelPrizes != null && !levelPrizes.isEmpty()) {
-                return (Item) levelPrizes.toArray()[Emulator.getRandom().nextInt(levelPrizes.size())];
-            }
-        }
+            List<Integer> availableRarities = this.prizes.entrySet().stream()
+                    .filter(entry -> !entry.getValue().isEmpty())
+                    .map(Map.Entry::getKey)
+                    .sorted()
+                    .collect(Collectors.toList());
 
-        LOGGER.error("No rewards specified for rarity level {}", level);
-        return null;
+            if (availableRarities.isEmpty()) {
+                LOGGER.error("No recycler rewards have been configured");
+                return null;
+            }
+
+            // SWF model: test the rarer levels from highest to lowest using
+            // their 1-in-N denominator. The lowest configured level receives
+            // every remaining outcome.
+            int selectedRarity = availableRarities.get(0);
+            for (int index = availableRarities.size() - 1; index > 0; index--) {
+                int rarity = availableRarities.get(index);
+                int denominator = Math.max(1, this.recyclerPrizeProbabilities.getOrDefault(rarity, 1));
+                if (Emulator.getRandom().nextInt(denominator) == denominator - 1) {
+                    selectedRarity = rarity;
+                    break;
+                }
+            }
+
+            List<Item> levelPrizes = new ArrayList<>(this.prizes.get(selectedRarity));
+            return levelPrizes.get(Emulator.getRandom().nextInt(levelPrizes.size()));
+        }
     }
 
     public CatalogPage createCatalogPage(

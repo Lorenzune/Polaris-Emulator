@@ -141,7 +141,7 @@ public class RoomChatMessageBubbles {
         // above. Instead of falling back to NORMAL (which made them render as the
         // default bubble), pass the id through so the server relays it as-is and
         // the client renders its own .bubble-<id> style. Capped to avoid abuse.
-        if (id > 0 && id <= 1000) {
+        if (id > 0 && id <= 100000) {
             return new RoomChatMessageBubbles(id, "CUSTOM_" + id, "", true, false);
         }
 

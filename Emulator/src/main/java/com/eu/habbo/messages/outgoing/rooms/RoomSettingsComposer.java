@@ -59,6 +59,7 @@ public class RoomSettingsComposer extends MessageComposer {
         this.response.appendInt(this.room.getIdleSleepTimeoutSeconds());
         this.response.appendInt(this.room.isIdleAutokickEnabled() ? 1 : 0);
         this.response.appendInt(this.room.getIdleAutokickTimeoutSeconds());
+        this.response.appendInt(this.room.isVocalChatEnabled() ? 1 : 0);
         return this.response;
     }
 

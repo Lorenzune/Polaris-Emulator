@@ -1,6 +1,7 @@
 package com.eu.habbo.habbohotel.hotelview;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.gameclients.GameClientFlushBatch;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.time.Instant;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HotelViewManager {
 
@@ -32,6 +34,7 @@ public class HotelViewManager {
     private final NewsList newsList;
     private volatile HotelViewScene scene = HotelViewScene.EMPTY;
     private volatile List<HotelViewSlot> slots = Collections.emptyList();
+    private final AtomicBoolean landingViewReloadInProgress = new AtomicBoolean();
 
     public HotelViewManager() {
         long millis = System.currentTimeMillis();
@@ -61,6 +64,11 @@ public class HotelViewManager {
     public List<HotelViewSlot> getSlotsForUser(int userId) {
         if (userId <= 0) return this.slots;
 
+        Map<Integer, Integer> userVotes = this.loadVotesForUser(userId);
+        return this.slotsForVotes(this.slots, userVotes);
+    }
+
+    private Map<Integer, Integer> loadVotesForUser(int userId) {
         Map<Integer, Integer> userVotes = new HashMap<>();
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
@@ -72,14 +80,17 @@ public class HotelViewManager {
             }
         } catch (SQLException e) {
             LOGGER.warn("Could not load HotelView community votes for user {}", userId, e);
-            return this.slots;
         }
 
-        if (userVotes.isEmpty()) return this.slots;
+        return userVotes;
+    }
 
-        List<HotelViewSlot> result = new ArrayList<>(this.slots.size());
+    private List<HotelViewSlot> slotsForVotes(List<HotelViewSlot> sourceSlots, Map<Integer, Integer> userVotes) {
+        if (userVotes.isEmpty()) return sourceSlots;
 
-        for (HotelViewSlot slot : this.slots) {
+        List<HotelViewSlot> result = new ArrayList<>(sourceSlots.size());
+
+        for (HotelViewSlot slot : sourceSlots) {
             Integer optionId = userVotes.get(slot.id());
             result.add(optionId == null ? slot : new HotelViewSlot(
                     slot.id(), slot.enabled(), slot.type(), slot.title(), slot.body(), slot.imageUrl(), slot.buttonText(), slot.link(), slot.progress(), slot.progressLabel(), withUserVote(slot.configJson(), optionId)
@@ -217,6 +228,56 @@ public class HotelViewManager {
         this.broadcastLandingView();
     }
 
+    /**
+     * Reloads and publishes the landing view on a worker. Publication remains
+     * immediate for every online user, but no incoming-packet thread waits for
+     * database work or for the complete client fanout.
+     */
+    public boolean reloadAndBroadcastLandingViewAsync(Runnable afterPublish) {
+        return this.reloadAndBroadcastLandingViewAsync(null, afterPublish);
+    }
+
+    /** Same asynchronous publication with optional work kept before the reload. */
+    public boolean reloadAndBroadcastLandingViewAsync(Runnable beforeReload, Runnable afterPublish) {
+        if (!this.landingViewReloadInProgress.compareAndSet(false, true)) {
+            return false;
+        }
+
+        try {
+            if (Emulator.getThreading().run(() -> {
+                try {
+                    if (Emulator.isShuttingDown) {
+                        return;
+                    }
+
+                    if (beforeReload != null) {
+                        beforeReload.run();
+                    }
+                    // Keep reload and fanout serialized with save/vote/reset
+                    // operations, exactly like reloadAndBroadcastLandingView().
+                    // This prevents an older async update from being sent
+                    // after a newer live admin change.
+                    synchronized (this) {
+                        this.reloadLandingView();
+                        this.broadcastLandingView();
+                    }
+                    if (afterPublish != null) {
+                        afterPublish.run();
+                    }
+                } finally {
+                    this.landingViewReloadInProgress.set(false);
+                }
+            }) != null) {
+                return true;
+            }
+        } catch (RuntimeException exception) {
+            LOGGER.error("Could not schedule HotelView landing reload", exception);
+        }
+
+        this.landingViewReloadInProgress.set(false);
+        return false;
+    }
+
     public synchronized boolean voteCommunityGoal(int slotId, int optionId, int userId) {
         if (slotId < 1 || slotId > 5 || optionId < 1 || userId <= 0) return false;
 
@@ -269,15 +330,75 @@ public class HotelViewManager {
     }
 
     private void broadcastLandingView() {
-        for (Habbo habbo : Emulator.getGameEnvironment().getHabboManager().getOnlineHabbos().values()) {
-            if (habbo == null || habbo.getClient() == null) continue;
+        List<Habbo> recipients = new ArrayList<>(
+                Emulator.getGameEnvironment().getHabboManager().getOnlineHabbos().values());
+        Map<Integer, Map<Integer, Integer>> votesByUser = this.loadVotesForUsers(recipients);
+        HotelViewScene currentScene = this.scene;
+        List<HotelViewSlot> currentSlots = this.slots;
 
-            habbo.getClient().sendResponse(new HotelViewLandingComposer(
-                    habbo.getHabboInfo().getRank().getId() >= 7,
-                    this.scene,
-                    this.getSlotsForUser(habbo.getHabboInfo().getId())
-            ));
+        try (GameClientFlushBatch ignored = GameClientFlushBatch.open()) {
+            for (Habbo habbo : recipients) {
+                if (habbo == null || habbo.getHabboInfo() == null || habbo.getClient() == null) continue;
+
+                int userId = habbo.getHabboInfo().getId();
+                habbo.getClient().sendResponse(new HotelViewLandingComposer(
+                        habbo.getHabboInfo().getRank().getId() >= 7,
+                        currentScene,
+                        this.slotsForVotes(currentSlots, votesByUser.getOrDefault(userId, Collections.emptyMap()))
+                ));
+            }
         }
+    }
+
+    private Map<Integer, Map<Integer, Integer>> loadVotesForUsers(List<Habbo> recipients) {
+        List<Integer> userIds = new ArrayList<>(recipients.size());
+        for (Habbo habbo : recipients) {
+            if (habbo != null && habbo.getHabboInfo() != null && habbo.getHabboInfo().getId() > 0) {
+                userIds.add(habbo.getHabboInfo().getId());
+            }
+        }
+
+        if (userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<Integer, Map<Integer, Integer>> votesByUser = new HashMap<>();
+        final int batchSize = 500;
+
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+            for (int offset = 0; offset < userIds.size(); offset += batchSize) {
+                int end = Math.min(userIds.size(), offset + batchSize);
+                StringBuilder parameters = new StringBuilder();
+                for (int index = offset; index < end; index++) {
+                    if (parameters.length() > 0) parameters.append(',');
+                    parameters.append('?');
+                }
+
+                try (PreparedStatement statement = connection.prepareStatement(
+                        "SELECT user_id, slot_id, option_id FROM hotelview_landing_votes WHERE user_id IN ("
+                                + parameters + ")")) {
+                    for (int index = offset; index < end; index++) {
+                        statement.setInt(index - offset + 1, userIds.get(index));
+                    }
+
+                    try (ResultSet set = statement.executeQuery()) {
+                        while (set.next()) {
+                            votesByUser
+                                    .computeIfAbsent(set.getInt("user_id"), ignored -> new HashMap<>())
+                                    .put(set.getInt("slot_id"), set.getInt("option_id"));
+                        }
+                    }
+                }
+            }
+        } catch (SQLException exception) {
+            // The prior implementation fell back to the shared slots when an
+            // individual lookup failed; the same fallback now applies to the
+            // whole broadcast without one SQL query per online user.
+            LOGGER.warn("Could not batch-load HotelView community votes", exception);
+            return Collections.emptyMap();
+        }
+
+        return votesByUser;
     }
 
     private static String value(String value) {

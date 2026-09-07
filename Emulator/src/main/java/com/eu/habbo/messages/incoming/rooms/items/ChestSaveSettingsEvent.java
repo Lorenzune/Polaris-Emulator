@@ -43,6 +43,7 @@ public class ChestSaveSettingsEvent extends MessageHandler {
         c.setAccessOpen(accessOpen);
         c.setAccessDonate(accessDonate);
         c.setAppearanceState(appearanceState);
+        chest.updateAppearanceState(room);
         chest.persistContents();
 
         this.client.sendResponse(new ChestDataComposer(chest));

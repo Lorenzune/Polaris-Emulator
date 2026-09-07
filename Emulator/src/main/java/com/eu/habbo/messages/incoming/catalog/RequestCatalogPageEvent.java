@@ -20,7 +20,7 @@ public class RequestCatalogPageEvent extends MessageHandler {
 
         if (catalogPageId > 0 && page != null) {
             if (page.getRank() <= this.client.getHabbo().getHabboInfo().getRank().getId() && page.isEnabled()) {
-                this.client.sendResponse(new CatalogPageComposer(page, this.client.getHabbo(), offerId, mode));
+                this.client.sendResponse(new CatalogPageComposer(page, this.client.getHabbo(), offerId, requestedType.toWireMode()));
             } else {
                 if (!page.isVisible()) {
                     ScripterManager.scripterDetected(this.client, Emulator.getTexts().getValue("scripter.warning.catalog.page").replace("%username%", this.client.getHabbo().getHabboInfo().getUsername()).replace("%pagename%", page.getCaption()));

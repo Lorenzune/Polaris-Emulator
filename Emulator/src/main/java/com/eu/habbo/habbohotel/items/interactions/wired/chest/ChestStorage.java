@@ -81,6 +81,8 @@ public class ChestStorage {
     private String description = "";
     private boolean accessOpen = true; // everyone can open
     private boolean accessDonate = false; // everyone can donate
+    private boolean locked = false;
+    private boolean autoLock = false;
     private int capacityMax = DEFAULT_CAPACITY;
     private int appearanceState = 0; // 0 = open when someone looks inside
     private boolean notifyFull = false;
@@ -89,6 +91,11 @@ public class ChestStorage {
     private boolean notifyEmpty = false;
     private boolean notifyWired = false;
     private int notifyMode = 0; // 0 = always
+
+    public synchronized boolean isLocked() { return this.locked; }
+    public synchronized void setLocked(boolean locked) { this.locked = locked; }
+    public synchronized boolean isAutoLock() { return this.autoLock; }
+    public synchronized void setAutoLock(boolean autoLock) { this.autoLock = autoLock; }
 
     /** Defensive snapshot — safe to iterate off-thread; mutate the chest through the dedicated methods. */
     public synchronized List<Entry> entries() {
