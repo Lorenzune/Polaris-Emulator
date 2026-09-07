@@ -35,7 +35,12 @@ public class TradeStartEvent extends MessageHandler {
 
                     if (targetUser == null) return;
 
-                    if (targetUser.getHabboStats().userIgnored(this.client.getHabbo().getHabboInfo().getId())) return;
+                    if (targetUser.getHabboStats().userIgnored(this.client.getHabbo().getHabboInfo().getId())
+                            || targetUser.getHabboStats().userBlocked(this.client.getHabbo().getHabboInfo().getId())
+                            || this.client.getHabbo().getHabboStats().userBlocked(targetUser.getHabboInfo().getId())) {
+                        this.client.sendResponse(new TradeStartFailComposer(TradeStartFailComposer.TARGET_TRADING_NOT_ALLOWED, targetUser.getHabboInfo().getUsername()));
+                        return;
+                    }
 
                     if (this.client.getHabbo().getRoomUnit().hasStatus(RoomUnitStatus.TRADING)) {
                         this.client.sendResponse(new TradeStartFailComposer(TradeStartFailComposer.YOU_ALREADY_TRADING));

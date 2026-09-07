@@ -14,8 +14,21 @@ public class SaveGamePrivacySettingsEvent extends MessageHandler {
         boolean hideOnline = !this.packet.readBoolean();
         boolean blockFollowing = !this.packet.readBoolean();
         boolean blockFriendRequests = !this.packet.readBoolean();
+        boolean blockKiss = habbo.getHabboStats().blockKiss;
+        boolean blockMimic = habbo.getHabboStats().blockMimic;
+        boolean mentionsEnabled = habbo.getHabboStats().mentionsEnabled();
 
-        habbo.getHabboStats().setGamePrivacy(hideOnline, blockFollowing, blockFriendRequests);
+        if (this.packet.getBuffer().readableBytes() > 0) {
+            blockKiss = !this.packet.readBoolean();
+        }
+        if (this.packet.getBuffer().readableBytes() > 0) {
+            blockMimic = !this.packet.readBoolean();
+        }
+        if (this.packet.getBuffer().readableBytes() > 0) {
+            mentionsEnabled = this.packet.readBoolean();
+        }
+
+        habbo.getHabboStats().setGamePrivacy(hideOnline, blockFollowing, blockFriendRequests, blockKiss, blockMimic, mentionsEnabled);
         AchievementInteractions.progress(habbo, "Profile1");
 
         habbo.getMessenger().connectionChanged(

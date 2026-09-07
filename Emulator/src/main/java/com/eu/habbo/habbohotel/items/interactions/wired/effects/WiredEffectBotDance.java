@@ -32,7 +32,7 @@ import java.util.List;
 public class WiredEffectBotDance extends InteractionWiredEffect {
     public static final WiredEffectType type = WiredEffectType.BOT_DANCE;
     private static final int MIN_DANCE = 0;
-    private static final int MAX_DANCE = 4;
+    private static final int MAX_DANCE = 16;
 
     private String botName = "";
     private int danceType = 0;

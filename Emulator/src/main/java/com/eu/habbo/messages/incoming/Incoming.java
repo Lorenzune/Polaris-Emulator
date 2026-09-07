@@ -482,6 +482,21 @@ public class Incoming {
     public static final int PurchaseCatalogPrefixEvent = 7018;
     public static final int SetDisplayOrderEvent = 7019;
     public static final int DeleteNickIconEvent = 7020;
+    public static final int RequestUserNicksEvent = 7021;
+    public static final int PurchaseNickStyleEvent = 7022;
+    public static final int SetActiveNickStyleEvent = 7023;
+    public static final int DeleteNickStyleEvent = 7024;
+    public static final int PurchaseCatalogNickEvent = 7025;
+    public static final int RequestUserChatBubblesEvent = 7030;
+    public static final int PurchaseChatBubbleEvent = 7031;
+    public static final int RequestUserHabbiconsEvent = 7032;
+    public static final int PurchaseHabbiconEvent = 7033;
+
+    // Profile Cosmetics
+    public static final int RequestUserProfileCosmeticsEvent = 7040;
+    public static final int PurchaseProfileCosmeticEvent = 7041;
+    public static final int DeleteProfileCosmeticEvent = 7043;
+    public static final int SaveProfilePoseEvent = 7044;
 
     // YouTube Room Broadcast
     public static final int YouTubeRoomPlayEvent = 8001;
@@ -560,4 +575,7 @@ public class Incoming {
     public static final int RenameFriendCategoryEvent = 4082;
     public static final int RemoveFriendCategoryEvent = 4083;
     public static final int MoveFriendToCategoryEvent = 4084;
+    public static final int GetBlockedUsersEvent = 4810;
+    public static final int BlockRoomUserEvent = 4811;
+    public static final int UnblockRoomUserEvent = 4812;
 }

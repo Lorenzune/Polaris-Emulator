@@ -3,9 +3,9 @@ package com.eu.habbo.messages.incoming.rooms.items;
 import java.util.regex.Pattern;
 
 public final class RoomItemInputGuard {
-    public static final int MAX_CUSTOM_VALUE_PAIRS = 20;
+    public static final int MAX_CUSTOM_VALUE_PAIRS = 50;
     public static final int MAX_CUSTOM_KEY_LENGTH = 64;
-    public static final int MAX_CUSTOM_VALUE_LENGTH = 512;
+    public static final int MAX_CUSTOM_VALUE_LENGTH = 8192;
     public static final int MAX_LOOK_LENGTH = 512;
     public static final int MAX_YOUTUBE_PLAYLIST_ID_LENGTH = 128;
     public static final int MAX_STICKY_POLE_COMMANDS = 10;

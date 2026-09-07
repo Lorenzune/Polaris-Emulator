@@ -129,6 +129,7 @@ public final class ConfigRegistry {
                 "db.slow_query.max_sql_length",
                 "ws.port",
                 "session.reconnect.grace.seconds");
+        keys.add(definition("login.photos.limit", ConfigKey.ValueType.INTEGER, "6", true));
         keys.add(definition("runtime.threads", ConfigKey.ValueType.INTEGER, "8", true));
         keys.add(definition("http.blocking.pool.size", ConfigKey.ValueType.INTEGER, "8", true));
         keys.add(definition("stress.max_bots", ConfigKey.ValueType.INTEGER, "5000", true));

@@ -15,10 +15,12 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.core.CryptoConfig;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.ServerMessageFrame;
+import com.eu.habbo.networking.gameserver.GameServerAttributes;
 import com.eu.habbo.plugin.PluginManager;
 import com.eu.habbo.plugin.events.emulator.OutgoingPacketEvent;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.embedded.EmbeddedChannel;
 import java.lang.reflect.Field;
@@ -81,6 +83,28 @@ class GameClientOutgoingPacketCompatibilityTest {
         ArgumentCaptor<OutgoingPacketEvent> event = ArgumentCaptor.forClass(OutgoingPacketEvent.class);
         verify(this.pluginManager).fireEvent(event.capture());
         assertSame(response, event.getValue().getOriginalMessage());
+        assertSame(response, this.channel.readOutbound());
+    }
+
+    @Test
+    void gamePacketsAreDroppedBeforeWebSocketUpgrade() {
+        this.channel.pipeline().addFirst("wsProtocolHandler", new ChannelInboundHandlerAdapter());
+
+        this.client.sendResponse(new ServerMessage(1234));
+        this.client.sendKeepAlive();
+
+        verify(this.pluginManager, never()).fireEvent(any(OutgoingPacketEvent.class));
+        assertNull(this.channel.readOutbound());
+    }
+
+    @Test
+    void gamePacketsResumeAfterWebSocketUpgrade() {
+        this.channel.pipeline().addFirst("wsProtocolHandler", new ChannelInboundHandlerAdapter());
+        this.channel.attr(GameServerAttributes.WS_UPGRADED).set(Boolean.TRUE);
+        ServerMessage response = new ServerMessage(1234);
+
+        this.client.sendResponse(response);
+
         assertSame(response, this.channel.readOutbound());
     }
 

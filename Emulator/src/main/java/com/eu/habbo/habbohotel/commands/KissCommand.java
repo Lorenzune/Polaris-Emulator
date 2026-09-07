@@ -15,8 +15,9 @@ public class KissCommand extends Command {
 
     @Override
     public boolean handle(GameClient gameClient, String[] params) throws Exception {
+        var texts = Emulator.getTexts();
         if (params.length < 2) {
-            gameClient.getHabbo().whisper(Emulator.getTexts().getValue("commands.error.cmd_kiss.forgot_username",
+            gameClient.getHabbo().whisper(texts.getValue("commands.error.cmd_kiss.forgot_username",
                     "Specifica il nome dell'utente che vuoi baciare!"), RoomChatMessageBubbles.ALERT);
             return true;
         }
@@ -29,7 +30,7 @@ public class KissCommand extends Command {
 
         if (target == null) {
             gameClient.getHabbo().whisper(
-                    Emulator.getTexts()
+                    texts
                             .getValue("commands.error.cmd_kiss.not_found",
                                     "Utente %user% non trovato in questa stanza!")
                             .replace("%user%", params[1]),
@@ -39,7 +40,15 @@ public class KissCommand extends Command {
 
         if (target == gameClient.getHabbo()) {
             gameClient.getHabbo().whisper(
-                    Emulator.getTexts().getValue("commands.error.cmd_kiss.self", "Non puoi baciarti da solo!"),
+                    texts.getValue("commands.error.cmd_kiss.self", "Non puoi baciarti da solo!"),
+                    RoomChatMessageBubbles.ALERT);
+            return true;
+        }
+
+        if (target.getHabboStats().blockKiss) {
+            gameClient.getHabbo().whisper(
+                    texts.getValue("commands.error.cmd_kiss.disabled", "%user% ha disattivato i baci nelle impostazioni privacy!")
+                            .replace("%user%", target.getHabboInfo().getUsername()),
                     RoomChatMessageBubbles.ALERT);
             return true;
         }
@@ -49,7 +58,7 @@ public class KissCommand extends Command {
 
         if (distanceX > 1 || distanceY > 1) {
             gameClient.getHabbo()
-                    .whisper(Emulator.getTexts()
+                    .whisper(texts
                             .getValue("commands.error.cmd_kiss.cant_reach",
                                     "Sei troppo lontano da %user% per baciarlo!")
                             .replace("%user%", target.getHabboInfo().getUsername()), RoomChatMessageBubbles.ALERT);

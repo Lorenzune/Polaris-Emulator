@@ -87,6 +87,8 @@ public class PurchaseNickIconEvent extends MessageHandler {
         String normalized = iconKey.trim().toLowerCase();
         if (normalized.endsWith(".gif")) {
             normalized = normalized.substring(0, normalized.length() - 4);
+        } else if (normalized.endsWith(".png")) {
+            normalized = normalized.substring(0, normalized.length() - 4);
         }
         return normalized.matches("^[a-z0-9_-]+$") ? normalized : "";
     }

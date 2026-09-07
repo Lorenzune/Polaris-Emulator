@@ -9,6 +9,7 @@ import com.eu.habbo.messages.ServerMessageFrame;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.monitoring.EmulatorNetworkStats;
+import com.eu.habbo.networking.gameserver.GameServerAttributes;
 import com.eu.habbo.plugin.PluginManager;
 import com.eu.habbo.plugin.events.emulator.OutgoingPacketEvent;
 import io.netty.buffer.ByteBuf;
@@ -43,6 +44,8 @@ public class GameClient {
     private String machineId = "";
     private String ssoTicket = "";
     private String releaseVersion = "";
+    private String userAgent = "";
+    private volatile ClientDeviceType deviceType = ClientDeviceType.PC;
 
     // These values are written during capability negotiation and read by packet
     // and executor threads afterwards.
@@ -135,12 +138,29 @@ public class GameClient {
         this.releaseVersion = releaseVersion != null ? releaseVersion : "";
     }
 
+    public String getUserAgent() {
+        return this.userAgent;
+    }
+
+    public void setUserAgent(String userAgent) {
+        this.userAgent = userAgent != null ? userAgent : "";
+        this.deviceType = ClientDeviceType.fromUserAgent(this.userAgent);
+    }
+
+    public ClientDeviceType getDeviceType() {
+        return this.deviceType;
+    }
+
+    public void setDeviceType(ClientDeviceType deviceType) {
+        this.deviceType = deviceType != null ? deviceType : ClientDeviceType.PC;
+    }
+
     public void sendResponse(MessageComposer composer) {
         this.sendResponse(composer.compose());
     }
 
     public void sendResponse(ServerMessage response) {
-        if (this.channel.isOpen()) {
+        if (GameServerAttributes.isGameTransportReady(this.channel)) {
             if (response == null || response.getHeader() <= 0) {
                 return;
             }
@@ -158,7 +178,7 @@ public class GameClient {
     }
 
     public void sendResponses(ArrayList<ServerMessage> responses) {
-        if (this.channel.isOpen()) {
+        if (GameServerAttributes.isGameTransportReady(this.channel)) {
             PluginManager plugins = Emulator.getPluginManager();
             boolean eventsRegistered = plugins.isRegistered(OutgoingPacketEvent.class, false);
             for (ServerMessage response : responses) {
@@ -223,7 +243,7 @@ public class GameClient {
     }
 
     public void sendKeepAlive() {
-        if (this.channel != null && this.channel.isOpen()) {
+        if (GameServerAttributes.isGameTransportReady(this.channel)) {
             this.channel.writeAndFlush(new ServerMessage(-1));
         }
     }

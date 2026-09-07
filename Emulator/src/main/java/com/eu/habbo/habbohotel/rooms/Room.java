@@ -2003,6 +2003,14 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         return this.itemManager.getUserUniqueFurniCount(userId);
     }
 
+    public int getDatabaseUserFurniCount(int userId) {
+        return this.itemManager.getDatabaseUserFurniCount(userId);
+    }
+
+    public int getDatabaseUserUniqueFurniCount(int userId) {
+        return this.itemManager.getDatabaseUserUniqueFurniCount(userId);
+    }
+
     public void ejectUserFurni(int userId) {
         this.itemManager.ejectUserFurni(userId);
     }

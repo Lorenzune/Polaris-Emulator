@@ -2,6 +2,7 @@ package com.eu.habbo.habbohotel.permissions;
 
 public class Permission {
     public static String ACC_ANYCHATCOLOR = "acc_anychatcolor"; // allows them to pick and choose any color from the chat bubbles.
+    public static final String ACC_ANYHABBICON = "acc_anyhabbicon"; // allows using all habbicons freely.
     public static String ACC_ANYROOMOWNER = "acc_anyroomowner";
     public static String ACC_EMPTY_OTHERS = "acc_empty_others";
     public static String ACC_ENABLE_OTHERS = "acc_enable_others";

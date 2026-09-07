@@ -58,6 +58,45 @@ class CatalogPurchasePageResolverTest {
     }
 
     @Test
+    void buildersClubOfferUsesItsNormalCatalogPageWhenBuilderPageDoesNotOwnIt() {
+        CatalogPage normalPage = mock(CatalogPage.class);
+        CatalogPage buildersClubPage = mock(CatalogPage.class);
+        CatalogPurchasePageResolver.CatalogLookup lookup = mock(CatalogPurchasePageResolver.CatalogLookup.class);
+        when(lookup.findPage(260)).thenReturn(normalPage);
+        when(lookup.findBuildersClubPage(260)).thenReturn(buildersClubPage);
+        when(lookup.isBuildersClubOffer(72)).thenReturn(true);
+        CatalogPurchasePageResolver resolver = new CatalogPurchasePageResolver(lookup);
+
+        assertSame(normalPage, resolver.resolve(new CatalogPurchaseCommand(260, 72, "", 1), candidate -> true));
+        verify(lookup).findBuildersClubPage(260);
+    }
+
+    @Test
+    void standaloneBuildersClubOfferUsesBuilderPageWhenNoNormalPageExists() {
+        CatalogPage buildersClubPage = mock(CatalogPage.class);
+        CatalogPurchasePageResolver.CatalogLookup lookup = mock(CatalogPurchasePageResolver.CatalogLookup.class);
+        when(lookup.findBuildersClubPage(260)).thenReturn(buildersClubPage);
+        when(lookup.isBuildersClubOffer(72)).thenReturn(true);
+        CatalogPurchasePageResolver resolver = new CatalogPurchasePageResolver(lookup);
+
+        assertSame(buildersClubPage, resolver.resolve(new CatalogPurchaseCommand(260, 72, "", 1), candidate -> true));
+    }
+
+    @Test
+    void buildersClubCatalogItemUsesTheBuildersPageWhenPageIdsOverlap() {
+        CatalogItem item = mock(CatalogItem.class);
+        CatalogPage normalPage = mock(CatalogPage.class);
+        CatalogPage buildersClubPage = mock(CatalogPage.class);
+        CatalogPurchasePageResolver.CatalogLookup lookup = mock(CatalogPurchasePageResolver.CatalogLookup.class);
+        when(buildersClubPage.getCatalogItem(72)).thenReturn(item);
+        when(lookup.findPage(260)).thenReturn(normalPage);
+        when(lookup.findBuildersClubPage(260)).thenReturn(buildersClubPage);
+        CatalogPurchasePageResolver resolver = new CatalogPurchasePageResolver(lookup);
+
+        assertSame(buildersClubPage, resolver.resolve(new CatalogPurchaseCommand(260, 72, "", 1), candidate -> true));
+    }
+
+    @Test
     void clubGiftPageIsNotPurchasableThroughThisCommand() {
         CatalogPage page = mock(CatalogPage.class);
         when(page.getLayout()).thenReturn(CatalogPageLayouts.club_gift.name());

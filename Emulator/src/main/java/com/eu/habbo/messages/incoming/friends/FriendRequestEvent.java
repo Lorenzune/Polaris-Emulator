@@ -69,8 +69,8 @@ public class FriendRequestEvent extends MessageHandler {
             return;
 
         // Target Habbo exists
-        // Check if Habbo is accepting friend requests
-        if (targetBlocksFriendRequests) {
+        // Check if Habbo is accepting friend requests or either user is blocked
+        if (targetBlocksFriendRequests || this.client.getHabbo().getHabboStats().userBlocked(targetId) || targetHabbo.getHabboStats().userBlocked(this.client.getHabbo().getHabboInfo().getId())) {
             this.client.sendResponse(new FriendRequestErrorComposer(FriendRequestErrorComposer.TARGET_NOT_ACCEPTING_REQUESTS));
             return;
         }

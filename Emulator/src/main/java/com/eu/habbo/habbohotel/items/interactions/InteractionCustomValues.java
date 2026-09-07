@@ -20,13 +20,13 @@ public abstract class InteractionCustomValues extends HabboItem {
 
         this.values.putAll(defaultValues);
 
-        for (String s : set.getString("extra_data").split(";")) {
-            // Split on the FIRST '=' only: values such as room-ad image URLs
-            // carry '=' in their query string, and splitting on every '='
-            // used to drop them (data.length != 2), so the ad image vanished.
-            int separator = s.indexOf('=');
-            if (separator > 0) {
-                this.values.put(s.substring(0, separator), s.substring(separator + 1));
+        String extraData = set.getString("extra_data");
+        if (extraData != null && !extraData.isEmpty()) {
+            for (String s : extraData.split(";")) {
+                int separator = s.indexOf('=');
+                if (separator > 0) {
+                    this.values.put(s.substring(0, separator), s.substring(separator + 1));
+                }
             }
         }
     }
@@ -42,6 +42,15 @@ public abstract class InteractionCustomValues extends HabboItem {
         super(id, userId, item, extradata, limitedStack, limitedSells);
 
         this.values.putAll(defaultValues);
+
+        if (extradata != null && !extradata.isEmpty()) {
+            for (String s : extradata.split(";")) {
+                int separator = s.indexOf('=');
+                if (separator > 0) {
+                    this.values.put(s.substring(0, separator), s.substring(separator + 1));
+                }
+            }
+        }
     }
 
     @Override

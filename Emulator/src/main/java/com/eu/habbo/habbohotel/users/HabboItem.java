@@ -412,25 +412,30 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
     public abstract void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception;
 
     public void onPlace(Room room) {
+        int achievementOwnerId = this.getAchievementOwnerId(room);
+        if (achievementOwnerId <= 0) {
+            return;
+        }
+
         // TODO: IMPORTANT: MAKE THIS GENERIC. (HOLES, ICE SKATE PATCHES, BLACK HOLE, BUNNY RUN FIELD, FOOTBALL FIELD)
         Achievement roomDecoAchievement =
                 Emulator.getGameEnvironment().getAchievementManager().getAchievement("RoomDecoFurniCount");
-        Habbo owner = room.getHabbo(this.getUserId());
+        Habbo owner = room.getHabbo(achievementOwnerId);
 
         int furniCollecterProgress;
         if (owner == null) {
             furniCollecterProgress =
-                    AchievementManager.getAchievementProgressForHabbo(this.getUserId(), roomDecoAchievement);
+                    AchievementManager.getAchievementProgressForHabbo(achievementOwnerId, roomDecoAchievement);
         } else {
             furniCollecterProgress = owner.getHabboStats().getAchievementProgress(roomDecoAchievement);
         }
 
-        int difference = room.getUserFurniCount(this.getUserId()) - furniCollecterProgress;
+        int difference = room.getDatabaseUserFurniCount(achievementOwnerId) - furniCollecterProgress;
         if (difference > 0) {
             if (owner != null) {
                 AchievementManager.progressAchievement(owner, roomDecoAchievement, difference);
             } else {
-                AchievementManager.progressAchievement(this.getUserId(), roomDecoAchievement, difference);
+                AchievementManager.progressAchievement(achievementOwnerId, roomDecoAchievement, difference);
             }
         }
 
@@ -440,19 +445,34 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
         int uniqueFurniCollecterProgress;
         if (owner == null) {
             uniqueFurniCollecterProgress =
-                    AchievementManager.getAchievementProgressForHabbo(this.getUserId(), roomDecoUniqueAchievement);
+                    AchievementManager.getAchievementProgressForHabbo(achievementOwnerId, roomDecoUniqueAchievement);
         } else {
             uniqueFurniCollecterProgress = owner.getHabboStats().getAchievementProgress(roomDecoUniqueAchievement);
         }
 
-        int uniqueDifference = room.getUserUniqueFurniCount(this.getUserId()) - uniqueFurniCollecterProgress;
+        int uniqueDifference = room.getDatabaseUserUniqueFurniCount(achievementOwnerId) - uniqueFurniCollecterProgress;
         if (uniqueDifference > 0) {
             if (owner != null) {
                 AchievementManager.progressAchievement(owner, roomDecoUniqueAchievement, uniqueDifference);
             } else {
-                AchievementManager.progressAchievement(this.getUserId(), roomDecoUniqueAchievement, uniqueDifference);
+                AchievementManager.progressAchievement(achievementOwnerId, roomDecoUniqueAchievement, uniqueDifference);
             }
         }
+    }
+
+    int getAchievementOwnerId(Room room) {
+        if (this.getUserId() == this.getDatabaseUserId()) {
+            return this.getUserId();
+        }
+
+        // Builders Club items use a virtual in-room owner. Only a private-room
+        // placement counts, and in that flow the real database owner is also the
+        // user who placed the furniture. Group-room pool placements never count.
+        if (room == null || room.hasGuild() || room.getOwnerId() != this.getDatabaseUserId()) {
+            return 0;
+        }
+
+        return this.getDatabaseUserId();
     }
 
     public void onPickUp(Room room) {

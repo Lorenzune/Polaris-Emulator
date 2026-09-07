@@ -5,14 +5,19 @@ import com.eu.habbo.habbohotel.catalog.marketplace.MarketPlaceOffer;
 import com.eu.habbo.habbohotel.catalog.marketplace.MarketPlaceState;
 import com.eu.habbo.habbohotel.users.inventory.BadgesComponent;
 import com.eu.habbo.habbohotel.users.inventory.BotsComponent;
+import com.eu.habbo.habbohotel.users.inventory.ChatBubblesComponent;
 import com.eu.habbo.habbohotel.users.inventory.EffectsComponent;
+import com.eu.habbo.habbohotel.users.inventory.HabbiconsComponent;
 import com.eu.habbo.habbohotel.users.inventory.ItemsComponent;
 import com.eu.habbo.habbohotel.users.inventory.NickIconsComponent;
 import com.eu.habbo.habbohotel.users.inventory.PetsComponent;
 import com.eu.habbo.habbohotel.users.inventory.PrefixesComponent;
+import com.eu.habbo.habbohotel.users.inventory.ProfileCosmeticsComponent;
+import com.eu.habbo.habbohotel.users.inventory.UserNicksComponent;
 import com.eu.habbo.habbohotel.users.inventory.UserVisualSettingsComponent;
 import com.eu.habbo.habbohotel.users.inventory.WardrobeComponent;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +36,11 @@ public class HabboInventory {
     private ItemsComponent itemsComponent;
     private PetsComponent petsComponent;
     private PrefixesComponent prefixesComponent;
+    private UserNicksComponent userNicksComponent;
     private NickIconsComponent nickIconsComponent;
+    private ChatBubblesComponent chatBubblesComponent;
+    private HabbiconsComponent habbiconsComponent;
+    private ProfileCosmeticsComponent profileCosmeticsComponent;
     private UserVisualSettingsComponent userVisualSettingsComponent;
 
     public HabboInventory(Habbo habbo) {
@@ -79,7 +88,31 @@ public class HabboInventory {
         }
 
         try {
+            this.userNicksComponent = new UserNicksComponent(this.habbo);
+        } catch (Exception e) {
+            LOGGER.error("Caught exception", e);
+        }
+
+        try {
             this.nickIconsComponent = new NickIconsComponent(this.habbo);
+        } catch (Exception e) {
+            LOGGER.error("Caught exception", e);
+        }
+
+        try {
+            this.chatBubblesComponent = new ChatBubblesComponent(this.habbo);
+        } catch (Exception e) {
+            LOGGER.error("Caught exception", e);
+        }
+
+        try {
+            this.habbiconsComponent = new HabbiconsComponent(this.habbo);
+        } catch (Exception e) {
+            LOGGER.error("Caught exception", e);
+        }
+
+        try {
+            this.profileCosmeticsComponent = new ProfileCosmeticsComponent(this.habbo);
         } catch (Exception e) {
             LOGGER.error("Caught exception", e);
         }
@@ -90,7 +123,8 @@ public class HabboInventory {
             LOGGER.error("Caught exception", e);
         }
 
-        this.items = MarketPlace.getOwnOffers(this.habbo);
+        this.items = ConcurrentHashMap.newKeySet();
+        this.items.addAll(MarketPlace.getOwnOffers(this.habbo));
     }
 
     public WardrobeComponent getWardrobeComponent() {
@@ -149,6 +183,14 @@ public class HabboInventory {
         this.prefixesComponent = prefixesComponent;
     }
 
+    public UserNicksComponent getUserNicksComponent() {
+        return this.userNicksComponent;
+    }
+
+    public void setUserNicksComponent(UserNicksComponent userNicksComponent) {
+        this.userNicksComponent = userNicksComponent;
+    }
+
     public NickIconsComponent getNickIconsComponent() {
         return this.nickIconsComponent;
     }
@@ -175,6 +217,9 @@ public class HabboInventory {
         this.prefixesComponent.dispose();
         this.nickIconsComponent.dispose();
         this.userVisualSettingsComponent.dispose();
+        if (this.userNicksComponent != null) {
+            this.userNicksComponent.dispose();
+        }
 
         this.badgesComponent = null;
         this.botsComponent = null;
@@ -184,7 +229,10 @@ public class HabboInventory {
         this.wardrobeComponent = null;
         this.prefixesComponent = null;
         this.nickIconsComponent = null;
+        this.chatBubblesComponent = null;
+        this.habbiconsComponent = null;
         this.userVisualSettingsComponent = null;
+        this.userNicksComponent = null;
     }
 
     public void addMarketplaceOffer(MarketPlaceOffer marketPlaceOffer) {
@@ -217,6 +265,18 @@ public class HabboInventory {
         }
 
         return null;
+    }
+
+    public ChatBubblesComponent getChatBubblesComponent() {
+        return this.chatBubblesComponent;
+    }
+
+    public HabbiconsComponent getHabbiconsComponent() {
+        return this.habbiconsComponent;
+    }
+
+    public ProfileCosmeticsComponent getProfileCosmeticsComponent() {
+        return this.profileCosmeticsComponent;
     }
 
     public Habbo getHabbo() {

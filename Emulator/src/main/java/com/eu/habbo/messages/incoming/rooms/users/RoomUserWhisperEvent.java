@@ -19,7 +19,13 @@ public class RoomUserWhisperEvent extends MessageHandler {
 
         RoomChatMessage chatMessage = new RoomChatMessage(this);
 
-        if (chatMessage.getMessage().length() <= RoomChatMessage.MAXIMUM_LENGTH) {
+        int messageLength = chatMessage.getMessage().length();
+        if (chatMessage.getMessage().startsWith("Da ") && chatMessage.getMessage().contains(": ")) {
+            int prefixEnd = chatMessage.getMessage().indexOf(": ") + 2;
+            messageLength = chatMessage.getMessage().substring(prefixEnd).length();
+        }
+
+        if (messageLength <= RoomChatMessage.MAXIMUM_LENGTH) {
             if (!this.client.getHabbo().getHabboStats().allowTalk() || chatMessage.getTargetHabbo() == null)
                 return;
 

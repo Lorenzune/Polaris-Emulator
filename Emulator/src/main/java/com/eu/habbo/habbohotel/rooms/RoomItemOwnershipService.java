@@ -115,6 +115,30 @@ final class RoomItemOwnershipService {
         return baseItems.size();
     }
 
+    int databaseOwnerItemCount(int userId) {
+        int count = 0;
+        synchronized (this.index.items()) {
+            for (HabboItem item : this.index.items().values()) {
+                if (item.getDatabaseUserId() == userId) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    int uniqueDatabaseOwnerItemCount(int userId) {
+        Set<Item> baseItems = new HashSet<>();
+        synchronized (this.index.items()) {
+            for (HabboItem item : this.index.items().values()) {
+                if (item.getDatabaseUserId() == userId) {
+                    baseItems.add(item.getBaseItem());
+                }
+            }
+        }
+        return baseItems.size();
+    }
+
     void pickUp(HabboItem item, Habbo picker) {
         if (item == null) {
             return;

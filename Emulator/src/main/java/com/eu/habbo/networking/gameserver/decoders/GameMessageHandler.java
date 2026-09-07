@@ -80,11 +80,11 @@ public class GameMessageHandler extends ChannelInboundHandlerAdapter {
             return;
         }
         if (Emulator.getConfig().getBoolean("debug.mode")) {
-            if (cause instanceof NotSslRecordException) {
-                LOGGER.error("Plaintext received instead of ssl, closing channel");
+            if (hasCause(cause, NotSslRecordException.class)) {
+                LOGGER.debug("Rejected non-TLS traffic from {} on the SSL endpoint", ctx.channel().remoteAddress());
             }
             else if (cause instanceof DecoderException) {
-                LOGGER.error("Plaintext received instead of ssl, closing channel");
+                LOGGER.warn("Rejected malformed data from {}: {}", ctx.channel().remoteAddress(), cause.getMessage());
             }
             else if (cause instanceof TooLongFrameException) {
                 LOGGER.error("Disconnecting client, reason {}", cause.getMessage());
@@ -109,5 +109,19 @@ public class GameMessageHandler extends ChannelInboundHandlerAdapter {
             }
         }
         ctx.channel().close();
+    }
+
+    static boolean hasCause(Throwable throwable, Class<? extends Throwable> causeType) {
+        Throwable current = throwable;
+
+        while (current != null) {
+            if (causeType.isInstance(current)) {
+                return true;
+            }
+
+            current = current.getCause();
+        }
+
+        return false;
     }
 }

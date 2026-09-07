@@ -89,6 +89,8 @@ public class AuthHttpHandler extends ChannelInboundHandlerAdapter {
     static final String CHECK_USERNAME_PATH = "/api/auth/check-username";
     static final String ROOM_TEMPLATES_PATH = "/api/auth/room-templates";
     static final String NEWS_PATH = "/api/auth/news";
+    static final String PHOTOS_PATH = "/api/auth/photos";
+    static final String INSTADUCK_CAPTION_PATH = "/api/auth/photos/caption";
     static final String REMEMBER_PATH = "/api/auth/remember";
     static final String REFRESH_PATH = "/api/auth/refresh";
     static final String SERVER_KEY_PATH = "/api/auth/server-key";
@@ -150,6 +152,8 @@ public class AuthHttpHandler extends ChannelInboundHandlerAdapter {
                 || path.equals(CHECK_USERNAME_PATH)
                 || path.equals(ROOM_TEMPLATES_PATH)
                 || path.equals(NEWS_PATH)
+                || path.equals(PHOTOS_PATH)
+                || path.equals(INSTADUCK_CAPTION_PATH)
                 || path.equals(REMEMBER_PATH)
                 || path.equals(REFRESH_PATH)
                 || path.equals(SERVER_KEY_PATH)
@@ -205,6 +209,25 @@ public class AuthHttpHandler extends ChannelInboundHandlerAdapter {
             return;
         }
 
+        if (path.equals(PHOTOS_PATH)) {
+            if (!isGetOrHead(req)) {
+                sendJson(ctx, req, HttpResponseStatus.METHOD_NOT_ALLOWED, errorPayload("Use GET."));
+                return;
+            }
+            String ip = resolveClientIp(ctx, req);
+            if (!AuthRateLimiter.tryProbe(ip)) {
+                long secs = AuthRateLimiter.secondsUntilProbeReset(ip);
+                sendJson(
+                        ctx,
+                        req,
+                        HttpResponseStatus.TOO_MANY_REQUESTS,
+                        errorPayload("Too many requests. Try again in " + secs + "s."));
+                return;
+            }
+            StaticContentEndpoints.handlePhotos(ctx, req);
+            return;
+        }
+
         if (path.equals(SERVER_KEY_PATH)) {
             if (!isGetOrHead(req)) {
                 sendJson(ctx, req, HttpResponseStatus.METHOD_NOT_ALLOWED, errorPayload("Use GET."));
@@ -244,6 +267,11 @@ public class AuthHttpHandler extends ChannelInboundHandlerAdapter {
                     : JsonParser.parseString(text).getAsJsonObject();
         } catch (Exception e) {
             sendJson(ctx, req, HttpResponseStatus.BAD_REQUEST, errorPayload("Invalid JSON body."));
+            return;
+        }
+
+        if (path.equals(INSTADUCK_CAPTION_PATH)) {
+            StaticContentEndpoints.handleInstaduckCaption(ctx, req, body);
             return;
         }
 

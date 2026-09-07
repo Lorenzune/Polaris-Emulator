@@ -518,6 +518,14 @@ public class RoomItemManager {
         return this.ownership.uniqueItemCount(userId);
     }
 
+    public int getDatabaseUserFurniCount(int userId) {
+        return this.ownership.databaseOwnerItemCount(userId);
+    }
+
+    public int getDatabaseUserUniqueFurniCount(int userId) {
+        return this.ownership.uniqueDatabaseOwnerItemCount(userId);
+    }
+
     // ==================== PICKUP AND EJECT ====================
 
     /**

@@ -44,6 +44,7 @@ import com.eu.habbo.messages.incoming.inventory.nickicons.DeleteNickIconEvent;
 import com.eu.habbo.messages.incoming.inventory.nickicons.PurchaseNickIconEvent;
 import com.eu.habbo.messages.incoming.inventory.nickicons.RequestUserNickIconsEvent;
 import com.eu.habbo.messages.incoming.inventory.nickicons.SetActiveNickIconEvent;
+import com.eu.habbo.messages.incoming.inventory.nicks.*;
 import com.eu.habbo.messages.incoming.inventory.prefixes.*;
 import com.eu.habbo.messages.incoming.mentions.DeleteMentionEvent;
 import com.eu.habbo.messages.incoming.mentions.MarkMentionsReadEvent;
@@ -376,6 +377,7 @@ public class PacketManager {
         this.registerHandler(Incoming.SecureLoginEvent, SecureLoginEvent.class);
         this.registerHandler(Incoming.MachineIDEvent, MachineIDEvent.class);
         this.registerHandler(Incoming.GetIgnoredUsersEvent, GetIgnoredUsersEvent.class);
+        this.registerHandler(Incoming.GetBlockedUsersEvent, GetBlockedUsersEvent.class);
         this.registerHandler(Incoming.PingEvent, PingEvent.class);
         this.registerHandler(Incoming.DisconnectEvent, DisconnectEvent.class);
     }
@@ -506,6 +508,26 @@ public class PacketManager {
         this.registerHandler(Incoming.PurchaseNickIconEvent, PurchaseNickIconEvent.class);
         this.registerHandler(Incoming.SetActiveNickIconEvent, SetActiveNickIconEvent.class);
         this.registerHandler(Incoming.DeleteNickIconEvent, DeleteNickIconEvent.class);
+
+        // Custom Nicknames
+        this.registerHandler(Incoming.RequestUserNicksEvent, RequestUserNicksEvent.class);
+        this.registerHandler(Incoming.PurchaseNickStyleEvent, PurchaseNickStyleEvent.class);
+        this.registerHandler(Incoming.SetActiveNickStyleEvent, SetActiveNickStyleEvent.class);
+        this.registerHandler(Incoming.DeleteNickStyleEvent, DeleteNickStyleEvent.class);
+        this.registerHandler(Incoming.PurchaseCatalogNickEvent, PurchaseCatalogNickEvent.class);
+
+        // Custom Chat Bubbles
+        this.registerHandler(Incoming.RequestUserChatBubblesEvent, com.eu.habbo.messages.incoming.inventory.chatbubbles.RequestUserChatBubblesEvent.class);
+        this.registerHandler(Incoming.PurchaseChatBubbleEvent, com.eu.habbo.messages.incoming.inventory.chatbubbles.PurchaseChatBubbleEvent.class);
+
+        // Custom Habbicons
+        this.registerHandler(Incoming.RequestUserHabbiconsEvent, com.eu.habbo.messages.incoming.inventory.habbicons.RequestUserHabbiconsEvent.class);
+        this.registerHandler(Incoming.PurchaseHabbiconEvent, com.eu.habbo.messages.incoming.inventory.habbicons.PurchaseHabbiconEvent.class);
+
+        // Profile Cosmetics
+        this.registerHandler(Incoming.RequestUserProfileCosmeticsEvent, com.eu.habbo.messages.incoming.inventory.cosmetics.RequestUserProfileCosmeticsEvent.class);
+        this.registerHandler(Incoming.PurchaseProfileCosmeticEvent, com.eu.habbo.messages.incoming.inventory.cosmetics.PurchaseProfileCosmeticEvent.class);
+        this.registerHandler(Incoming.SaveProfilePoseEvent, com.eu.habbo.messages.incoming.inventory.cosmetics.SaveProfilePoseEvent.class);
     }
 
     void registerRooms() throws Exception {
@@ -613,6 +635,8 @@ public class PacketManager {
         this.registerHandler(Incoming.EditRoomPromotionMessageEvent, UpdateRoomPromotionEvent.class);
         this.registerHandler(Incoming.IgnoreRoomUserEvent, IgnoreRoomUserEvent.class);
         this.registerHandler(Incoming.UnIgnoreRoomUserEvent, UnIgnoreRoomUserEvent.class);
+        this.registerHandler(Incoming.BlockRoomUserEvent, BlockRoomUserEvent.class);
+        this.registerHandler(Incoming.UnblockRoomUserEvent, UnblockRoomUserEvent.class);
         this.registerHandler(Incoming.RoomUserMuteEvent, RoomUserMuteEvent.class);
         this.registerHandler(Incoming.RoomUserBanEvent, RoomUserBanEvent.class);
         this.registerHandler(Incoming.UnbanRoomUserEvent, UnbanRoomUserEvent.class);

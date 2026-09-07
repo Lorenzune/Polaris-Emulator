@@ -11,10 +11,18 @@ public class RoomUserIgnoredComposer extends MessageComposer {
     public final static int UNIGNORED = 3;
 
     private final Habbo habbo;
+    private final String username;
     private final int state;
 
     public RoomUserIgnoredComposer(Habbo habbo, int state) {
         this.habbo = habbo;
+        this.username = (habbo != null && habbo.getHabboInfo() != null) ? habbo.getHabboInfo().getUsername() : "";
+        this.state = state;
+    }
+
+    public RoomUserIgnoredComposer(String username, int state) {
+        this.habbo = null;
+        this.username = username != null ? username : "";
         this.state = state;
     }
 
@@ -22,15 +30,19 @@ public class RoomUserIgnoredComposer extends MessageComposer {
     protected ServerMessage composeInternal() {
         this.response.init(Outgoing.RoomUserIgnoredComposer);
         this.response.appendInt(this.state);
-        this.response.appendString(this.habbo.getHabboInfo().getUsername());
+        this.response.appendString(this.username);
         return this.response;
     }
 
     public Habbo getHabbo() {
-        return habbo;
+        return this.habbo;
+    }
+
+    public String getUsername() {
+        return this.username;
     }
 
     public int getState() {
-        return state;
+        return this.state;
     }
 }

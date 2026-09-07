@@ -52,6 +52,12 @@ public class HabboInfo implements Runnable {
     private int InfostandOverlay;
     private int InfostandCardBg;
     private int InfostandBorder;
+    private int infostandDirection = 2;
+    private int infostandHeadDirection = 2;
+    private String infostandAction = "std";
+    private int profileDirection = 2;
+    private int profileHeadDirection = 2;
+    private String profileAction = "std";
     private int loadingRoom;
     private Room currentRoom;
     private String roomEntryMethod = "door";
@@ -117,6 +123,23 @@ public class HabboInfo implements Runnable {
                 this.InfostandBorder = set.getInt("background_border_id");
             } catch (SQLException ignored) {
                 this.InfostandBorder = 0;
+            }
+            try {
+                this.infostandDirection = set.getInt("infostand_direction");
+                this.infostandHeadDirection = set.getInt("infostand_head_direction");
+                this.infostandAction = set.getString("infostand_action");
+                if (this.infostandAction == null || this.infostandAction.isEmpty()) this.infostandAction = "std";
+                this.profileDirection = set.getInt("profile_direction");
+                this.profileHeadDirection = set.getInt("profile_head_direction");
+                this.profileAction = set.getString("profile_action");
+                if (this.profileAction == null || this.profileAction.isEmpty()) this.profileAction = "std";
+            } catch (SQLException ignored) {
+                this.infostandDirection = 2;
+                this.infostandHeadDirection = 2;
+                this.infostandAction = "std";
+                this.profileDirection = 2;
+                this.profileHeadDirection = 2;
+                this.profileAction = "std";
             }
             this.currentRoom = null;
         } catch (SQLException e) {
@@ -472,6 +495,54 @@ public class HabboInfo implements Runnable {
         InfostandBorder = infostandBorder;
     }
 
+    public int getInfostandDirection() {
+        return infostandDirection;
+    }
+
+    public void setInfostandDirection(int infostandDirection) {
+        this.infostandDirection = infostandDirection;
+    }
+
+    public int getInfostandHeadDirection() {
+        return infostandHeadDirection;
+    }
+
+    public void setInfostandHeadDirection(int infostandHeadDirection) {
+        this.infostandHeadDirection = infostandHeadDirection;
+    }
+
+    public String getInfostandAction() {
+        return infostandAction;
+    }
+
+    public void setInfostandAction(String infostandAction) {
+        this.infostandAction = (infostandAction != null && !infostandAction.isEmpty()) ? infostandAction : "std";
+    }
+
+    public int getProfileDirection() {
+        return profileDirection;
+    }
+
+    public void setProfileDirection(int profileDirection) {
+        this.profileDirection = profileDirection;
+    }
+
+    public int getProfileHeadDirection() {
+        return profileHeadDirection;
+    }
+
+    public void setProfileHeadDirection(int profileHeadDirection) {
+        this.profileHeadDirection = profileHeadDirection;
+    }
+
+    public String getProfileAction() {
+        return profileAction;
+    }
+
+    public void setProfileAction(String profileAction) {
+        this.profileAction = (profileAction != null && !profileAction.isEmpty()) ? profileAction : "std";
+    }
+
     public Rank getRank() {
         return this.rank;
     }
@@ -817,7 +888,7 @@ public class HabboInfo implements Runnable {
 
         try {
             SqlQueries.update(
-                    "UPDATE users SET motto = ?, online = ?, look = ?, gender = ?, credits = ?, last_login = ?, last_online = ?, home_room = ?, ip_current = ?, `rank` = ?, machine_id = ?, username = ?, background_id = ?, background_stand_id = ?, background_overlay_id = ?, background_card_id = ?, background_border_id = ? WHERE id = ?",
+                    "UPDATE users SET motto = ?, online = ?, look = ?, gender = ?, credits = ?, last_login = ?, last_online = ?, home_room = ?, ip_current = ?, `rank` = ?, machine_id = ?, username = ?, background_id = ?, background_stand_id = ?, background_overlay_id = ?, background_card_id = ?, background_border_id = ?, infostand_direction = ?, infostand_head_direction = ?, infostand_action = ?, profile_direction = ?, profile_head_direction = ?, profile_action = ? WHERE id = ?",
                     this.motto,
                     this.online ? "1" : "0",
                     this.look,
@@ -835,6 +906,12 @@ public class HabboInfo implements Runnable {
                     this.InfostandOverlay,
                     this.InfostandCardBg,
                     this.InfostandBorder,
+                    this.infostandDirection,
+                    this.infostandHeadDirection,
+                    this.infostandAction,
+                    this.profileDirection,
+                    this.profileHeadDirection,
+                    this.profileAction,
                     this.id);
         } catch (SqlQueries.DataAccessException e) {
             LOGGER.error("Caught SQL exception", e);
