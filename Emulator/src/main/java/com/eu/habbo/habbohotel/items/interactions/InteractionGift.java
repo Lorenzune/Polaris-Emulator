@@ -29,6 +29,8 @@ public class InteractionGift extends HabboItem {
     private String sender = "";
     private String look = "";
 
+    private boolean isStaff = false;
+
     public InteractionGift(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
 
@@ -62,7 +64,7 @@ public class InteractionGift extends HabboItem {
     public void serializeExtradata(ServerMessage serverMessage) {
         //serverMessage.appendInt(this.colorId * 1000 + this.ribbonId);
         serverMessage.appendInt(1);
-        serverMessage.appendInt(6);
+        serverMessage.appendInt(7);
         serverMessage.appendString("EXTRA_PARAM");
         serverMessage.appendString("");
         serverMessage.appendString("MESSAGE");
@@ -71,6 +73,8 @@ public class InteractionGift extends HabboItem {
         serverMessage.appendString(this.showSender ? this.sender : "");
         serverMessage.appendString("PURCHASER_FIGURE");
         serverMessage.appendString(this.showSender ? this.look : "");
+        serverMessage.appendString("PURCHASER_STAFF");
+        serverMessage.appendString(this.isStaff ? "1" : "0");
         serverMessage.appendString("PRODUCT_CODE");
         serverMessage.appendString(""); //this.gift.getItemId()
         serverMessage.appendString("state");
@@ -123,11 +127,16 @@ public class InteractionGift extends HabboItem {
                 this.sender = data[count + 5];
                 this.look = data[count + 6];
             }
+
+            if (data.length - count >= 8) {
+                this.isStaff = data[count + 7].equalsIgnoreCase("1");
+            }
         } else {
             this.itemId = new int[0];
             this.colorId = 0;
             this.ribbonId = 0;
             this.showSender = false;
+            this.isStaff = false;
             this.message = "Please delete this present. Thanks!";
         }
     }
@@ -146,7 +155,10 @@ public class InteractionGift extends HabboItem {
             if (anItemId == 0)
                 continue;
 
-            items.add(Emulator.getGameEnvironment().getItemManager().loadHabboItem(anItemId));
+            HabboItem item = Emulator.getGameEnvironment().getItemManager().loadHabboItem(anItemId);
+            if (item != null) {
+                items.add(item);
+            }
         }
 
         return items;

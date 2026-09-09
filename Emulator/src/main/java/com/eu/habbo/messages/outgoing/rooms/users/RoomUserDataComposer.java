@@ -34,6 +34,15 @@ public class RoomUserDataComposer extends MessageComposer {
         this.response.appendString(customizationData.prefixFont);
         this.response.appendString(customizationData.displayOrder);
         this.response.appendInt(this.habbo.getHabboInfo().getInfostandBorder());
+        this.response.appendString(customizationData.nickColor);
+        this.response.appendString(customizationData.nickEffect);
+        this.response.appendString(customizationData.nickFont);
+        this.response.appendInt(this.habbo.getHabboInfo().getInfostandDirection());
+        this.response.appendInt(this.habbo.getHabboInfo().getInfostandHeadDirection());
+        this.response.appendString(this.habbo.getHabboInfo().getInfostandAction());
+        this.response.appendInt(this.habbo.getHabboInfo().getProfileDirection());
+        this.response.appendInt(this.habbo.getHabboInfo().getProfileHeadDirection());
+        this.response.appendString(this.habbo.getHabboInfo().getProfileAction());
         return this.response;
     }
 

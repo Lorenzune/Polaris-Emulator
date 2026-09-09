@@ -7,6 +7,7 @@ import com.eu.habbo.habbohotel.users.HabboStats;
 import com.eu.habbo.habbohotel.users.infostand.InfostandBackgroundManager;
 import com.eu.habbo.habbohotel.users.infostand.InfostandBackgroundManager.Category;
 import com.eu.habbo.messages.incoming.MessageHandler;
+import com.eu.habbo.messages.outgoing.inventory.cosmetics.UserProfileCosmeticsComposer;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserDataComposer;
 
 public class ChangeInfostandBgEvent extends MessageHandler {
@@ -67,6 +68,7 @@ public class ChangeInfostandBgEvent extends MessageHandler {
         } else {
             this.client.sendResponse(new RoomUserDataComposer(habbo));
         }
+        this.client.sendResponse(new UserProfileCosmeticsComposer(habbo));
     }
 
     private static int sanitize(int value) {
@@ -76,6 +78,7 @@ public class ChangeInfostandBgEvent extends MessageHandler {
 
     private static int resolve(InfostandBackgroundManager manager, Habbo habbo, Category category, int requested, int current) {
         if (manager == null) return requested;
-        return manager.canUse(habbo, category, requested) ? requested : current;
+        if (requested == current) return current;
+        return manager.tryPurchaseAndEquip(habbo, category, requested) ? requested : current;
     }
 }

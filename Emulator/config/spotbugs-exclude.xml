@@ -32,11 +32,6 @@
         <Method name="canWalkOn"/>
     </Match>
     <Match>
-        <Bug pattern="DM_GC"/>
-        <Class name="com.eu.habbo.habbohotel.commands.AboutCommand"/>
-        <Method name="handle"/>
-    </Match>
-    <Match>
         <Bug pattern="EQ_DONT_DEFINE_EQUALS_FOR_ENUM"/>
         <Class name="com.eu.habbo.habbohotel.rooms.RoomRightLevels"/>
         <Method name="equals"/>

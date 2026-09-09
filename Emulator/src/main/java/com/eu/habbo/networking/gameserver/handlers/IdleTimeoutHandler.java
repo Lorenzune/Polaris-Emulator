@@ -55,6 +55,10 @@ public class IdleTimeoutHandler extends ChannelDuplexHandler {
         }
     }
 
+    static boolean isGameTransportReady(ChannelHandlerContext ctx) {
+        return GameServerAttributes.isGameTransportReady(ctx.channel());
+    }
+
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
         if (ctx.channel().isActive() && ctx.channel().isRegistered()) {
@@ -135,7 +139,7 @@ public class IdleTimeoutHandler extends ChannelDuplexHandler {
             }
 
             final GameClient client = ctx.channel().attr(GameServerAttributes.CLIENT).get();
-            if (client != null) {
+            if (client != null && isGameTransportReady(ctx)) {
                 lastPingTime = System.nanoTime();
                 sentPing = true;
                 client.sendResponse(new PingComposer());

@@ -51,6 +51,7 @@ public class HabboStats implements Runnable {
     private final Map<Integer, CatalogItem> recentPurchases;
     private final IntArrayList favoriteRooms;
     private final IntArrayList ignoredUsers;
+    private final IntArrayList blockedUsers;
     private IntArrayList roomsVists;
     public int achievementScore;
     public int respectPointsReceived;
@@ -64,6 +65,8 @@ public class HabboStats implements Runnable {
     public boolean blockStaffAlerts;
     public boolean preferOldChat;
     public boolean blockCameraFollow;
+    public boolean blockKiss;
+    public boolean blockMimic;
     public RoomChatMessageBubbles chatColor;
     public int volumeSystem;
     public int volumeFurni;
@@ -123,6 +126,7 @@ public class HabboStats implements Runnable {
         this.recentPurchases = new HashMap<>(0);
         this.favoriteRooms = new IntArrayList(0);
         this.ignoredUsers = new IntArrayList(0);
+        this.blockedUsers = new IntArrayList(0);
         this.roomsVists = new IntArrayList(0);
         this.secretRecipes = new IntArrayList(0);
         this.calendarRewardsClaimed = new ArrayList<>();
@@ -140,6 +144,8 @@ public class HabboStats implements Runnable {
         this.blockRoomInvites = set.getString("block_roominvites").equals("1");
         this.preferOldChat = set.getString("old_chat").equals("1");
         this.blockCameraFollow = set.getString("block_camera_follow").equals("1");
+        this.blockKiss = "1".equals(safeColumnString(set, "block_kiss", "0"));
+        this.blockMimic = "1".equals(safeColumnString(set, "block_mimic", "0"));
         this.guild = set.getInt("guild_id");
         this.guilds = new ArrayList<>();
         this.tags = set.getString("tags").split(";");
@@ -263,6 +269,17 @@ public class HabboStats implements Runnable {
             try (ResultSet ignoredSet = ignoredPlayersStatement.executeQuery()) {
                 while (ignoredSet.next()) {
                     this.ignoredUsers.add(ignoredSet.getInt(1));
+                }
+            }
+        }
+
+        try (PreparedStatement blockedPlayersStatement = set.getStatement()
+                .getConnection()
+                .prepareStatement("SELECT target_id FROM users_blocked WHERE user_id = ?")) {
+            blockedPlayersStatement.setInt(1, this.habboInfo.getId());
+            try (ResultSet blockedSet = blockedPlayersStatement.executeQuery()) {
+                while (blockedSet.next()) {
+                    this.blockedUsers.add(blockedSet.getInt(1));
                 }
             }
         }
@@ -837,13 +854,15 @@ public class HabboStats implements Runnable {
     public boolean ignoreUser(GameClient gameClient, int userId) {
         final Habbo target = Emulator.getGameEnvironment().getHabboManager().getHabbo(userId);
 
-        if (!Emulator.getConfig().getBoolean("hotel.allow.ignore.staffs")
+        if (target != null && !Emulator.getConfig().getBoolean("hotel.allow.ignore.staffs")
                 && target.hasPermission(Permission.ACC_UNIGNORABLE)) {
-            gameClient
-                    .getHabbo()
-                    .whisper(
-                            Emulator.getTexts().getValue("generic.error.ignore_higher_rank"),
-                            RoomChatMessageBubbles.ALERT);
+            if (gameClient != null && gameClient.getHabbo() != null) {
+                gameClient
+                        .getHabbo()
+                        .whisper(
+                                Emulator.getTexts().getValue("generic.error.ignore_higher_rank"),
+                                RoomChatMessageBubbles.ALERT);
+            }
             return false;
         }
 
@@ -884,6 +903,97 @@ public class HabboStats implements Runnable {
         return this.ignoredUsers.contains(userId);
     }
 
+    public static boolean isUserBlocked(int userId, int targetId) {
+        Habbo habbo = Emulator.getGameEnvironment().getHabboManager().getHabbo(userId);
+        if (habbo != null) {
+            return habbo.getHabboStats().userBlocked(targetId);
+        }
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM users_blocked WHERE user_id = ? AND target_id = ? LIMIT 1")) {
+            statement.setInt(1, userId);
+            statement.setInt(2, targetId);
+            try (ResultSet set = statement.executeQuery()) {
+                return set.next();
+            }
+        } catch (SQLException e) {
+            LOGGER.error("Caught SQL exception in isUserBlocked", e);
+        }
+        return false;
+    }
+
+    public boolean blockUser(GameClient gameClient, int userId) {
+        final Habbo target = Emulator.getGameEnvironment().getHabboManager().getHabbo(userId);
+
+        if (target != null && !Emulator.getConfig().getBoolean("hotel.allow.ignore.staffs")
+                && target.hasPermission(Permission.ACC_UNIGNORABLE)) {
+            if (gameClient != null && gameClient.getHabbo() != null) {
+                gameClient
+                        .getHabbo()
+                        .whisper(
+                                Emulator.getTexts().getValue("generic.error.ignore_higher_rank"),
+                                RoomChatMessageBubbles.ALERT);
+            }
+            return false;
+        }
+
+        if (!this.userBlocked(userId)) {
+            this.blockedUsers.add(userId);
+
+            try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                    PreparedStatement statement = connection.prepareStatement(
+                            "INSERT INTO users_blocked (user_id, target_id, timestamp) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE timestamp = VALUES(timestamp)")) {
+                statement.setInt(1, this.habboInfo.getId());
+                statement.setInt(2, userId);
+                statement.setInt(3, Emulator.getIntUnixTimestamp());
+                statement.execute();
+            } catch (SQLException e) {
+                LOGGER.error("Caught SQL exception", e);
+            }
+        }
+
+        if (gameClient != null && gameClient.getHabbo() != null && gameClient.getHabbo().getMessenger() != null) {
+            if (gameClient.getHabbo().getMessenger().getFriend(userId) != null) {
+                com.eu.habbo.habbohotel.messenger.Messenger.unfriend(this.habboInfo.getId(), userId);
+                gameClient.getHabbo().getMessenger().removeBuddy(userId);
+
+                Habbo targetHabbo = Emulator.getGameServer().getGameClientManager().getHabbo(userId);
+                if (targetHabbo != null && targetHabbo.getMessenger() != null) {
+                    targetHabbo.getMessenger().removeBuddy(gameClient.getHabbo());
+                    if (targetHabbo.getClient() != null) {
+                        targetHabbo.getClient().sendResponse(new com.eu.habbo.messages.outgoing.friends.RemoveFriendComposer(this.habboInfo.getId()));
+                    }
+                }
+                gameClient.sendResponse(new com.eu.habbo.messages.outgoing.friends.RemoveFriendComposer(userId));
+            }
+        }
+
+        return true;
+    }
+
+    public void unblockUser(int userId) {
+        if (this.userBlocked(userId)) {
+            this.blockedUsers.rem(userId);
+
+            try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                    PreparedStatement statement = connection.prepareStatement(
+                            "DELETE FROM users_blocked WHERE user_id = ? AND target_id = ?")) {
+                statement.setInt(1, this.habboInfo.getId());
+                statement.setInt(2, userId);
+                statement.execute();
+            } catch (SQLException e) {
+                LOGGER.error("Caught SQL exception", e);
+            }
+        }
+    }
+
+    public boolean userBlocked(int userId) {
+        return this.blockedUsers.contains(userId);
+    }
+
+    public IntArrayList getBlockedUsers() {
+        return this.blockedUsers;
+    }
+
     public boolean allowTrade() {
         if (AchievementManager.TALENTTRACK_ENABLED && RoomTrade.TRADING_REQUIRES_PERK)
             return this.perkTrade && this.allowTrade;
@@ -909,17 +1019,27 @@ public class HabboStats implements Runnable {
     }
 
     public void setGamePrivacy(boolean hideOnline, boolean blockFollowing, boolean blockFriendRequests) {
+        setGamePrivacy(hideOnline, blockFollowing, blockFriendRequests, this.blockKiss, this.blockMimic, this.mentionsEnabled);
+    }
+
+    public void setGamePrivacy(boolean hideOnline, boolean blockFollowing, boolean blockFriendRequests, boolean blockKiss, boolean blockMimic, boolean mentionsEnabled) {
         this.hideOnline = hideOnline;
         this.blockFollowing = blockFollowing;
         this.blockFriendRequests = blockFriendRequests;
+        this.blockKiss = blockKiss;
+        this.blockMimic = blockMimic;
+        this.mentionsEnabled = mentionsEnabled;
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement(
-                        "UPDATE users_settings SET hide_online = ?, block_following = ?, block_friendrequests = ? WHERE user_id = ? LIMIT 1")) {
+                        "UPDATE users_settings SET hide_online = ?, block_following = ?, block_friendrequests = ?, block_kiss = ?, block_mimic = ?, mentions_enabled = ? WHERE user_id = ? LIMIT 1")) {
             statement.setString(1, hideOnline ? "1" : "0");
             statement.setString(2, blockFollowing ? "1" : "0");
             statement.setString(3, blockFriendRequests ? "1" : "0");
-            statement.setInt(4, this.habboInfo.getId());
+            statement.setString(4, blockKiss ? "1" : "0");
+            statement.setString(5, blockMimic ? "1" : "0");
+            statement.setString(6, mentionsEnabled ? "1" : "0");
+            statement.setInt(7, this.habboInfo.getId());
             statement.executeUpdate();
         } catch (SQLException e) {
             LOGGER.error("Failed to persist game privacy for user {}", this.habboInfo.getId(), e);

@@ -75,7 +75,7 @@ public class BadgesComponent {
                 int slot = entry.getKey();
                 HabboBadge badge = entry.getValue();
 
-                if (slot < 1 || slot > 5 || badge == null || !this.badges.contains(badge)) return false;
+                if (slot < 1 || slot > 10 || badge == null || !this.badges.contains(badge)) return false;
 
                 // A badge granted immediately before this request may still be waiting
                 // for its insert task. Give it a stable database id before the atomic

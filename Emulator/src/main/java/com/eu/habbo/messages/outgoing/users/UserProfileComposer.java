@@ -120,6 +120,7 @@ public class UserProfileComposer extends MessageComposer {
         this.response.appendInt(this.habboInfo.getInfostandStand());
         this.response.appendInt(this.habboInfo.getInfostandOverlay());
         this.response.appendInt(this.habboInfo.getInfostandCardBg());
+        this.response.appendInt(this.habboInfo.getInfostandBorder());
         UserCustomizationData customizationData = (this.habbo != null) ? UserCustomizationData.fromHabbo(this.habbo) : UserCustomizationData.fromUserId(this.habboInfo.getId());
         this.response.appendString(customizationData.nickIcon);
         this.response.appendString(customizationData.prefixText);
@@ -130,6 +131,29 @@ public class UserProfileComposer extends MessageComposer {
         this.response.appendString(customizationData.displayOrder);
         this.response.appendInt(this.getTotalBadges());
         this.response.appendInt(accountLevel);
+        this.response.appendString(customizationData.nickColor);
+        this.response.appendString(customizationData.nickEffect);
+        this.response.appendString(customizationData.nickFont);
+        this.response.appendInt(this.habboInfo.getProfileDirection());
+        this.response.appendInt(this.habboInfo.getProfileHeadDirection());
+        this.response.appendString(this.habboInfo.getProfileAction());
+
+        int respectsReceived = 0;
+        if (this.habbo != null) {
+            respectsReceived = this.habbo.getHabboStats().respectPointsReceived;
+        } else {
+            try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT respects_received FROM users_settings WHERE user_id = ? LIMIT 1")) {
+                statement.setInt(1, this.habboInfo.getId());
+                try (ResultSet set = statement.executeQuery()) {
+                    if (set.next()) {
+                        respectsReceived = set.getInt("respects_received");
+                    }
+                }
+            } catch (SQLException e) {
+                LOGGER.error("Caught SQL exception while loading respects for user profile", e);
+            }
+        }
+        this.response.appendInt(respectsReceived);
 
         return this.response;
     }

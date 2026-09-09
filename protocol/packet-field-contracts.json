@@ -6073,6 +6073,66 @@
       ]
     },
     {
+      "name": "GET_BLOCKED_USERS",
+      "direction": "client_to_server",
+      "header": 4810,
+      "java": {
+        "symbol": "GetBlockedUsersEvent",
+        "className": "GetBlockedUsersEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/users/GetBlockedUsersEvent.java"
+      },
+      "typescript": {
+        "symbol": "GET_BLOCKED_USERS",
+        "className": "GetBlockedUsersComposer",
+        "path": "packages/communication/src/messages/outgoing/user/data/GetBlockedUsersComposer.ts"
+      },
+      "fields": []
+    },
+    {
+      "name": "BLOCK_ROOM_USER",
+      "direction": "client_to_server",
+      "header": 4811,
+      "java": {
+        "symbol": "BlockRoomUserEvent",
+        "className": "BlockRoomUserEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/rooms/users/BlockRoomUserEvent.java"
+      },
+      "typescript": {
+        "symbol": "BLOCK_ROOM_USER",
+        "className": "BlockUserComposer",
+        "path": "packages/communication/src/messages/outgoing/user/data/BlockUserComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "username"
+        }
+      ]
+    },
+    {
+      "name": "UNBLOCK_ROOM_USER",
+      "direction": "client_to_server",
+      "header": 4812,
+      "java": {
+        "symbol": "UnblockRoomUserEvent",
+        "className": "UnblockRoomUserEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/rooms/users/UnblockRoomUserEvent.java"
+      },
+      "typescript": {
+        "symbol": "UNBLOCK_ROOM_USER",
+        "className": "UnblockUserComposer",
+        "path": "packages/communication/src/messages/outgoing/user/data/UnblockUserComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "username"
+        }
+      ]
+    },
+    {
       "name": "REQUEST_MESSENGER_CONVERSATIONS",
       "direction": "client_to_server",
       "header": 4900,
@@ -9649,6 +9709,21 @@
         {
           "kind": "scalar",
           "type": "int",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
           "name": ""
         },
         {
@@ -14942,6 +15017,51 @@
           "kind": "scalar",
           "type": "int",
           "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": ""
         }
       ]
     },
@@ -16273,6 +16393,38 @@
       "header": 9410,
       "symbol": "RoomUserHabbiconComposer",
       "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/users/RoomUserHabbiconComposer.java",
+      "reason": "Header is registered only by the Polaris Emulator packet registry"
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 7040,
+      "symbol": "UserProfileCosmeticsComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/inventory/cosmetics/UserProfileCosmeticsComposer.java",
+      "reason": "Header is registered only by the Polaris Emulator packet registry"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 7040,
+      "symbol": "RequestUserProfileCosmeticsEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/inventory/cosmetics/RequestUserProfileCosmeticsEvent.java",
+      "reason": "Header is registered only by the Polaris Emulator packet registry"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 7041,
+      "symbol": "PurchaseProfileCosmeticEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/inventory/cosmetics/PurchaseProfileCosmeticEvent.java",
+      "reason": "Header is registered only by the Polaris Emulator packet registry"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 7044,
+      "symbol": "SaveProfilePoseEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/inventory/cosmetics/SaveProfilePoseEvent.java",
       "reason": "Header is registered only by the Polaris Emulator packet registry"
     },
     {
@@ -17626,6 +17778,118 @@
       "symbol": "RecyclerAdminResultComposer",
       "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/catalog/recycler/RecyclerAdminResultComposer.java",
       "reason": "Custom Furni-Matic editor result is consumed by the local Nitro extension"
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 7010,
+      "symbol": "UserNickStylesComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/inventory/nicks/UserNickStylesComposer.java",
+      "reason": "Custom nickname inventory packet"
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 7011,
+      "symbol": "ActiveNickStyleUpdatedComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/inventory/nicks/ActiveNickStyleUpdatedComposer.java",
+      "reason": "Custom nickname inventory packet"
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 7012,
+      "symbol": "CustomNickPurchaseFailedComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/inventory/nicks/CustomNickPurchaseFailedComposer.java",
+      "reason": "Custom nickname inventory packet"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 7021,
+      "symbol": "RequestUserNicksEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/inventory/nicks/RequestUserNicksEvent.java",
+      "reason": "Custom nickname inventory packet"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 7022,
+      "symbol": "SetActiveNickStyleEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/inventory/nicks/SetActiveNickStyleEvent.java",
+      "reason": "Custom nickname inventory packet"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 7023,
+      "symbol": "PurchaseNickStyleEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/inventory/nicks/PurchaseNickStyleEvent.java",
+      "reason": "Custom nickname inventory packet"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 7024,
+      "symbol": "PurchaseCatalogNickEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/inventory/nicks/PurchaseCatalogNickEvent.java",
+      "reason": "Custom nickname inventory packet"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 7025,
+      "symbol": "DeleteNickStyleEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/inventory/nicks/DeleteNickStyleEvent.java",
+      "reason": "Custom nickname inventory packet"
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 7030,
+      "symbol": "UserChatBubblesComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/inventory/chatbubbles/UserChatBubblesComposer.java",
+      "reason": "Custom chat bubbles inventory packet"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 7030,
+      "symbol": "RequestUserChatBubblesEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/inventory/chatbubbles/RequestUserChatBubblesEvent.java",
+      "reason": "Custom chat bubbles inventory packet"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 7031,
+      "symbol": "PurchaseChatBubbleEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/inventory/chatbubbles/PurchaseChatBubbleEvent.java",
+      "reason": "Custom chat bubbles inventory packet"
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 7032,
+      "symbol": "UserHabbiconsComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/inventory/habbicons/UserHabbiconsComposer.java",
+      "reason": "Custom habbicons inventory packet"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 7032,
+      "symbol": "RequestUserHabbiconsEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/inventory/habbicons/RequestUserHabbiconsEvent.java",
+      "reason": "Custom habbicons inventory packet"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 7033,
+      "symbol": "PurchaseHabbiconEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/inventory/habbicons/PurchaseHabbiconEvent.java",
+      "reason": "Custom habbicons inventory packet"
     }
   ],
   "exemptions": [
@@ -18203,7 +18467,7 @@
         "className": "RoomUnitChatWhisperComposer",
         "path": "packages/communication/src/messages/outgoing/room/unit/chat/RoomUnitChatWhisperComposer.ts"
       },
-      "reason": "Java analyzer: Packet fields delegated to external constructor RoomChatMessage inside handle; TypeScript analyzer: Outgoing value recipientName + \u0027 \u0027 + message has no statically resolvable wire type"
+      "reason": "Java analyzer: Packet fields delegated to external constructor RoomChatMessage inside handle; TypeScript analyzer: Outgoing value recipientName + ' ' + message has no statically resolvable wire type"
     },
     {
       "name": "RELEASE_ISSUES",
@@ -18827,7 +19091,7 @@
         "className": "FurnitureExchangeComposer",
         "path": "packages/communication/src/messages/outgoing/room/furniture/logic/FurnitureExchangeComposer.ts"
       },
-      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 195,col 5) Record Declarations are not supported. Pay attention that this feature is supported starting from \u0027JAVA_14\u0027 language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
+      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 195,col 5) Record Declarations are not supported. Pay attention that this feature is supported starting from 'JAVA_14' language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
     },
     {
       "name": "GROUP_SAVE_INFORMATION",
@@ -19083,7 +19347,7 @@
         "className": "FriendFurniConfirmLockMessageComposer",
         "path": "packages/communication/src/messages/outgoing/friendfurni/FriendFurniConfirmLockMessageComposer.ts"
       },
-      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 27,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from \u0027JAVA_14\u0027 language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
+      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 27,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from 'JAVA_14' language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
     },
     {
       "name": "COMPOST_PLANT",
@@ -19163,7 +19427,7 @@
         "className": "ClientHelloMessageComposer",
         "path": "packages/communication/src/messages/outgoing/handshake/ClientHelloMessageComposer.ts"
       },
-      "reason": "TypeScript analyzer: Outgoing value `NITRO-${NitroVersion.RENDERER_VERSION.replaceAll(\u0027.\u0027, \u0027-\u0027)}` has no statically resolvable wire type"
+      "reason": "TypeScript analyzer: Outgoing value `NITRO-${NitroVersion.RENDERER_VERSION.replaceAll('.', '-')}` has no statically resolvable wire type"
     },
     {
       "name": "SNOWWAR_LOBBY_TEAMS",
@@ -19307,7 +19571,7 @@
         "className": "ChestDepositComposer",
         "path": "packages/communication/src/messages/outgoing/room/furniture/chest/ChestDepositComposer.ts"
       },
-      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 39,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from \u0027JAVA_14\u0027 language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
+      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 39,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from 'JAVA_14' language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
     },
     {
       "name": "CHEST_WITHDRAW",
@@ -19323,7 +19587,7 @@
         "className": "ChestWithdrawComposer",
         "path": "packages/communication/src/messages/outgoing/room/furniture/chest/ChestWithdrawComposer.ts"
       },
-      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 36,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from \u0027JAVA_14\u0027 language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
+      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 36,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from 'JAVA_14' language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
     },
     {
       "name": "CHEST_SAVE_SETTINGS",
@@ -19339,7 +19603,7 @@
         "className": "ChestSaveSettingsComposer",
         "path": "packages/communication/src/messages/outgoing/room/furniture/chest/ChestSaveSettingsComposer.ts"
       },
-      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 37,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from \u0027JAVA_14\u0027 language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
+      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 37,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from 'JAVA_14' language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
     },
     {
       "name": "CHEST_SAVE_NOTIFICATIONS",
@@ -19355,7 +19619,7 @@
         "className": "ChestSaveNotificationsComposer",
         "path": "packages/communication/src/messages/outgoing/room/furniture/chest/ChestSaveNotificationsComposer.ts"
       },
-      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 37,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from \u0027JAVA_14\u0027 language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
+      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 37,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from 'JAVA_14' language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
     },
     {
       "name": "CHEST_UPGRADE_CAPACITY",
@@ -19371,7 +19635,7 @@
         "className": "ChestUpgradeCapacityComposer",
         "path": "packages/communication/src/messages/outgoing/room/furniture/chest/ChestUpgradeCapacityComposer.ts"
       },
-      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 41,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from \u0027JAVA_14\u0027 language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
+      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 41,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from 'JAVA_14' language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
     },
     {
       "name": "CHEST_REQUEST_LOG",
@@ -19387,7 +19651,7 @@
         "className": "ChestRequestLogComposer",
         "path": "packages/communication/src/messages/outgoing/room/furniture/chest/ChestRequestLogComposer.ts"
       },
-      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 30,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from \u0027JAVA_14\u0027 language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
+      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 30,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from 'JAVA_14' language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
     },
     {
       "name": "CHEST_WITHDRAW_FURNI",
@@ -19403,7 +19667,7 @@
         "className": "ChestWithdrawFurniComposer",
         "path": "packages/communication/src/messages/outgoing/room/furniture/chest/ChestWithdrawFurniComposer.ts"
       },
-      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 36,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from \u0027JAVA_14\u0027 language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
+      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 36,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from 'JAVA_14' language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
     },
     {
       "name": "CHEST_DEPOSIT_FURNI",
@@ -19419,7 +19683,7 @@
         "className": "ChestDepositFurniComposer",
         "path": "packages/communication/src/messages/outgoing/room/furniture/chest/ChestDepositFurniComposer.ts"
       },
-      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 49,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from \u0027JAVA_14\u0027 language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
+      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 49,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from 'JAVA_14' language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
     },
     {
       "name": "CHEST_START_DEPOSIT",
@@ -19435,7 +19699,7 @@
         "className": "ChestStartDepositComposer",
         "path": "packages/communication/src/messages/outgoing/room/furniture/chest/ChestStartDepositComposer.ts"
       },
-      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 25,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from \u0027JAVA_14\u0027 language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
+      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 25,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from 'JAVA_14' language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
     },
     {
       "name": "CHEST_DEPOSIT_INVENTORY_ITEM",
@@ -19451,7 +19715,7 @@
         "className": "ChestDepositInventoryItemComposer",
         "path": "packages/communication/src/messages/outgoing/room/furniture/chest/ChestDepositInventoryItemComposer.ts"
       },
-      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 33,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from \u0027JAVA_14\u0027 language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
+      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 33,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from 'JAVA_14' language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
     },
     {
       "name": "CHEST_WITHDRAW_ALL_FURNI",
@@ -19467,7 +19731,7 @@
         "className": "ChestWithdrawAllFurniComposer",
         "path": "packages/communication/src/messages/outgoing/room/furniture/chest/ChestWithdrawAllFurniComposer.ts"
       },
-      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 30,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from \u0027JAVA_14\u0027 language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
+      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 30,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from 'JAVA_14' language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
     },
     {
       "name": "CHEST_OPEN",
@@ -19483,7 +19747,7 @@
         "className": "ChestOpenComposer",
         "path": "packages/communication/src/messages/outgoing/room/furniture/chest/ChestOpenComposer.ts"
       },
-      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 30,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from \u0027JAVA_14\u0027 language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
+      "reason": "Java analyzer: Java analyzer could not resolve handle: (line 30,col 15) Use of patterns with instanceof is not supported. Pay attention that this feature is supported starting from 'JAVA_14' language level. If you need that feature the language level must be configured in the configuration before parsing the source files.\n"
     },
     {
       "name": "FURNITURE_PICKUP_ALL",
@@ -22428,6 +22692,38 @@
         "path": "packages/communication/src/messages/parser/mentions/MentionsListParser.ts"
       },
       "reason": "Java analyzer: Data-dependent packet operations in ForEachStmt inside composeInternal; TypeScript analyzer: Packet fields delegated to external constructor MentionListItem inside parse"
+    },
+    {
+      "name": "BLOCKED_USERS",
+      "direction": "server_to_client",
+      "header": 4810,
+      "java": {
+        "symbol": "BlockedUsersComposer",
+        "className": "BlockedUsersComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/users/BlockedUsersComposer.java"
+      },
+      "typescript": {
+        "symbol": "BLOCKED_USERS",
+        "className": "BlockedUsersParser",
+        "path": "packages/communication/src/messages/parser/user/BlockedUsersParser.ts"
+      },
+      "reason": "Java analyzer: Data-dependent packet operations in ForEachStmt inside composeInternal; TypeScript analyzer: Data-dependent packet operations in ForStatement inside parse"
+    },
+    {
+      "name": "ROOM_USER_BLOCKED",
+      "direction": "server_to_client",
+      "header": 4811,
+      "java": {
+        "symbol": "RoomUserBlockedComposer",
+        "className": "RoomUserBlockedComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/users/RoomUserBlockedComposer.java"
+      },
+      "typescript": {
+        "symbol": "BLOCK_RESULT",
+        "className": "BlockResultParser",
+        "path": "packages/communication/src/messages/parser/user/BlockResultParser.ts"
+      },
+      "reason": "Block result code and username response"
     },
     {
       "name": "MESSENGER_CONVERSATIONS",

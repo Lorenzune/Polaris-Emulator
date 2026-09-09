@@ -1,5 +1,5 @@
-09:43:55.217 [GamePacketHandler-8-2] ERROR com.eu.habbo.habbohotel.guilds.GuildManager - Caught SQL exception
-java.sql.SQLIntegrityConstraintViolationException: (conn=1900) Duplicate entry '16-15' for key 'user_guild'
+21:54:11.338 [GamePacketHandler-8-2] ERROR com.eu.habbo.habbohotel.guilds.GuildManager - Caught SQL exception
+java.sql.SQLIntegrityConstraintViolationException: (conn=1678) Duplicate entry '16-15' for key 'user_guild'
 	at org.mariadb.jdbc.export.ExceptionFactory.createException(ExceptionFactory.java:317)
 	at org.mariadb.jdbc.export.ExceptionFactory.create(ExceptionFactory.java:402)
 	at org.mariadb.jdbc.message.ClientMessage.readPacket(ClientMessage.java:195)
@@ -18,7 +18,7 @@ java.sql.SQLIntegrityConstraintViolationException: (conn=1900) Duplicate entry '
 	at jdk.proxy2/jdk.proxy2.$Proxy10.execute(Unknown Source)
 	at com.eu.habbo.habbohotel.guilds.GuildManager.addView(GuildManager.java:683)
 	at com.eu.habbo.messages.incoming.guilds.forums.GuildForumDataEvent.handle(GuildForumDataEvent.java:44)
-	at com.eu.habbo.messages.PacketManager.handlePacket(PacketManager.java:267)
+	at com.eu.habbo.messages.PacketManager.handlePacket(PacketManager.java:265)
 	at com.eu.habbo.threading.runnables.ChannelReadHandler.run(ChannelReadHandler.java:24)
 	at com.eu.habbo.networking.gameserver.decoders.GameMessageHandler.channelRead(GameMessageHandler.java:65)
 	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:357)

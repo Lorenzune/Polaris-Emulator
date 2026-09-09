@@ -39,6 +39,11 @@ public class GameClientManager {
             }
         });
 
+        String userAgent = ctx.channel().attr(GameServerAttributes.USER_AGENT).get();
+        if (userAgent != null && !userAgent.isEmpty()) {
+            client.setUserAgent(userAgent);
+        }
+
         ctx.channel().attr(GameServerAttributes.CLIENT).set(client);
         ctx.fireChannelRegistered();
 

@@ -70,9 +70,24 @@ public class NickIconsComponent {
     }
 
     public UserNickIcon getNickIconByKey(String iconKey) {
+        if (iconKey == null) {
+            return null;
+        }
+        String clean = iconKey.trim();
+        String base = clean;
+        if (base.toLowerCase().endsWith(".gif") || base.toLowerCase().endsWith(".png")) {
+            base = base.substring(0, base.length() - 4);
+        }
+
         synchronized (this.nickIcons) {
             for (UserNickIcon nickIcon : this.nickIcons) {
-                if (nickIcon.getIconKey().equalsIgnoreCase(iconKey)) {
+                if (nickIcon.getIconKey() == null) continue;
+                String ownedKey = nickIcon.getIconKey().trim();
+                String ownedBase = ownedKey;
+                if (ownedBase.toLowerCase().endsWith(".gif") || ownedBase.toLowerCase().endsWith(".png")) {
+                    ownedBase = ownedBase.substring(0, ownedBase.length() - 4);
+                }
+                if (ownedKey.equalsIgnoreCase(clean) || ownedBase.equalsIgnoreCase(base)) {
                     return nickIcon;
                 }
             }

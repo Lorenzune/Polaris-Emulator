@@ -1,5 +1,6 @@
 package com.eu.habbo.messages.contracts;
 
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
@@ -57,6 +58,10 @@ final class JavaPacketSignatureExtractor {
             Map.entry("readBoolean", "boolean"),
             Map.entry("readString", "string"),
             Map.entry("readBytes", "bytes"));
+    static {
+        StaticJavaParser.getParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.BLEEDING_EDGE);
+    }
+
     private static final Map<String, String> OUTGOING_TYPES = Map.ofEntries(
             Map.entry("appendByte", "byte"),
             Map.entry("appendShort", "short"),

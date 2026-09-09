@@ -17,9 +17,18 @@ public class AvailableCommandsComposer extends MessageComposer {
     private final List<Command> commands;
     private final List<Rank> ranks;
 
+    /**
+     * Kept for plugins compiled against the released Polaris command-list
+     * packet. Those callers receive the original two-field command entries.
+     */
+    @Deprecated
+    public AvailableCommandsComposer(List<Command> commands) {
+        this(commands, null);
+    }
+
     public AvailableCommandsComposer(List<Command> commands, List<Rank> ranks) {
         this.commands = commands;
-        this.ranks = new ArrayList<>(ranks);
+        this.ranks = ranks == null ? null : new ArrayList<>(ranks);
     }
 
     @Override
@@ -27,13 +36,19 @@ public class AvailableCommandsComposer extends MessageComposer {
         this.response.init(Outgoing.AvailableCommandsComposer);
         this.response.appendInt(this.commands.size());
 
-        this.ranks.sort(Comparator.comparingInt(Rank::getLevel).thenComparingInt(Rank::getId));
+        if (this.ranks != null) {
+            this.ranks.sort(Comparator.comparingInt(Rank::getLevel).thenComparingInt(Rank::getId));
+        }
 
         for (Command cmd : this.commands) {
             this.response.appendString(cmd.keys[0]);
             this.response.appendString(
                     Emulator.getTexts().getValueQuietly("commands.description." + cmd.permission, cmd.permission)
             );
+
+            if (this.ranks == null) {
+                continue;
+            }
 
             List<String> allowedRanks = new ArrayList<>();
 

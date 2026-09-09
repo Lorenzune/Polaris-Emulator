@@ -227,7 +227,7 @@ public class CommandHandler {
     }
 
     public void reloadCommands() {
-        addCommand(new AboutCommand());
+        addCommand(new OnlineCommand());
         addCommand(new AlertCommand());
         addCommand(new AllowTradingCommand());
         addCommand(new ArcturusCommand());
@@ -288,7 +288,6 @@ public class CommandHandler {
         addCommand(new PickallCommand());
         addCommand(new PingCommand());
         addCommand(new PixelCommand());
-        addCommand(new PluginsCommand());
         addCommand(new PointsCommand());
         addCommand(new PromoteTargetOfferCommand());
         addCommand(new PullCommand());
@@ -358,7 +357,14 @@ public class CommandHandler {
         addCommand(new GivePrefixCommand());
         addCommand(new ListPrefixesCommand());
         addCommand(new RemovePrefixCommand());
+        addCommand(new UpdateCustomIconsCommand());
+        addCommand(new UpdateCustomPrefixCommand());
+        addCommand(new UpdateCustomizeProfileCommand());
+        addCommand(new UpdateCosmeticsCommand());
+        addCommand(new UpdateHabbiconsCommand());
+        addCommand(new UpdateExternalTextsCommand());
         addCommand(new WiredCommand());
+        addCommand(new VisitCommand());
         addCommand(new TestCommand());
     }
 

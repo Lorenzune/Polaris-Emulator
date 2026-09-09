@@ -91,7 +91,7 @@ public class GiftCommand extends Command {
                     giftFurniture.values().toArray()[Emulator.getRandom().nextInt(giftFurniture.size())]);
 
             String extraData = "1\t" + item.getId();
-            extraData += "\t0\t0\t0\t" + finalMessage + "\t0\t0";
+            extraData += "\t0\t0\t1\t" + finalMessage + "\t" + gameClient.getHabbo().getHabboInfo().getUsername() + "\t" + gameClient.getHabbo().getHabboInfo().getLook() + "\t1";
 
             Emulator.getGameEnvironment().getItemManager().createGift(username, giftItem, extraData, 0, 0);
 
