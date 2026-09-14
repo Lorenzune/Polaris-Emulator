@@ -37,14 +37,13 @@ public abstract class NavigatorFilter {
     }
 
     public void filterRooms(Method method, Object value, List<Room> result) {
-        if (method == null) {
+        if (method == null || value == null) {
             return;
         }
 
-        if (value instanceof String) {
-            if (((String) value).isEmpty()) {
-                return;
-            }
+        String strVal = value.toString().trim();
+        if (strVal.isEmpty()) {
+            return;
         }
 
         List<Room> toRemove = new ArrayList<>();
@@ -52,32 +51,88 @@ public abstract class NavigatorFilter {
             method.setAccessible(true);
 
             for (Room room : result) {
-                Object o = method.invoke(room);
-                if (o.getClass() == value.getClass()) {
-                    if (o instanceof String) {
-                        NavigatorFilterComparator comparator = Emulator.getGameEnvironment().getNavigatorManager().comperatorForField(method);
-
-                        if (comparator != null) {
-                            if (!this.applies(comparator, (String) o, (String) value)) {
-                                toRemove.add(room);
+                if (method.getName().equals("getTags")) {
+                    String tags = room.getTags();
+                    boolean matchesTag = false;
+                    if (tags != null && !tags.isEmpty()) {
+                        for (String t : tags.split(";")) {
+                            if (t.trim().equalsIgnoreCase(strVal)) {
+                                matchesTag = true;
+                                break;
                             }
-                        } else {
-                            toRemove.add(room);
                         }
-                    } else if (o instanceof String[]) {
-                        for (String s : (String[]) o) {
-                            NavigatorFilterComparator comparator = Emulator.getGameEnvironment().getNavigatorManager().comperatorForField(method);
+                    }
+                    if (!matchesTag) {
+                        toRemove.add(room);
+                    }
+                    continue;
+                }
 
-                            if (comparator != null) {
-                                if (!this.applies(comparator, s, (String) value)) {
-                                    toRemove.add(room);
+                if (method.getName().equals("getOwnerName")) {
+                    if (!room.getOwnerName().equalsIgnoreCase(strVal)) {
+                        toRemove.add(room);
+                    }
+                    continue;
+                }
+
+                if (method.getName().equals("getName")) {
+                    if (!room.getName().toLowerCase().contains(strVal.toLowerCase())) {
+                        toRemove.add(room);
+                    }
+                    continue;
+                }
+
+                if (method.getName().equals("getGuildName")) {
+                    if (!room.belongsToGuild() || !room.getGuildName().toLowerCase().contains(strVal.toLowerCase())) {
+                        toRemove.add(room);
+                    }
+                    continue;
+                }
+
+                if (method.getName().equals("filterAnything")) {
+                    boolean matches = false;
+                    if (room.getName().toLowerCase().contains(strVal.toLowerCase())) matches = true;
+                    else if (room.getDescription().toLowerCase().contains(strVal.toLowerCase())) matches = true;
+                    else if (room.getOwnerName().equalsIgnoreCase(strVal)) matches = true;
+                    else if (room.belongsToGuild() && room.getGuildName().toLowerCase().contains(strVal.toLowerCase())) matches = true;
+                    else {
+                        String tags = room.getTags();
+                        if (tags != null && !tags.isEmpty()) {
+                            for (String t : tags.split(";")) {
+                                if (t.trim().equalsIgnoreCase(strVal)) {
+                                    matches = true;
+                                    break;
                                 }
                             }
                         }
-                    } else {
-                        if (o != value) {
+                    }
+                    if (!matches) {
+                        toRemove.add(room);
+                    }
+                    continue;
+                }
+
+                Object o = method.invoke(room);
+                if (o instanceof String) {
+                    NavigatorFilterComparator comparator = Emulator.getGameEnvironment().getNavigatorManager().comperatorForField(method);
+                    if (comparator != null) {
+                        if (!this.applies(comparator, (String) o, strVal)) {
                             toRemove.add(room);
                         }
+                    } else if (!((String) o).toLowerCase().contains(strVal.toLowerCase())) {
+                        toRemove.add(room);
+                    }
+                } else if (o instanceof String[]) {
+                    NavigatorFilterComparator comparator = Emulator.getGameEnvironment().getNavigatorManager().comperatorForField(method);
+                    boolean matchesAny = false;
+                    for (String s : (String[]) o) {
+                        if (s != null && comparator != null && this.applies(comparator, s, strVal)) {
+                            matchesAny = true;
+                            break;
+                        }
+                    }
+                    if (!matchesAny) {
+                        toRemove.add(room);
                     }
                 }
             }

@@ -58,7 +58,9 @@ public class SearchResultList implements ISerialize, Comparable<SearchResultList
 
             message.appendInt(this.rooms.size());
 
-            Collections.sort(this.rooms);
+            if (!this.code.equalsIgnoreCase("history_freq")) {
+                Collections.sort(this.rooms);
+            }
             for (Room room : this.rooms) {
                 room.serialize(message);
             }
