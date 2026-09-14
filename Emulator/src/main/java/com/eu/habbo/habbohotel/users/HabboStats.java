@@ -65,7 +65,7 @@ public class HabboStats implements Runnable {
     public boolean blockStaffAlerts;
     public boolean preferOldChat;
     public boolean blockCameraFollow;
-    public boolean blockKiss;
+    public boolean blockRoleplay;
     public boolean blockMimic;
     public boolean wiredShowToolbarButton;
     public boolean wiredShowInspectButton;
@@ -149,7 +149,7 @@ public class HabboStats implements Runnable {
         this.blockRoomInvites = set.getString("block_roominvites").equals("1");
         this.preferOldChat = set.getString("old_chat").equals("1");
         this.blockCameraFollow = set.getString("block_camera_follow").equals("1");
-        this.blockKiss = "1".equals(safeColumnString(set, "block_kiss", "0"));
+        this.blockRoleplay = "1".equals(safeColumnString(set, "block_roleplay", "0"));
         this.blockMimic = "1".equals(safeColumnString(set, "block_mimic", "0"));
         this.wiredShowToolbarButton = "1".equals(safeColumnString(set, "wired_show_toolbar", "0"));
         this.wiredShowInspectButton = "1".equals(safeColumnString(set, "wired_show_inspect", "0"));
@@ -1075,24 +1075,24 @@ public class HabboStats implements Runnable {
     }
 
     public void setGamePrivacy(boolean hideOnline, boolean blockFollowing, boolean blockFriendRequests) {
-        setGamePrivacy(hideOnline, blockFollowing, blockFriendRequests, this.blockKiss, this.blockMimic, this.mentionsEnabled);
+        setGamePrivacy(hideOnline, blockFollowing, blockFriendRequests, this.blockRoleplay, this.blockMimic, this.mentionsEnabled);
     }
 
-    public void setGamePrivacy(boolean hideOnline, boolean blockFollowing, boolean blockFriendRequests, boolean blockKiss, boolean blockMimic, boolean mentionsEnabled) {
+    public void setGamePrivacy(boolean hideOnline, boolean blockFollowing, boolean blockFriendRequests, boolean blockRoleplay, boolean blockMimic, boolean mentionsEnabled) {
         this.hideOnline = hideOnline;
         this.blockFollowing = blockFollowing;
         this.blockFriendRequests = blockFriendRequests;
-        this.blockKiss = blockKiss;
+        this.blockRoleplay = blockRoleplay;
         this.blockMimic = blockMimic;
         this.mentionsEnabled = mentionsEnabled;
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement(
-                        "UPDATE users_settings SET hide_online = ?, block_following = ?, block_friendrequests = ?, block_kiss = ?, block_mimic = ?, mentions_enabled = ? WHERE user_id = ? LIMIT 1")) {
+                        "UPDATE users_settings SET hide_online = ?, block_following = ?, block_friendrequests = ?, block_roleplay = ?, block_mimic = ?, mentions_enabled = ? WHERE user_id = ? LIMIT 1")) {
             statement.setString(1, hideOnline ? "1" : "0");
             statement.setString(2, blockFollowing ? "1" : "0");
             statement.setString(3, blockFriendRequests ? "1" : "0");
-            statement.setString(4, blockKiss ? "1" : "0");
+            statement.setString(4, blockRoleplay ? "1" : "0");
             statement.setString(5, blockMimic ? "1" : "0");
             statement.setString(6, mentionsEnabled ? "1" : "0");
             statement.setInt(7, this.habboInfo.getId());

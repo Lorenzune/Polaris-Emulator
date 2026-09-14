@@ -87,6 +87,12 @@ public class UpdateAllCommand extends Command {
             try {
                 Emulator.getTexts().reload();
                 Emulator.getGameEnvironment().getCommandHandler().reloadCommands();
+                com.eu.habbo.habbohotel.commands.roleplay.RoleplayCommandManager.getInstance().reload();
+                Emulator.getGameServer().getGameClientManager().sendBroadcastResponse(
+                        new com.eu.habbo.messages.outgoing.roleplay.RoleplayCommandsComposer(
+                                com.eu.habbo.habbohotel.commands.roleplay.RoleplayCommandManager.getInstance().getCommandData()
+                        )
+                );
             } catch (Exception e) {
                 if (gameClient.getChannel().isOpen() && gameClient.getHabbo() != null) {
                     gameClient.getHabbo().whisper(

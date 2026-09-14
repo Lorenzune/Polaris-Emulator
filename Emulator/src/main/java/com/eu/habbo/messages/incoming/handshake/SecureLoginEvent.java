@@ -253,6 +253,9 @@ public class SecureLoginEvent extends MessageHandler {
                         ),
                         gameEnvironment.getPermissionsManager().getAllRanks()
                 ).compose());
+                messages.add(new com.eu.habbo.messages.outgoing.roleplay.RoleplayCommandsComposer(
+                        com.eu.habbo.habbohotel.commands.roleplay.RoleplayCommandManager.getInstance().getCommandData()
+                ).compose());
                 messages.add(new AvailabilityStatusMessageComposer(true, false, true).compose());
                 messages.add(new PingComposer().compose());
                 messages.add(new EnableNotificationsComposer(Emulator.getConfig().getBoolean("bubblealerts.enabled", true)).compose());

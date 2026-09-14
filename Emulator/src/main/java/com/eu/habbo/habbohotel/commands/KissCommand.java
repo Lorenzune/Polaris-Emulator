@@ -45,7 +45,7 @@ public class KissCommand extends Command {
             return true;
         }
 
-        if (target.getHabboStats().blockKiss) {
+        if (target.getHabboStats().blockRoleplay) {
             gameClient.getHabbo().whisper(
                     texts.getValue("commands.error.cmd_kiss.disabled", "%user% ha disattivato i baci nelle impostazioni privacy!")
                             .replace("%user%", target.getHabboInfo().getUsername()),
