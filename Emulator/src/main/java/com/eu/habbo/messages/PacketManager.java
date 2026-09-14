@@ -643,6 +643,7 @@ public class PacketManager {
         this.registerHandler(Incoming.RoomUserBanEvent, RoomUserBanEvent.class);
         this.registerHandler(Incoming.UnbanRoomUserEvent, UnbanRoomUserEvent.class);
         this.registerHandler(Incoming.RequestRoomUserTagsEvent, RequestRoomUserTagsEvent.class);
+        this.registerHandler(Incoming.SaveUserTagsEvent, SaveUserTagsEvent.class);
         this.registerHandler(Incoming.YoutubeRequestPlaylists, YoutubeRequestPlaylists.class);
         this.registerHandler(Incoming.YoutubeRequestStateChange, YoutubeRequestStateChange.class);
         this.registerHandler(Incoming.YoutubeRequestPlaylistChange, YoutubeRequestPlaylistChange.class);
@@ -716,6 +717,9 @@ public class PacketManager {
         this.registerHandler(Incoming.RequestGuildJoinEvent, RequestGuildJoinEvent.class);
         this.registerHandler(Incoming.GuildChangeNameDescEvent, GuildChangeNameDescEvent.class);
         this.registerHandler(Incoming.GuildChangeBadgeEvent, GuildChangeBadgeEvent.class);
+        this.registerHandler(Incoming.GuildUploadCustomBadgeEvent, GuildUploadCustomBadgeEvent.class);
+        this.registerHandler(Incoming.GuildCustomBadgeRequestsEvent, GuildCustomBadgeRequestsEvent.class);
+        this.registerHandler(Incoming.GuildCustomBadgeReviewEvent, GuildCustomBadgeReviewEvent.class);
         this.registerHandler(Incoming.GuildChangeColorsEvent, GuildChangeColorsEvent.class);
         this.registerHandler(Incoming.GuildRemoveAdminEvent, GuildRemoveAdminEvent.class);
         this.registerHandler(Incoming.GuildRemoveMemberEvent, GuildRemoveMemberEvent.class);

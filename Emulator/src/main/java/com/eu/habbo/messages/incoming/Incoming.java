@@ -19,6 +19,9 @@ public class Incoming {
     public static final int ChestRequestRoomLogsEvent = 9329;
     public static final int ChestCloseEvent = 9341;
     public static final int RoomVoiceSignalEvent = 9345;
+    public static final int GuildUploadCustomBadgeEvent = 9347;
+    public static final int GuildCustomBadgeRequestsEvent = 9349;
+    public static final int GuildCustomBadgeReviewEvent = 9351;
     public static final int ChangeNameCheckUsernameEvent = 3950;
     public static final int ConfirmChangeNameEvent = 2977;
     public static final int ActivateEffectEvent = 2959;
@@ -274,6 +277,7 @@ public class Incoming {
     public static final int RequestRoomWordFilterEvent = 1911;
     public static final int RoomWordFilterModifyEvent = 3001;
     public static final int RequestRoomUserTagsEvent = 17;
+    public static final int SaveUserTagsEvent = 3305;
     public static final int CatalogSearchedItemEvent = 2594;
     public static final int JukeBoxRequestTrackCodeEvent = 3189;
     public static final int JukeBoxRequestTrackDataEvent = 3082;

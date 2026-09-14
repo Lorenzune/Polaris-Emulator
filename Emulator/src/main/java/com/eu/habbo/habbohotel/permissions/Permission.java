@@ -32,6 +32,7 @@ public class Permission {
     public static String ACC_CHAT_NO_FILTER = "acc_chat_no_filter";
     public static String ACC_NOMUTE = "acc_nomute";
     public static String ACC_GUILD_ADMIN = "acc_guild_admin";
+    public static final String ACC_CUSTOM_GROUP_BADGE = "acc_custom_group_badge";
     public static String ACC_CATALOG_IDS = "acc_catalog_ids";
     public static String ACC_CATALOGFURNI = "acc_catalogfurni";
     public static final String ACC_RECYCLER_EDITOR = "acc_recycler_editor";
@@ -53,6 +54,8 @@ public class Permission {
     public static String ACC_CALENDAR_EDITOR = "acc_calendar_editor";
     public static String ACC_CALENDAR_FORCE = "acc_calendar_force";
     public static String ACC_UNIGNORABLE = "acc_unignorable";
+    public static final String CMD_VOCALBAN = "cmd_vocalban";
+    public static final String CMD_UNVOCALBAN = "cmd_unvocalban";
     public final String key;
     public final PermissionSetting setting;
     public Permission(String key, PermissionSetting setting) {

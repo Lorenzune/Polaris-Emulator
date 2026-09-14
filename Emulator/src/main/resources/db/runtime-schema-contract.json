@@ -47,6 +47,7 @@
     "guilds_forums_comments": ["admin_id", "created_at", "id", "message", "state", "thread_id", "user_id"],
     "guilds_forums_threads": ["admin_id", "created_at", "guild_id", "id", "locked", "opener_id", "pinned", "posts_count", "state", "subject", "updated_at"],
     "guilds_members": ["guild_id", "id", "level_id", "member_since", "user_id"],
+    "group_custom_badge_requests": ["badge_code", "created_at", "guild_id", "id", "requester_id", "reviewed_at", "reviewer_id", "status"],
     "habbo_mentions": ["id", "mention_type", "message", "read", "room_id", "room_name", "sender_user_id", "sender_username", "target_user_id", "timestamp"],
     "hotelview_landing_settings": ["background_url", "drape_url", "drape_x", "drape_y", "hall_of_fame_currency_type", "hall_of_fame_enabled", "hall_of_fame_mode", "hall_of_fame_x", "hall_of_fame_y", "id", "left_url", "left_x", "left_y", "right_url", "right_x", "right_y"],
     "hotelview_landing_slots": ["body", "button_text", "config_json", "enabled", "id", "image_url", "link", "progress", "progress_label", "title", "type"],

@@ -12,6 +12,9 @@ public class Outgoing {
     public static final int ChestOpenComposer = 9327;
     public static final int ChestRoomLogComposer = 9340;
     public static final int RoomVoiceSignalComposer = 9346;
+    public static final int GuildCustomBadgeSavedComposer = 9348;
+    public static final int GuildCustomBadgeRequestsComposer = 9350;
+    public static final int GuildCustomBadgeReviewResultComposer = 9352;
     public static final int FavoriteRoomsCountComposer = 151;
     public static final int UserCurrencyComposer = 2018;
     public static final int RedeemVoucherOKComposer = 3336;
@@ -633,6 +636,7 @@ public class Outgoing {
     public static final int CalendarEditorResultComposer = 10077;
     public static final int TraxEditorSongsComposer = 9430;
     public static final int TraxEditorErrorComposer = 9431;
+    public static final int RoleplayCommandsComposer = 9450;
     public static final int MentionReceivedComposer = 4801;
     public static final int MentionsListComposer = 4802;
     public static final int MessengerConversationsComposer = 4900;

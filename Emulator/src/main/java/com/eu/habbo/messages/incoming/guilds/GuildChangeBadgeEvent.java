@@ -3,6 +3,7 @@ package com.eu.habbo.messages.incoming.guilds;
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.guilds.Guild;
 import com.eu.habbo.habbohotel.guilds.GuildBadgeBuilder;
+import com.eu.habbo.habbohotel.guilds.GuildCustomBadgeRequestManager;
 import com.eu.habbo.habbohotel.permissions.Permission;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.messages.incoming.MessageHandler;
@@ -35,6 +36,14 @@ public class GuildChangeBadgeEvent extends MessageHandler {
                 String badge = GuildBadgeBuilder.readBadge(this.packet, count);
                 if (badge == null) return;
 
+                if (badge.startsWith("custom_")) {
+                    if (!GuildCustomBadgeRequestManager.badgeFilesExist(badge)
+                            || (!GuildCustomBadgeRequestManager.isApprovedBadge(badge)
+                            && !guild.getBadge().equalsIgnoreCase(badge))) {
+                        return;
+                    }
+                }
+
                 if (guild.getBadge().equalsIgnoreCase(badge))
                     return;
 
@@ -51,7 +60,20 @@ public class GuildChangeBadgeEvent extends MessageHandler {
                     Emulator.getBadgeImager().generate(guild);
                 }
 
-                room.refreshGuild(guild);
+                Room guildRoom = Emulator.getGameEnvironment().getRoomManager().getRoom(guild.getRoomId());
+                if (guildRoom != null) {
+                    guildRoom.refreshGuild(guild);
+                    guildRoom.sendComposer(new com.eu.habbo.messages.outgoing.rooms.users.RoomUsersAddGuildBadgeComposer(guild).compose());
+                }
+
+                Room currentRoom = this.client.getHabbo().getHabboInfo().getCurrentRoom();
+                if (currentRoom != null) {
+                    currentRoom.sendComposer(new com.eu.habbo.messages.outgoing.rooms.users.RoomUsersAddGuildBadgeComposer(guild).compose());
+                    if (this.client.getHabbo().getHabboStats().guild == guild.getId() && this.client.getHabbo().getRoomUnit() != null) {
+                        currentRoom.sendComposer(new com.eu.habbo.messages.outgoing.guilds.GuildFavoriteRoomUserUpdateComposer(this.client.getHabbo().getRoomUnit(), guild).compose());
+                    }
+                }
+
                 Emulator.getThreading().run(guild);
             }
         }
