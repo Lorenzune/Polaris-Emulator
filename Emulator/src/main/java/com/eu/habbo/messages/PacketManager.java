@@ -530,6 +530,7 @@ public class PacketManager {
         this.registerHandler(Incoming.RequestUserProfileCosmeticsEvent, com.eu.habbo.messages.incoming.inventory.cosmetics.RequestUserProfileCosmeticsEvent.class);
         this.registerHandler(Incoming.PurchaseProfileCosmeticEvent, com.eu.habbo.messages.incoming.inventory.cosmetics.PurchaseProfileCosmeticEvent.class);
         this.registerHandler(Incoming.SaveProfilePoseEvent, com.eu.habbo.messages.incoming.inventory.cosmetics.SaveProfilePoseEvent.class);
+        this.registerHandler(Incoming.SaveBadgeSlotsPreferenceEvent, com.eu.habbo.messages.incoming.inventory.cosmetics.SaveBadgeSlotsPreferenceEvent.class);
     }
 
     void registerRooms() throws Exception {

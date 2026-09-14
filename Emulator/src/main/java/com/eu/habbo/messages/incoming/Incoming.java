@@ -444,6 +444,7 @@ public class Incoming {
     public static final int WiredRoomRollbackEvent = 10034;
     public static final int WiredAccountPreferencesRequestEvent = 10035;
     public static final int WiredAccountPreferencesSaveEvent = 10036;
+    public static final int SaveBadgeSlotsPreferenceEvent = 10037;
     public static final int TranslationLanguagesRequestEvent = 10032;
     public static final int TranslationTextRequestEvent = 10033;
     public static final int RequestInventoryPetDelete = 10030;

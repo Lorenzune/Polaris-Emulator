@@ -214,20 +214,17 @@ public class BotSaveSettingsEvent extends MessageHandler {
 
                     int backgroundId;
                     int backgroundStandId;
-                    int backgroundCardId;
                     try {
                         backgroundId = parseCosmeticId(backgroundValues, 0);
                         backgroundStandId = parseCosmeticId(backgroundValues, 1);
-                        backgroundCardId = parseCosmeticId(backgroundValues, 2);
                     } catch (NumberFormatException e) {
                         break;
                     }
 
                     if (!ownsCosmetic(bot.getOwnerId(), backgroundId, "background")
-                            || !ownsCosmetic(bot.getOwnerId(), backgroundStandId, "stand")
-                            || !ownsCosmetic(bot.getOwnerId(), backgroundCardId, "card")) break;
+                            || !ownsCosmetic(bot.getOwnerId(), backgroundStandId, "stand")) break;
 
-                    bot.setBackgroundCosmetics(backgroundId, backgroundStandId, backgroundCardId);
+                    bot.setBackgroundCosmetics(backgroundId, backgroundStandId, 0);
                     break;
                 case 16:
                     String vipSlotsValue = this.packet.readString();

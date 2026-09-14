@@ -19,9 +19,9 @@ public class UserWearBadgeEvent extends MessageHandler {
 
         int maxSlots = 5;
         if (this.client.getHabbo() != null && this.client.getHabbo().getInventory() != null && this.client.getHabbo().getInventory().getProfileCosmeticsComponent() != null) {
-            if (this.client.getHabbo().getInventory().getProfileCosmeticsComponent().hasAnyCosmetic("slot")
-                    || this.client.getHabbo().getInventory().getProfileCosmeticsComponent().hasCosmetic("slot", 2001)
-                    || this.client.getHabbo().getInventory().getProfileCosmeticsComponent().hasCosmetic("slot", 7)) {
+            if (this.client.getHabbo().getHabboStats() != null
+                    && this.client.getHabbo().getHabboStats().isBadgeSlotsActive()
+                    && this.client.getHabbo().getInventory().getProfileCosmeticsComponent().hasAnyCosmetic("slot")) {
                 maxSlots = 7;
             }
         }

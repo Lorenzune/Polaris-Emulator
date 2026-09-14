@@ -37,7 +37,9 @@ public class ChangeInfostandBgEvent extends MessageHandler {
         int requestedBg = sanitize(this.packet.readInt());
         int requestedStand = sanitize(this.packet.readInt());
         int requestedOverlay = sanitize(this.packet.readInt());
-        int requestedCard = this.packet.bytesAvailable() >= 4 ? sanitize(this.packet.readInt()) : 0;
+        // The card-background feature is disabled. Keep consuming the legacy
+        // field so older clients remain packet-compatible, but never apply it.
+        if (this.packet.bytesAvailable() >= 4) this.packet.readInt();
         int requestedBorder = this.packet.bytesAvailable() >= 4 ? sanitize(this.packet.readInt()) : 0;
 
         InfostandBackgroundManager manager = Emulator.getGameEnvironment() != null ? Emulator.getGameEnvironment().getInfostandBackgroundManager() : null;
@@ -45,7 +47,7 @@ public class ChangeInfostandBgEvent extends MessageHandler {
         int backgroundImage = resolve(manager, habbo, Category.BACKGROUND, requestedBg, info.getInfostandBg());
         int backgroundStand = resolve(manager, habbo, Category.STAND, requestedStand, info.getInfostandStand());
         int backgroundOverlay = resolve(manager, habbo, Category.OVERLAY, requestedOverlay, info.getInfostandOverlay());
-        int backgroundCard = resolve(manager, habbo, Category.CARD, requestedCard, info.getInfostandCardBg());
+        int backgroundCard = 0;
         int backgroundBorder = resolve(manager, habbo, Category.BORDER, requestedBorder, info.getInfostandBorder());
 
         if (info.getInfostandBg() == backgroundImage
@@ -59,7 +61,7 @@ public class ChangeInfostandBgEvent extends MessageHandler {
         info.setInfostandBg(backgroundImage);
         info.setInfostandStand(backgroundStand);
         info.setInfostandOverlay(backgroundOverlay);
-        info.setInfostandCardBg(backgroundCard);
+        info.setInfostandCardBg(0);
         info.setInfostandBorder(backgroundBorder);
         info.run();
 

@@ -34,7 +34,7 @@ public class UserProfileCosmeticsComposer extends MessageComposer {
             this.response.appendInt(0);
             this.response.appendInt(0);
             this.response.appendInt(0);
-            this.response.appendInt(0);
+            this.response.appendBoolean(false);
             this.response.appendInt(2);
             this.response.appendInt(2);
             this.response.appendString("std");
@@ -49,8 +49,11 @@ public class UserProfileCosmeticsComposer extends MessageComposer {
         HabboInfo info = this.habbo.getHabboInfo();
         this.response.appendInt(info.getInfostandBg());
         this.response.appendInt(info.getInfostandStand());
-        this.response.appendInt(info.getInfostandCardBg());
         this.response.appendInt(info.getInfostandBorder());
+        boolean hasSlotCosmetic = this.habbo.getInventory() != null
+                && this.habbo.getInventory().getProfileCosmeticsComponent() != null
+                && this.habbo.getInventory().getProfileCosmeticsComponent().hasAnyCosmetic("slot");
+        this.response.appendBoolean(hasSlotCosmetic && this.habbo.getHabboStats() != null && this.habbo.getHabboStats().isBadgeSlotsActive());
         this.response.appendInt(info.getInfostandDirection());
         this.response.appendInt(info.getInfostandHeadDirection());
         this.response.appendString(info.getInfostandAction());
@@ -69,7 +72,7 @@ public class UserProfileCosmeticsComposer extends MessageComposer {
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
             // 1. Categories
             try (PreparedStatement statement = connection.prepareStatement(
-                    "SELECT id, name, category_type, badge, sort_order FROM custom_profile_cosmetic_categories WHERE enabled = 1 ORDER BY sort_order ASC, id ASC");
+                    "SELECT id, name, category_type, badge, sort_order FROM custom_profile_cosmetic_categories WHERE enabled = 1 AND LOWER(category_type) <> 'card' ORDER BY sort_order ASC, id ASC");
                  ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
                     categories.add(new CosmeticCategory(
@@ -87,7 +90,7 @@ public class UserProfileCosmeticsComposer extends MessageComposer {
             // 2. Catalog Items
             try (PreparedStatement statement = connection.prepareStatement(
                     "SELECT id, category_id, display_name, category, image_file, cost_credits, cost_points, points_type, is_free, is_hc_only, min_rank, sort_order " +
-                    "FROM custom_profile_cosmetics_catalog WHERE enabled = 1 ORDER BY sort_order ASC, id ASC");
+                    "FROM custom_profile_cosmetics_catalog WHERE enabled = 1 AND LOWER(category) <> 'card' ORDER BY sort_order ASC, id ASC");
                  ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
                     int id = set.getInt("id");
@@ -110,8 +113,6 @@ public class UserProfileCosmeticsComposer extends MessageComposer {
                         active = (info.getInfostandBg() == itemId);
                     } else if (type.equals("stand") || type.equals("stands")) {
                         active = (info.getInfostandStand() == itemId);
-                    } else if (type.equals("card") || type.equals("cards")) {
-                        active = (info.getInfostandCardBg() == itemId);
                     } else if (type.equals("border") || type.equals("borders")) {
                         active = (info.getInfostandBorder() == itemId);
                     }
