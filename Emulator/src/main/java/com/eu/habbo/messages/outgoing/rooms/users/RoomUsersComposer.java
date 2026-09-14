@@ -82,6 +82,12 @@ public class RoomUsersComposer extends MessageComposer {
             this.response.appendString(customizationData.nickColor);
             this.response.appendString(customizationData.nickEffect);
             this.response.appendString(customizationData.nickFont);
+            this.response.appendInt(this.habbo.getHabboInfo().getInfostandDirection());
+            this.response.appendInt(this.habbo.getHabboInfo().getInfostandHeadDirection());
+            this.response.appendString(this.habbo.getHabboInfo().getInfostandAction());
+            this.response.appendInt(this.habbo.getHabboInfo().getProfileDirection());
+            this.response.appendInt(this.habbo.getHabboInfo().getProfileHeadDirection());
+            this.response.appendString(this.habbo.getHabboInfo().getProfileAction());
         } else if (this.habbos != null) {
             this.response.appendInt(this.habbos.size());
             for (Habbo habbo : this.habbos) {
@@ -128,6 +134,12 @@ public class RoomUsersComposer extends MessageComposer {
                     this.response.appendString(customizationData.nickColor);
                     this.response.appendString(customizationData.nickEffect);
                     this.response.appendString(customizationData.nickFont);
+                    this.response.appendInt(habbo.getHabboInfo().getInfostandDirection());
+                    this.response.appendInt(habbo.getHabboInfo().getInfostandHeadDirection());
+                    this.response.appendString(habbo.getHabboInfo().getInfostandAction());
+                    this.response.appendInt(habbo.getHabboInfo().getProfileDirection());
+                    this.response.appendInt(habbo.getHabboInfo().getProfileHeadDirection());
+                    this.response.appendString(habbo.getHabboInfo().getProfileAction());
                 }
             }
         } else if (this.bot != null) {
@@ -135,10 +147,10 @@ public class RoomUsersComposer extends MessageComposer {
             this.response.appendInt(0 - this.bot.getId());
             this.response.appendString(this.bot.getName());
             this.response.appendString(this.bot.getMotto());
+            this.response.appendInt(this.bot.getBackgroundId());
+            this.response.appendInt(this.bot.getBackgroundStandId());
             this.response.appendInt(0);
-            this.response.appendInt(0);
-            this.response.appendInt(0);
-            this.response.appendInt(0);
+            this.response.appendInt(this.bot.getBackgroundCardId());
             this.response.appendString(this.bot.getFigure());
             this.response.appendInt(this.bot.getRoomUnit().getId());
             this.response.appendInt(this.bot.getRoomUnit().getX());
@@ -156,17 +168,19 @@ public class RoomUsersComposer extends MessageComposer {
             }
             this.response.appendString("unknown");
             this.response.appendInt(0);
-            this.response.appendInt(0);
+            this.response.appendInt(this.bot.getInfostandBorderId());
+            for (String badge : this.bot.getBadges()) this.response.appendString(badge == null ? "" : badge);
+            this.response.appendBoolean(this.bot.isVipSlotsActive());
         } else if (this.bots != null) {
             this.response.appendInt(this.bots.size());
             for (Bot bot : this.bots) {
                 this.response.appendInt(0 - bot.getId());
                 this.response.appendString(bot.getName());
                 this.response.appendString(bot.getMotto());
+                this.response.appendInt(bot.getBackgroundId());
+                this.response.appendInt(bot.getBackgroundStandId());
                 this.response.appendInt(0);
-                this.response.appendInt(0);
-                this.response.appendInt(0);
-                this.response.appendInt(0);
+                this.response.appendInt(bot.getBackgroundCardId());
                 this.response.appendString(bot.getFigure());
                 this.response.appendInt(bot.getRoomUnit().getId());
                 this.response.appendInt(bot.getRoomUnit().getX());
@@ -184,7 +198,9 @@ public class RoomUsersComposer extends MessageComposer {
                 }
                 this.response.appendString("unknown");
                 this.response.appendInt(0);
-                this.response.appendInt(0);
+                this.response.appendInt(bot.getInfostandBorderId());
+                for (String badge : bot.getBadges()) this.response.appendString(badge == null ? "" : badge);
+                this.response.appendBoolean(bot.isVipSlotsActive());
             }
         }
         return this.response;

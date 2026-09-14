@@ -2,6 +2,7 @@ package com.eu.habbo.messages.outgoing.friends;
 
 import com.eu.habbo.habbohotel.messenger.MessengerBuddy;
 import com.eu.habbo.habbohotel.users.Habbo;
+import com.eu.habbo.habbohotel.users.HabboGender;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
@@ -45,11 +46,11 @@ public class UserSearchResultComposer extends MessageComposer {
             this.response.appendInt(buddy.getId());
             this.response.appendString(buddy.getUsername());
             this.response.appendString(buddy.getMotto());
-            this.response.appendBoolean(false);
-            this.response.appendBoolean(false);
+            this.response.appendBoolean(buddy.isVisibleOnline());
+            this.response.appendBoolean(buddy.isVisibleInRoom());
             this.response.appendString("");
-            this.response.appendInt(1);
-            this.response.appendString(buddy.getLook());
+            this.response.appendInt(buddy.getGender() != null && buddy.getGender().equals(HabboGender.M) ? 0 : 1);
+            this.response.appendString(buddy.getLook() != null ? buddy.getLook() : "");
             this.response.appendString("");
         }
 
@@ -58,11 +59,11 @@ public class UserSearchResultComposer extends MessageComposer {
             this.response.appendInt(buddy.getId());
             this.response.appendString(buddy.getUsername());
             this.response.appendString(buddy.getMotto());
-            this.response.appendBoolean(false);
+            this.response.appendBoolean(buddy.isVisibleOnline());
             this.response.appendBoolean(false);
             this.response.appendString("");
-            this.response.appendInt(1);
-            this.response.appendString(buddy.isVisibleOnline() ? buddy.getLook() : "");
+            this.response.appendInt(buddy.getGender() != null && buddy.getGender().equals(HabboGender.M) ? 0 : 1);
+            this.response.appendString(buddy.getLook() != null ? buddy.getLook() : "");
             this.response.appendString("");
         }
 

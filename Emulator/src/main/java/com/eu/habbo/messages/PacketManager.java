@@ -779,6 +779,8 @@ public class PacketManager {
         this.registerHandler(Incoming.WiredMonitorRequestEvent, WiredMonitorRequestEvent.class);
         this.registerHandler(Incoming.WiredRoomSettingsRequestEvent, WiredRoomSettingsRequestEvent.class);
         this.registerHandler(Incoming.WiredRoomSettingsSaveEvent, WiredRoomSettingsSaveEvent.class);
+        this.registerHandler(Incoming.WiredAccountPreferencesRequestEvent, WiredAccountPreferencesRequestEvent.class);
+        this.registerHandler(Incoming.WiredAccountPreferencesSaveEvent, WiredAccountPreferencesSaveEvent.class);
         this.registerHandler(Incoming.WiredUserVariablesRequestEvent, WiredUserVariablesRequestEvent.class);
         this.registerHandler(Incoming.WiredUserVariableUpdateEvent, WiredUserVariableUpdateEvent.class);
         this.registerHandler(Incoming.WiredUserVariableManageEvent, WiredUserVariableManageEvent.class);

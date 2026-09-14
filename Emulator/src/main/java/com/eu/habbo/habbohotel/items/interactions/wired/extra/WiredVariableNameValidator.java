@@ -98,14 +98,6 @@ final class WiredVariableNameValidator {
             return ((WiredExtraContextVariable) extra).getVariableName();
         }
 
-        if (extra instanceof WiredExtraVariableReference) {
-            return ((WiredExtraVariableReference) extra).getVariableName();
-        }
-
-        if (extra instanceof WiredExtraVariableEcho) {
-            return ((WiredExtraVariableEcho) extra).getVariableName();
-        }
-
         return null;
     }
 }

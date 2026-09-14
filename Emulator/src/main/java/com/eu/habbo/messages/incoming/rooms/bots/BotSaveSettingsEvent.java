@@ -19,6 +19,12 @@ import com.eu.habbo.plugin.events.bots.BotSavedNameEvent;
 import org.jsoup.Jsoup;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 public class BotSaveSettingsEvent extends MessageHandler {
     @Override
@@ -28,24 +34,30 @@ public class BotSaveSettingsEvent extends MessageHandler {
         if (room == null)
             return;
 
-        if (room.getOwnerId() == this.client.getHabbo().getHabboInfo().getId() || this.client.getHabbo().hasPermission(Permission.ACC_ANYROOMOWNER)) {
-            int botId = this.packet.readInt();
-            Bot bot = room.getBot(Math.abs(botId));
-            if (bot == null)
-                return;
-            int settingId = this.packet.readInt();
-            boolean allowed = false;
-            for (short a : bot.getOwnerActionIds()) {
-                if (a == settingId) {
-                    allowed = true;
-                    break;
-                }
+        int botId = this.packet.readInt();
+        Bot bot = room.getBot(Math.abs(botId));
+        if (bot == null)
+            return;
+
+        int settingId = this.packet.readInt();
+        int userId = this.client.getHabbo().getHabboInfo().getId();
+        boolean roomOwnerOrStaff = room.getOwnerId() == userId || this.client.getHabbo().hasPermission(Permission.ACC_ANYROOMOWNER);
+        boolean botOwnerCosmetic = bot.getOwnerId() == userId && settingId >= 13 && settingId <= 16;
+        if (!roomOwnerOrStaff && !botOwnerCosmetic)
+            return;
+
+        boolean allowed = false;
+        for (short a : bot.getOwnerActionIds()) {
+            if (a == settingId) {
+                allowed = true;
+                break;
             }
-            if (!allowed) return;
+        }
+        if (!allowed) return;
 
-            if (!bot.tryAcquireOwnerActionSlot()) return;
+        if (!bot.tryAcquireOwnerActionSlot()) return;
 
-            switch (settingId) {
+        switch (settingId) {
                 case 1:
                     BotSavedLookEvent lookEvent = new BotSavedLookEvent(bot,
                             this.client.getHabbo().getHabboInfo().getGender(),
@@ -161,13 +173,68 @@ public class BotSaveSettingsEvent extends MessageHandler {
                     }
                     break;
                 case 9:
-                    String motto = this.packet.readString();
+                    String motto = this.packet.readString().replace('\r', ' ').replace('\n', ' ').trim();
 
-                    if(motto.length() > Emulator.getConfig().getInt("motto.max_length", 38)) break;
+                    if(motto.length() > Math.min(Emulator.getConfig().getInt("motto.max_length", 38), 38)) break;
 
                     bot.setMotto(motto);
                     bot.needsUpdate(true);
                     room.sendComposer(new RoomUsersComposer(bot).compose());
+                    break;
+                case 13:
+                    String[] requestedBadges = this.packet.readString().split(",", -1);
+                    if (requestedBadges.length > 7) break;
+
+                    String[] badges = new String[7];
+                    Set<String> uniqueBadges = new HashSet<>();
+                    for (int i = 0; i < requestedBadges.length; i++) {
+                        String badge = requestedBadges[i].trim();
+                        if (badge.isEmpty()) continue;
+                        if (badge.length() > 50 || !uniqueBadges.add(badge) || !ownsBadge(bot.getOwnerId(), badge)) return;
+                        badges[i] = badge;
+                    }
+
+                    bot.setBadges(badges);
+                    break;
+                case 14:
+                    int borderId;
+                    try {
+                        borderId = Integer.parseInt(this.packet.readString());
+                    } catch (NumberFormatException e) {
+                        break;
+                    }
+
+                    if (borderId < 0 || (borderId > 0 && !ownsBorder(bot.getOwnerId(), borderId))) break;
+
+                    bot.setInfostandBorderId(borderId);
+                    break;
+                case 15:
+                    String[] backgroundValues = this.packet.readString().split(",", -1);
+                    if (backgroundValues.length > 3) break;
+
+                    int backgroundId;
+                    int backgroundStandId;
+                    int backgroundCardId;
+                    try {
+                        backgroundId = parseCosmeticId(backgroundValues, 0);
+                        backgroundStandId = parseCosmeticId(backgroundValues, 1);
+                        backgroundCardId = parseCosmeticId(backgroundValues, 2);
+                    } catch (NumberFormatException e) {
+                        break;
+                    }
+
+                    if (!ownsCosmetic(bot.getOwnerId(), backgroundId, "background")
+                            || !ownsCosmetic(bot.getOwnerId(), backgroundStandId, "stand")
+                            || !ownsCosmetic(bot.getOwnerId(), backgroundCardId, "card")) break;
+
+                    bot.setBackgroundCosmetics(backgroundId, backgroundStandId, backgroundCardId);
+                    break;
+                case 16:
+                    String vipSlotsValue = this.packet.readString();
+                    boolean vipSlotsActive = "1".equals(vipSlotsValue) || Boolean.parseBoolean(vipSlotsValue);
+                    if (vipSlotsActive && !ownsCosmetic(bot.getOwnerId(), 2001, "slot")) break;
+
+                    bot.setVipSlotsActive(vipSlotsActive);
                     break;
                 case Bot.ACTION_ROTATE:
                     if (bot.getRoomUnit() == null) break;
@@ -181,10 +248,62 @@ public class BotSaveSettingsEvent extends MessageHandler {
                     break;
             }
 
-            bot.onPostOwnerAction(settingId);
+        bot.onPostOwnerAction(settingId);
 
-            if (bot.needsUpdate()) {
-                Emulator.getThreading().run(bot);
+        if (bot.needsUpdate()) {
+            Emulator.getThreading().run(bot);
+        }
+    }
+
+    private int parseCosmeticId(String[] values, int index) throws NumberFormatException {
+        if (index >= values.length || values[index].trim().isEmpty()) return 0;
+
+        int value = Integer.parseInt(values[index].trim());
+        if (value < 0 || value > 9999) throw new NumberFormatException("Invalid cosmetic id");
+
+        return value;
+    }
+
+    private boolean ownsCosmetic(int userId, int itemId, String... categories) throws Exception {
+        if (itemId == 0) return true;
+
+        String placeholders = String.join(",", Collections.nCopies(categories.length, "?"));
+        String query = "SELECT 1 FROM custom_profile_cosmetics_catalog c "
+                + "WHERE c.id = ? AND c.enabled = 1 AND LOWER(c.category) IN (" + placeholders + ") "
+                + "AND (c.is_free = 1 OR EXISTS (SELECT 1 FROM users_profile_cosmetics u "
+                + "WHERE u.user_id = ? AND u.item_id = c.id AND LOWER(u.category) = LOWER(c.category))) LIMIT 1";
+
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            int parameter = 1;
+            statement.setInt(parameter++, itemId);
+            for (String category : categories) statement.setString(parameter++, category);
+            statement.setInt(parameter, userId);
+
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next();
+            }
+        }
+    }
+
+    private boolean ownsBadge(int userId, String badgeCode) throws Exception {
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM users_badges WHERE user_id = ? AND badge_code = ? LIMIT 1")) {
+            statement.setInt(1, userId);
+            statement.setString(2, badgeCode);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next();
+            }
+        }
+    }
+
+    private boolean ownsBorder(int userId, int borderId) throws Exception {
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM users_profile_cosmetics WHERE user_id = ? AND item_id = ? AND category IN ('border', 'borders') LIMIT 1")) {
+            statement.setInt(1, userId);
+            statement.setInt(2, borderId);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next();
             }
         }
     }

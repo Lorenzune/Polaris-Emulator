@@ -54,6 +54,12 @@ public class Bot implements Runnable {
     private int chatTimestamp;
     private int lastChatIndex;
     private int bubble;
+    private int backgroundId;
+    private int backgroundStandId;
+    private int backgroundCardId;
+    private int infostandBorderId;
+    private boolean vipSlotsActive;
+    private final String[] badges = new String[7];
 
     private final String type;
 
@@ -80,6 +86,12 @@ public class Bot implements Runnable {
         this.type = "generic_bot";
         this.room = null;
         this.bubble = RoomChatMessageBubbles.BOT_RENTABLE.getType();
+        this.backgroundId = 0;
+        this.backgroundStandId = 0;
+        this.backgroundCardId = 0;
+        this.infostandBorderId = 0;
+        this.vipSlotsActive = false;
+        Arrays.fill(this.badges, "");
     }
 
     public Bot(ResultSet set) throws SQLException {
@@ -103,6 +115,18 @@ public class Bot implements Runnable {
         this.chatTimeOut = Emulator.getIntUnixTimestamp() + this.chatDelay;
         this.needsUpdate = false;
         this.bubble = set.getInt("bubble_id");
+        this.backgroundId = set.getInt("background_id");
+        this.backgroundStandId = set.getInt("background_stand_id");
+        this.backgroundCardId = set.getInt("background_card_id");
+        this.vipSlotsActive = set.getBoolean("vip_slots_active");
+        this.infostandBorderId = set.getInt("infostand_border_id");
+        this.badges[0] = set.getString("badge_1");
+        this.badges[1] = set.getString("badge_2");
+        this.badges[2] = set.getString("badge_3");
+        this.badges[3] = set.getString("badge_4");
+        this.badges[4] = set.getString("badge_5");
+        this.badges[5] = set.getString("badge_6");
+        this.badges[6] = set.getString("badge_7");
     }
 
     public Bot(Bot bot) {
@@ -120,6 +144,12 @@ public class Bot implements Runnable {
         this.type = bot.getType();
         this.effect = bot.getEffect();
         this.bubble = bot.getBubbleId();
+        this.backgroundId = bot.getBackgroundId();
+        this.backgroundStandId = bot.getBackgroundStandId();
+        this.backgroundCardId = bot.getBackgroundCardId();
+        this.vipSlotsActive = bot.isVipSlotsActive();
+        this.infostandBorderId = bot.getInfostandBorderId();
+        System.arraycopy(bot.getBadges(), 0, this.badges, 0, this.badges.length);
 
         this.needsUpdate = false;
     }
@@ -143,7 +173,7 @@ public class Bot implements Runnable {
             RoomUnit localRoomUnit = this.roomUnit;
             try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
                     PreparedStatement statement = connection.prepareStatement(
-                            "UPDATE bots SET name = ?, motto = ?, figure = ?, gender = ?, user_id = ?, room_id = ?, x = ?, y = ?, z = ?, rot = ?, dance = ?, freeroam = ?, chat_lines = ?, chat_auto = ?, chat_random = ?, chat_delay = ?, effect = ?, bubble_id = ? WHERE id = ?")) {
+                            "UPDATE bots SET name = ?, motto = ?, figure = ?, gender = ?, user_id = ?, room_id = ?, x = ?, y = ?, z = ?, rot = ?, dance = ?, freeroam = ?, chat_lines = ?, chat_auto = ?, chat_random = ?, chat_delay = ?, effect = ?, bubble_id = ?, background_id = ?, background_stand_id = ?, background_card_id = ?, vip_slots_active = ?, infostand_border_id = ?, badge_1 = ?, badge_2 = ?, badge_3 = ?, badge_4 = ?, badge_5 = ?, badge_6 = ?, badge_7 = ? WHERE id = ?")) {
                 statement.setString(1, this.name);
                 statement.setString(2, this.motto);
                 statement.setString(3, this.figure);
@@ -172,7 +202,13 @@ public class Bot implements Runnable {
                 statement.setInt(16, this.chatDelay);
                 statement.setInt(17, this.effect);
                 statement.setInt(18, this.bubble);
-                statement.setInt(19, this.id);
+                statement.setInt(19, this.backgroundId);
+                statement.setInt(20, this.backgroundStandId);
+                statement.setInt(21, this.backgroundCardId);
+                statement.setBoolean(22, this.vipSlotsActive);
+                statement.setInt(23, this.infostandBorderId);
+                for (int i = 0; i < this.badges.length; i++) statement.setString(24 + i, this.badges[i]);
+                statement.setInt(31, this.id);
                 statement.execute();
                 this.needsUpdate = false;
             } catch (SQLException e) {
@@ -337,6 +373,65 @@ public class Bot implements Runnable {
     public void setMotto(String motto) {
         this.motto = motto;
         this.needsUpdate = true;
+    }
+
+    public int getBackgroundId() {
+        return this.backgroundId;
+    }
+
+    public int getBackgroundStandId() {
+        return this.backgroundStandId;
+    }
+
+    public int getBackgroundCardId() {
+        return this.backgroundCardId;
+    }
+
+    public void setBackgroundCosmetics(int backgroundId, int backgroundStandId, int backgroundCardId) {
+        this.backgroundId = Math.max(0, backgroundId);
+        this.backgroundStandId = Math.max(0, backgroundStandId);
+        this.backgroundCardId = Math.max(0, backgroundCardId);
+        this.needsUpdate = true;
+
+        if (this.room != null) this.room.sendComposer(new RoomUsersComposer(this).compose());
+    }
+
+    public boolean isVipSlotsActive() {
+        return this.vipSlotsActive;
+    }
+
+    public void setVipSlotsActive(boolean active) {
+        this.vipSlotsActive = active;
+        this.needsUpdate = true;
+
+        if (this.room != null) this.room.sendComposer(new RoomUsersComposer(this).compose());
+    }
+
+    public int getInfostandBorderId() {
+        return this.infostandBorderId;
+    }
+
+    public void setInfostandBorderId(int borderId) {
+        this.infostandBorderId = Math.max(0, borderId);
+        this.needsUpdate = true;
+
+        if (this.room != null) this.room.sendComposer(new RoomUsersComposer(this).compose());
+    }
+
+    public String[] getBadges() {
+        return this.badges.clone();
+    }
+
+    public void setBadges(String[] values) {
+        Arrays.fill(this.badges, "");
+        if (values != null) {
+            for (int i = 0; i < Math.min(values.length, this.badges.length); i++) {
+                this.badges[i] = values[i] == null ? "" : values[i];
+            }
+        }
+        this.needsUpdate = true;
+
+        if (this.room != null) this.room.sendComposer(new RoomUsersComposer(this).compose());
     }
 
     public String getFigure() {
@@ -524,7 +619,7 @@ public class Bot implements Runnable {
     public void onPlaceUpdate() {
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement(
-                        "UPDATE bots SET name = ?, motto = ?, figure = ?, gender = ?, user_id = ?, room_id = ?, x = ?, y = ?, z = ?, rot = ?, dance = ?, freeroam = ?, chat_lines = ?, chat_auto = ?, chat_random = ?, chat_delay = ?, effect = ?, bubble_id = ? WHERE id = ?")) {
+                        "UPDATE bots SET name = ?, motto = ?, figure = ?, gender = ?, user_id = ?, room_id = ?, x = ?, y = ?, z = ?, rot = ?, dance = ?, freeroam = ?, chat_lines = ?, chat_auto = ?, chat_random = ?, chat_delay = ?, effect = ?, bubble_id = ?, background_id = ?, background_stand_id = ?, background_card_id = ?, vip_slots_active = ?, infostand_border_id = ?, badge_1 = ?, badge_2 = ?, badge_3 = ?, badge_4 = ?, badge_5 = ?, badge_6 = ?, badge_7 = ? WHERE id = ?")) {
             statement.setString(1, this.name);
             statement.setString(2, this.motto);
             statement.setString(3, this.figure);
@@ -550,14 +645,20 @@ public class Bot implements Runnable {
             statement.setInt(16, this.chatDelay);
             statement.setInt(17, this.effect);
             statement.setInt(18, this.bubble);
-            statement.setInt(19, this.id);
+            statement.setInt(19, this.backgroundId);
+            statement.setInt(20, this.backgroundStandId);
+            statement.setInt(21, this.backgroundCardId);
+            statement.setBoolean(22, this.vipSlotsActive);
+            statement.setInt(23, this.infostandBorderId);
+            for (int i = 0; i < this.badges.length; i++) statement.setString(24 + i, this.badges[i]);
+            statement.setInt(31, this.id);
             statement.execute();
         } catch (SQLException e) {
             LOGGER.error("Caught SQL exception", e);
         }
     }
 
-    private static final short[] DEFAULT_OWNER_ACTION_IDS = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11};
+    private static final short[] DEFAULT_OWNER_ACTION_IDS = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 14, 15, 16};
 
     public static final int ACTION_ROTATE = 11;
 

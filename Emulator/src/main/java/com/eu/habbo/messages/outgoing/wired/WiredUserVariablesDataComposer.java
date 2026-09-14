@@ -7,10 +7,13 @@ import com.eu.habbo.habbohotel.rooms.RoomVariableManager;
 import com.eu.habbo.habbohotel.rooms.RoomUserVariableManager;
 import com.eu.habbo.habbohotel.rooms.WiredVariableDefinitionInfo;
 import com.eu.habbo.habbohotel.wired.core.WiredContextVariableSupport;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase;
+import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -147,7 +150,59 @@ public class WiredUserVariablesDataComposer extends MessageComposer {
             this.response.appendBoolean(definition.isReadOnly());
         }
 
+        Room currentRoom = (roomId > 0) ? Emulator.getGameEnvironment().getRoomManager().getRoom(roomId) : null;
+        List<WiredExtraVariableFxBase> fxList = new ArrayList<>();
+        if (currentRoom != null && currentRoom.getFloorItems() != null) {
+            for (HabboItem item : currentRoom.getFloorItems()) {
+                if (item instanceof WiredExtraVariableFxBase fx) {
+                    fxList.add(fx);
+                }
+            }
+        }
+
+        this.response.appendInt(fxList.size());
+        for (WiredExtraVariableFxBase fx : fxList) {
+            this.response.appendInt(fx.getId());
+            this.response.appendInt(fx.getCategoryId());
+            this.response.appendInt(fx.getStyleId());
+            this.response.appendInt(fx.getColorId());
+            this.response.appendInt(fx.getWidthId());
+            this.response.appendInt(fx.getRendererId());
+            this.response.appendInt(fx.getDefaultMinValue());
+            this.response.appendInt(fx.getDefaultMaxValue());
+            this.response.appendInt(fx.getSegments());
+            this.response.appendInt(fx.getX());
+            this.response.appendInt(fx.getY());
+            this.response.appendString(fx.resolveStackVariableName(currentRoom));
+            this.response.appendString(fx.getIcon() != null ? fx.getIcon() : "");
+            this.response.appendInt(fx.getShowMode());
+            this.response.appendInt(fx.getChangeFilter());
+            this.response.appendBoolean(fx.isShowOnMouseHover());
+            this.response.appendInt(fx.getShowDuration());
+            this.response.appendInt(fx.getSourceType());
+            this.response.appendInt(fx.getVisibility());
+            this.response.appendInt(parseVariableId(fx.getAudienceVariableId()));
+            this.response.appendInt(fx.getAudienceVariableValue());
+            this.response.appendInt(fx.getSubRendererId());
+            this.response.appendInt(fx.getIconAlignment());
+            this.response.appendBoolean(fx.isOverrideMinEnabled());
+            this.response.appendBoolean(fx.isOverrideMaxEnabled());
+            this.response.appendInt(fx.getOverrideMinTarget());
+            this.response.appendInt(fx.getOverrideMaxTarget());
+            this.response.appendInt(parseVariableId(fx.getOverrideMinVariableId()));
+            this.response.appendInt(parseVariableId(fx.getOverrideMaxVariableId()));
+        }
+
         return this.response;
+    }
+
+    private static int parseVariableId(String value) {
+        if (value == null || value.isEmpty()) return 0;
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException exception) {
+            return 0;
+        }
     }
 
     private static List<WiredVariableDefinitionInfo> resolveContextDefinitions(RoomUserVariableManager.Snapshot userSnapshot, RoomFurniVariableManager.Snapshot furniSnapshot, RoomVariableManager.Snapshot roomSnapshot) {

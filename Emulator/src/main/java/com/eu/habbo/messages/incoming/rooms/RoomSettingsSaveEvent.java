@@ -213,18 +213,6 @@ public class RoomSettingsSaveEvent extends MessageHandler {
                 if (this.packet.bytesAvailable() > 0) {
                     boolean vocalChatEnabled = this.packet.readBoolean();
                     room.setVocalChatEnabled(vocalChatEnabled);
-                    if (vocalChatEnabled) {
-                        if (!room.getTags().contains("vocal")) {
-                            room.setTags((room.getTags().isEmpty() ? "" : room.getTags() + ";") + "vocal");
-                        }
-                    } else {
-                        if (room.getTags().contains("vocal")) {
-                            String newTags = java.util.Arrays.stream(room.getTags().split(";"))
-                                .filter(t -> !t.equalsIgnoreCase("vocal"))
-                                .collect(java.util.stream.Collectors.joining(";"));
-                            room.setTags(newTags);
-                        }
-                    }
                 }
 
                 room.setNeedsUpdate(true);

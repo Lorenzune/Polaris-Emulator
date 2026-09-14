@@ -48,14 +48,25 @@ public class RoomDataComposer extends MessageComposer {
         this.response.appendInt(2);//Top rated room rank
         this.response.appendInt(this.room.getCategory());
 
+        java.util.List<String> tagList = new java.util.ArrayList<>();
         if (!this.room.getTags().isEmpty()) {
-            String[] tags = this.room.getTags().split(";");
-            this.response.appendInt(tags.length);
-            for (String s : tags) {
-                this.response.appendString(s);
+            for (String s : this.room.getTags().split(";")) {
+                if (!s.isEmpty() && !s.equalsIgnoreCase("vocal")) tagList.add(s);
             }
-        } else {
-            this.response.appendInt(0);
+        }
+        if (this.room.isVocalChatEnabled()) {
+            tagList.add("vocal");
+        }
+        if (!this.room.getYoutubeCurrentVideo().isEmpty()) {
+            if (this.room.isYoutubeAudioOnly()) {
+                tagList.add("youtube_music");
+            } else {
+                tagList.add("youtube_party");
+            }
+        }
+        this.response.appendInt(tagList.size());
+        for (String s : tagList) {
+            this.response.appendString(s);
         }
 
         int base = 0;
