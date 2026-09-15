@@ -5,6 +5,7 @@ import com.eu.habbo.habbohotel.GameEnvironment;
 import com.eu.habbo.habbohotel.bots.Bot;
 import com.eu.habbo.habbohotel.games.Game;
 import com.eu.habbo.habbohotel.guilds.Guild;
+import com.eu.habbo.habbohotel.items.interactions.InteractionYoutubeTV;
 import com.eu.habbo.habbohotel.pets.Pet;
 import com.eu.habbo.habbohotel.users.DanceType;
 import com.eu.habbo.habbohotel.users.Habbo;
@@ -71,6 +72,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     private RoomUserVariableManager userVariableManager;
     private RoomFurniVariableManager furniVariableManager;
     private RoomVariableManager roomVariableManager;
+    private String youtubeTelevisionVideoId = "";
 
     public static final Comparator<Room> SORT_SCORE = (o1, o2) -> o2.getScore() - o1.getScore();
     public static final Comparator<Room> SORT_ID = (o1, o2) -> o2.getId() - o1.getId();
@@ -272,27 +274,45 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     }
 
     public void setYoutubeVideo(String videoId, String senderName, java.util.List<String> playlist, boolean isAudioOnly, int startOffset, boolean isPaused) {
-        this.media.setVideo(videoId, senderName, playlist, isAudioOnly, startOffset, isPaused);
+        this.setYoutubeVideo(videoId, senderName, playlist, isAudioOnly, (long) startOffset * 1000L, isPaused);
     }
 
     public void setYoutubeVideo(String videoId, String senderName, java.util.List<String> playlist, boolean isAudioOnly, long positionMs, boolean isPaused) {
         this.media.setVideo(videoId, senderName, playlist, isAudioOnly, positionMs, isPaused);
+        this.synchronizeYoutubeTelevisions();
     }
 
     public void setYoutubeVideo(String videoId, String senderName, java.util.List<String> playlist, boolean isAudioOnly, int startOffset) {
-        this.media.setVideo(videoId, senderName, playlist, isAudioOnly, startOffset, false);
+        this.setYoutubeVideo(videoId, senderName, playlist, isAudioOnly, (long) startOffset * 1000L, false);
     }
 
     public void setYoutubeVideo(String videoId, String senderName, java.util.List<String> playlist, boolean isAudioOnly) {
-        this.media.setVideo(videoId, senderName, playlist, isAudioOnly, 0);
+        this.setYoutubeVideo(videoId, senderName, playlist, isAudioOnly, 0L, false);
     }
 
     public void setYoutubeVideo(String videoId, String senderName, java.util.List<String> playlist) {
-        this.media.setVideo(videoId, senderName, playlist, false, 0);
+        this.setYoutubeVideo(videoId, senderName, playlist, false, 0L, false);
     }
 
     public void clearYoutubeVideo() {
         this.media.clearVideo();
+        this.synchronizeYoutubeTelevisions();
+    }
+
+    private void synchronizeYoutubeTelevisions() {
+        String targetVideoId = this.media.isAudioOnly() ? "" : this.media.currentVideo();
+        if (targetVideoId == null) targetVideoId = "";
+        if (targetVideoId.equals(this.youtubeTelevisionVideoId)) return;
+
+        this.youtubeTelevisionVideoId = targetVideoId;
+        if (this.itemManager == null) return;
+
+        for (HabboItem roomItem : this.itemManager.getFloorItems()) {
+            if (!(roomItem instanceof InteractionYoutubeTV television) || !television.isRoomYoutubeDisplay()) continue;
+            if (television.setRoomYoutubeVideo(targetVideoId)) {
+                this.itemManager.updateItem(roomItem);
+            }
+        }
     }
 
     public final Map<String, Object> cache;
@@ -1546,6 +1566,10 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     }
 
     public void addHabboItem(HabboItem item) {
+        if (item instanceof InteractionYoutubeTV television && television.isRoomYoutubeDisplay()) {
+            television.setRoomYoutubeVideo(this.youtubeTelevisionVideoId);
+        }
+
         this.itemManager.addHabboItem(item);
     }
 

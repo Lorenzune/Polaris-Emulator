@@ -14,7 +14,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -42,6 +44,25 @@ public class YoutubeManager {
         public int getDuration() {
             return duration;
         }
+    }
+
+    public static class YoutubeSearchResult {
+        private final String id;
+        private final String title;
+        private final String thumbnail;
+        private final String channel;
+
+        YoutubeSearchResult(String id, String title, String thumbnail, String channel) {
+            this.id = id;
+            this.title = title;
+            this.thumbnail = thumbnail;
+            this.channel = channel;
+        }
+
+        public String getId() { return id; }
+        public String getTitle() { return title; }
+        public String getThumbnail() { return thumbnail; }
+        public String getChannel() { return channel; }
     }
 
     public static class YoutubePlaylist {
@@ -244,6 +265,86 @@ public class YoutubeManager {
 
         return playlist;
 
+    }
+
+    public ArrayList<YoutubeSearchResult> searchVideos(String query) throws IOException {
+        String apiKey = this.getApiKey();
+        if (apiKey.isEmpty()) throw new IOException("YouTube API key is not configured (youtube.apikey).");
+
+        String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
+        URL searchUrl = URI.create("https://youtube.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=8&q="
+                + encodedQuery + "&key=" + URLEncoder.encode(apiKey, StandardCharsets.UTF_8)).toURL();
+        HttpsURLConnection connection = (HttpsURLConnection) searchUrl.openConnection();
+        connection.setConnectTimeout(4000);
+        connection.setReadTimeout(5000);
+        connection.setRequestProperty("Accept", "application/json");
+
+        int status = connection.getResponseCode();
+        if (status != HttpsURLConnection.HTTP_OK) {
+            try (InputStream errorStream = connection.getErrorStream()) {
+                if (errorStream != null) {
+                    JsonObject error = JsonParser.parseReader(new InputStreamReader(errorStream, StandardCharsets.UTF_8)).getAsJsonObject();
+                    String message = error.has("error") && error.getAsJsonObject("error").has("message")
+                            ? error.getAsJsonObject("error").get("message").getAsString()
+                            : "YouTube API returned HTTP " + status;
+                    throw new IOException(message);
+                }
+            } finally {
+                connection.disconnect();
+            }
+            throw new IOException("YouTube API returned HTTP " + status);
+        }
+
+        ArrayList<YoutubeSearchResult> results = new ArrayList<>();
+        try (InputStream input = connection.getInputStream();
+                InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
+            JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
+            JsonArray items = root.has("items") && root.get("items").isJsonArray()
+                    ? root.getAsJsonArray("items")
+                    : new JsonArray();
+            for (JsonElement element : items) {
+                if (element == null || !element.isJsonObject()) continue;
+
+                JsonObject item = element.getAsJsonObject();
+                JsonObject idData = getJsonObject(item, "id");
+                JsonObject snippet = getJsonObject(item, "snippet");
+                String id = getJsonString(idData, "videoId");
+                if (id.isBlank()) continue;
+
+                String title = getJsonString(snippet, "title");
+                if (title.isBlank()) title = id;
+                String channel = getJsonString(snippet, "channelTitle");
+
+                JsonObject thumbnails = getJsonObject(snippet, "thumbnails");
+                String thumbnail = getThumbnailUrl(thumbnails, "medium");
+                if (thumbnail.isBlank()) thumbnail = getThumbnailUrl(thumbnails, "high");
+                if (thumbnail.isBlank()) thumbnail = getThumbnailUrl(thumbnails, "default");
+                if (thumbnail.isBlank()) thumbnail = "https://i.ytimg.com/vi/" + id + "/mqdefault.jpg";
+
+                results.add(new YoutubeSearchResult(id, title, thumbnail, channel));
+            }
+        } finally {
+            connection.disconnect();
+        }
+        return results;
+    }
+
+    private static JsonObject getJsonObject(JsonObject parent, String key) {
+        if (parent == null || !parent.has(key)) return null;
+
+        JsonElement value = parent.get(key);
+        return value != null && value.isJsonObject() ? value.getAsJsonObject() : null;
+    }
+
+    private static String getJsonString(JsonObject parent, String key) {
+        if (parent == null || !parent.has(key)) return "";
+
+        JsonElement value = parent.get(key);
+        return value != null && value.isJsonPrimitive() ? value.getAsString() : "";
+    }
+
+    private static String getThumbnailUrl(JsonObject thumbnails, String size) {
+        return getJsonString(getJsonObject(thumbnails, size), "url");
     }
 
     public ArrayList<YoutubePlaylist> getPlaylistsForItemId(int itemId) {

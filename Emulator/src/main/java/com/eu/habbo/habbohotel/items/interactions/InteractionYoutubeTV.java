@@ -13,9 +13,18 @@ import com.eu.habbo.messages.outgoing.rooms.youtube.EmbeddedMediaStateComposer;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 
 public class InteractionYoutubeTV extends HabboItem {
+    private static final Set<String> ROOM_YOUTUBE_DISPLAY_CLASSES = Set.of(
+            "yttv3",
+            "yttv1",
+            "yttv2b",
+            "yttv2",
+            "ytprojector"
+    );
+
     public YoutubeManager.YoutubePlaylist currentPlaylist = null;
     public YoutubeManager.YoutubeVideo currentVideo = null;
     public int startedWatchingAt = 0;
@@ -28,6 +37,7 @@ public class InteractionYoutubeTV extends HabboItem {
     private int embeddedOffset = 0;
     private int embeddedRevision = 0;
     private int embeddedBroadcasterId = 0;
+    private String roomYoutubeVideoId = "";
 
     public InteractionYoutubeTV(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -46,6 +56,23 @@ public class InteractionYoutubeTV extends HabboItem {
     public boolean isEmbeddedPlayer() {
         return "ads_videoplayer".equalsIgnoreCase(this.getBaseItem().getName())
                 || "ads_videoplayer".equalsIgnoreCase(this.getBaseItem().getFullName());
+    }
+
+    public boolean isRoomYoutubeDisplay() {
+        if (this.getBaseItem() == null) return false;
+
+        String className = this.getBaseItem().getName();
+        String fullName = this.getBaseItem().getFullName();
+        return (className != null && ROOM_YOUTUBE_DISPLAY_CLASSES.contains(className.toLowerCase(java.util.Locale.ROOT)))
+                || (fullName != null && ROOM_YOUTUBE_DISPLAY_CLASSES.contains(fullName.toLowerCase(java.util.Locale.ROOT)));
+    }
+
+    public boolean setRoomYoutubeVideo(String videoId) {
+        String normalizedVideoId = videoId == null ? "" : videoId.trim();
+        if (normalizedVideoId.equals(this.roomYoutubeVideoId)) return false;
+
+        this.roomYoutubeVideoId = normalizedVideoId;
+        return true;
     }
 
     public String getEmbeddedUrl() { return this.embeddedUrl; }
@@ -127,7 +154,9 @@ public class InteractionYoutubeTV extends HabboItem {
         serverMessage.appendInt(1 + (this.isLimited() ? 256 : 0));
         serverMessage.appendInt(1);
         serverMessage.appendString("THUMBNAIL_URL");
-        if (this.currentVideo == null) {
+        if (!this.roomYoutubeVideoId.isEmpty()) {
+            serverMessage.appendString("https://img.youtube.com/vi/" + this.roomYoutubeVideoId + "/hqdefault.jpg");
+        } else if (this.currentVideo == null) {
             serverMessage.appendString("");
         } else {
             serverMessage.appendString("https://img.youtube.com/vi/" + this.currentVideo.getId() + "/hqdefault.jpg");
@@ -151,6 +180,7 @@ public class InteractionYoutubeTV extends HabboItem {
 
         this.currentVideo = null;
         this.currentPlaylist = null;
+        this.roomYoutubeVideoId = "";
         this.startedWatchingAt = 0;
         this.offset = 0;
     }

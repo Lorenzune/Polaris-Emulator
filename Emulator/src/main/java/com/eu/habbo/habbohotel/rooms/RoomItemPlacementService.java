@@ -5,6 +5,7 @@ import com.eu.habbo.habbohotel.items.interactions.InteractionBuildArea;
 import com.eu.habbo.habbohotel.items.interactions.InteractionStackHelper;
 import com.eu.habbo.habbohotel.items.interactions.InteractionStackWalkHelper;
 import com.eu.habbo.habbohotel.items.interactions.InteractionTileWalkMagic;
+import com.eu.habbo.habbohotel.items.interactions.InteractionYoutubeTV;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSendSignal;
 import com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerReceiveSignal;
 import com.eu.habbo.habbohotel.permissions.Permission;
@@ -42,6 +43,9 @@ final class RoomItemPlacementService {
     }
 
     FurnitureMovementError canPlaceFurnitureAt(HabboItem item, Habbo habbo, RoomTile tile, int rotation) {
+        if (this.isYoutubeInteractionLimitReached(item)) {
+            return FurnitureMovementError.YOUTUBE_ALREADY_IN_ROOM;
+        }
         if (this.facade.itemCount() >= Room.MAXIMUM_FURNI) {
             return FurnitureMovementError.MAX_ITEMS;
         }
@@ -132,6 +136,10 @@ final class RoomItemPlacementService {
     }
 
     FurnitureMovementError placeFloorFurniture(HabboItem item, RoomTile tile, int rotation, Habbo owner) {
+        if (this.isYoutubeInteractionLimitReached(item)) {
+            return FurnitureMovementError.YOUTUBE_ALREADY_IN_ROOM;
+        }
+
         RoomSpecialTypes specialTypes = this.room.getRoomSpecialTypes();
         if (specialTypes != null) {
             if (item instanceof WiredEffectSendSignal && specialTypes.isSignalSenderLimitReached()) {
@@ -207,6 +215,10 @@ final class RoomItemPlacementService {
     }
 
     FurnitureMovementError placeWallFurniture(HabboItem item, String wallPosition, Habbo owner) {
+        if (this.isYoutubeInteractionLimitReached(item)) {
+            return FurnitureMovementError.YOUTUBE_ALREADY_IN_ROOM;
+        }
+
         if (!(this.room.hasRights(owner)
                 || this.room.getGuildRightLevel(owner).isEqualOrGreaterThan(RoomRightLevels.GUILD_RIGHTS)
                 || BuildersClubRoomSupport.canPlaceInRoom(owner, this.room))) {
@@ -232,6 +244,19 @@ final class RoomItemPlacementService {
         RoomAreaHideSupport.synchronizeClientVisibility(this.room);
         Emulator.getThreading().run(item);
         return FurnitureMovementError.NONE;
+    }
+
+    private boolean isYoutubeInteractionLimitReached(HabboItem item) {
+        if (!(item instanceof InteractionYoutubeTV)) return false;
+
+        for (HabboItem roomItem : this.facade.getFloorItems()) {
+            if (roomItem != item && roomItem instanceof InteractionYoutubeTV) return true;
+        }
+        for (HabboItem roomItem : this.facade.getWallItems()) {
+            if (roomItem != item && roomItem instanceof InteractionYoutubeTV) return true;
+        }
+
+        return false;
     }
 
     boolean isStackPlacementBypassItem(HabboItem item) {

@@ -78,6 +78,11 @@ public class YouTubeRoomPlayEvent extends MessageHandler {
             preservePosition = this.packet.readBoolean();
         }
 
+        boolean preservePlaylist = false;
+        if (this.packet.getBuffer().readableBytes() >= 1) {
+            preservePlaylist = this.packet.readBoolean();
+        }
+
         synchronized (room) {
             if (expectedRevision >= 0 && expectedRevision != room.getYoutubeRevision()) {
                 this.client.sendResponse(currentState(room));
@@ -95,13 +100,17 @@ public class YouTubeRoomPlayEvent extends MessageHandler {
                 }
 
                 String nextItem = currentPlaylist.remove(0);
-                String nextVideo = normalizeVideoId(nextItem.split(":::", 2)[0]);
+                String[] nextParts = nextItem.split(":::", 3);
+                String nextVideo = normalizeVideoId(nextParts[0]);
                 if (nextVideo == null || nextVideo.isEmpty()) return;
 
-                room.setYoutubeVideo(nextVideo, room.getYoutubeSenderName(), currentPlaylist, room.isYoutubeAudioOnly(), 0L, false);
+                String nextSender = nextParts.length > 1 && !nextParts[1].isBlank()
+                    ? nextParts[1]
+                    : room.getYoutubeSenderName();
+                room.setYoutubeVideo(nextVideo, nextSender, currentPlaylist, room.isYoutubeAudioOnly(), 0L, false);
                 room.sendComposer(new YouTubeRoomBroadcastComposer(
                     nextVideo,
-                    room.getYoutubeSenderName(),
+                    nextSender,
                     currentPlaylist,
                     0,
                     room.isYoutubeAudioOnly(),
@@ -131,18 +140,30 @@ public class YouTubeRoomPlayEvent extends MessageHandler {
                 long positionMs = keepCurrentPosition ? room.getYoutubePositionMs() : ((long) startOffset * 1000L);
                 int offset = (int) Math.min(Integer.MAX_VALUE, positionMs / 1000L);
                 boolean paused = keepCurrentPosition ? room.isYoutubePaused() : isPaused;
-                room.setYoutubeVideo(videoId, room.getYoutubeSenderName(), playlist, isAudioOnly, positionMs, paused);
+                List<String> effectivePlaylist = preservePlaylist ? new ArrayList<>(room.getYoutubePlaylist()) : playlist;
+                room.setYoutubeVideo(videoId, room.getYoutubeSenderName(), effectivePlaylist, isAudioOnly, positionMs, paused);
                 room.sendComposer(
-                    new YouTubeRoomBroadcastComposer(videoId, room.getYoutubeSenderName(), playlist, offset, isAudioOnly, paused, room.getYoutubeRevision(), room.getYoutubePositionMs()).compose()
+                    new YouTubeRoomBroadcastComposer(videoId, room.getYoutubeSenderName(), effectivePlaylist, offset, isAudioOnly, paused, room.getYoutubeRevision(), room.getYoutubePositionMs()).compose()
                 );
                 return;
             }
 
-            room.setYoutubeVideo(videoId, habbo.getHabboInfo().getUsername(), playlist, isAudioOnly, (long) startOffset * 1000L, isPaused);
+            String senderName = habbo.getHabboInfo().getUsername();
+            List<String> currentPlaylist = room.getYoutubePlaylist();
+            for (String queuedItem : currentPlaylist) {
+                String[] nextParts = queuedItem.split(":::", 3);
+                String queuedVideoId = normalizeVideoId(nextParts[0]);
+                if (videoId.equals(queuedVideoId) && nextParts.length > 1 && !nextParts[1].isBlank()) {
+                    senderName = nextParts[1];
+                    break;
+                }
+            }
+
+            room.setYoutubeVideo(videoId, senderName, playlist, isAudioOnly, (long) startOffset * 1000L, isPaused);
 
             // Broadcast to everyone in the room
             room.sendComposer(
-                new YouTubeRoomBroadcastComposer(videoId, habbo.getHabboInfo().getUsername(), playlist, startOffset, isAudioOnly, isPaused, room.getYoutubeRevision(), room.getYoutubePositionMs()).compose()
+                new YouTubeRoomBroadcastComposer(videoId, senderName, playlist, startOffset, isAudioOnly, isPaused, room.getYoutubeRevision(), room.getYoutubePositionMs()).compose()
             );
         }
     }
@@ -172,15 +193,20 @@ public class YouTubeRoomPlayEvent extends MessageHandler {
     private static String normalizePlaylistItem(String value) {
         if (value == null || value.length() > MAX_PLAYLIST_ITEM_LENGTH) return null;
 
-        int separator = value.indexOf(":::");
-        String rawVideoId = separator >= 0 ? value.substring(0, separator) : value;
+        String[] parts = value.split(":::", 3);
+        String rawVideoId = parts[0];
         String videoId = normalizeVideoId(rawVideoId);
         if (videoId == null || videoId.isEmpty()) return null;
 
-        if (separator < 0) return videoId;
+        if (parts.length < 2) return videoId;
 
-        String addedBy = value.substring(separator + 3).replaceAll("[\\p{Cntrl}]", "").trim();
+        String addedBy = parts[1].replaceAll("[\\p{Cntrl}]", "").trim();
         if (addedBy.length() > 64) addedBy = addedBy.substring(0, 64);
-        return addedBy.isEmpty() ? videoId : videoId + ":::" + addedBy;
+        if (addedBy.isEmpty()) return videoId;
+
+        if (parts.length < 3) return videoId + ":::" + addedBy;
+        String title = parts[2].replaceAll("[\\p{Cntrl}]", "").trim();
+        if (title.length() > 110) title = title.substring(0, 110);
+        return title.isEmpty() ? videoId + ":::" + addedBy : videoId + ":::" + addedBy + ":::" + title;
     }
 }

@@ -923,6 +923,9 @@ public class PacketManager {
         this.registerHandler(
             Incoming.YouTubeRoomSettingsEvent,
             com.eu.habbo.messages.incoming.rooms.youtube.YouTubeRoomSettingsEvent.class);
+        this.registerHandler(
+            Incoming.YouTubeSearchEvent,
+            com.eu.habbo.messages.incoming.rooms.youtube.YouTubeSearchEvent.class);
 
         // Housekeeping (in-client admin panel)
         this.registerHandler(
