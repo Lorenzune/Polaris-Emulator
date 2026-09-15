@@ -77,21 +77,26 @@ public class InteractionDefault extends HabboItem {
 
             if (objects != null && objects.length > 0) {
                 if (objects[0] instanceof Integer) {
+                    int targetState = (Integer) objects[0];
                     if (this.getExtradata().length() == 0)
                         this.setExtradata("0");
 
-                    if (this.getBaseItem().getStateCount() > 0) {
-                        int currentState = 0;
+                    int currentState = 0;
 
-                        try {
-                            currentState = Integer.parseInt(this.getExtradata());
-                        } catch (NumberFormatException e) {
-                            LOGGER.error("Incorrect extradata ({}) for item ID ({}) of type ({})", this.getExtradata(), this.getId(), this.getBaseItem().getName());
-                        }
+                    try {
+                        currentState = Integer.parseInt(this.getExtradata());
+                    } catch (NumberFormatException e) {
+                        LOGGER.error("Incorrect extradata ({}) for item ID ({}) of type ({})", this.getExtradata(), this.getId(), this.getBaseItem().getName());
+                    }
 
+                    if (this.getBaseItem().getStateCount() > 1) {
                         this.setExtradata("" + (currentState + 1) % this.getBaseItem().getStateCount());
                         this.needsUpdate(true);
-
+                        room.updateItemState(this);
+                    } else {
+                        int nextState = (targetState != currentState) ? targetState : (currentState + 1);
+                        this.setExtradata("" + nextState);
+                        this.needsUpdate(true);
                         room.updateItemState(this);
                     }
                 }
@@ -107,7 +112,6 @@ public class InteractionDefault extends HabboItem {
     @Override
     public void onWalkOn(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {
         super.onWalkOn(roomUnit, room, objects);
-
         if (roomUnit != null) {
             if (this.getBaseItem().getEffectF() > 0 || this.getBaseItem().getEffectM() > 0) {
                 if (roomUnit.getRoomUnitType().equals(RoomUnitType.USER)) {

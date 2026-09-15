@@ -27,11 +27,18 @@ final class RoomSerializer {
         message.appendInt(0);
         message.appendInt(room.getCategory());
 
-        String[] tags = Arrays.stream(room.getTags().split(";"))
+        java.util.List<String> tagList = new java.util.ArrayList<>(Arrays.stream(room.getTags().split(";"))
                 .filter(tag -> !tag.isEmpty())
-                .toArray(String[]::new);
-        message.appendInt(tags.length);
-        for (String tag : tags) {
+                .toList());
+        if (!room.getYoutubeCurrentVideo().isEmpty()) {
+            if (room.isYoutubeAudioOnly()) {
+                tagList.add("youtube_music");
+            } else {
+                tagList.add("youtube_party");
+            }
+        }
+        message.appendInt(tagList.size());
+        for (String tag : tagList) {
             message.appendString(tag);
         }
 

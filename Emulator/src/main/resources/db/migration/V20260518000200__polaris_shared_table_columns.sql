@@ -36,7 +36,7 @@ ALTER TABLE `permissions` ADD COLUMN IF NOT EXISTS `acc_catalogfurni` enum('0','
 ALTER TABLE `rooms` ADD COLUMN IF NOT EXISTS `allow_underpass` enum('0','1') NOT NULL DEFAULT '0';
 ALTER TABLE `rooms` ADD COLUMN IF NOT EXISTS `builders_club_trial_locked` tinyint(1) NOT NULL DEFAULT 0;
 ALTER TABLE `rooms` ADD COLUMN IF NOT EXISTS `builders_club_original_state` varchar(16) NOT NULL DEFAULT 'open';
-ALTER TABLE `rooms` ADD COLUMN IF NOT EXISTS `youtube_enabled` tinyint(1) NOT NULL DEFAULT 0;
+ALTER TABLE `rooms` ADD COLUMN IF NOT EXISTS `youtube_enabled` tinyint(1) NOT NULL DEFAULT 1;
 ALTER TABLE `room_enter_log` ADD COLUMN IF NOT EXISTS `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST;
 ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `auth_ticket_expires_at` timestamp NULL DEFAULT NULL;
 ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `remember_token_hash` varchar(64) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL DEFAULT '';
