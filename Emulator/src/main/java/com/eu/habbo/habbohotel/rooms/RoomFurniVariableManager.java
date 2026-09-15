@@ -1132,7 +1132,7 @@ public class RoomFurniVariableManager {
 
         public void setValue(Integer value, int updatedAt) {
             this.value = value;
-            this.updatedAt = updatedAt;
+            this.updatedAt = Math.max(updatedAt, this.updatedAt + 1);
         }
 
         public int getCreatedAt() {

@@ -20,9 +20,10 @@ public class WiredEffectSaveDataEvent extends MessageHandler {
         Room room = this.client.getHabbo().getHabboInfo().getCurrentRoom();
 
         if (room != null) {
-            if (room.canModifyWired(this.client.getHabbo())) {
-                InteractionWiredEffect effect = room.getRoomSpecialTypes().getEffect(itemId);
-                InteractionWiredExtra extra = room.getRoomSpecialTypes().getExtra(itemId);
+            InteractionWiredEffect effect = room.getRoomSpecialTypes().getEffect(itemId);
+            InteractionWiredExtra extra = room.getRoomSpecialTypes().getExtra(itemId);
+
+            if (room.canModifyWired(this.client.getHabbo(), effect != null ? effect : extra)) {
 
                 try {
                     if (effect == null && extra == null)

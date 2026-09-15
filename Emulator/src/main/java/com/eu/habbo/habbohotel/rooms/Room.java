@@ -1948,6 +1948,18 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         return this.wiredAccess.canModify(habbo);
     }
 
+    /**
+     * The owner of a Wired furni can always configure that specific furni.
+     * Room-wide Wired permissions still apply to everyone else.
+     */
+    public boolean canModifyWired(Habbo habbo, HabboItem wiredItem) {
+        if (habbo != null && wiredItem != null && wiredItem.getUserId() == habbo.getHabboInfo().getId()) {
+            return true;
+        }
+
+        return this.canModifyWired(habbo);
+    }
+
     public boolean canManageWiredSettings(Habbo habbo) {
         return this.wiredAccess.canManage(habbo);
     }

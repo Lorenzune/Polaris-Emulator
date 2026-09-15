@@ -318,6 +318,12 @@ import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraTimeUtil
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraUnseen;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraUserVariable;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableEcho;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBossBar;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxHealthPoints;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxLevellingProgress;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxNumberDisplay;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxProgressBar;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxStatusBar;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableLevelUpSystem;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableReference;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableTextConnector;
@@ -850,6 +856,12 @@ public class ItemManager {
         this.interactionsList.add(new ItemInteraction("wf_var_context", WiredExtraContextVariable.class));
         this.interactionsList.add(new ItemInteraction("wf_var_reference", WiredExtraVariableReference.class));
         this.interactionsList.add(new ItemInteraction("wf_var_echo", WiredExtraVariableEcho.class));
+        this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_hp", WiredExtraVariableFxHealthPoints.class));
+        this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_prog", WiredExtraVariableFxProgressBar.class));
+        this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_levelling", WiredExtraVariableFxLevellingProgress.class));
+        this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_status", WiredExtraVariableFxStatusBar.class));
+        this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_boss", WiredExtraVariableFxBossBar.class));
+        this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_number", WiredExtraVariableFxNumberDisplay.class));
 
         // ---- Inert-furni group: Group A/B + Phase-A aliases + advanced add-ons ----
         this.interactionsList.add(new ItemInteraction("wf_act_dont_chase", WiredEffectMoveFurniAway.class));

@@ -847,6 +847,7 @@ public class RoomManager {
         room.addHabbo(habbo);
         BuildersClubRoomSupport.sendCurrentRoomPlacementStatus(room);
         room.getUserVariableManager().restorePermanentAssignments(habbo);
+        room.getUserVariableManager().sendSnapshot(habbo);
 
         habbo.getClient()
                 .sendResponse(new UserBadgesComposer(

@@ -18,8 +18,9 @@ public class WiredTriggerSaveDataEvent extends MessageHandler {
         Room room = this.client.getHabbo().getHabboInfo().getCurrentRoom();
 
         if (room != null) {
-            if (room.canModifyWired(this.client.getHabbo())) {
-                InteractionWiredTrigger trigger = room.getRoomSpecialTypes().getTrigger(itemId);
+            InteractionWiredTrigger trigger = room.getRoomSpecialTypes().getTrigger(itemId);
+
+            if (room.canModifyWired(this.client.getHabbo(), trigger)) {
 
                 if (trigger != null) {
                     WiredSettings settings;
