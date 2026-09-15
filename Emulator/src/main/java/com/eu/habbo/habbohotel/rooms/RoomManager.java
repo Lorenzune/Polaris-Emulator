@@ -1549,13 +1549,17 @@ public class RoomManager {
     public ArrayList<Room> getRoomsVisited(Habbo habbo, boolean includeSelf, int limit) {
         ArrayList<Room> rooms = new ArrayList<>();
 
+        String sql = "SELECT rooms.* FROM room_enter_log INNER JOIN rooms ON room_enter_log.room_id = rooms.id WHERE user_id = ? AND timestamp >= ?"
+                + (includeSelf ? "" : " AND rooms.owner_id != ?")
+                + " GROUP BY rooms.id ORDER BY MAX(room_enter_log.timestamp) DESC LIMIT " + limit;
+
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-                PreparedStatement statement = connection.prepareStatement(
-                        "SELECT rooms.* FROM room_enter_log INNER JOIN rooms ON room_enter_log.room_id = rooms.id WHERE user_id = ? AND timestamp >= ? AND rooms.owner_id != ? GROUP BY rooms.id ORDER BY MAX(timestamp) DESC LIMIT "
-                                + limit)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, habbo.getHabboInfo().getId());
             statement.setInt(2, Emulator.getIntUnixTimestamp() - 2592000);
-            statement.setInt(3, (includeSelf ? 0 : habbo.getHabboInfo().getId()));
+            if (!includeSelf) {
+                statement.setInt(3, habbo.getHabboInfo().getId());
+            }
             try (ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
                     Room room = this.activeRooms.get(set.getInt("id"));

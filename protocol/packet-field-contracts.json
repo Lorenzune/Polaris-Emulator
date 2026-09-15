@@ -7745,6 +7745,42 @@
       ]
     },
     {
+      "name": "WIRED_ACCOUNT_PREFERENCES_REQUEST",
+      "direction": "client_to_server",
+      "header": 10035,
+      "java": {
+        "symbol": "WiredAccountPreferencesRequestEvent",
+        "className": "WiredAccountPreferencesRequestEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/wired/WiredAccountPreferencesRequestEvent.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_ACCOUNT_PREFERENCES_REQUEST",
+        "className": "WiredAccountPreferencesRequestComposer",
+        "path": "packages/communication/src/messages/outgoing/user/settings/WiredAccountPreferencesRequestComposer.ts"
+      },
+      "fields": []
+    },
+    {
+      "name": "WIRED_ACCOUNT_PREFERENCES_SAVE",
+      "direction": "client_to_server",
+      "header": 10036,
+      "java": {
+        "symbol": "WiredAccountPreferencesSaveEvent",
+        "className": "WiredAccountPreferencesSaveEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/wired/WiredAccountPreferencesSaveEvent.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_ACCOUNT_PREFERENCES_SAVE",
+        "className": "WiredAccountPreferencesSaveComposer",
+        "path": "packages/communication/src/messages/outgoing/user/settings/WiredAccountPreferencesSaveComposer.ts"
+      },
+      "fields": [
+        { "kind": "scalar", "type": "boolean", "name": "showToolbarButton" },
+        { "kind": "scalar", "type": "boolean", "name": "showInspectButton" },
+        { "kind": "scalar", "type": "boolean", "name": "showSystemNotifications" }
+      ]
+    },
+    {
       "name": "WIRED_ROOM_SETTINGS_REQUEST",
       "direction": "client_to_server",
       "header": 10022,
@@ -15427,6 +15463,26 @@
           "type": "int",
           "name": ""
         }
+      ]
+    },
+    {
+      "name": "WIRED_ACCOUNT_PREFERENCES_DATA",
+      "direction": "server_to_client",
+      "header": 5111,
+      "java": {
+        "symbol": "WiredAccountPreferencesDataComposer",
+        "className": "WiredAccountPreferencesDataComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/wired/WiredAccountPreferencesDataComposer.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_ACCOUNT_PREFERENCES_DATA",
+        "className": "WiredAccountPreferencesParser",
+        "path": "packages/communication/src/messages/parser/user/data/WiredAccountPreferencesParser.ts"
+      },
+      "fields": [
+        { "kind": "scalar", "type": "boolean", "name": "showToolbarButton" },
+        { "kind": "scalar", "type": "boolean", "name": "showInspectButton" },
+        { "kind": "scalar", "type": "boolean", "name": "showSystemNotifications" }
       ]
     },
     {
@@ -23428,6 +23484,33 @@
         "path": "packages/communication/src/messages/parser/furniture/FurnitureDataReloadParser.ts"
       },
       "reason": "Java analyzer: Data-dependent packet operations in IfStmt inside composeInternal; TypeScript analyzer: Data-dependent packet operations in IfStatement inside parse"
+    },
+    {
+      "name": "EXTERNAL_TEXTS_RELOAD",
+      "direction": "server_to_client",
+      "header": 10048,
+      "java": {
+        "symbol": "ExternalTextsReloadComposer",
+        "className": "ExternalTextsReloadComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/generic/ExternalTextsReloadComposer.java"
+      },
+      "typescript": {
+        "symbol": "EXTERNAL_TEXTS_RELOAD",
+        "className": "ExternalTextsReloadParser",
+        "path": "packages/communication/src/messages/parser/generic/ExternalTextsReloadParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "timestamp"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "urlHint"
+        }
+      ]
     }
   ]
 }
