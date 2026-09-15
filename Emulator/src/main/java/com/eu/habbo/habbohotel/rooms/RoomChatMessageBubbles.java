@@ -148,6 +148,10 @@ public class RoomChatMessageBubbles {
         return NORMAL;
     }
 
+    public static boolean isRegistered(int id) {
+        return BUBBLES.containsKey(id);
+    }
+
     private static void registerBubble(RoomChatMessageBubbles bubble) {
         BUBBLES.put(bubble.getType(), bubble);
     }
