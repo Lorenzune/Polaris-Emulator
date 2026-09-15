@@ -7,6 +7,7 @@ import com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomBroadcastComposer
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.ArrayList;
 
 public class PlayCommand extends Command {
 
@@ -33,6 +34,11 @@ public class PlayCommand extends Command {
             return true;
         }
 
+        if (!room.isYoutubeEnabled()) {
+            gameClient.getHabbo().whisper("YouTube non è abilitato in questa stanza.");
+            return true;
+        }
+
         if (params.length < 2) {
             gameClient.getHabbo().whisper("Uso: :play <link o id youtube>");
             return true;
@@ -50,22 +56,51 @@ public class PlayCommand extends Command {
             return true;
         }
 
-        // If audio is already playing in the room, add it to the playlist queue
-        if (!room.getYoutubeCurrentVideo().isEmpty() && room.isYoutubeAudioOnly()) {
-            room.getYoutubePlaylist().add(videoId + ":::" + gameClient.getHabbo().getHabboInfo().getUsername());
-            room.sendComposer(
-                new YouTubeRoomBroadcastComposer(room.getYoutubeCurrentVideo(), room.getYoutubeSenderName(), room.getYoutubePlaylist(), room.getYoutubeElapsedSeconds(), true, room.isYoutubePaused()).compose()
-            );
-            gameClient.getHabbo().whisper("Traccia aggiunta alla coda di riproduzione (" + room.getYoutubePlaylist().size() + " in coda).");
-            return true;
-        }
+        synchronized (room) {
+            // If audio is already playing in the room, add it to the playlist queue.
+            if (!room.getYoutubeCurrentVideo().isEmpty() && room.isYoutubeAudioOnly()) {
+                ArrayList<String> updatedPlaylist = new ArrayList<>(room.getYoutubePlaylist());
+                updatedPlaylist.add(videoId + ":::" + gameClient.getHabbo().getHabboInfo().getUsername());
+                room.setYoutubeVideo(
+                    room.getYoutubeCurrentVideo(),
+                    room.getYoutubeSenderName(),
+                    updatedPlaylist,
+                    true,
+                    room.getYoutubePositionMs(),
+                    room.isYoutubePaused()
+                );
+                room.sendComposer(
+                    new YouTubeRoomBroadcastComposer(
+                        room.getYoutubeCurrentVideo(),
+                        room.getYoutubeSenderName(),
+                        updatedPlaylist,
+                        room.getYoutubeElapsedSeconds(),
+                        true,
+                        room.isYoutubePaused(),
+                        room.getYoutubeRevision(),
+                        room.getYoutubePositionMs()
+                    ).compose()
+                );
+                gameClient.getHabbo().whisper("Traccia aggiunta alla coda (" + updatedPlaylist.size() + " in coda). Apri il player musicale nella barra destra.");
+                return true;
+            }
 
-        // Start new audio track
-        room.setYoutubeVideo(videoId, gameClient.getHabbo().getHabboInfo().getUsername(), room.getYoutubePlaylist(), true);
-        room.sendComposer(
-            new YouTubeRoomBroadcastComposer(videoId, gameClient.getHabbo().getHabboInfo().getUsername(), room.getYoutubePlaylist(), 0, true).compose()
-        );
-        gameClient.getHabbo().whisper("Hai avviato la riproduzione dell'audio.");
+            // Start new audio track with a fresh queue.
+            room.setYoutubeVideo(videoId, gameClient.getHabbo().getHabboInfo().getUsername(), new ArrayList<>(), true, 0, false);
+            room.sendComposer(
+                new YouTubeRoomBroadcastComposer(
+                    videoId,
+                    gameClient.getHabbo().getHabboInfo().getUsername(),
+                    new ArrayList<>(),
+                    0,
+                    true,
+                    false,
+                    room.getYoutubeRevision(),
+                    room.getYoutubePositionMs()
+                ).compose()
+            );
+            gameClient.getHabbo().whisper("Riproduzione avviata. Gestisci musica e coda dal player nella barra destra.");
+        }
         return true;
     }
 }

@@ -1080,7 +1080,12 @@ public class RoomManager {
                     .sendResponse(new com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomBroadcastComposer(
                                     room.getYoutubeCurrentVideo(),
                                     room.getYoutubeSenderName(),
-                                    room.getYoutubePlaylist())
+                                    room.getYoutubePlaylist(),
+                                    room.getYoutubeElapsedSeconds(),
+                                    room.isYoutubeAudioOnly(),
+                                    room.isYoutubePaused(),
+                                    room.getYoutubeRevision(),
+                                    room.getYoutubePositionMs())
                             .compose());
         }
         if (!room.getYoutubeWatchers().isEmpty()) {

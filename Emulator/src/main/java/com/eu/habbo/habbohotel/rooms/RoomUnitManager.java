@@ -199,6 +199,12 @@ public class RoomUnitManager {
                 .getUserVariableManager()
                 .clearAssignmentsForUser(habbo.getHabboInfo().getId());
 
+        if (this.room.getYoutubeWatchers().remove(habbo.getHabboInfo().getId())) {
+            this.room.sendComposer(
+                new com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomWatchersComposer(this.room.getYoutubeWatchers()).compose()
+            );
+        }
+
         if (sendRemovePacket && habbo.getRoomUnit() != null && !habbo.getRoomUnit().isTeleporting) {
             this.room.sendComposer(new RoomUserRemoveComposer(habbo.getRoomUnit()).compose());
         }

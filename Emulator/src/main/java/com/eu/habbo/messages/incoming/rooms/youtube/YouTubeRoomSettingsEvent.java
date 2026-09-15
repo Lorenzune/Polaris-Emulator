@@ -29,7 +29,8 @@ public class YouTubeRoomSettingsEvent extends MessageHandler {
 
         if (!enabled && !room.getYoutubeCurrentVideo().isEmpty()) {
             room.clearYoutubeVideo();
-            room.sendComposer(new YouTubeRoomBroadcastComposer("", "", java.util.Collections.emptyList()).compose());
+            room.sendComposer(new YouTubeRoomBroadcastComposer(
+                    "", "", java.util.Collections.emptyList(), 0, false, false, room.getYoutubeRevision()).compose());
         }
     }
 }

@@ -243,8 +243,52 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         return this.media.watchers();
     }
 
+    public int getYoutubeElapsedSeconds() {
+        return this.media.elapsedSeconds();
+    }
+
+    public long getYoutubePositionMs() {
+        return this.media.positionMs();
+    }
+
+    public int getYoutubeRevision() {
+        return this.media.revision();
+    }
+
+    public long getYoutubeServerTimeMs() {
+        return System.currentTimeMillis();
+    }
+
+    public boolean isYoutubeAudioOnly() {
+        return this.media.isAudioOnly();
+    }
+
+    public boolean isYoutubePaused() {
+        return this.media.isPaused();
+    }
+
+    public void setYoutubePaused(boolean paused, int offset) {
+        this.media.setPaused(paused, offset);
+    }
+
+    public void setYoutubeVideo(String videoId, String senderName, java.util.List<String> playlist, boolean isAudioOnly, int startOffset, boolean isPaused) {
+        this.media.setVideo(videoId, senderName, playlist, isAudioOnly, startOffset, isPaused);
+    }
+
+    public void setYoutubeVideo(String videoId, String senderName, java.util.List<String> playlist, boolean isAudioOnly, long positionMs, boolean isPaused) {
+        this.media.setVideo(videoId, senderName, playlist, isAudioOnly, positionMs, isPaused);
+    }
+
+    public void setYoutubeVideo(String videoId, String senderName, java.util.List<String> playlist, boolean isAudioOnly, int startOffset) {
+        this.media.setVideo(videoId, senderName, playlist, isAudioOnly, startOffset, false);
+    }
+
+    public void setYoutubeVideo(String videoId, String senderName, java.util.List<String> playlist, boolean isAudioOnly) {
+        this.media.setVideo(videoId, senderName, playlist, isAudioOnly, 0);
+    }
+
     public void setYoutubeVideo(String videoId, String senderName, java.util.List<String> playlist) {
-        this.media.setVideo(videoId, senderName, playlist);
+        this.media.setVideo(videoId, senderName, playlist, false, 0);
     }
 
     public void clearYoutubeVideo() {
