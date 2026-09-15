@@ -30,6 +30,7 @@ public class Incoming {
     public static final int NavigatorCategoryListModeEvent = 1202;
     public static final int NavigatorCollapseCategoryEvent = 1834;
     public static final int NavigatorUncollapseCategoryEvent = 637;
+    public static final int UpdateNavigatorRoomOrderEvent = 8005;
     public static final int PickNewUserGiftEvent = 1822;
     public static final int FootballGateSaveLookEvent = 924;
     public static final int MannequinSaveLookEvent = 2209;

@@ -58,7 +58,10 @@ public class SearchResultList implements ISerialize, Comparable<SearchResultList
 
             message.appendInt(this.rooms.size());
 
-            if (!this.code.equalsIgnoreCase("history_freq")) {
+            boolean hasPersistedOrder = this.code.equalsIgnoreCase("my")
+                    || this.code.equalsIgnoreCase("official-root")
+                    || this.code.startsWith("public-category:");
+            if (!this.code.equalsIgnoreCase("history_freq") && !hasPersistedOrder) {
                 Collections.sort(this.rooms);
             }
             for (Room room : this.rooms) {

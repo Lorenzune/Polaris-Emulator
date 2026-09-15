@@ -456,6 +456,9 @@ public class PacketManager {
         this.registerHandler(Incoming.SearchRoomsWithRightsEvent, SearchRoomsWithRightsEvent.class);
         this.registerHandler(Incoming.SearchRoomsInGroupEvent, SearchRoomsInGroupEvent.class);
         this.registerHandler(Incoming.SearchRoomsMyFavoriteEvent, SearchRoomsMyFavouriteEvent.class);
+        this.registerHandler(
+            Incoming.UpdateNavigatorRoomOrderEvent,
+            com.eu.habbo.messages.incoming.navigator.UpdateNavigatorRoomOrderEvent.class);
         this.registerHandler(Incoming.SearchRoomsVisitedEvent, SearchRoomsVisitedEvent.class);
         this.registerHandler(Incoming.RequestNewNavigatorDataEvent, RequestNewNavigatorDataEvent.class);
         this.registerHandler(Incoming.GetCategoriesWithUserCountEvent, GetCategoriesWithUserCountEvent.class);

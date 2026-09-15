@@ -96,7 +96,7 @@ public class RoomManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RoomManager.class);
     private static final String PUBLIC_ROOMS_SQL = """
-            SELECT id, owner_id, owner_name, name, description, password, state,
+            SELECT id, owner_id, owner_name, navigator_order, name, description, password, state,
                    users_max, score, category, paper_floor, paper_wall,
                    paper_landscape, thickness_wall, wall_height, thickness_floor,
                    tags, is_public, is_staff_picked, allow_other_pets,
@@ -117,10 +117,12 @@ public class RoomManager {
     private static final String ROOM_IDS_BY_OWNER_NAME_SQL = """
             SELECT id
             FROM rooms
-            WHERE owner_name = ? ORDER BY id DESC LIMIT 25
+            WHERE owner_name = ?
+            ORDER BY CASE WHEN navigator_order = 0 THEN 1 ELSE 0 END, navigator_order ASC, id DESC
+            LIMIT 25
             """;
     private static final String ROOMS_BY_OWNER_ID_SQL = """
-            SELECT id, owner_id, owner_name, name, description, password, state,
+            SELECT id, owner_id, owner_name, navigator_order, name, description, password, state,
                    users_max, score, category, paper_floor, paper_wall,
                    paper_landscape, thickness_wall, wall_height, thickness_floor,
                    tags, is_public, is_staff_picked, allow_other_pets,
@@ -468,8 +470,135 @@ public class RoomManager {
         for (Room room : this.activeRooms.values()) {
             if (room.getOwnerId() == habbo.getHabboInfo().getId()) rooms.add(room);
         }
-        rooms.sort(Room.SORT_ID);
+        rooms.sort((left, right) -> {
+            int leftOrder = left.getNavigatorOrder() == 0 ? Integer.MAX_VALUE : left.getNavigatorOrder();
+            int rightOrder = right.getNavigatorOrder() == 0 ? Integer.MAX_VALUE : right.getNavigatorOrder();
+            int byOrder = Integer.compare(leftOrder, rightOrder);
+            return byOrder != 0 ? byOrder : Room.SORT_ID.compare(left, right);
+        });
         return rooms;
+    }
+
+    public boolean saveNavigatorRoomOrder(Habbo habbo, String scope, int categoryId, List<Integer> submittedRoomIds) {
+        if (habbo == null || submittedRoomIds == null || submittedRoomIds.isEmpty() || submittedRoomIds.size() > 2000) {
+            return false;
+        }
+
+        if ("own".equals(scope)) {
+            if (categoryId != 0 || submittedRoomIds.size() > 100) return false;
+            return this.saveOwnedNavigatorRoomOrder(habbo, submittedRoomIds);
+        }
+
+        if (!habbo.hasPermission(Permission.ACC_NAVIGATOR_ROOM_ORDER)) return false;
+
+        String listKey;
+        List<Room> eligibleRooms;
+        if ("public_root".equals(scope) && categoryId == 0) {
+            listKey = "public-root";
+            eligibleRooms = Emulator.getGameEnvironment().getNavigatorManager()
+                    .getOrderedPublicRooms(listKey, this.getPublicRooms());
+        } else if ("public_category".equals(scope) && categoryId > 0) {
+            listKey = "public-category:" + categoryId;
+            eligibleRooms = Emulator.getGameEnvironment().getNavigatorManager().getPublicCategoryRooms(categoryId);
+            if (eligibleRooms == null) return false;
+        } else {
+            return false;
+        }
+
+        List<Integer> mergedRoomIds = this.mergeSubmittedNavigatorOrder(eligibleRooms, submittedRoomIds);
+        if (mergedRoomIds == null) return false;
+
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement delete = connection.prepareStatement(
+                    "DELETE FROM navigator_room_order WHERE list_key = ?")) {
+                delete.setString(1, listKey);
+                delete.executeUpdate();
+            }
+
+            try (PreparedStatement insert = connection.prepareStatement(
+                    "INSERT INTO navigator_room_order (list_key, room_id, order_num) VALUES (?, ?, ?)")) {
+                for (int index = 0; index < mergedRoomIds.size(); index++) {
+                    insert.setString(1, listKey);
+                    insert.setInt(2, mergedRoomIds.get(index));
+                    insert.setInt(3, index + 1);
+                    insert.addBatch();
+                }
+
+                for (int result : insert.executeBatch()) {
+                    if (result == Statement.EXECUTE_FAILED) {
+                        connection.rollback();
+                        return false;
+                    }
+                }
+            }
+
+            connection.commit();
+            return true;
+        } catch (SQLException e) {
+            LOGGER.error("Caught SQL exception saving navigator room order for {}", listKey, e);
+            return false;
+        }
+    }
+
+    private boolean saveOwnedNavigatorRoomOrder(Habbo habbo, List<Integer> submittedRoomIds) {
+        List<Room> ownedRooms = this.getRoomsForHabbo(habbo);
+        List<Integer> orderedRoomIds = this.mergeSubmittedNavigatorOrder(ownedRooms, submittedRoomIds);
+        if (orderedRoomIds == null) return false;
+
+        int ownerId = habbo.getHabboInfo().getId();
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "UPDATE rooms SET navigator_order = ? WHERE id = ? AND owner_id = ?")) {
+                for (int index = 0; index < orderedRoomIds.size(); index++) {
+                    statement.setInt(1, index + 1);
+                    statement.setInt(2, orderedRoomIds.get(index));
+                    statement.setInt(3, ownerId);
+                    statement.addBatch();
+                }
+                for (int result : statement.executeBatch()) {
+                    if (result == Statement.EXECUTE_FAILED) {
+                        connection.rollback();
+                        return false;
+                    }
+                }
+            }
+            connection.commit();
+
+            Map<Integer, Room> roomsById = new HashMap<>();
+            for (Room room : ownedRooms) roomsById.put(room.getId(), room);
+            for (int index = 0; index < orderedRoomIds.size(); index++) {
+                Room room = roomsById.get(orderedRoomIds.get(index));
+                if (room != null) room.setNavigatorOrder(index + 1);
+            }
+            return true;
+        } catch (SQLException e) {
+            LOGGER.error("Caught SQL exception saving navigator room order for user {}", ownerId, e);
+            return false;
+        }
+    }
+
+    private List<Integer> mergeSubmittedNavigatorOrder(List<Room> eligibleRooms, List<Integer> submittedRoomIds) {
+        if (eligibleRooms == null || eligibleRooms.isEmpty()) return null;
+
+        Set<Integer> eligibleIds = new HashSet<>();
+        List<Integer> mergedRoomIds = new ArrayList<>(eligibleRooms.size());
+        for (Room room : eligibleRooms) {
+            if (eligibleIds.add(room.getId())) mergedRoomIds.add(room.getId());
+        }
+
+        Set<Integer> submittedIds = new HashSet<>(submittedRoomIds);
+        if (submittedIds.size() != submittedRoomIds.size() || !eligibleIds.containsAll(submittedIds)) return null;
+
+        int submittedIndex = 0;
+        for (int index = 0; index < mergedRoomIds.size(); index++) {
+            if (submittedIds.contains(mergedRoomIds.get(index))) {
+                mergedRoomIds.set(index, submittedRoomIds.get(submittedIndex++));
+            }
+        }
+
+        return submittedIndex == submittedRoomIds.size() ? mergedRoomIds : null;
     }
 
     public List<Room> getRoomsForHabbo(String username) {

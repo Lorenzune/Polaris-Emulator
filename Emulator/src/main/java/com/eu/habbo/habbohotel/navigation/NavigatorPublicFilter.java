@@ -18,14 +18,15 @@ public class NavigatorPublicFilter extends NavigatorFilter {
     public List<SearchResultList> getResult(Habbo habbo) {
         boolean showInvisible = habbo.hasPermission(Permission.ACC_ENTERANYROOM) || habbo.hasPermission(Permission.ACC_ANYROOMOWNER);
         List<SearchResultList> resultLists = new ArrayList<>();
+        NavigatorManager navigatorManager = Emulator.getGameEnvironment().getNavigatorManager();
 
         int i = 0;
-        resultLists.add(new SearchResultList(i, "official-root", "", SearchAction.NONE, habbo.getHabboStats().navigatorWindowSettings.getListModeForCategory("official-root", ListMode.THUMBNAILS), habbo.getHabboStats().navigatorWindowSettings.getDisplayModeForCategory("official-root"), Emulator.getGameEnvironment().getNavigatorManager().getRoomsForCategory("official-root", habbo), false, showInvisible, DisplayOrder.ORDER_NUM, -1));
+        resultLists.add(new SearchResultList(i, "official-root", "", SearchAction.NONE, habbo.getHabboStats().navigatorWindowSettings.getListModeForCategory("official-root", ListMode.THUMBNAILS), habbo.getHabboStats().navigatorWindowSettings.getDisplayModeForCategory("official-root"), navigatorManager.getRoomsForCategory("official-root", habbo), false, showInvisible, DisplayOrder.ORDER_NUM, -1));
         i++;
 
         for (NavigatorPublicCategory category : Emulator.getGameEnvironment().getNavigatorManager().publicCategories.values()) {
             if (!category.rooms.isEmpty()) {
-                resultLists.add(new SearchResultList(i, "", category.name, SearchAction.NONE, habbo.getHabboStats().navigatorWindowSettings.getListModeForCategory(category.name, category.image), habbo.getHabboStats().navigatorWindowSettings.getDisplayModeForCategory(category.name), category.rooms, true, showInvisible, DisplayOrder.ORDER_NUM, category.order));
+                resultLists.add(new SearchResultList(i, "public-category:" + category.id, category.name, SearchAction.NONE, habbo.getHabboStats().navigatorWindowSettings.getListModeForCategory(category.name, category.image), habbo.getHabboStats().navigatorWindowSettings.getDisplayModeForCategory(category.name), navigatorManager.getPublicCategoryRooms(category.id), true, showInvisible, DisplayOrder.ORDER_NUM, category.order));
                 i++;
             }
         }

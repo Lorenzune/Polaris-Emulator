@@ -154,6 +154,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     public volatile ScheduledFuture<?> roomCycleTask;
     private int id;
     private int ownerId;
+    private int navigatorOrder;
     private volatile BiConsumer<Room, Integer> ownerChangeListener;
     private String ownerName;
     private String name;
@@ -356,6 +357,11 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         RoomSnapshot.Initial initial = RoomSnapshot.readInitial(set);
         this.id = initial.id();
         this.ownerId = initial.ownerId();
+        try {
+            this.navigatorOrder = set.getInt("navigator_order");
+        } catch (SQLException ignored) {
+            this.navigatorOrder = 0;
+        }
         this.userCountPersistence = this.createUserCountPersistence();
         this.ownerName = initial.ownerName();
         this.name = initial.name();
@@ -891,6 +897,14 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
 
     public int getOwnerId() {
         return this.ownerId;
+    }
+
+    public int getNavigatorOrder() {
+        return this.navigatorOrder;
+    }
+
+    public void setNavigatorOrder(int navigatorOrder) {
+        this.navigatorOrder = Math.max(0, navigatorOrder);
     }
 
     public void setOwnerId(int ownerId) {
