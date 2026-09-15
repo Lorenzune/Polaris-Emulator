@@ -17,7 +17,6 @@ import com.eu.habbo.habbohotel.games.wired.WiredGame;
 import com.eu.habbo.habbohotel.guilds.Guild;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWired;
 import com.eu.habbo.habbohotel.messenger.MessengerBuddy;
-import com.eu.habbo.habbohotel.navigation.NavigatorFilterComparator;
 import com.eu.habbo.habbohotel.navigation.NavigatorFilterField;
 import com.eu.habbo.habbohotel.navigation.NavigatorManager;
 import com.eu.habbo.habbohotel.permissions.Permission;
@@ -282,14 +281,18 @@ public class RoomManager {
     public Map<Integer, List<Room>> findRooms(
             NavigatorFilterField filterField, String value, int category, boolean showInvisible) {
         Map<Integer, List<Room>> rooms = new HashMap<>();
-        String query = filterField.databaseQuery + " AND rooms.state NOT LIKE " + (showInvisible ? "''" : "'invisible'")
-                + (category >= 0 ? "AND rooms.category = '" + category + "'" : "")
-                + "  ORDER BY rooms.users, rooms.id DESC LIMIT " + (page * NavigatorManager.MAXIMUM_RESULTS_PER_PAGE)
-                + "" + ((page * NavigatorManager.MAXIMUM_RESULTS_PER_PAGE) + NavigatorManager.MAXIMUM_RESULTS_PER_PAGE);
+        String val = value != null ? value.trim() : "";
+        if (val.isEmpty()) {
+            return rooms;
+        }
+
+        RoomSearchQuery query = buildRoomSearchQuery(filterField, val, category, showInvisible);
+
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-                PreparedStatement statement = connection.prepareStatement(query)) {
-            statement.setString(
-                    1, (filterField.comparator == NavigatorFilterComparator.EQUALS ? value : "%" + value + "%"));
+                PreparedStatement statement = connection.prepareStatement(query.sql())) {
+            for (int idx = 0; idx < query.parameters().size(); idx++) {
+                statement.setString(idx + 1, query.parameters().get(idx));
+            }
             try (ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
                     Room room = this.activeRooms.get(set.getInt("id"));
@@ -312,6 +315,86 @@ public class RoomManager {
 
         return rooms;
     }
+
+    static RoomSearchQuery buildRoomSearchQuery(
+            NavigatorFilterField filterField, String value, int category, boolean showInvisible) {
+        String key = (filterField != null && filterField.key != null) ? filterField.key.toLowerCase() : "anything";
+        String pattern = "%" + value + "%";
+        List<String> parameters = new ArrayList<>();
+        String predicate;
+
+        switch (key) {
+            case "desc" -> {
+                predicate = "rooms.description LIKE ?";
+                parameters.add(pattern);
+            }
+            case "group" -> {
+                predicate = "EXISTS (SELECT 1 FROM guilds g WHERE (g.id = rooms.guild_id OR g.room_id = rooms.id) "
+                        + "AND CONCAT(COALESCE(g.name, ''), ' ', COALESCE(g.description, '')) LIKE ?)";
+                parameters.add(pattern);
+            }
+            case "owner" -> {
+                predicate = "LOWER(rooms.owner_name) = LOWER(?)";
+                parameters.add(value);
+            }
+            case "promo" -> {
+                predicate = "EXISTS (SELECT 1 FROM room_promotions rp WHERE rp.room_id = rooms.id "
+                        + "AND rp.end_timestamp > UNIX_TIMESTAMP() "
+                        + "AND CONCAT(COALESCE(rp.title, ''), ' ', COALESCE(rp.description, '')) LIKE ?)";
+                parameters.add(pattern);
+            }
+            case "roomname" -> {
+                predicate = "rooms.name LIKE ?";
+                parameters.add(pattern);
+            }
+            case "tag" -> {
+                predicate = "(rooms.tags = ? OR rooms.tags LIKE CONCAT(?, ';%') "
+                        + "OR rooms.tags LIKE CONCAT('%;', ?, ';%') OR rooms.tags LIKE CONCAT('%;', ?))";
+                parameters.add(value);
+                parameters.add(value);
+                parameters.add(value);
+                parameters.add(value);
+            }
+            case "anything" -> {
+                predicate = "(rooms.name LIKE ? OR rooms.description LIKE ? OR rooms.owner_name LIKE ? "
+                        + "OR rooms.tags LIKE ? OR EXISTS (SELECT 1 FROM guilds g "
+                        + "WHERE (g.id = rooms.guild_id OR g.room_id = rooms.id) "
+                        + "AND CONCAT(COALESCE(g.name, ''), ' ', COALESCE(g.description, '')) LIKE ?))";
+                parameters.add(pattern);
+                parameters.add(pattern);
+                parameters.add(pattern);
+                parameters.add(pattern);
+                parameters.add(pattern);
+            }
+            default -> {
+                predicate = "(rooms.name LIKE ? OR rooms.description LIKE ? OR rooms.owner_name LIKE ? "
+                        + "OR rooms.tags LIKE ? OR EXISTS (SELECT 1 FROM guilds g "
+                        + "WHERE (g.id = rooms.guild_id OR g.room_id = rooms.id) "
+                        + "AND CONCAT(COALESCE(g.name, ''), ' ', COALESCE(g.description, '')) LIKE ?))";
+                parameters.add(pattern);
+                parameters.add(pattern);
+                parameters.add(pattern);
+                parameters.add(pattern);
+                parameters.add(pattern);
+            }
+        }
+
+        StringBuilder sql = new StringBuilder("SELECT DISTINCT rooms.* FROM rooms WHERE ").append(predicate);
+        if (!showInvisible) {
+            sql.append(" AND rooms.state != 'invisible'");
+        }
+        if (category >= 0) {
+            sql.append(" AND rooms.category = ").append(category);
+        }
+        sql.append(" ORDER BY rooms.users, rooms.id DESC LIMIT ")
+                .append(page * NavigatorManager.MAXIMUM_RESULTS_PER_PAGE)
+                .append(", ")
+                .append(NavigatorManager.MAXIMUM_RESULTS_PER_PAGE);
+
+        return new RoomSearchQuery(sql.toString(), List.copyOf(parameters));
+    }
+
+    record RoomSearchQuery(String sql, List<String> parameters) {}
 
     public RoomCategory getCategory(int id) {
         return this.roomCategories.get(id);
