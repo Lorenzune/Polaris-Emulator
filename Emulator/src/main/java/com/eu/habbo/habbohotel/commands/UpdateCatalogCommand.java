@@ -14,6 +14,12 @@ public class UpdateCatalogCommand extends Command {
     public boolean handle(GameClient gameClient, String[] params) {
         boolean scheduled = Emulator.getGameEnvironment().reloadCatalogAndCraftingAsync(() -> {
             Emulator.getGameEnvironment().broadcastCatalogReload();
+            Emulator.getGameServer().getGameClientManager().sendBroadcastResponse(
+                    new com.eu.habbo.messages.outgoing.furniture.FurnitureDataReloadComposer(
+                            com.eu.habbo.messages.outgoing.furniture.FurnitureDataReloadComposer.MODE_RELOAD_HINT,
+                            null
+                    )
+            );
 
             if (gameClient.getChannel().isOpen() && gameClient.getHabbo() != null) {
                 gameClient.getHabbo().whisper(

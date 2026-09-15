@@ -12,6 +12,13 @@ public class UpdateItemsCommand extends Command {
     @Override
     public boolean handle(GameClient gameClient, String[] params) {
         boolean scheduled = Emulator.getGameEnvironment().reloadItemsAsync(() -> {
+            Emulator.getGameServer().getGameClientManager().sendBroadcastResponse(
+                    new com.eu.habbo.messages.outgoing.furniture.FurnitureDataReloadComposer(
+                            com.eu.habbo.messages.outgoing.furniture.FurnitureDataReloadComposer.MODE_RELOAD_HINT,
+                            null
+                    )
+            );
+
             if (gameClient.getChannel().isOpen() && gameClient.getHabbo() != null) {
                 gameClient.getHabbo().whisper(
                         Emulator.getTexts().getValue("commands.succes.cmd_update_items"),
