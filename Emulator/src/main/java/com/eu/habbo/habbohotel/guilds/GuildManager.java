@@ -114,6 +114,7 @@ public class GuildManager {
         }
 
         habbo.getHabboStats().addGuild(guild.getId());
+        habbo.getMessenger().addGuildBuddy(habbo, guild);
 
         return guild;
     }
@@ -127,6 +128,7 @@ public class GuildManager {
 
             if (habbo != null) {
                 habbo.getHabboStats().removeGuild(guild.getId());
+                habbo.getMessenger().removeGuildBuddy(habbo, guild.getId());
 
                 if (habbo.getHabboStats().guild == guild.getId()) {
                     habbo.getHabboStats().guild = 0;
@@ -305,6 +307,15 @@ public class GuildManager {
         } catch (SQLException e) {
             LOGGER.error("Caught SQL exception", e);
         }
+
+        if (!error) {
+            Habbo joinedHabbo = userId == 0
+                    ? client.getHabbo()
+                    : Emulator.getGameEnvironment().getHabboManager().getHabbo(userId);
+            if (joinedHabbo != null) {
+                joinedHabbo.getMessenger().addGuildBuddy(joinedHabbo, guild);
+            }
+        }
     }
 
 
@@ -351,6 +362,10 @@ public class GuildManager {
             statement.setInt(1, userId);
             statement.setInt(2, guild.getId());
             statement.execute();
+
+            if (habbo != null) {
+                habbo.getMessenger().removeGuildBuddy(habbo, guild.getId());
+            }
         } catch (SQLException e) {
             LOGGER.error("Caught SQL exception", e);
         }
