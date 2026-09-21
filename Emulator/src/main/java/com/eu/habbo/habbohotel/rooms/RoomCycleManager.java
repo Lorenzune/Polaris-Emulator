@@ -611,6 +611,8 @@ public class RoomCycleManager {
                 if (isRiding || topItem == null || !topItem.getBaseItem().allowSit()) {
                     if (unit.hasStatus(RoomUnitStatus.SIT)) {
                         unit.removeStatus(RoomUnitStatus.SIT);
+                        unit.setZ(thisTile.getStackHeight());
+                        unit.setPreviousLocationZ(thisTile.getStackHeight());
                         update = true;
                     }
                 } else if (!hasSpecialPetStatus
@@ -619,6 +621,7 @@ public class RoomCycleManager {
                     this.room.dance(unit, DanceType.NONE);
                     unit.setStatus(RoomUnitStatus.SIT, (Item.getCurrentHeight(topItem) * 1.0D) + "");
                     unit.setZ(topItem.getZ());
+                    unit.setPreviousLocationZ(topItem.getZ());
                     unit.setRotation(RoomUserRotation.values()[topItem.getRotation()]);
                     unit.sitUpdate = false;
                     return true;
@@ -632,6 +635,11 @@ public class RoomCycleManager {
             if (isRiding || topItem == null || !topItem.getBaseItem().allowLay()) {
                 if (unit.hasStatus(RoomUnitStatus.LAY)) {
                     unit.removeStatus(RoomUnitStatus.LAY);
+                    RoomTile thisTile = this.room.getLayout().getTile(unit.getX(), unit.getY());
+                    if (thisTile != null) {
+                        unit.setZ(thisTile.getStackHeight());
+                        unit.setPreviousLocationZ(thisTile.getStackHeight());
+                    }
                     update = true;
                 }
             } else {

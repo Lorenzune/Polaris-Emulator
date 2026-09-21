@@ -110,22 +110,44 @@ public class RoomUserWalkEvent extends MessageHandler {
           return;
         }
 
-        if (x == roomUnit.getX() && y == roomUnit.getY()) {
-          return;
-        }
-
         if (room == null || room.getLayout() == null) {
           return;
-        }
-
-        if (roomUnit.isIdle()) {
-          fireIdleEvent(habbo, roomUnit);
         }
 
         RoomTile tile = room.getLayout().getTile((short) x, (short) y);
 
         if (tile == null) {
           return;
+        }
+
+        long now = System.currentTimeMillis();
+        long timeSinceRoller = now - roomUnit.getLastRollerTime();
+        if (timeSinceRoller < 500 && roomUnit.getRollerSlideOrigin() != null) {
+          RoomTile origin = roomUnit.getRollerSlideOrigin();
+          if (x == roomUnit.getX() && y == roomUnit.getY()) {
+            roomUnit.setLastRollerTime(0);
+            roomUnit.setRollerSlideOrigin(null);
+            return;
+          }
+
+          roomUnit.setLocation(origin);
+          roomUnit.setZ(roomUnit.getRollerSlideOriginZ());
+          roomUnit.setPreviousLocationZ(roomUnit.getRollerSlideOriginZ());
+          roomUnit.setLastRollerTime(0);
+          roomUnit.setRollerSlideOrigin(null);
+
+          if (x == origin.x && y == origin.y) {
+            room.sendComposer(new RoomUserStatusComposer(roomUnit).compose());
+            return;
+          }
+        }
+
+        if (x == roomUnit.getX() && y == roomUnit.getY()) {
+          return;
+        }
+
+        if (roomUnit.isIdle()) {
+          fireIdleEvent(habbo, roomUnit);
         }
 
         if (habbo.getRoomUnit().hasStatus(RoomUnitStatus.LAY) && room.getLayout()
@@ -168,20 +190,8 @@ public class RoomUserWalkEvent extends MessageHandler {
             }
           }
 
-          boolean needsLocationResync =
-              roomUnit.getCurrentLocation() != null
-                  && (roomUnit.getPreviousLocation() == null
-                  || roomUnit.getPreviousLocation().x != roomUnit.getCurrentLocation().x
-                  || roomUnit.getPreviousLocation().y != roomUnit.getCurrentLocation().y
-                  || Math.abs(roomUnit.getPreviousLocationZ() - roomUnit.getZ()) > 0.01D);
-
-          if (WiredUserMovementHelper.shouldSuppressStatusComposer(roomUnit) || needsLocationResync) {
+          if (WiredUserMovementHelper.shouldSuppressStatusComposer(roomUnit)) {
             WiredUserMovementHelper.clearStatusComposerSuppression(roomUnit);
-            if (roomUnit.getCurrentLocation() != null) {
-              roomUnit.setPreviousLocation(roomUnit.getCurrentLocation());
-              roomUnit.setPreviousLocationZ(roomUnit.getZ());
-            }
-            room.sendComposer(new RoomUserStatusComposer(roomUnit).compose());
           }
 
           roomUnit.setGoalLocation(tile);

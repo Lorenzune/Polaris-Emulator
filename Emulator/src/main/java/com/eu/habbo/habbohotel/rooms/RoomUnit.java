@@ -74,6 +74,8 @@ public class RoomUnit {
     private int handItem;
     private long handItemTimestamp;
     private long lastRollerTime;
+    private RoomTile rollerSlideOrigin;
+    private double rollerSlideOriginZ;
     private long moveStatusTimestamp;
     private int walkTimeOut;
     private int effectId;
@@ -252,7 +254,7 @@ public class RoomUnit {
                 }
             }
 
-            if (canSitNextTile) {
+            if (this.path.isEmpty() && canSitNextTile) {
                 HabboItem tallestChair = room.getTallestChair(next);
 
                 if (tallestChair != null) {
@@ -281,40 +283,7 @@ public class RoomUnit {
                 }
             }
 
-            HabboItem habboItem = room.getTopItemAt(this.getX(), this.getY());
-            if (habboItem != null) {
-                if (habboItem != item || !itemOccupiesTile(habboItem, next.x, next.y)) {
-                    habboItem.onWalkOff(this, room, new Object[]{this.getCurrentLocation(), next});
-                }
-            }
-
-            this.tilesWalked++;
-
-            DailyTaskActionMatcher.addFurniWalkProgress(habbo, item);
-
-            RoomUserRotation oldRotation = this.getBodyRotation();
-            this.setRotation(
-                RoomUserRotation.values()[Rotation.Calculate(this.getX(), this.getY(), next.x, next.y)]);
             if (item != null) {
-                if (item != habboItem || !itemOccupiesTile(item, this.getX(), this.getY())) {
-                    if (item.canWalkOn(this, room, null)) {
-                        item.onWalkOn(this, room, new Object[]{this.getCurrentLocation(), next});
-                    } else if (item instanceof ConditionalGate) {
-                        this.setRotation(oldRotation);
-                        this.tilesWalked--;
-                        this.setGoalLocation(this.currentLocation);
-                        this.status.remove(RoomUnitStatus.MOVE);
-                        room.sendComposer(new RoomUserStatusComposer(this).compose());
-
-                        if (habbo != null) {
-                            ((ConditionalGate) item).onRejected(this, this.getRoom(), new Object[]{});
-                        }
-                        return false;
-                    }
-                } else {
-                    item.onWalk(this, room, new Object[]{this.getCurrentLocation(), next});
-                }
-
                 zHeight += item.getZ();
 
                 if (!item.getBaseItem().allowSit() && !item.getBaseItem().allowLay()) {
@@ -330,7 +299,26 @@ public class RoomUnit {
                 zHeight = stackHelper.get().getZ();
             }
 
-            this.setPreviousLocation(this.getCurrentLocation());
+            RoomTile oldLocation = this.getCurrentLocation();
+            double oldZ = this.getZ();
+            if (oldLocation != null && (habbo == null || habbo.getHabboInfo() == null || habbo.getHabboInfo().getRiding() == null)) {
+                HabboItem currentTileItem = room.getItemManager().getWalkableItemAt(oldLocation.x, oldLocation.y);
+                if (currentTileItem != null) {
+                    oldZ = currentTileItem.getZ();
+                    if (!currentTileItem.getBaseItem().allowSit() && !currentTileItem.getBaseItem().allowLay()) {
+                        oldZ += Item.getCurrentHeight(currentTileItem);
+                    }
+                } else {
+                    oldZ = room.getLayout().getHeightAtSquare(oldLocation.x, oldLocation.y);
+                }
+                Optional<HabboItem> stackHelperOld = room.getItemsAt(oldLocation).stream()
+                    .filter(i -> i instanceof InteractionTileWalkMagic || i instanceof InteractionStackWalkHelper).findAny();
+                if (stackHelperOld.isPresent()) {
+                    oldZ = stackHelperOld.get().getZ();
+                }
+            }
+            this.setPreviousLocation(oldLocation);
+            this.setPreviousLocationZ(oldZ);
 
             this.setStatus(RoomUnitStatus.MOVE, next.x + "," + next.y + "," + zHeight);
             if (habbo != null) {
@@ -341,9 +329,9 @@ public class RoomUnit {
                         ridingUnit.setPreviousLocationZ(this.getZ());
                         this.setZ(zHeight - 1.0);
                         ridingUnit.setRotation(
-                            RoomUserRotation.values()[Rotation.Calculate(this.getX(), this.getY(), next.x,
+                            RoomUserRotation.values()[Rotation.Calculate(oldLocation.x, oldLocation.y, next.x,
                                 next.y)]);
-                        ridingUnit.setPreviousLocation(this.getCurrentLocation());
+                        ridingUnit.setPreviousLocation(oldLocation);
                         ridingUnit.setGoalLocation(this.getGoal());
                         ridingUnit.setStatus(RoomUnitStatus.MOVE,
                             next.x + "," + next.y + "," + (zHeight - 1.0));
@@ -355,6 +343,45 @@ public class RoomUnit {
             this.setZ(zHeight);
             this.setCurrentLocation(room.getLayout().getTile(next.x, next.y));
             this.resetIdleTimer();
+
+            HabboItem habboItem = room.getTopItemAt(oldLocation.x, oldLocation.y);
+            if (habboItem != null) {
+                if (habboItem != item || !itemOccupiesTile(habboItem, next.x, next.y)) {
+                    habboItem.onWalkOff(this, room, new Object[]{oldLocation, next});
+                }
+            }
+
+            this.tilesWalked++;
+
+            DailyTaskActionMatcher.addFurniWalkProgress(habbo, item);
+
+            RoomUserRotation oldRotation = this.getBodyRotation();
+            this.setRotation(
+                RoomUserRotation.values()[Rotation.Calculate(oldLocation.x, oldLocation.y, next.x, next.y)]);
+            if (item != null) {
+                if (item != habboItem || !itemOccupiesTile(item, oldLocation.x, oldLocation.y)) {
+                    if (item.canWalkOn(this, room, null)) {
+                        item.onWalkOn(this, room, new Object[]{oldLocation, next});
+                    } else if (item instanceof ConditionalGate) {
+                        this.setRotation(oldRotation);
+                        this.tilesWalked--;
+                        this.setCurrentLocation(oldLocation);
+                        this.setZ(oldZ);
+                        this.setPreviousLocation(oldLocation);
+                        this.setPreviousLocationZ(oldZ);
+                        this.setGoalLocation(oldLocation);
+                        this.status.remove(RoomUnitStatus.MOVE);
+                        room.sendComposer(new RoomUserStatusComposer(this).compose());
+
+                        if (habbo != null) {
+                            ((ConditionalGate) item).onRejected(this, this.getRoom(), new Object[]{});
+                        }
+                        return false;
+                    }
+                } else {
+                    item.onWalk(this, room, new Object[]{oldLocation, next});
+                }
+            }
 
             if (habbo != null) {
                 HabboItem topItem = room.getTopItemAt(next.x, next.y);
@@ -427,6 +454,29 @@ public class RoomUnit {
 
     public short getY() {
         return this.currentLocation == null ? 0 : this.currentLocation.y;
+    }
+
+    public boolean occupiesOrMovingTo(int x, int y) {
+        if (this.currentLocation != null && this.currentLocation.x == x && this.currentLocation.y == y) {
+            return true;
+        }
+        if (this.hasStatus(RoomUnitStatus.MOVE)) {
+            String moveData = this.getStatus(RoomUnitStatus.MOVE);
+            if (moveData != null) {
+                String[] parts = moveData.split(",");
+                if (parts.length >= 2) {
+                    try {
+                        int targetX = Integer.parseInt(parts[0]);
+                        int targetY = Integer.parseInt(parts[1]);
+                        if (targetX == x && targetY == y) {
+                            return true;
+                        }
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     public double getZ() {
@@ -672,6 +722,22 @@ public class RoomUnit {
 
     public void setLastRollerTime(long lastRollerTime) {
         this.lastRollerTime = lastRollerTime;
+    }
+
+    public RoomTile getRollerSlideOrigin() {
+        return this.rollerSlideOrigin;
+    }
+
+    public void setRollerSlideOrigin(RoomTile rollerSlideOrigin) {
+        this.rollerSlideOrigin = rollerSlideOrigin;
+    }
+
+    public double getRollerSlideOriginZ() {
+        return this.rollerSlideOriginZ;
+    }
+
+    public void setRollerSlideOriginZ(double rollerSlideOriginZ) {
+        this.rollerSlideOriginZ = rollerSlideOriginZ;
     }
 
     public long getMoveStatusTimestamp() {
