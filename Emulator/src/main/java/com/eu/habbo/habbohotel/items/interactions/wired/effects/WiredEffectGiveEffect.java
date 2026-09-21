@@ -40,16 +40,6 @@ public class WiredEffectGiveEffect extends WiredEffectWhisper {
         return WiredEffectType.GIVE_EFFECT;
     }
 
-    /**
-     * The SWF action applies the effect to the user that triggered the stack.
-     * Keep this explicit instead of inheriting the whisper implementation's
-     * user-source state, since this action has no user-source selector.
-     */
-    @Override
-    public boolean requiresTriggeringUser() {
-        return true;
-    }
-
     @Override
     public boolean execute(RoomUnit roomUnit, Room room, Object[] stuff) {
         if (roomUnit == null || room == null) return false;

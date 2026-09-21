@@ -84,7 +84,7 @@ public class RoomItemManager {
      */
     public void loadWiredData(Connection connection) {
         try (PreparedStatement statement =
-                connection.prepareStatement("SELECT id, wired_data, extra_data FROM items WHERE room_id = ? AND (wired_data <> '' OR (extra_data LIKE '{%' AND extra_data LIKE '%intParams%'))")) {
+                connection.prepareStatement("SELECT id, wired_data, extra_data FROM items WHERE room_id = ? AND (wired_data<>'' OR (extra_data LIKE '{%' AND extra_data LIKE '%intParams%'))")) {
             statement.setInt(1, this.room.getId());
 
             try (ResultSet set = statement.executeQuery()) {

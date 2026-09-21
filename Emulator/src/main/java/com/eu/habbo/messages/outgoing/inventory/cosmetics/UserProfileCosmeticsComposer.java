@@ -113,6 +113,8 @@ public class UserProfileCosmeticsComposer extends MessageComposer {
                         active = (info.getInfostandBg() == itemId);
                     } else if (type.equals("stand") || type.equals("stands")) {
                         active = (info.getInfostandStand() == itemId);
+                    } else if (type.equals("card") || type.equals("cards")) {
+                        active = (info.getInfostandCardBg() == itemId);
                     } else if (type.equals("border") || type.equals("borders")) {
                         active = (info.getInfostandBorder() == itemId);
                     }

@@ -31,7 +31,6 @@ public class PurchaseProfileCosmeticEvent extends MessageHandler {
         }
 
         if (category == null) return;
-        if (category == Category.CARD) return;
 
         InfostandBackgroundManager manager = Emulator.getGameEnvironment() != null ? Emulator.getGameEnvironment().getInfostandBackgroundManager() : null;
         if (manager == null) return;
@@ -46,6 +45,10 @@ public class PurchaseProfileCosmeticEvent extends MessageHandler {
                 info.setInfostandBorder(itemId);
             } else if (category == Category.SLOT && habbo.getHabboStats() != null) {
                 habbo.getHabboStats().setBadgeSlotsActive(true);
+            } else if (category == Category.CARD) {
+                info.setInfostandCardBg(itemId);
+            } else if (category == Category.BORDER) {
+                info.setInfostandBorder(itemId);
             }
             info.run();
 
