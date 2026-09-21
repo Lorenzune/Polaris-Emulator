@@ -1,6 +1,7 @@
 package com.eu.habbo.habbohotel.items.interactions.wired.extra;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.WiredCompatibilityDiagnostics;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
@@ -241,7 +242,10 @@ public abstract class WiredExtraVariableFxBase extends InteractionWiredExtra {
             statement.setString(1, wiredJson);
             statement.setInt(2, this.getId());
             statement.execute();
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            WiredCompatibilityDiagnostics.record(
+                    WiredCompatibilityDiagnostics.FailurePoint.EXTRA_VARIABLE_FX_PERSISTENCE, ignored);
+        }
 
         Room room = (gameClient != null && gameClient.getHabbo() != null) ? gameClient.getHabbo().getHabboInfo().getCurrentRoom() : null;
         if (room != null) {
@@ -424,7 +428,10 @@ public abstract class WiredExtraVariableFxBase extends InteractionWiredExtra {
                 this.audienceVariableId = data.audienceVariableId != null ? data.audienceVariableId : "";
                 sanitizeConfiguration();
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+            WiredCompatibilityDiagnostics.record(
+                    WiredCompatibilityDiagnostics.FailurePoint.EXTRA_VARIABLE_FX_JSON, ignored);
+        }
     }
 
     /** Mirrors the option matrix exposed by the Flash metadata. */

@@ -1,6 +1,7 @@
 package com.eu.habbo.habbohotel.items.interactions.wired.effects;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.WiredCompatibilityDiagnostics;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
@@ -80,7 +81,10 @@ public class WiredEffectWriteToLogs extends InteractionWiredEffect {
                     this.logMessage = data.logMessage;
                     this.setDelay(data.delay);
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+                WiredCompatibilityDiagnostics.record(
+                        WiredCompatibilityDiagnostics.FailurePoint.EFFECT_LOG_LEGACY, ignored);
+            }
         }
     }
 
