@@ -1,22 +1,33 @@
 package com.eu.habbo.messages.incoming.rooms;
 
+import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.permissions.Permission;
+import com.eu.habbo.habbohotel.rooms.Room;
+import com.eu.habbo.habbohotel.rooms.voice.LiveKitTokenService;
+import com.eu.habbo.habbohotel.users.Habbo;
+import com.eu.habbo.messages.incoming.MessageHandler;
+import com.eu.habbo.messages.incoming.navigator.SearchRoomsEvent;
+import com.eu.habbo.messages.outgoing.rooms.RoomVoiceSignalComposer;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.eu.habbo.habbohotel.rooms.Room;
-import com.eu.habbo.habbohotel.users.Habbo;
-import com.eu.habbo.messages.incoming.MessageHandler;
-import com.eu.habbo.messages.outgoing.rooms.RoomVoiceSignalComposer;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RoomVoiceSignalEvent extends MessageHandler {
+    private static final Logger LOGGER = LoggerFactory.getLogger(RoomVoiceSignalEvent.class);
     private static final int MAX_SIGNAL_LENGTH = 16_384;
     private static final int MAX_SDP_LENGTH = 12_288;
     private static final int MAX_ICE_CANDIDATE_LENGTH = 1_024;
     private static final int MAX_ICE_SDP_MID_LENGTH = 128;
-    private static final int MAX_MODERATION_DURATION_SECONDS = 86_400;
+    private static final int MAX_MODERATION_DURATION_SECONDS = Integer.MAX_VALUE;
     private static final int MAX_INBOUND_SIGNALS_PER_SECOND = 60;
     private static final int MAX_DIRECT_SIGNALS_PER_SECOND = 20;
     private static final long MIN_BROADCAST_INTERVAL_MILLIS = 500;
@@ -43,12 +54,7 @@ public class RoomVoiceSignalEvent extends MessageHandler {
         }
 
         Habbo sender = this.client.getHabbo();
-        if (sender == null || sender.getHabboInfo() == null) {
-            return;
-        }
-
-        Room currentRoom = sender.getHabboInfo().getCurrentRoom();
-        if (currentRoom == null || currentRoom.getId() != roomId || !currentRoom.isVocalChatEnabled()) {
+        if (sender == null || sender.getHabboInfo() == null || sender.getHabboStats() == null) {
             return;
         }
 
@@ -66,6 +72,40 @@ public class RoomVoiceSignalEvent extends MessageHandler {
         String signalType = getString(signal, "type");
         Integer signalTargetUserId = getInteger(signal, "targetUserId");
         if (signalType == null || signalTargetUserId == null || signalTargetUserId != targetUserId) {
+            return;
+        }
+
+        if ("livekit_monitor_auth_request".equals(signalType)) {
+            handleLiveKitMonitorTokenRequest(signal, targetUserId, sender, roomId, senderUserId, now);
+            return;
+        }
+
+        if ("livekit_monitor_rooms_request".equals(signalType)) {
+            handleLiveKitMonitorRoomsRequest(signal, targetUserId, sender, roomId, senderUserId, now);
+            return;
+        }
+
+        if ("livekit_monitor_stop".equals(signalType)) {
+            handleLiveKitMonitorStop(signal, targetUserId, roomId, senderUserId, now);
+            return;
+        }
+
+        Room currentRoom = sender.getHabboInfo().getCurrentRoom();
+        if (currentRoom == null || currentRoom.getId() != roomId || !currentRoom.isVocalChatEnabled()) {
+            return;
+        }
+
+        int vocalBannedUntil = sender.getHabboStats().getVocalBannedUntil();
+        if (vocalBannedUntil > 0 && vocalBannedUntil > Emulator.getIntUnixTimestamp()) {
+            int remainingSeconds = vocalBannedUntil == Integer.MAX_VALUE ? (86400 * 3650) : (vocalBannedUntil - Emulator.getIntUnixTimestamp());
+            removeVoiceUser(currentRoom, sender.getHabboInfo().getId());
+            this.client.sendResponse(new RoomVoiceSignalComposer(0,
+                "{\"type\":\"mod_action\",\"targetUserId\":" + sender.getHabboInfo().getId() + ",\"payload\":{\"action\":\"disconnect\",\"durationSeconds\":" + remainingSeconds + "}}"));
+            return;
+        }
+
+        if ("livekit_token_request".equals(signalType)) {
+            handleLiveKitTokenRequest(signal, targetUserId, sender, currentRoom, senderUserId, now);
             return;
         }
 
@@ -94,6 +134,199 @@ public class RoomVoiceSignalEvent extends MessageHandler {
                     }
                 }
             }
+        }
+    }
+
+    private void handleLiveKitTokenRequest(
+            JsonObject signal, int targetUserId, Habbo sender, Room room, int senderUserId, long now) {
+        JsonObject payload = getObject(signal, "payload");
+        String requestId = payload == null ? null : getString(payload, "requestId");
+        if (targetUserId != senderUserId || requestId == null || requestId.length() > 64
+                || !allowSignal(senderUserId, senderUserId, now)) {
+            return;
+        }
+
+        try {
+            String serverUrl = LiveKitTokenService.validateServerUrl(
+                    Emulator.getConfig().getValue("voice.chat.livekit.url", ""));
+            String apiKey = Emulator.getConfig().getValue("voice.chat.livekit.api.key", "");
+            String apiSecret = Emulator.getConfig().getValue("voice.chat.livekit.api.secret", "");
+            String roomName = LiveKitTokenService.roomName(room.getId());
+            String token = LiveKitTokenService.createAccessToken(
+                    apiKey, apiSecret, room.getId(), senderUserId, sender.getHabboInfo().getUsername());
+
+            JsonObject response = new JsonObject();
+            response.addProperty("type", "livekit_auth");
+            response.addProperty("targetUserId", 0);
+            response.addProperty("requestId", requestId);
+            JsonObject responsePayload = new JsonObject();
+            responsePayload.addProperty("url", serverUrl);
+            responsePayload.addProperty("roomName", roomName);
+            responsePayload.addProperty("token", token);
+            response.add("payload", responsePayload);
+
+            this.client.sendResponse(new RoomVoiceSignalComposer(0, response.toString()));
+        } catch (RuntimeException exception) {
+            LOGGER.warn("Unable to issue LiveKit token for voice room {} ({}).", room.getId(), exception.getClass().getSimpleName());
+            JsonObject response = new JsonObject();
+            response.addProperty("type", "livekit_auth_error");
+            response.addProperty("targetUserId", 0);
+            response.addProperty("requestId", requestId);
+            JsonObject responsePayload = new JsonObject();
+            responsePayload.addProperty("message", "Chat vocale temporaneamente non disponibile. Riprova tra poco.");
+            response.add("payload", responsePayload);
+            this.client.sendResponse(new RoomVoiceSignalComposer(0, response.toString()));
+        }
+    }
+
+    private void handleLiveKitMonitorTokenRequest(
+            JsonObject signal, int targetUserId, Habbo moderator, int roomId, int moderatorUserId, long now) {
+        JsonObject payload = getObject(signal, "payload");
+        String requestId = payload == null ? null : getString(payload, "requestId");
+        if (targetUserId != 0 || !canUseVoiceSurveillance(moderator) || !isMonitorSessionId(requestId)
+                || !allowSignal(moderatorUserId, moderatorUserId, now)) {
+            return;
+        }
+
+        Room room = Emulator.getGameEnvironment().getRoomManager().getRoom(roomId);
+        if (room == null || !room.isVocalChatEnabled() || room.getVoiceUsers().isEmpty()) {
+            sendMonitorAuthError(requestId, "La stanza non ha utenti vocali attivi.");
+            return;
+        }
+
+        try {
+            String serverUrl = LiveKitTokenService.validateServerUrl(
+                    Emulator.getConfig().getValue("voice.chat.livekit.url", ""));
+            String apiKey = Emulator.getConfig().getValue("voice.chat.livekit.api.key", "");
+            String apiSecret = Emulator.getConfig().getValue("voice.chat.livekit.api.secret", "");
+            String token = LiveKitTokenService.createMonitorAccessToken(
+                    apiKey, apiSecret, roomId, moderatorUserId, requestId,
+                    "Moderatore " + moderator.getHabboInfo().getUsername());
+            beginVoiceMonitorSession(requestId, moderatorUserId, roomId);
+
+            JsonObject response = new JsonObject();
+            response.addProperty("type", "livekit_monitor_auth");
+            response.addProperty("targetUserId", 0);
+            response.addProperty("requestId", requestId);
+            JsonObject responsePayload = new JsonObject();
+            responsePayload.addProperty("url", serverUrl);
+            responsePayload.addProperty("roomName", LiveKitTokenService.roomName(roomId));
+            responsePayload.addProperty("roomId", roomId);
+            responsePayload.addProperty("token", token);
+            response.add("payload", responsePayload);
+            this.client.sendResponse(new RoomVoiceSignalComposer(0, response.toString()));
+            LOGGER.info("Voice monitor started: moderator={} room={}", moderatorUserId, roomId);
+        } catch (java.sql.SQLException exception) {
+            LOGGER.warn("Unable to audit LiveKit monitor access for moderator={} room={}", moderatorUserId, roomId, exception);
+            sendMonitorAuthError(requestId, "Impossibile registrare la sessione di moderazione.");
+        } catch (RuntimeException exception) {
+            LOGGER.warn("Unable to issue LiveKit monitor token for room {} ({})", roomId, exception.getClass().getSimpleName());
+            sendMonitorAuthError(requestId, "Monitor vocale temporaneamente non disponibile.");
+        }
+    }
+
+    private void handleLiveKitMonitorRoomsRequest(
+            JsonObject signal, int targetUserId, Habbo moderator, int roomId, int moderatorUserId, long now) {
+        JsonObject payload = getObject(signal, "payload");
+        String requestId = payload == null ? null : getString(payload, "requestId");
+        if (roomId != 0 || targetUserId != 0 || !canUseVoiceSurveillance(moderator)
+                || requestId == null || requestId.length() > 64
+                || !allowSignal(moderatorUserId, 0, now)) {
+            return;
+        }
+
+        ArrayList<Room> activeVoiceRooms = new ArrayList<>();
+        for (Room room : Emulator.getGameEnvironment().getRoomManager().getActiveRooms()) {
+            if (room != null && room.isVocalChatEnabled() && !room.getVoiceUsers().isEmpty()) {
+                activeVoiceRooms.add(room);
+            }
+        }
+        activeVoiceRooms.sort(Comparator
+                .comparingInt((Room room) -> room.getVoiceUsers().size()).reversed()
+                .thenComparing(Room::getName, String.CASE_INSENSITIVE_ORDER)
+                .thenComparingInt(Room::getId));
+
+        JsonArray rooms = new JsonArray();
+        for (Room room : activeVoiceRooms) {
+            JsonObject roomData = new JsonObject();
+            roomData.addProperty("roomId", room.getId());
+            roomData.addProperty("name", room.getName() == null ? "" : room.getName());
+            roomData.addProperty("voiceUserCount", room.getVoiceUsers().size());
+            rooms.add(roomData);
+        }
+
+        JsonObject response = new JsonObject();
+        response.addProperty("type", "livekit_monitor_rooms");
+        response.addProperty("targetUserId", 0);
+        response.addProperty("requestId", requestId);
+        JsonObject responsePayload = new JsonObject();
+        responsePayload.add("rooms", rooms);
+        response.add("payload", responsePayload);
+        this.client.sendResponse(new RoomVoiceSignalComposer(0, response.toString()));
+    }
+
+    private void handleLiveKitMonitorStop(
+            JsonObject signal, int targetUserId, int roomId, int moderatorUserId, long now) {
+        JsonObject payload = getObject(signal, "payload");
+        String requestId = payload == null ? null : getString(payload, "requestId");
+        // Ending an already-issued session must remain possible after a staff permission is revoked.
+        // Ownership is enforced by the moderator_user_id condition in the UPDATE below.
+        if (targetUserId != 0 || !isMonitorSessionId(requestId)
+                || !allowSignal(moderatorUserId, moderatorUserId, now)) {
+            return;
+        }
+
+        try (java.sql.Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                java.sql.PreparedStatement statement = connection.prepareStatement(
+                        "UPDATE room_voice_monitor_sessions SET stopped_at = CURRENT_TIMESTAMP "
+                                + "WHERE session_id = ? AND moderator_user_id = ? AND room_id = ? AND stopped_at IS NULL")) {
+            statement.setString(1, requestId);
+            statement.setInt(2, moderatorUserId);
+            statement.setInt(3, roomId);
+            if (statement.executeUpdate() > 0) {
+                LOGGER.info("Voice monitor stopped: moderator={} room={}", moderatorUserId, roomId);
+            }
+        } catch (java.sql.SQLException exception) {
+            LOGGER.warn("Unable to close voice monitor audit session for moderator={} room={}", moderatorUserId, roomId, exception);
+        }
+    }
+
+    private void sendMonitorAuthError(String requestId, String message) {
+        JsonObject response = new JsonObject();
+        response.addProperty("type", "livekit_monitor_auth_error");
+        response.addProperty("targetUserId", 0);
+        response.addProperty("requestId", requestId);
+        JsonObject responsePayload = new JsonObject();
+        responsePayload.addProperty("message", message);
+        response.add("payload", responsePayload);
+        this.client.sendResponse(new RoomVoiceSignalComposer(0, response.toString()));
+    }
+
+    private static boolean canUseVoiceSurveillance(Habbo habbo) {
+        return habbo != null
+                && habbo.getHabboInfo() != null
+                && habbo.getHabboInfo().getRank().getId() >= 7
+                && habbo.hasPermission(Permission.ACC_SUPPORTTOOL)
+                && habbo.hasPermission(Permission.ACC_VOICE_SURVEILLANCE);
+    }
+
+    private static boolean isMonitorSessionId(String sessionId) {
+        if (sessionId == null) return false;
+        try {
+            return UUID.fromString(sessionId).toString().equalsIgnoreCase(sessionId);
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
+    }
+
+    private static void beginVoiceMonitorSession(String sessionId, int moderatorUserId, int roomId) throws java.sql.SQLException {
+        try (java.sql.Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                java.sql.PreparedStatement statement = connection.prepareStatement(
+                        "INSERT INTO room_voice_monitor_sessions (session_id, moderator_user_id, room_id) VALUES (?, ?, ?)")) {
+            statement.setString(1, sessionId);
+            statement.setInt(2, moderatorUserId);
+            statement.setInt(3, roomId);
+            statement.executeUpdate();
         }
     }
 
@@ -178,7 +411,19 @@ public class RoomVoiceSignalEvent extends MessageHandler {
 
         switch (signalType) {
             case "ready":
+                if (targetUserId == 0 && !signal.has("payload")) {
+                    if (room.getVoiceUsers().add(sender.getHabboInfo().getId())) {
+                        SearchRoomsEvent.invalidateCachedResults();
+                    }
+                    return normalized;
+                }
+                return null;
+            case "listen":
+                // A listener receives voice audio but does not publish a microphone.
                 return targetUserId == 0 && !signal.has("payload") ? normalized : null;
+            case "leave":
+                removeVoiceUser(room, sender.getHabboInfo().getId());
+                return targetUserId == 0 ? normalized : null;
             case "state":
                 return normalizeStateSignal(signal, normalized, targetUserId);
             case "offer":
@@ -285,7 +530,7 @@ public class RoomVoiceSignalEvent extends MessageHandler {
         JsonObject payload = getObject(signal, "payload");
         String action = payload == null ? null : getString(payload, "action");
         Integer durationSeconds = payload == null ? null : getInteger(payload, "durationSeconds");
-        if ((!("mute".equals(action) || "disconnect".equals(action)))
+        if ((!("mute".equals(action) || "disconnect".equals(action) || "unban".equals(action)))
                 || durationSeconds == null || durationSeconds < 0 || durationSeconds > MAX_MODERATION_DURATION_SECONDS) {
             return null;
         }
@@ -295,6 +540,10 @@ public class RoomVoiceSignalEvent extends MessageHandler {
         normalizedPayload.addProperty("durationSeconds", durationSeconds);
         normalized.add("payload", normalizedPayload);
 
+        if ("disconnect".equals(action)) {
+            removeVoiceUser(room, targetUserId);
+        }
+
         return normalized;
     }
 
@@ -302,8 +551,13 @@ public class RoomVoiceSignalEvent extends MessageHandler {
         return sender.hasPermission(com.eu.habbo.habbohotel.permissions.Permission.ACC_ANYROOMOWNER)
                 || sender.hasPermission(com.eu.habbo.habbohotel.permissions.Permission.ACC_SUPPORTTOOL)
                 || sender.hasPermission("acc_anyroomowner")
-                || room.isOwner(sender)
-                || room.hasRights(sender);
+                || room.isOwner(sender);
+    }
+
+    private static void removeVoiceUser(Room room, int userId) {
+        if (room.getVoiceUsers().remove(userId)) {
+            SearchRoomsEvent.invalidateCachedResults();
+        }
     }
 
     private static JsonObject getObject(JsonObject object, String property) {

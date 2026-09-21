@@ -28,8 +28,11 @@ final class RoomSerializer {
         message.appendInt(room.getCategory());
 
         java.util.List<String> tagList = new java.util.ArrayList<>(Arrays.stream(room.getTags().split(";"))
-                .filter(tag -> !tag.isEmpty())
+                .filter(tag -> !tag.isEmpty() && !tag.equalsIgnoreCase("vocal"))
                 .toList());
+        if (room.isVocalChatEnabled() && room.getVoiceUsers().size() >= 2) {
+            tagList.add("vocal");
+        }
         if (!room.getYoutubeCurrentVideo().isEmpty()) {
             tagList.add("youtube_party");
         }

@@ -13,6 +13,7 @@ import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.core.WiredMovementPhysics;
 import com.eu.habbo.messages.ISerialize;
 import com.eu.habbo.messages.ServerMessage;
+import com.eu.habbo.messages.incoming.navigator.SearchRoomsEvent;
 import com.eu.habbo.messages.outgoing.rooms.HideDoorbellComposer;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserIgnoredComposer;
 import com.eu.habbo.plugin.PluginManager;
@@ -202,7 +203,8 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     private int idleSleepTimeoutSeconds;
     private boolean idleAutokickEnabled;
     private int idleAutokickTimeoutSeconds;
-    private boolean vocalChatEnabled;
+    private boolean vocalChatEnabled = true;
+    private final java.util.Set<Integer> voiceUsers = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private boolean jukeboxActive;
     private boolean hideWired;
     private boolean buildersClubTrialLocked;
@@ -414,7 +416,9 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         this.wallSize = initial.wallSize();
         this.wallHeight = initial.wallHeight();
         this.floorSize = initial.floorSize();
-        this.tags = initial.tags();
+        this.tags = initial.tags() != null ? java.util.Arrays.stream(initial.tags().split(";"))
+                .filter(t -> !t.isEmpty() && !t.equalsIgnoreCase("vocal"))
+                .collect(java.util.stream.Collectors.joining(";")) : "";
         this.publicRoom = initial.publicRoom();
         this.staffPromotedRoom = initial.staffPromotedRoom();
         this.allowPets = initial.allowPets();
@@ -1131,11 +1135,16 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     }
 
     public String getTags() {
-        return this.tags;
+        if (this.tags == null || this.tags.isEmpty()) return "";
+        return java.util.Arrays.stream(this.tags.split(";"))
+                .filter(t -> !t.isEmpty() && !t.equalsIgnoreCase("vocal"))
+                .collect(java.util.stream.Collectors.joining(";"));
     }
 
     public void setTags(String tags) {
-        this.tags = tags;
+        this.tags = tags != null ? java.util.Arrays.stream(tags.split(";"))
+                .filter(t -> !t.isEmpty() && !t.equalsIgnoreCase("vocal"))
+                .collect(java.util.stream.Collectors.joining(";")) : "";
     }
 
     public int getTradeMode() {
@@ -1275,8 +1284,13 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         this.idleAutokickTimeoutSeconds = idleAutokickTimeoutSeconds;
     }
 
+    public java.util.Set<Integer> getVoiceUsers() {
+        this.voiceUsers.removeIf(userId -> this.getHabbo(userId) == null);
+        return this.voiceUsers;
+    }
+
     public boolean isVocalChatEnabled() {
-        return this.vocalChatEnabled || (this.tags != null && this.tags.contains("vocal")) || (this.name != null && this.name.toLowerCase().startsWith("[vocal]"));
+        return this.vocalChatEnabled;
     }
 
     public void setVocalChatEnabled(boolean vocalChatEnabled) {
@@ -1662,11 +1676,21 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
 
     public void removeHabbo(Habbo habbo) {
         this.cleanupYoutubeWatcher(habbo);
+        if (habbo != null && habbo.getHabboInfo() != null) {
+            if (this.voiceUsers.remove(habbo.getHabboInfo().getId())) {
+                SearchRoomsEvent.invalidateCachedResults();
+            }
+        }
         this.unitManager.removeHabbo(habbo);
     }
 
     public void removeHabbo(Habbo habbo, boolean sendRemovePacket) {
         this.cleanupYoutubeWatcher(habbo);
+        if (habbo != null && habbo.getHabboInfo() != null) {
+            if (this.voiceUsers.remove(habbo.getHabboInfo().getId())) {
+                SearchRoomsEvent.invalidateCachedResults();
+            }
+        }
         this.unitManager.removeHabbo(habbo, sendRemovePacket);
     }
 

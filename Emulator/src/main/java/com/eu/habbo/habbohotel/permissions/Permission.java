@@ -43,6 +43,7 @@ public class Permission {
     public static String ACC_MODTOOL_USER_BAN = "acc_modtool_user_ban";
     public static String ACC_MODTOOL_ROOM_INFO = "acc_modtool_room_info";
     public static String ACC_MODTOOL_ROOM_LOGS = "acc_modtool_room_logs";
+    public static final String ACC_VOICE_SURVEILLANCE = "acc_voice_surveillance";
     public static String ACC_TRADE_ANYWHERE = "acc_trade_anywhere";
     public static String ACC_HELPER_USE_GUIDE_TOOL = "acc_helper_use_guide_tool";
     public static String ACC_HELPER_GIVE_GUIDE_TOURS = "acc_helper_give_guide_tours";

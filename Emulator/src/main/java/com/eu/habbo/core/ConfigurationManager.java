@@ -97,6 +97,11 @@ public class ConfigurationManager {
             envMapping.put("rcon.port", "RCON_PORT");
             envMapping.put("rcon.allowed", "RCON_ALLOWED");
 
+            // LiveKit credentials are only used by the emulator to mint short-lived room tokens.
+            envMapping.put("voice.chat.livekit.url", "LIVEKIT_URL");
+            envMapping.put("voice.chat.livekit.api.key", "LIVEKIT_API_KEY");
+            envMapping.put("voice.chat.livekit.api.secret", "LIVEKIT_API_SECRET");
+
             // Runtime
             envMapping.put("runtime.threads", "RT_THREADS");
             envMapping.put("logging.errors.runtime", "RT_LOG_ERRORS");
@@ -116,6 +121,12 @@ public class ConfigurationManager {
         if (this.loaded) {
             this.loadFromDatabase();
         }
+
+        // LiveKit secrets may be provided through the process environment even when
+        // the emulator otherwise uses its properties file or database settings.
+        this.overrideFromEnvironment("voice.chat.livekit.url", "LIVEKIT_URL");
+        this.overrideFromEnvironment("voice.chat.livekit.api.key", "LIVEKIT_API_KEY");
+        this.overrideFromEnvironment("voice.chat.livekit.api.secret", "LIVEKIT_API_SECRET");
 
         this.isLoading = false;
         for (ConfigRegistry.ValidationIssue issue : ConfigRegistry.standard().validate(this)) {
@@ -140,6 +151,13 @@ public class ConfigurationManager {
         this.loadSettingsTable(WIRED_SETTINGS_TABLE, this.wiredProperties, true);
 
         LOGGER.info("Configuration -> loaded! ({} MS)", System.currentTimeMillis() - millis);
+    }
+
+    private void overrideFromEnvironment(String configKey, String environmentKey) {
+        String value = System.getenv(environmentKey);
+        if (value != null && !value.isBlank()) {
+            this.properties.setProperty(configKey, value);
+        }
     }
 
     public synchronized void saveToDatabase() {

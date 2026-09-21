@@ -54,7 +54,7 @@ public class RoomDataComposer extends MessageComposer {
                 if (!s.isEmpty() && !s.equalsIgnoreCase("vocal")) tagList.add(s);
             }
         }
-        if (this.room.isVocalChatEnabled()) {
+        if (this.room.isVocalChatEnabled() && this.room.getVoiceUsers().size() >= 2) {
             tagList.add("vocal");
         }
         if (!this.room.getYoutubeCurrentVideo().isEmpty()) {
@@ -126,6 +126,7 @@ public class RoomDataComposer extends MessageComposer {
         this.response.appendString(HotelDateTimeUtil.getTimezoneId());
         this.response.appendString(String.valueOf(HotelDateTimeUtil.now().toInstant().toEpochMilli()));
         this.response.appendInt(Room.MAXIMUM_FURNI);
+        this.response.appendBoolean(this.room.isVocalChatEnabled());
 
 
         return this.response;
