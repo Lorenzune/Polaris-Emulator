@@ -1428,7 +1428,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     }
 
     public String[] filterAnything() {
-        return new String[] {this.getOwnerName(), this.getGuildName(), this.getDescription(), this.getPromotionDesc()};
+        return new String[] {this.getName(), this.getOwnerName(), this.getGuildName(), this.getDescription(), this.getTags(), this.getPromotionDesc()};
     }
 
     public long getCycleTimestamp() {
