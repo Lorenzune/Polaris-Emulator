@@ -2,6 +2,8 @@
 /logging/*.log
 /logging/*.txt
 /logging/*.zip
+/logging/
+/Latest_Compiled_Version/
 /Emulator/logging/
 *.iml
 .idea/
