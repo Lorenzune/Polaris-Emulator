@@ -92,6 +92,119 @@ public class WiredHighscoreManager {
         });
     }
 
+    public void addOrUpdateUserScore(int itemId, int userId, int amount, WiredHighscoreClearType clearType) {
+        List<WiredHighscoreDataEntry> list = this.data.computeIfAbsent(itemId, k -> Collections.synchronizedList(new ArrayList<>()));
+
+        WiredHighscoreDataEntry existingEntry = null;
+        synchronized (list) {
+            for (WiredHighscoreDataEntry entry : list) {
+                if (this.timeMatchesEntry(entry, clearType) && entry.getUserIds().size() == 1 && entry.getUserIds().get(0) == userId) {
+                    existingEntry = entry;
+                    break;
+                }
+            }
+        }
+
+        if (existingEntry != null) {
+            int newScore = Math.max(0, existingEntry.getScore() + amount);
+            int now = Emulator.getIntUnixTimestamp();
+            WiredHighscoreDataEntry updatedEntry = new WiredHighscoreDataEntry(itemId, Collections.singletonList(userId), newScore, true, now);
+            synchronized (list) {
+                int idx = list.indexOf(existingEntry);
+                if (idx != -1) {
+                    list.set(idx, updatedEntry);
+                } else {
+                    list.add(updatedEntry);
+                }
+            }
+
+            Emulator.getThreading().run(() -> {
+                try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                     PreparedStatement statement = connection.prepareStatement("UPDATE `items_highscore_data` SET `score` = ?, `timestamp` = ? WHERE `item_id` = ? AND `user_ids` = ? ORDER BY `id` DESC LIMIT 1")) {
+                    statement.setInt(1, newScore);
+                    statement.setInt(2, now);
+                    statement.setInt(3, itemId);
+                    statement.setString(4, String.valueOf(userId));
+                    int rows = statement.executeUpdate();
+                    if (rows == 0) {
+                        try (PreparedStatement insertStatement = connection.prepareStatement("INSERT INTO `items_highscore_data` (`item_id`, `user_ids`, `score`, `is_win`, `timestamp`) VALUES (?, ?, ?, ?, ?)")) {
+                            insertStatement.setInt(1, itemId);
+                            insertStatement.setString(2, String.valueOf(userId));
+                            insertStatement.setInt(3, newScore);
+                            insertStatement.setInt(4, 1);
+                            insertStatement.setInt(5, now);
+                            insertStatement.execute();
+                        }
+                    }
+                } catch (SQLException e) {
+                    LOGGER.error("Caught SQL exception", e);
+                }
+            });
+        } else {
+            if (amount <= 0) {
+                return;
+            }
+            WiredHighscoreDataEntry newEntry = new WiredHighscoreDataEntry(itemId, Collections.singletonList(userId), amount, true, Emulator.getIntUnixTimestamp());
+            this.addHighscoreData(newEntry);
+        }
+    }
+
+    public void addOrUpdateTeamScore(int itemId, List<Integer> userIds, int amount, WiredHighscoreClearType clearType) {
+        if (userIds == null || userIds.isEmpty()) return;
+        List<WiredHighscoreDataEntry> list = this.data.computeIfAbsent(itemId, k -> Collections.synchronizedList(new ArrayList<>()));
+
+        WiredHighscoreDataEntry existingEntry = null;
+        synchronized (list) {
+            for (WiredHighscoreDataEntry entry : list) {
+                if (this.timeMatchesEntry(entry, clearType) && new HashSet<>(entry.getUserIds()).equals(new HashSet<>(userIds))) {
+                    existingEntry = entry;
+                    break;
+                }
+            }
+        }
+
+        if (existingEntry != null) {
+            int newScore = Math.max(0, existingEntry.getScore() + amount);
+            int now = Emulator.getIntUnixTimestamp();
+            WiredHighscoreDataEntry updatedEntry = new WiredHighscoreDataEntry(itemId, userIds, newScore, true, now);
+            synchronized (list) {
+                int idx = list.indexOf(existingEntry);
+                if (idx != -1) {
+                    list.set(idx, updatedEntry);
+                } else {
+                    list.add(updatedEntry);
+                }
+            }
+
+            Emulator.getThreading().run(() -> {
+                try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                     PreparedStatement statement = connection.prepareStatement("UPDATE `items_highscore_data` SET `score` = ?, `timestamp` = ? WHERE `item_id` = ? AND `user_ids` = ? ORDER BY `id` DESC LIMIT 1")) {
+                    statement.setInt(1, newScore);
+                    statement.setInt(2, now);
+                    statement.setInt(3, itemId);
+                    statement.setString(4, String.join(",", userIds.stream().map(Object::toString).collect(Collectors.toList())));
+                    int rows = statement.executeUpdate();
+                    if (rows == 0) {
+                        try (PreparedStatement insertStatement = connection.prepareStatement("INSERT INTO `items_highscore_data` (`item_id`, `user_ids`, `score`, `is_win`, `timestamp`) VALUES (?, ?, ?, ?, ?)")) {
+                            insertStatement.setInt(1, itemId);
+                            insertStatement.setString(2, String.join(",", userIds.stream().map(Object::toString).collect(Collectors.toList())));
+                            insertStatement.setInt(3, newScore);
+                            insertStatement.setInt(4, 1);
+                            insertStatement.setInt(5, now);
+                            insertStatement.execute();
+                        }
+                    }
+                } catch (SQLException e) {
+                    LOGGER.error("Caught SQL exception", e);
+                }
+            });
+        } else {
+            if (amount <= 0) return;
+            WiredHighscoreDataEntry newEntry = new WiredHighscoreDataEntry(itemId, userIds, amount, true, Emulator.getIntUnixTimestamp());
+            this.addHighscoreData(newEntry);
+        }
+    }
+
     public List<WiredHighscoreRow> getHighscoreRowsForItem(int itemId, WiredHighscoreClearType clearType, WiredHighscoreScoreType scoreType) {
         if (!this.data.containsKey(itemId)) return null;
 
@@ -107,7 +220,11 @@ public class WiredHighscoreManager {
                 .filter(entry -> this.timeMatchesEntry(entry, clearType) && (scoreType != WiredHighscoreScoreType.MOSTWIN || entry.isWin()))
                 .map(entry -> new WiredHighscoreRow(
                         entry.getUserIds().stream()
-                                .map(id -> Emulator.getGameEnvironment().getHabboManager().getCachedUsername(id))
+                                .map(id -> {
+                                    String name = Emulator.getGameEnvironment().getHabboManager().getCachedUsername(id);
+                                    String look = Emulator.getGameEnvironment().getHabboManager().getCachedLook(id);
+                                    return (look != null && !look.isEmpty()) ? (name + "\t" + look) : name;
+                                })
                                 .collect(Collectors.toList()),
                         entry.getScore()
                 ));
