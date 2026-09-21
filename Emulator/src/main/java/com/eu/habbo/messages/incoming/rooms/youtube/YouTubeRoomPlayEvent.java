@@ -16,14 +16,6 @@ public class YouTubeRoomPlayEvent extends MessageHandler {
     private static final int MAX_PLAYLIST_SIZE = 50;
     private static final int MAX_START_OFFSET_SECONDS = 86_400;
 
-    /** Dedicated incoming handler for the independent :play Music Party channel. */
-    public static class MusicPartyRoomPlayEvent extends YouTubeRoomPlayEvent {
-        @Override
-        protected boolean isMusicParty() {
-            return true;
-        }
-    }
-
     protected boolean isMusicParty() {
         return false;
     }

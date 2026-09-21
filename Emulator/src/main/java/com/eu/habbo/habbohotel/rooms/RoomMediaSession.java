@@ -95,7 +95,7 @@ final class RoomMediaSession {
     }
 
     synchronized List<String> playlist() {
-        return List.copyOf(this.playlist);
+        return this.playlist;
     }
 
     synchronized Set<Integer> watchers() {
