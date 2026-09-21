@@ -1301,6 +1301,20 @@ public class RoomManager {
                                     room.getYoutubePositionMs())
                             .compose());
         }
+        if (!room.getMusicPartyCurrentVideo().isEmpty()) {
+            habbo.getClient()
+                    .sendResponse(new com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomBroadcastComposer(
+                                    room.getMusicPartyCurrentVideo(),
+                                    room.getMusicPartySenderName(),
+                                    room.getMusicPartyPlaylist(),
+                                    room.getMusicPartyElapsedSeconds(),
+                                    true,
+                                    room.isMusicPartyPaused(),
+                                    room.getMusicPartyRevision(),
+                                    room.getMusicPartyPositionMs(),
+                                    true)
+                            .compose());
+        }
         if (!room.getYoutubeWatchers().isEmpty()) {
             habbo.getClient()
                     .sendResponse(new com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomWatchersComposer(

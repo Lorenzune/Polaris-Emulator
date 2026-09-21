@@ -3,6 +3,7 @@ package com.eu.habbo.habbohotel.commands;
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.rooms.Room;
+import com.eu.habbo.messages.incoming.navigator.SearchRoomsEvent;
 import com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomBroadcastComposer;
 
 import java.util.regex.Matcher;
@@ -58,35 +59,37 @@ public class PlayCommand extends Command {
 
         synchronized (room) {
             // If audio is already playing in the room, add it to the playlist queue.
-            if (!room.getYoutubeCurrentVideo().isEmpty() && room.isYoutubeAudioOnly()) {
-                ArrayList<String> updatedPlaylist = new ArrayList<>(room.getYoutubePlaylist());
+            if (!room.getMusicPartyCurrentVideo().isEmpty()) {
+                ArrayList<String> updatedPlaylist = new ArrayList<>(room.getMusicPartyPlaylist());
                 updatedPlaylist.add(videoId + ":::" + gameClient.getHabbo().getHabboInfo().getUsername());
-                room.setYoutubeVideo(
-                    room.getYoutubeCurrentVideo(),
-                    room.getYoutubeSenderName(),
+                room.setMusicPartyVideo(
+                    room.getMusicPartyCurrentVideo(),
+                    room.getMusicPartySenderName(),
                     updatedPlaylist,
-                    true,
-                    room.getYoutubePositionMs(),
-                    room.isYoutubePaused()
+                    room.getMusicPartyPositionMs(),
+                    room.isMusicPartyPaused()
                 );
+                SearchRoomsEvent.invalidateCachedResults();
                 room.sendComposer(
                     new YouTubeRoomBroadcastComposer(
-                        room.getYoutubeCurrentVideo(),
-                        room.getYoutubeSenderName(),
+                        room.getMusicPartyCurrentVideo(),
+                        room.getMusicPartySenderName(),
                         updatedPlaylist,
-                        room.getYoutubeElapsedSeconds(),
+                        room.getMusicPartyElapsedSeconds(),
                         true,
-                        room.isYoutubePaused(),
-                        room.getYoutubeRevision(),
-                        room.getYoutubePositionMs()
+                        room.isMusicPartyPaused(),
+                        room.getMusicPartyRevision(),
+                        room.getMusicPartyPositionMs(),
+                        true
                     ).compose()
                 );
-                gameClient.getHabbo().whisper("Traccia aggiunta alla coda (" + updatedPlaylist.size() + " in coda). Apri il player musicale nella barra destra.");
+                gameClient.getHabbo().whisper("Traccia aggiunta alla coda (" + updatedPlaylist.size() + " in coda). Apri Music Party dal menu della stanza.");
                 return true;
             }
 
             // Start new audio track with a fresh queue.
-            room.setYoutubeVideo(videoId, gameClient.getHabbo().getHabboInfo().getUsername(), new ArrayList<>(), true, 0, false);
+            room.setMusicPartyVideo(videoId, gameClient.getHabbo().getHabboInfo().getUsername(), new ArrayList<>(), 0L, false);
+            SearchRoomsEvent.invalidateCachedResults();
             room.sendComposer(
                 new YouTubeRoomBroadcastComposer(
                     videoId,
@@ -95,11 +98,12 @@ public class PlayCommand extends Command {
                     0,
                     true,
                     false,
-                    room.getYoutubeRevision(),
-                    room.getYoutubePositionMs()
+                    room.getMusicPartyRevision(),
+                    room.getMusicPartyPositionMs(),
+                    true
                 ).compose()
             );
-            gameClient.getHabbo().whisper("Riproduzione avviata. Gestisci musica e coda dal player nella barra destra.");
+            gameClient.getHabbo().whisper("Riproduzione avviata. Gestisci musica e coda da Music Party nel menu della stanza.");
         }
         return true;
     }

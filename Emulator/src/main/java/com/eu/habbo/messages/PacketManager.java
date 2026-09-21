@@ -921,6 +921,8 @@ public class PacketManager {
         this.registerHandler(
             Incoming.YouTubeRoomPlayEvent, com.eu.habbo.messages.incoming.rooms.youtube.YouTubeRoomPlayEvent.class);
         this.registerHandler(
+            Incoming.MusicPartyRoomPlayEvent, com.eu.habbo.messages.incoming.rooms.youtube.YouTubeRoomPlayEvent.MusicPartyRoomPlayEvent.class);
+        this.registerHandler(
             Incoming.YouTubeRoomWatchingEvent,
             com.eu.habbo.messages.incoming.rooms.youtube.YouTubeRoomWatchingEvent.class);
         this.registerHandler(

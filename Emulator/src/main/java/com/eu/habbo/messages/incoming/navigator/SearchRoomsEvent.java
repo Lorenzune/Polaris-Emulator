@@ -18,6 +18,10 @@ public class SearchRoomsEvent extends MessageHandler {
     private static final int MAX_CACHE_SIZE = 200;
     public final static Map<Rank, Map<String, ServerMessage>> cachedResults = new ConcurrentHashMap<>(4);
 
+    public static void invalidateCachedResults() {
+        cachedResults.clear();
+    }
+
     private static Map<String, ServerMessage> createLRUCache() {
         return Collections.synchronizedMap(new LinkedHashMap<String, ServerMessage>(MAX_CACHE_SIZE, 0.75f, true) {
             @Override

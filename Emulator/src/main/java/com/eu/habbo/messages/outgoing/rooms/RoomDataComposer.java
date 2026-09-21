@@ -58,11 +58,10 @@ public class RoomDataComposer extends MessageComposer {
             tagList.add("vocal");
         }
         if (!this.room.getYoutubeCurrentVideo().isEmpty()) {
-            if (this.room.isYoutubeAudioOnly()) {
-                tagList.add("youtube_music");
-            } else {
-                tagList.add("youtube_party");
-            }
+            tagList.add("youtube_party");
+        }
+        if (!this.room.getMusicPartyCurrentVideo().isEmpty()) {
+            tagList.add("youtube_music");
         }
         this.response.appendInt(tagList.size());
         for (String s : tagList) {

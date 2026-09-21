@@ -73,6 +73,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     private RoomFurniVariableManager furniVariableManager;
     private RoomVariableManager roomVariableManager;
     private String youtubeTelevisionVideoId = "";
+    private final RoomMediaSession musicPartyMedia = new RoomMediaSession(this);
 
     public static final Comparator<Room> SORT_SCORE = (o1, o2) -> o2.getScore() - o1.getScore();
     public static final Comparator<Room> SORT_ID = (o1, o2) -> o2.getId() - o1.getId();
@@ -298,6 +299,42 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     public void clearYoutubeVideo() {
         this.media.clearVideo();
         this.synchronizeYoutubeTelevisions();
+    }
+
+    public String getMusicPartyCurrentVideo() {
+        return this.musicPartyMedia.currentVideo();
+    }
+
+    public String getMusicPartySenderName() {
+        return this.musicPartyMedia.senderName();
+    }
+
+    public java.util.List<String> getMusicPartyPlaylist() {
+        return this.musicPartyMedia.playlist();
+    }
+
+    public int getMusicPartyElapsedSeconds() {
+        return this.musicPartyMedia.elapsedSeconds();
+    }
+
+    public long getMusicPartyPositionMs() {
+        return this.musicPartyMedia.positionMs();
+    }
+
+    public int getMusicPartyRevision() {
+        return this.musicPartyMedia.revision();
+    }
+
+    public boolean isMusicPartyPaused() {
+        return this.musicPartyMedia.isPaused();
+    }
+
+    public void setMusicPartyVideo(String videoId, String senderName, java.util.List<String> playlist, long positionMs, boolean isPaused) {
+        this.musicPartyMedia.setVideo(videoId, senderName, playlist, true, positionMs, isPaused);
+    }
+
+    public void clearMusicPartyVideo() {
+        this.musicPartyMedia.clearVideo();
     }
 
     private void synchronizeYoutubeTelevisions() {

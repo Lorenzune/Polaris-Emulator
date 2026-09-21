@@ -16,6 +16,7 @@ public class YouTubeRoomBroadcastComposer extends MessageComposer {
     private final int revision;
     private final long positionMs;
     private final long serverTimeMs;
+    private final int headerId;
 
     public YouTubeRoomBroadcastComposer(String videoId, String senderName, List<String> playlist) {
         this(videoId, senderName, playlist, 0, false, false);
@@ -38,6 +39,10 @@ public class YouTubeRoomBroadcastComposer extends MessageComposer {
     }
 
     public YouTubeRoomBroadcastComposer(String videoId, String senderName, List<String> playlist, int elapsedSeconds, boolean isAudioOnly, boolean isPaused, int revision, long positionMs) {
+        this(videoId, senderName, playlist, elapsedSeconds, isAudioOnly, isPaused, revision, positionMs, false);
+    }
+
+    public YouTubeRoomBroadcastComposer(String videoId, String senderName, List<String> playlist, int elapsedSeconds, boolean isAudioOnly, boolean isPaused, int revision, long positionMs, boolean musicParty) {
         this.videoId = videoId;
         this.senderName = senderName;
         this.playlist = playlist;
@@ -47,11 +52,12 @@ public class YouTubeRoomBroadcastComposer extends MessageComposer {
         this.revision = Math.max(0, revision);
         this.positionMs = Math.max(0, positionMs);
         this.serverTimeMs = System.currentTimeMillis();
+        this.headerId = musicParty ? Outgoing.MusicPartyRoomBroadcastComposer : Outgoing.YouTubeRoomBroadcastComposer;
     }
 
     @Override
     protected ServerMessage composeInternal() {
-        this.response.init(Outgoing.YouTubeRoomBroadcastComposer);
+        this.response.init(this.headerId);
         this.response.appendString(this.videoId);
         this.response.appendString(this.senderName);
         this.response.appendInt(this.playlist.size());

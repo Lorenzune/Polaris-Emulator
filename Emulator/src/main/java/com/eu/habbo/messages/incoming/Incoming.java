@@ -511,6 +511,7 @@ public class Incoming {
     public static final int YouTubeRoomWatchingEvent = 8002;
     public static final int YouTubeRoomSettingsEvent = 8003;
     public static final int EmbeddedMediaControlEvent = 8004;
+    public static final int MusicPartyRoomPlayEvent = 8007;
     public static final int YouTubeSearchEvent = 8006;
 
     // Housekeeping (in-client admin panel) — IDs 9100..9199 reserved

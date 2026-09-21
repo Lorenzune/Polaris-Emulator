@@ -31,11 +31,10 @@ final class RoomSerializer {
                 .filter(tag -> !tag.isEmpty())
                 .toList());
         if (!room.getYoutubeCurrentVideo().isEmpty()) {
-            if (room.isYoutubeAudioOnly()) {
-                tagList.add("youtube_music");
-            } else {
-                tagList.add("youtube_party");
-            }
+            tagList.add("youtube_party");
+        }
+        if (!room.getMusicPartyCurrentVideo().isEmpty()) {
+            tagList.add("youtube_music");
         }
         message.appendInt(tagList.size());
         for (String tag : tagList) {
