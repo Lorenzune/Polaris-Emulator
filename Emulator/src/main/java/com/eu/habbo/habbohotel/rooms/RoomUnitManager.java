@@ -304,7 +304,10 @@ public class RoomUnitManager {
             return;
         }
 
-        HabboItem topItem = this.room.getTopItemAt(x, y);
+        HabboItem topItem = this.room.getTallestChair(tile);
+        if (topItem == null) {
+            topItem = this.room.getTopItemAt(x, y);
+        }
 
         for (Habbo habbo : habbos) {
             if (habbo.getRoomUnit() == null) {
@@ -316,7 +319,14 @@ public class RoomUnitManager {
                 continue;
             }
 
-            double z = habbo.getRoomUnit().getCurrentLocation().getStackHeight();
+            boolean isMoving = habbo.getRoomUnit().hasStatus(RoomUnitStatus.MOVE);
+            RoomTile currentLocation = habbo.getRoomUnit().getCurrentLocation();
+            RoomTile previousLocation = habbo.getRoomUnit().getPreviousLocation();
+            boolean preserveMovementOrigin = isMoving
+                    && (previousLocation == null || !currentLocation.equals(previousLocation));
+            double z = isMoving
+                    ? RoomUnit.resolveWalkingHeight(this.room, currentLocation)
+                    : currentLocation.getStackHeight();
             boolean hadLayStatus = habbo.getRoomUnit().hasStatus(RoomUnitStatus.LAY);
 
             boolean isRiding =
@@ -336,17 +346,23 @@ public class RoomUnitManager {
                         this.dance(habbo, DanceType.NONE);
                     }
                     habbo.getRoomUnit().setZ(topItem.getZ());
-                    habbo.getRoomUnit().setPreviousLocationZ(topItem.getZ());
+                    if (!preserveMovementOrigin) {
+                        habbo.getRoomUnit().setPreviousLocationZ(topItem.getZ());
+                    }
                     habbo.getRoomUnit().setRotation(RoomUserRotation.fromValue(topItem.getRotation()));
                     habbo.getRoomUnit().setStatus(RoomUnitStatus.SIT, String.valueOf(Item.getCurrentHeight(topItem)));
                     habbo.getRoomUnit().cmdSit = false;
                 } else if (habbo.getRoomUnit().cmdSit) {
                     habbo.getRoomUnit().setZ(z - 0.5);
-                    habbo.getRoomUnit().setPreviousLocationZ(z - 0.5);
+                    if (!preserveMovementOrigin) {
+                        habbo.getRoomUnit().setPreviousLocationZ(z - 0.5);
+                    }
                 } else {
                     habbo.getRoomUnit().removeStatus(RoomUnitStatus.SIT);
                     habbo.getRoomUnit().setZ(z);
-                    habbo.getRoomUnit().setPreviousLocationZ(z);
+                    if (!preserveMovementOrigin) {
+                        habbo.getRoomUnit().setPreviousLocationZ(z);
+                    }
                 }
             } else if (topItem != null && topItem.getBaseItem().allowLay()) {
                 BedProfile bedProfile = new BedProfile(topItem);
@@ -374,7 +390,9 @@ public class RoomUnitManager {
                 }
 
                 habbo.getRoomUnit().setZ(topItem.getZ());
-                habbo.getRoomUnit().setPreviousLocationZ(topItem.getZ());
+                if (!preserveMovementOrigin) {
+                    habbo.getRoomUnit().setPreviousLocationZ(topItem.getZ());
+                }
                 habbo.getRoomUnit().setRotation(RoomUserRotation.fromValue(topItem.getRotation() % 4));
                 double layHeight = Item.getCurrentHeight(topItem) + bedProfile.getLayZOffset();
                 habbo.getRoomUnit()
@@ -389,7 +407,17 @@ public class RoomUnitManager {
                     habbo.getRoomUnit().removeStatus(RoomUnitStatus.LAY);
                 }
                 habbo.getRoomUnit().setZ(z);
-                habbo.getRoomUnit().setPreviousLocationZ(z);
+                if (!preserveMovementOrigin) {
+                    habbo.getRoomUnit().setPreviousLocationZ(z);
+                }
+            }
+
+            if (isMoving && habbo.getRoomUnit().hasStatus(RoomUnitStatus.MOVE)) {
+                habbo.getRoomUnit().updateMoveStatusZ(habbo.getRoomUnit().getZ());
+
+                if (previousLocation != null && previousLocation.equals(habbo.getRoomUnit().getCurrentLocation())) {
+                    habbo.getRoomUnit().setPreviousLocationZ(habbo.getRoomUnit().getZ());
+                }
             }
 
             habbo.getRoomUnit().statusUpdate(true);
@@ -404,7 +432,13 @@ public class RoomUnitManager {
             for (Habbo habbo : habbos) {
                 if (habbo.getRoomUnit() == null
                         || WiredMoveCarryHelper.shouldSuppressStatusUpdate(habbo.getRoomUnit())
-                        || WiredUserMovementHelper.shouldSuppressStatusUpdate(habbo.getRoomUnit())) {
+                        || WiredUserMovementHelper.shouldSuppressStatusUpdate(habbo.getRoomUnit())
+                        // A furniture move can invalidate the walking surface while the
+                        // avatar is already interpolating to its next tile. Sending an
+                        // immediate status here would make the client restart that same
+                        // step from the current tile, which produces visible stutter.
+                        // The normal room cycle will publish the refreshed MOVE height.
+                        || habbo.getRoomUnit().hasStatus(RoomUnitStatus.MOVE)) {
                     continue;
                 }
                 roomUnits.add(habbo.getRoomUnit());
@@ -605,7 +639,10 @@ public class RoomUnitManager {
         }
 
         Set<Bot> bots = this.getBotsAt(tile);
-        HabboItem topItem = this.room.getTopItemAt(x, y);
+        HabboItem topItem = this.room.getTallestChair(tile);
+        if (topItem == null) {
+            topItem = this.room.getTopItemAt(x, y);
+        }
 
         for (Bot bot : bots) {
             if (bot.getRoomUnit() == null) {
