@@ -3,13 +3,13 @@ package com.eu.habbo.habbohotel.items.interactions.wired.effects;
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
-import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
+import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import com.google.gson.JsonObject;
 
@@ -17,9 +17,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
 
-public class WiredEffectGiveEffect extends InteractionWiredEffect {
-    public static final WiredEffectType type = WiredEffectType.GIVE_EFFECT;
-
+/**
+ * Keep the historical whisper superclass: third-party plugins compiled against the released
+ * emulator link against that exact superclass. The effect-specific state and execution remain
+ * owned by this class.
+ */
+public class WiredEffectGiveEffect extends WiredEffectWhisper {
     private int effectId = 0;
     private int priority = 2;
     private int effectType = 0; // 0 = give, 1 = remove
@@ -34,7 +37,17 @@ public class WiredEffectGiveEffect extends InteractionWiredEffect {
 
     @Override
     public WiredEffectType getType() {
-        return type;
+        return WiredEffectType.GIVE_EFFECT;
+    }
+
+    /**
+     * The SWF action applies the effect to the user that triggered the stack.
+     * Keep this explicit instead of inheriting the whisper implementation's
+     * user-source state, since this action has no user-source selector.
+     */
+    @Override
+    public boolean requiresTriggeringUser() {
+        return true;
     }
 
     @Override
@@ -53,7 +66,7 @@ public class WiredEffectGiveEffect extends InteractionWiredEffect {
         Room room = ctx.room();
         if (room == null) return;
 
-        for (RoomUnit roomUnit : com.eu.habbo.habbohotel.wired.core.WiredSourceUtil.resolveUsers(ctx, com.eu.habbo.habbohotel.wired.core.WiredSourceUtil.SOURCE_TRIGGER)) {
+        for (RoomUnit roomUnit : WiredSourceUtil.resolveUsers(ctx, WiredSourceUtil.SOURCE_TRIGGER)) {
             execute(roomUnit, room, null);
         }
     }
@@ -84,11 +97,18 @@ public class WiredEffectGiveEffect extends InteractionWiredEffect {
                     this.setDelay(data.delay);
                 }
             } catch (Exception ignored) {
+                com.eu.habbo.WiredCompatibilityDiagnostics.record(
+                        com.eu.habbo.WiredCompatibilityDiagnostics.FailurePoint.EFFECT_GIVE_EFFECT,
+                        ignored);
             }
         } else if (wiredData != null && !wiredData.isEmpty()) {
             try {
                 this.effectId = Integer.parseInt(wiredData.trim());
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+                com.eu.habbo.WiredCompatibilityDiagnostics.record(
+                        com.eu.habbo.WiredCompatibilityDiagnostics.FailurePoint.EFFECT_GIVE_EFFECT,
+                        ignored);
+            }
         }
     }
 
@@ -127,7 +147,7 @@ public class WiredEffectGiveEffect extends InteractionWiredEffect {
         message.appendInt(this.priority);
         message.appendInt(this.effectType);
         message.appendInt(0);
-        message.appendInt(type.code);
+        message.appendInt(WiredEffectType.GIVE_EFFECT.code);
         message.appendInt(this.getDelay());
         message.appendInt(0);
     }
