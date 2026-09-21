@@ -71,6 +71,9 @@ Unknown keys remain allowed for plugins. Database-backed hotel settings are docu
 | `stress.max_total_entities` | integer | `200000` | — | yes | no | Opt-in transient room stress-lab setting. |
 | `stress.max_wired_events_per_second` | integer | `100` | — | yes | no | Opt-in transient room stress-lab setting. |
 | `stress.max_wired_stacks` | integer | `50000` | — | yes | no | Opt-in transient room stress-lab setting. |
+| `voice.chat.livekit.api.key` | string | `` | `LIVEKIT_API_KEY` | yes | no | LiveKit voice-chat server setting; API secret must remain server-side. |
+| `voice.chat.livekit.api.secret` | string | `` | `LIVEKIT_API_SECRET` | yes | no | LiveKit voice-chat server setting; API secret must remain server-side. |
+| `voice.chat.livekit.url` | string | `` | `LIVEKIT_URL` | yes | no | LiveKit voice-chat server setting; API secret must remain server-side. |
 | `ws.enabled` | boolean | `false` | — | yes | no | WebSocket listener setting. |
 | `ws.host` | string | `` | — | yes | no | WebSocket listener setting. |
 | `ws.port` | integer | `0` | — | yes | no | WebSocket listener setting. |
