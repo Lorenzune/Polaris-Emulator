@@ -15,6 +15,7 @@ import com.eu.habbo.habbohotel.wired.core.WiredSimulation;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
+import com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -66,13 +67,6 @@ public class WiredEffectMoveFurniAway extends InteractionWiredEffect {
             RoomUnit target = room.getRoomUnits().stream().min(Comparator.comparingDouble(a -> a.getCurrentLocation().distance(t))).orElse(null);
 
             if (target != null) {
-                if (target.getCurrentLocation().distance(t) <= 1) {
-                    Emulator.getThreading().run(() -> {
-                        WiredManager.triggerBotCollision(room, target);
-                    }, 500);
-                    continue;
-                }
-
                 int x = 0;
                 int y = 0;
 
@@ -101,9 +95,25 @@ public class WiredEffectMoveFurniAway extends InteractionWiredEffect {
                 RoomTile newLocation = room.getLayout().getTile((short) (item.getX() + x), (short) (item.getY() + y));
                 RoomTile oldLocation = room.getLayout().getTile(item.getX(), item.getY());
 
-                if (newLocation != null && newLocation.state != RoomTileState.INVALID && newLocation != oldLocation
-                        && WiredMoveCarryHelper.getMovementError(room, this, item, newLocation, item.getRotation(), ctx) == FurnitureMovementError.NONE) {
-                    if (WiredMoveCarryHelper.moveFurni(room, this, item, newLocation, item.getRotation(), null, false, ctx) == FurnitureMovementError.NONE) {
+                if (newLocation != null && newLocation.state != RoomTileState.INVALID && newLocation != oldLocation) {
+                    FurnitureMovementError movementError = WiredMoveCarryHelper.getMovementError(
+                            room, this, item, newLocation, item.getRotation(), ctx, true);
+                    if (movementError == FurnitureMovementError.NONE) {
+                        if (WiredMoveCarryHelper.moveFurni(
+                                room,
+                                this,
+                                item,
+                                newLocation,
+                                item.getRotation(),
+                                null,
+                                false,
+                                ctx,
+                                null,
+                                null,
+                                WiredMovementsComposer.FURNI_ANCHOR_NONE,
+                                0,
+                                true) == FurnitureMovementError.NONE) {
+                        }
                     }
                 }
             }

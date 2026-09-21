@@ -15,12 +15,14 @@ import com.eu.habbo.habbohotel.wired.core.WiredSimulation;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
+import com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer;
 import com.eu.habbo.threading.runnables.WiredCollissionRunnable;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -76,7 +78,8 @@ public class WiredEffectMoveFurniTowards extends InteractionWiredEffect {
             if (!layout.tileExists(tile.x, tile.y))
                 continue;
 
-            if (WiredMoveCarryHelper.getMovementError(room, this, item, tile, item.getRotation(), ctx) != FurnitureMovementError.NONE)
+            if (WiredMoveCarryHelper.getMovementError(
+                    room, this, item, tile, item.getRotation(), ctx, true) != FurnitureMovementError.NONE)
                 continue;
 
             HabboItem topItem = room.getTopItemAt(tile.x, tile.y);
@@ -143,12 +146,14 @@ public class WiredEffectMoveFurniTowards extends InteractionWiredEffect {
                     }
 
                     if (startTile != null && layout.tileExists(startTile.x, startTile.y)) {
-                        Collection<RoomUnit> roomUnitsAtTile = room.getRoomUnitsAt(startTile);
+                        if (i == 0) {
+                            WiredMoveCarryHelper.triggerCollisionsAtTiles(room, item, Collections.singletonList(startTile));
+                        }
+                        Collection<RoomUnit> roomUnitsAtTile = room.getRoomUnits(startTile);
                         if (roomUnitsAtTile.size() > 0) {
                             target = roomUnitsAtTile.iterator().next();
                             if (i == 0) { // i = 0 means right next to it
                                 collided = true;
-                                Emulator.getThreading().run(new WiredCollissionRunnable(target, room));
                             }
                             break;
                         }
@@ -233,9 +238,24 @@ public class WiredEffectMoveFurniTowards extends InteractionWiredEffect {
 
             if(newTile != null) {
                 lastDirections.put(item.getId(), moveDirection);
+                FurnitureMovementError movementError = WiredMoveCarryHelper.getMovementError(
+                        room, this, item, newTile, item.getRotation(), ctx, true);
                 if (newTile.state != RoomTileState.INVALID && newTile != oldLocation
-                        && WiredMoveCarryHelper.getMovementError(room, this, item, newTile, item.getRotation(), ctx) == FurnitureMovementError.NONE) {
-                    if (WiredMoveCarryHelper.moveFurni(room, this, item, newTile, item.getRotation(), null, false, ctx) == FurnitureMovementError.NONE) {
+                        && movementError == FurnitureMovementError.NONE) {
+                    if (WiredMoveCarryHelper.moveFurni(
+                            room,
+                            this,
+                            item,
+                            newTile,
+                            item.getRotation(),
+                            null,
+                            false,
+                            ctx,
+                            null,
+                            null,
+                            WiredMovementsComposer.FURNI_ANCHOR_NONE,
+                            0,
+                            true) == FurnitureMovementError.NONE) {
                     }
                 }
             }

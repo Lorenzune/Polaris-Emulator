@@ -14,6 +14,7 @@ import com.eu.habbo.habbohotel.wired.core.WiredMoveCarryHelper;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
+import com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -126,27 +127,42 @@ public class WiredEffectChangeFurniDirection extends InteractionWiredEffect {
                 if (targetTile == null || room.furnitureFitsAt(targetTile, item, entry.getValue().rotation, false) != FurnitureMovementError.NONE)
                     continue;
 
-                WiredMoveCarryHelper.moveFurni(room, this, entry.getKey(), targetTile, entry.getValue().rotation, null, true, ctx);
+                WiredMoveCarryHelper.moveFurni(
+                        room,
+                        this,
+                        entry.getKey(),
+                        targetTile,
+                        entry.getValue().rotation,
+                        null,
+                        true,
+                        ctx,
+                        null,
+                        null,
+                        WiredMovementsComposer.FURNI_ANCHOR_NONE,
+                        0,
+                        true);
             }
 
             if (targetTile == null) continue;
 
-            FurnitureMovementError movementError = WiredMoveCarryHelper.getMovementError(room, this, entry.getKey(), targetTile, item.getRotation(), ctx);
-
-            if (movementError == FurnitureMovementError.TILE_HAS_HABBOS
-                    || movementError == FurnitureMovementError.TILE_HAS_BOTS
-                    || movementError == FurnitureMovementError.TILE_HAS_PETS) {
-                Emulator.getThreading().run(() -> {
-                    for (RoomUnit roomUnit : room.getRoomUnits(targetTile)) {
-                        WiredManager.triggerBotCollision(room, roomUnit);
-                        break;
-                    }
-                });
-            }
-
+            FurnitureMovementError movementError = WiredMoveCarryHelper.getMovementError(
+                    room, this, entry.getKey(), targetTile, item.getRotation(), ctx, true);
             if (targetTile.state != RoomTileState.INVALID && movementError == FurnitureMovementError.NONE) {
                 RoomTile oldLocation = room.getLayout().getTile(entry.getKey().getX(), entry.getKey().getY());
-                if (oldLocation != null && WiredMoveCarryHelper.moveFurni(room, this, entry.getKey(), targetTile, item.getRotation(), null, false, ctx) == FurnitureMovementError.NONE) {
+                if (oldLocation != null && WiredMoveCarryHelper.moveFurni(
+                        room,
+                        this,
+                        entry.getKey(),
+                        targetTile,
+                        item.getRotation(),
+                        null,
+                        false,
+                        ctx,
+                        null,
+                        null,
+                        WiredMovementsComposer.FURNI_ANCHOR_NONE,
+                        0,
+                        true) == FurnitureMovementError.NONE) {
                 }
             }
         }
@@ -346,8 +362,11 @@ public class WiredEffectChangeFurniDirection extends InteractionWiredEffect {
             return false;
         }
 
-        FurnitureMovementError unitCollision = WiredMoveCarryHelper.getMovementError(room, this, item, targetTile, item.getRotation(), ctx);
-        return unitCollision == FurnitureMovementError.TILE_HAS_HABBOS;
+        FurnitureMovementError unitCollision = WiredMoveCarryHelper.getMovementError(
+                room, this, item, targetTile, item.getRotation(), ctx, true);
+        return unitCollision == FurnitureMovementError.TILE_HAS_HABBOS
+                || unitCollision == FurnitureMovementError.TILE_HAS_BOTS
+                || unitCollision == FurnitureMovementError.TILE_HAS_PETS;
     }
 
     private RoomUserRotation nextRotation(RoomUserRotation currentRotation) {
