@@ -88,14 +88,16 @@ public final class WiredMoveCarryHelper {
             return movementError;
         }
 
-        if (!checkForUnitCollision || !carryContext.active) {
+        if (!checkForUnitCollision && !carryContext.active) {
             return FurnitureMovementError.NONE;
         }
 
         movementError = getBlockingUnitError(room, movingItem, targetTile, rotation, carryContext, movementPhysics);
         if (movementError != FurnitureMovementError.NONE) {
-            triggerCollisionsForMovementError(
-                    room, movingItem, targetTile, rotation, carryContext, movementPhysics, movementError);
+            if (checkForUnitCollision) {
+                triggerCollisionsForMovementError(
+                        room, movingItem, targetTile, rotation, carryContext, movementPhysics, movementError);
+            }
         }
         return movementError;
     }
@@ -283,12 +285,14 @@ public final class WiredMoveCarryHelper {
             return movementError;
         }
 
-        if (checkForUnitCollision && carryContext.active) {
+        if (carryContext.active) {
             movementError = getBlockingUnitError(room, movingItem, targetTile, rotation, carryContext, movementPhysics);
 
             if (movementError != FurnitureMovementError.NONE) {
-                triggerCollisionsForMovementError(
-                        room, movingItem, targetTile, rotation, carryContext, movementPhysics, movementError);
+                if (checkForUnitCollision) {
+                    triggerCollisionsForMovementError(
+                            room, movingItem, targetTile, rotation, carryContext, movementPhysics, movementError);
+                }
                 return movementError;
             }
         }
