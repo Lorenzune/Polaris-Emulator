@@ -16,16 +16,18 @@ public class WiredAccountPreferencesDataComposer extends MessageComposer {
     protected ServerMessage composeInternal() {
         this.response.init(Outgoing.WiredAccountPreferencesDataComposer);
 
-        if (this.habbo == null) {
-            this.response.appendBoolean(false);
-            this.response.appendBoolean(false);
-            this.response.appendBoolean(false);
-            return this.response;
-        }
-
-        this.response.appendBoolean(this.habbo.getHabboStats().wiredShowToolbarButton);
-        this.response.appendBoolean(this.habbo.getHabboStats().wiredShowInspectButton);
-        this.response.appendBoolean(this.habbo.getHabboStats().wiredShowSystemNotifications);
+        boolean showToolbarButton = this.habbo != null
+                && this.habbo.getHabboStats() != null
+                && this.habbo.getHabboStats().wiredShowToolbarButton;
+        boolean showInspectButton = this.habbo != null
+                && this.habbo.getHabboStats() != null
+                && this.habbo.getHabboStats().wiredShowInspectButton;
+        boolean showSystemNotifications = this.habbo != null
+                && this.habbo.getHabboStats() != null
+                && this.habbo.getHabboStats().wiredShowSystemNotifications;
+        this.response.appendBoolean(showToolbarButton);
+        this.response.appendBoolean(showInspectButton);
+        this.response.appendBoolean(showSystemNotifications);
         return this.response;
     }
 }

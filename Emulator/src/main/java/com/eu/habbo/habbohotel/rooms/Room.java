@@ -398,7 +398,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         this.ownerId = initial.ownerId();
         try {
             this.navigatorOrder = set.getInt("navigator_order");
-        } catch (SQLException ignored) {
+        } catch (SQLException | RuntimeException ignored) {
             this.navigatorOrder = 0;
         }
         this.userCountPersistence = this.createUserCountPersistence();

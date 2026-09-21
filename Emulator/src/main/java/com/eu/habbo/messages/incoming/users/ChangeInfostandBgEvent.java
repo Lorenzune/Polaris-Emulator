@@ -37,10 +37,10 @@ public class ChangeInfostandBgEvent extends MessageHandler {
         int requestedBg = sanitize(this.packet.readInt());
         int requestedStand = sanitize(this.packet.readInt());
         int requestedOverlay = sanitize(this.packet.readInt());
-        // The card-background feature is disabled. Keep consuming the legacy
-        // field so older clients remain packet-compatible, but never apply it.
-        if (this.packet.bytesAvailable() >= 4) this.packet.readInt();
-        int requestedBorder = this.packet.bytesAvailable() >= 4 ? sanitize(this.packet.readInt()) : 0;
+        // The card-background feature is disabled. Keep consuming the legacy field
+        // so the five-field client packet remains aligned, but never apply it.
+        this.packet.readInt();
+        int requestedBorder = sanitize(this.packet.readInt());
 
         InfostandBackgroundManager manager = Emulator.getGameEnvironment() != null ? Emulator.getGameEnvironment().getInfostandBackgroundManager() : null;
 
