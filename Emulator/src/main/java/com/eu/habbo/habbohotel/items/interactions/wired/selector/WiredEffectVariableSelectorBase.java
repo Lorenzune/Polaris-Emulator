@@ -157,7 +157,7 @@ public abstract class WiredEffectVariableSelectorBase extends InteractionWiredEf
 
         if (nextSelectByValue && nextReferenceMode == REFERENCE_VARIABLE && nextReferenceTargetType == TARGET_FURNI && nextReferenceFurniSource == SOURCE_SECONDARY_SELECTED) {
             int[] furniIds = settings.getFurniIds();
-            if (furniIds.length > Emulator.getConfig().getInt("hotel.wired.furni.selection.count")) return false;
+            if (furniIds.length > WiredManager.MAXIMUM_FURNI_SELECTION) return false;
 
             for (int furniId : furniIds) {
                 HabboItem item = room.getHabboItem(furniId);

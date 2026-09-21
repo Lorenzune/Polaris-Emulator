@@ -52,6 +52,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public abstract class InteractionWired extends InteractionDefault {
     public static final int WIRED_EXTENDED_SETTINGS_MARKER = -2026072509;
 
+    public static String extractWiredDataPayload(ResultSet set) throws SQLException {
+        String wiredData = set.getString("wired_data");
+        if (wiredData != null && !wiredData.trim().isEmpty()) {
+            return wiredData;
+        }
+        try {
+            String extraData = set.getString("extra_data");
+            if (extraData != null && extraData.startsWith("{") && extraData.contains("intParams")) {
+                return extraData;
+            }
+        } catch (SQLException ignored) {
+        }
+        return "";
+    }
+
     private static final Logger LOGGER = LoggerFactory.getLogger(InteractionWired.class);
     
     /**

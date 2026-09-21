@@ -189,7 +189,7 @@ public final class DefaultWiredServices implements WiredServices {
     public void moveFurni(Room room, HabboItem item, RoomTile tile, int rotation) {
         if (room == null || item == null || tile == null) return;
 
-        room.moveFurniTo(item, tile, rotation, null, true);
+        room.moveFurniTo(item, tile, rotation, null, true, false);
     }
 
     @Override

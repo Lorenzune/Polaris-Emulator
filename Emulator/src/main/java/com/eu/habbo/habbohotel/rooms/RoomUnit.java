@@ -668,6 +668,56 @@ public class RoomUnit {
         return this.status.get(key);
     }
 
+    /**
+     * Reconciles the z component of an active move without starting a new
+     * movement step. Furniture can change the surface while the client is
+     * still interpolating the current step; resetting the MOVE status here
+     * would restart its timing and make the avatar visibly snap.
+     */
+    void updateMoveStatusZ(double z) {
+        String moveStatus = this.status.get(RoomUnitStatus.MOVE);
+        if (moveStatus == null) {
+            return;
+        }
+
+        int separator = moveStatus.lastIndexOf(',');
+        if (separator < 0) {
+            return;
+        }
+
+        this.status.put(RoomUnitStatus.MOVE, moveStatus.substring(0, separator + 1) + z);
+    }
+
+    static double resolveWalkingHeight(Room room, RoomTile tile) {
+        HabboItem item = room == null || tile == null || room.getItemManager() == null
+                ? null
+                : room.getItemManager().getWalkableItemAt(tile.x, tile.y);
+        return resolveWalkingHeight(room, tile, item);
+    }
+
+    private static double resolveWalkingHeight(Room room, RoomTile tile, HabboItem item) {
+        if (room == null || tile == null || room.getLayout() == null) {
+            return 0.0D;
+        }
+
+        double z = room.getLayout().getHeightAtSquare(tile.x, tile.y);
+        if (item != null) {
+            z = item.getZ();
+            if (!item.getBaseItem().allowSit() && !item.getBaseItem().allowLay()) {
+                z += Item.getCurrentHeight(item);
+            }
+        }
+
+        Optional<HabboItem> stackHelper = room.getItemsAt(tile).stream()
+                .filter(i -> i instanceof InteractionTileWalkMagic || i instanceof InteractionStackWalkHelper)
+                .findAny();
+        if (stackHelper.isPresent()) {
+            z = stackHelper.get().getZ();
+        }
+
+        return z;
+    }
+
     public ConcurrentHashMap<RoomUnitStatus, String> getStatusMap() {
         return this.status;
     }

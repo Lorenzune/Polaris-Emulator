@@ -18,6 +18,7 @@ import com.eu.habbo.messages.ServerMessage;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -75,7 +76,7 @@ public class WiredEffectUsersOnFurni extends InteractionWiredEffect {
         this.invert = params.length > 2 && params[2] == 1;
 
         int count = settings.getFurniIds().length;
-        if (count > Emulator.getConfig().getInt("hotel.wired.furni.selection.count")) {
+        if (count > WiredManager.MAXIMUM_FURNI_SELECTION) {
             return false;
         }
 
@@ -221,12 +222,27 @@ public class WiredEffectUsersOnFurni extends InteractionWiredEffect {
             return result;
         }
 
+        if (sourceItem.getLastMoveTimestamp() > 0 && (System.currentTimeMillis() - sourceItem.getLastMoveTimestamp() <= 600)) {
+            if (sourceItem.getPreviousOccupiedTiles() != null) {
+                occupiedTiles = new HashSet<>(occupiedTiles);
+                occupiedTiles.addAll(sourceItem.getPreviousOccupiedTiles());
+            } else if (sourceItem.getPreviousLocation() != null) {
+                occupiedTiles = new HashSet<>(occupiedTiles);
+                occupiedTiles.add(sourceItem.getPreviousLocation());
+            }
+        }
+
         for (RoomTile tile : occupiedTiles) {
             if (tile == null) {
                 continue;
             }
 
-            result.addAll(room.getUnitManager().getRoomUnitsAt(tile));
+            for (RoomUnit unit : room.getUnitManager().getRoomUnitsAt(tile)) {
+                HabboItem itemOn = WiredSourceUtil.getItemUserIsOn(room, unit);
+                if (itemOn != null && itemOn.getId() == sourceItem.getId()) {
+                    result.add(unit);
+                }
+            }
         }
 
         return result;

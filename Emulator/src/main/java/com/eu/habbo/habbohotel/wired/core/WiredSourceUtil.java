@@ -3,7 +3,9 @@ package com.eu.habbo.habbohotel.wired.core;
 import com.eu.habbo.WiredCompatibilityDiagnostics;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.rooms.Room;
+import com.eu.habbo.habbohotel.rooms.RoomTile;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
+import com.eu.habbo.habbohotel.rooms.RoomUnitStatus;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.api.IWiredEffect;
 import java.util.ArrayList;
@@ -302,5 +304,33 @@ public final class WiredSourceUtil {
         }
 
         return Collections.emptyList();
+    }
+
+    public static HabboItem getItemUserIsOn(Room room, RoomUnit roomUnit) {
+        if (room == null || roomUnit == null || roomUnit.getCurrentLocation() == null) {
+            return null;
+        }
+
+        RoomTile tile = roomUnit.getCurrentLocation();
+        if (roomUnit.hasStatus(RoomUnitStatus.SIT) || roomUnit.hasStatus(RoomUnitStatus.LAY) || room.canSitAt(tile.x, tile.y)) {
+            HabboItem tallestChair = room.getTallestChair(tile);
+            if (tallestChair != null) {
+                return tallestChair;
+            }
+        }
+
+        if (room.getItemManager() != null) {
+            HabboItem walkable = room.getItemManager().getWalkableItemAt(tile.x, tile.y);
+            if (walkable != null) {
+                return walkable;
+            }
+        }
+
+        HabboItem topItem = room.getTopItemAt(tile.x, tile.y);
+        if (topItem != null) {
+            return topItem;
+        }
+
+        return null;
     }
 }

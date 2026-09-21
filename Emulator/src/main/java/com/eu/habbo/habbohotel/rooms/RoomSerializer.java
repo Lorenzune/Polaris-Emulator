@@ -66,6 +66,7 @@ final class RoomSerializer {
             message.appendString(promotion.getDescription());
             message.appendInt((promotion.getEndTimestamp() - room.currentUnixTimestamp()) / 60);
         }
+
     }
 
     private static void appendGuild(Room room, ServerMessage message) {

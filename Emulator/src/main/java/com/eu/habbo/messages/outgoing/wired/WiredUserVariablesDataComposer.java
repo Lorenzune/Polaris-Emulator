@@ -8,6 +8,7 @@ import com.eu.habbo.habbohotel.rooms.RoomUserVariableManager;
 import com.eu.habbo.habbohotel.rooms.WiredVariableDefinitionInfo;
 import com.eu.habbo.habbohotel.wired.core.WiredContextVariableSupport;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraAchievementEnabler;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
@@ -16,6 +17,8 @@ import com.eu.habbo.messages.outgoing.Outgoing;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class WiredUserVariablesDataComposer extends MessageComposer {
     private final RoomUserVariableManager.Snapshot userSnapshot;
@@ -193,7 +196,35 @@ public class WiredUserVariablesDataComposer extends MessageComposer {
             this.response.appendInt(parseVariableId(fx.getOverrideMaxVariableId()));
         }
 
+        List<String> achievementNames = resolveEnabledAchievements(currentRoom);
+        this.response.appendInt(achievementNames.size());
+        for (String achievementName : achievementNames) {
+            this.response.appendString(achievementName);
+        }
+
         return this.response;
+    }
+
+    private static List<String> resolveEnabledAchievements(Room room) {
+        if (room == null || room.getFloorItems() == null) return Collections.emptyList();
+
+        Set<String> result = new LinkedHashSet<>();
+        for (HabboItem item : room.getFloorItems()) {
+            if (!(item instanceof WiredExtraAchievementEnabler enabler)) continue;
+
+            String configured = enabler.getAchievementIds();
+            if (configured == null || configured.isBlank()) continue;
+
+            for (String value : configured.split("[,\\r\\n]+")) {
+                String achievementName = value.trim();
+                if (!achievementName.isEmpty()
+                        && Emulator.getGameEnvironment().getAchievementManager().getAchievement(achievementName) != null) {
+                    result.add(achievementName);
+                }
+            }
+        }
+
+        return new ArrayList<>(result);
     }
 
     private static int parseVariableId(String value) {

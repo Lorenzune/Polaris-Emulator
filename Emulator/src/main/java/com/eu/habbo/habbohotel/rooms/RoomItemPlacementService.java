@@ -97,25 +97,25 @@ final class RoomItemPlacementService {
                 tile, item.getBaseItem().getWidth(), item.getBaseItem().getLength(), rotation)) {
             return FurnitureMovementError.INVALID_MOVE;
         }
+
         if (this.isStackPlacementBypassItem(item)) {
             return FurnitureMovementError.NONE;
         }
 
         Set<RoomTile> occupiedTiles = layout.getTilesAt(
                 tile, item.getBaseItem().getWidth(), item.getBaseItem().getLength(), rotation);
-        boolean canWalkSitLay = item.isWalkable() || item.getBaseItem().allowSit() || item.getBaseItem().allowLay();
         for (RoomTile occupiedTile : occupiedTiles) {
             if (occupiedTile.state == RoomTileState.INVALID) {
                 return FurnitureMovementError.INVALID_MOVE;
             }
-            if (!canWalkSitLay) {
-                if (checkForUnits && this.room.hasHabbosAt(occupiedTile.x, occupiedTile.y)) {
+            if (checkForUnits) {
+                if (this.room.hasHabbosAt(occupiedTile.x, occupiedTile.y)) {
                     return FurnitureMovementError.TILE_HAS_HABBOS;
                 }
-                if (checkForUnits && this.room.hasBotsAt(occupiedTile.x, occupiedTile.y)) {
+                if (this.room.hasBotsAt(occupiedTile.x, occupiedTile.y)) {
                     return FurnitureMovementError.TILE_HAS_BOTS;
                 }
-                if (checkForUnits && this.room.hasPetsAt(occupiedTile.x, occupiedTile.y)) {
+                if (this.room.hasPetsAt(occupiedTile.x, occupiedTile.y)) {
                     return FurnitureMovementError.TILE_HAS_PETS;
                 }
             }

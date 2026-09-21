@@ -102,13 +102,13 @@ public class WiredConditionUserOnFurniWithState extends WiredConditionTriggerOnF
     }
 
     private boolean matchingItemUnderUser(RoomUnit roomUnit, Collection<HabboItem> items, Room room) {
-        Set<HabboItem> itemsAtUser = room.getItemsAt(roomUnit.getCurrentLocation());
-        if (itemsAtUser == null) {
+        HabboItem itemOn = WiredSourceUtil.getItemUserIsOn(room, roomUnit);
+        if (itemOn == null) {
             return false;
         }
 
         for (HabboItem item : items) {
-            if (item != null && itemsAtUser.contains(item) && this.matchesRequiredState(item)) {
+            if (item != null && item.getId() == itemOn.getId() && this.matchesRequiredState(itemOn)) {
                 return true;
             }
         }

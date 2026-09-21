@@ -19,7 +19,6 @@ import com.eu.habbo.messages.outgoing.rooms.users.RoomUserStatusComposer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -130,13 +129,11 @@ public final class WiredUserMovementHelper {
                     resolvedBodyRotation,
                     resolvedHeadRotation,
                     room.getTopItemAt(oldLocation.x, oldLocation.y),
-                    resolveEnteredItem(room, targetTile),
                     room.getHabbo(roomUnit));
         }
 
         double oldZ = roomUnit.getZ();
         HabboItem oldTopItem = room.getTopItemAt(oldLocation.x, oldLocation.y);
-        HabboItem newTopItem = resolveEnteredItem(room, targetTile);
         Habbo habbo = room.getHabbo(roomUnit);
 
         int animationDuration = (duration > 0) ? duration : DEFAULT_ANIMATION_DURATION;
@@ -174,7 +171,7 @@ public final class WiredUserMovementHelper {
         suppressStatusComposer(roomUnit, animationDuration);
         room.sendComposer(new WiredMovementsComposer(movements).compose());
 
-        scheduleTileCallbacks(room, roomUnit, oldLocation, targetTile, oldTopItem, newTopItem, animationDuration);
+        scheduleTileCallbacks(room, roomUnit, oldLocation, targetTile, oldTopItem, animationDuration);
         scheduleFinalStatusSync(room, roomUnit, targetTile, animationDuration);
         schedulePostureSync(room, roomUnit, targetTile, animationDuration);
         return true;
@@ -213,7 +210,6 @@ public final class WiredUserMovementHelper {
             RoomUserRotation bodyRotation,
             RoomUserRotation headRotation,
             HabboItem oldTopItem,
-            HabboItem newTopItem,
             Habbo habbo) {
         suppressNextWalkCommand(roomUnit);
         roomUnit.removeStatus(RoomUnitStatus.MOVE);
@@ -239,7 +235,7 @@ public final class WiredUserMovementHelper {
             }
         }
 
-        processTileCallbacks(room, roomUnit, oldLocation, targetTile, oldTopItem, newTopItem);
+        processTileCallbacks(room, roomUnit, oldLocation, targetTile, oldTopItem);
         clearStatusComposerSuppression(roomUnit);
         room.sendComposer(new RoomUserStatusComposer(roomUnit).compose());
         return true;
@@ -393,12 +389,11 @@ public final class WiredUserMovementHelper {
             RoomTile oldLocation,
             RoomTile targetTile,
             HabboItem oldTopItem,
-            HabboItem newTopItem,
             int delay) {
         Emulator.getThreading()
                 .run(
                         () -> {
-                            processTileCallbacks(room, roomUnit, oldLocation, targetTile, oldTopItem, newTopItem);
+                            processTileCallbacks(room, roomUnit, oldLocation, targetTile, oldTopItem);
                         },
                         Math.max(delay, 1));
     }
@@ -408,8 +403,7 @@ public final class WiredUserMovementHelper {
             RoomUnit roomUnit,
             RoomTile oldLocation,
             RoomTile targetTile,
-            HabboItem oldTopItem,
-            HabboItem newTopItem) {
+            HabboItem oldTopItem) {
         if (room == null || !room.isLoaded() || roomUnit == null || roomUnit.getCurrentLocation() == null) {
             return;
         }
@@ -418,31 +412,18 @@ public final class WiredUserMovementHelper {
             return;
         }
 
+        // The room may have changed while the avatar was being animated. In
+        // particular, a moving furni can leave this tile before the delayed
+        // walk-on callback runs. Resolve the destination from the live room
+        // state so a new item/trigger underneath is used, and the item that
+        // already passed is not triggered retroactively.
         HabboItem resolvedNewTopItem = resolveEnteredItem(room, targetTile);
-        if (resolvedNewTopItem == null) {
-            resolvedNewTopItem = room.getTopItemAt(targetTile.x, targetTile.y);
-        }
-        if (resolvedNewTopItem == null) {
-            resolvedNewTopItem = newTopItem;
-        }
 
         if (oldTopItem != null && (oldTopItem != resolvedNewTopItem || !occupiesTile(oldTopItem, targetTile))) {
             try {
                 oldTopItem.onWalkOff(roomUnit, room, new Object[] {oldLocation, targetTile});
             } catch (Exception exception) {
                 LOGGER.error("Failed to process wired user walk off callback", exception);
-            }
-        }
-
-        for (HabboItem additionalOldItem : resolveAdditionalTileItems(room, oldLocation, oldTopItem)) {
-            if (additionalOldItem == resolvedNewTopItem && occupiesTile(additionalOldItem, targetTile)) {
-                continue;
-            }
-
-            try {
-                additionalOldItem.onWalkOff(roomUnit, room, new Object[] {oldLocation, targetTile});
-            } catch (Exception exception) {
-                LOGGER.error("Failed to process additional wired user walk off callback", exception);
             }
         }
 
@@ -466,18 +447,6 @@ public final class WiredUserMovementHelper {
                 }
             } catch (Exception exception) {
                 LOGGER.error("Failed to process wired user walk on callback", exception);
-            }
-        }
-
-        for (HabboItem additionalNewItem : resolveAdditionalTileItems(room, targetTile, resolvedNewTopItem)) {
-            try {
-                if (occupiesTile(additionalNewItem, oldLocation)) {
-                    additionalNewItem.onWalk(roomUnit, room, new Object[] {oldLocation, targetTile});
-                } else {
-                    additionalNewItem.onWalkOn(roomUnit, room, new Object[] {oldLocation, targetTile});
-                }
-            } catch (Exception exception) {
-                LOGGER.error("Failed to process additional wired user walk on callback", exception);
             }
         }
     }
@@ -528,8 +497,15 @@ public final class WiredUserMovementHelper {
             return 0;
         }
 
-        HabboItem targetItem = resolveEnteredItem(room, targetTile);
         double targetZ = room.getLayout().getHeightAtSquare(targetTile.x, targetTile.y);
+
+        // Height belongs to the current walk surface, not to whichever item
+        // happened to be the top item when the move was scheduled. This is
+        // important when a moving furni has just left the tile: the avatar
+        // must descend to the floor (or to a live walkable item underneath).
+        HabboItem targetItem = room.getItemManager() == null
+                ? null
+                : room.getItemManager().getWalkableItemAt(targetTile.x, targetTile.y);
 
         if (targetItem != null) {
             targetZ = targetItem.getZ();
@@ -562,27 +538,6 @@ public final class WiredUserMovementHelper {
                 item.getY() + item.getBaseItem().getLength() - 1,
                 tile.x,
                 tile.y);
-    }
-
-    private static List<HabboItem> resolveAdditionalTileItems(Room room, RoomTile tile, HabboItem primaryItem) {
-        if (room == null || tile == null) {
-            return Collections.emptyList();
-        }
-
-        List<HabboItem> items = new ArrayList<>();
-
-        for (HabboItem item : room.getItemsAt(tile)) {
-            if (item == null || item == primaryItem || !occupiesTile(item, tile)) {
-                continue;
-            }
-
-            items.add(item);
-        }
-
-        items.sort(Comparator.comparingDouble((HabboItem item) -> item.getZ() + Item.getCurrentHeight(item))
-                .thenComparingInt(HabboItem::getId)
-                .reversed());
-        return items;
     }
 
     private static void schedulePostureSync(Room room, RoomUnit roomUnit, RoomTile targetTile, int delay) {

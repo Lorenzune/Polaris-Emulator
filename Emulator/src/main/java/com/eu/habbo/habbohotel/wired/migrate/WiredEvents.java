@@ -361,9 +361,14 @@ public final class WiredEvents {
      * @return the event
      */
     public static WiredEvent botCollision(Room room, RoomUnit botUnit) {
+        return botCollision(room, botUnit, null);
+    }
+
+    public static WiredEvent botCollision(Room room, RoomUnit botUnit, HabboItem item) {
         return WiredEvent.builder(WiredEvent.Type.BOT_COLLISION, room)
                 .actor(botUnit)
-                .tile(botUnit.getCurrentLocation())
+                .sourceItem(item)
+                .tile(botUnit != null ? botUnit.getCurrentLocation() : null)
                 .build();
     }
 

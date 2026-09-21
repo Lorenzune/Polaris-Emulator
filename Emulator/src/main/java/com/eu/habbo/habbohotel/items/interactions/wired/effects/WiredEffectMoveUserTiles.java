@@ -8,7 +8,6 @@ import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomTile;
-import com.eu.habbo.habbohotel.rooms.RoomTileState;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.rooms.RoomUserRotation;
 import com.eu.habbo.habbohotel.wired.WiredEffectType;
@@ -81,7 +80,7 @@ public class WiredEffectMoveUserTiles extends InteractionWiredEffect {
                     break;
                 }
 
-                double targetZ = targetTile.getStackHeight() + ((targetTile.state == RoomTileState.SIT) ? -0.5 : 0);
+                double targetZ = WiredUserMovementHelper.resolveUserTargetZ(room, targetTile);
                 if (!WiredUserMovementHelper.moveUser(room, roomUnit, targetTile, targetZ, targetBodyRotation, targetHeadRotation,
                         animationDuration, noAnimation, movementPhysics)) {
                     break;

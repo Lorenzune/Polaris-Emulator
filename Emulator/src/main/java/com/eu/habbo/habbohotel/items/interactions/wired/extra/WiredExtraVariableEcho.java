@@ -689,7 +689,7 @@ public class WiredExtraVariableEcho extends InteractionWiredExtra {
         RoomTile targetTile = room.getLayout().getTile((short) x, (short) y);
         if (targetTile == null || targetTile.state == RoomTileState.INVALID) return false;
 
-        FurnitureMovementError error = room.moveFurniTo(item, targetTile, rotation, z, null, true, true);
+        FurnitureMovementError error = room.moveFurniTo(item, targetTile, rotation, z, null, true, false);
         return error == FurnitureMovementError.NONE;
     }
 

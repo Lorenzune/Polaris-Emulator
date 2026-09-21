@@ -72,7 +72,9 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
     private boolean needsUpdate = false;
     private boolean needsDelete = false;
     private boolean isFromGift = false;
-
+    private RoomTile previousLocation;
+    private Set<RoomTile> previousOccupiedTiles;
+    private long lastMoveTimestamp;
     public HabboItem(ResultSet set, Item baseItem) throws SQLException {
         this.id = set.getInt("id");
         this.userId = set.getInt("user_id");
@@ -724,4 +726,29 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
                 this.getBaseItem().getLength() + (marginY * 2),
                 this.getRotation());
     }
+
+    public RoomTile getPreviousLocation() {
+        return this.previousLocation;
+    }
+
+    public void setPreviousLocation(RoomTile previousLocation) {
+        this.previousLocation = previousLocation;
+    }
+
+    public Set<RoomTile> getPreviousOccupiedTiles() {
+        return this.previousOccupiedTiles;
+    }
+
+    public void setPreviousOccupiedTiles(Set<RoomTile> previousOccupiedTiles) {
+        this.previousOccupiedTiles = previousOccupiedTiles;
+    }
+
+    public long getLastMoveTimestamp() {
+        return this.lastMoveTimestamp;
+    }
+
+    public void setLastMoveTimestamp(long lastMoveTimestamp) {
+        this.lastMoveTimestamp = lastMoveTimestamp;
+    }
+
 }

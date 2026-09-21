@@ -104,9 +104,10 @@ public class WiredEffectMoveFurniAway extends InteractionWiredEffect {
                                 this,
                                 item,
                                 newLocation,
-                                item.getRotation(),
-                                null,
-                                false,
+                            item.getRotation(),
+                            null,
+                            null,
+                            false,
                                 ctx,
                                 null,
                                 null,
@@ -160,11 +161,11 @@ public class WiredEffectMoveFurniAway extends InteractionWiredEffect {
                 short newX = (short) (currentPos.x + x);
                 short newY = (short) (currentPos.y + y);
                 
-                if (!simulation.isTileValidForItem(newX, newY, item)) {
+                if (!simulation.isTileValidForItem(newX, newY, item, true)) {
                     return false;
                 }
                 
-                if (!simulation.moveItem(item, newX, newY, currentPos.z, currentPos.rotation)) {
+                if (!simulation.moveItem(item, newX, newY, currentPos.z, currentPos.rotation, true)) {
                     return false;
                 }
             }

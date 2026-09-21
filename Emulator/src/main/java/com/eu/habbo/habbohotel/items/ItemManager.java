@@ -248,6 +248,16 @@ import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectGiveR
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectGiveScore;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectGiveScoreToTeam;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectGiveVariable;
+import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionOverrideHeight;
+import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionProgressRewardTrack;
+import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionProgressAchievement;
+import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionResetRewardTrack;
+import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectWriteToLogs;
+import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionUserLevel;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraAchievementEnabler;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraGlobalPlaceholder;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraJumpStrength;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraProjectile;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectInitTransaction;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectJoinTeam;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectKickHabbo;
@@ -266,6 +276,7 @@ import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectMoveR
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectMoveUserTiles;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectMuteHabbo;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectNegativeLog;
+import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectNegativeWriteToLogs;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectNegativeSendSignal;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectNegativeShowMessage;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectNegativeTriggerStacks;
@@ -862,6 +873,20 @@ public class ItemManager {
         this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_status", WiredExtraVariableFxStatusBar.class));
         this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_boss", WiredExtraVariableFxBossBar.class));
         this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_number", WiredExtraVariableFxNumberDisplay.class));
+        this.interactionsList.add(new ItemInteraction("wf_xtra_projectile", WiredExtraProjectile.class));
+        this.interactionsList.add(new ItemInteraction("wf_xtra_jump_strength", WiredExtraJumpStrength.class));
+        this.interactionsList.add(new ItemInteraction("wf_xtra_achievement_enabler", WiredExtraAchievementEnabler.class));
+        this.interactionsList.add(new ItemInteraction("wf_xtra_global_placeholder", WiredExtraGlobalPlaceholder.class));
+        this.interactionsList.add(new ItemInteraction("wf_act_progress_reward_track", WiredActionProgressRewardTrack.class));
+        this.interactionsList.add(new ItemInteraction("wf_act_progress_achievement", WiredActionProgressAchievement.class));
+        this.interactionsList.add(new ItemInteraction("wf_act_reset_reward_track", WiredActionResetRewardTrack.class));
+        this.interactionsList.add(new ItemInteraction("wf_act_override_height", WiredActionOverrideHeight.class));
+        // Click options are trigger configuration in the SWF, not a separate action.
+        this.interactionsList.add(new ItemInteraction("wf_act_click_settings", WiredTriggerHabboClicksUser.class));
+        this.interactionsList.add(new ItemInteraction("wf_act_click_conf", WiredTriggerHabboClicksUser.class));
+        this.interactionsList.add(new ItemInteraction("wf_act_write_to_logs", WiredEffectWriteToLogs.class));
+        this.interactionsList.add(new ItemInteraction("wf_act_neg_write_to_logs", WiredEffectNegativeWriteToLogs.class));
+        this.interactionsList.add(new ItemInteraction("wf_cnd_user_level", WiredConditionUserLevel.class));
 
         // ---- Inert-furni group: Group A/B + Phase-A aliases + advanced add-ons ----
         this.interactionsList.add(new ItemInteraction("wf_act_dont_chase", WiredEffectMoveFurniAway.class));

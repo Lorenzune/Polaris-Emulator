@@ -84,6 +84,16 @@ public final class WiredSimulation {
      * @return true if the move would succeed, false if it would fail
      */
     public boolean moveItem(HabboItem item, short newX, short newY, double newZ, int newRotation) {
+        return moveItem(item, newX, newY, newZ, newRotation, false);
+    }
+
+    public boolean moveItem(
+            HabboItem item,
+            short newX,
+            short newY,
+            double newZ,
+            int newRotation,
+            boolean checkForUnitCollision) {
         if (item == null) {
             fail("Cannot move null item");
             return false;
@@ -105,7 +115,7 @@ public final class WiredSimulation {
             return false;
         }
         
-        FurnitureMovementError moveError = room.furnitureFitsAt(destTile, item, newRotation, true);
+        FurnitureMovementError moveError = room.furnitureFitsAt(destTile, item, newRotation, checkForUnitCollision);
         if (moveError != FurnitureMovementError.NONE) {
             fail("Destination tile (" + newX + "," + newY + ") blocked: " + moveError.name());
             return false;
@@ -119,6 +129,10 @@ public final class WiredSimulation {
      * Simulate moving an item by a relative offset.
      */
     public boolean moveItemRelative(HabboItem item, int offsetX, int offsetY) {
+        return moveItemRelative(item, offsetX, offsetY, false);
+    }
+
+    public boolean moveItemRelative(HabboItem item, int offsetX, int offsetY, boolean checkForUnitCollision) {
         if (item == null) {
             fail("Cannot move null item");
             return false;
@@ -128,7 +142,7 @@ public final class WiredSimulation {
         short newX = (short) (currentPos.x + offsetX);
         short newY = (short) (currentPos.y + offsetY);
         
-        return moveItem(item, newX, newY, currentPos.z, currentPos.rotation);
+        return moveItem(item, newX, newY, currentPos.z, currentPos.rotation, checkForUnitCollision);
     }
     
     /**
@@ -153,6 +167,10 @@ public final class WiredSimulation {
      * Uses furnitureFitsAt for full validation including users, bots, furniture, etc.
      */
     public boolean isTileValidForItem(short x, short y, HabboItem item) {
+        return isTileValidForItem(x, y, item, false);
+    }
+
+    public boolean isTileValidForItem(short x, short y, HabboItem item, boolean checkForUnitCollision) {
         if (room.getLayout() == null) {
             return false;
         }
@@ -165,7 +183,7 @@ public final class WiredSimulation {
             return false;
         }
         
-        FurnitureMovementError moveError = room.furnitureFitsAt(tile, item, item.getRotation(), true);
+        FurnitureMovementError moveError = room.furnitureFitsAt(tile, item, item.getRotation(), checkForUnitCollision);
         return moveError == FurnitureMovementError.NONE;
     }
     

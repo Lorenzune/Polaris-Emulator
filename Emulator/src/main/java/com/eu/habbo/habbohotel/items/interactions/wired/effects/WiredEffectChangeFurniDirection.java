@@ -134,19 +134,20 @@ public class WiredEffectChangeFurniDirection extends InteractionWiredEffect {
                         targetTile,
                         entry.getValue().rotation,
                         null,
+                        null,
                         true,
                         ctx,
                         null,
                         null,
                         WiredMovementsComposer.FURNI_ANCHOR_NONE,
                         0,
-                        true);
+                        this.blockOnUserCollision);
             }
 
             if (targetTile == null) continue;
 
             FurnitureMovementError movementError = WiredMoveCarryHelper.getMovementError(
-                    room, this, entry.getKey(), targetTile, item.getRotation(), ctx, true);
+                    room, this, entry.getKey(), targetTile, item.getRotation(), ctx, this.blockOnUserCollision);
             if (targetTile.state != RoomTileState.INVALID && movementError == FurnitureMovementError.NONE) {
                 RoomTile oldLocation = room.getLayout().getTile(entry.getKey().getX(), entry.getKey().getY());
                 if (oldLocation != null && WiredMoveCarryHelper.moveFurni(
@@ -156,13 +157,14 @@ public class WiredEffectChangeFurniDirection extends InteractionWiredEffect {
                         targetTile,
                         item.getRotation(),
                         null,
+                        null,
                         false,
                         ctx,
                         null,
                         null,
                         WiredMovementsComposer.FURNI_ANCHOR_NONE,
                         0,
-                        true) == FurnitureMovementError.NONE) {
+                        this.blockOnUserCollision) == FurnitureMovementError.NONE) {
                 }
             }
         }

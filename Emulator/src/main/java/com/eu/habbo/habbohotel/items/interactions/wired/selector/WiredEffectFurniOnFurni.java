@@ -88,7 +88,7 @@ public class WiredEffectFurniOnFurni extends InteractionWiredEffect {
         this.invert = params.length > 3 && params[3] == 1;
 
         int count = settings.getFurniIds().length;
-        if (count > Emulator.getConfig().getInt("hotel.wired.furni.selection.count")) {
+        if (count > WiredManager.MAXIMUM_FURNI_SELECTION) {
             return false;
         }
 

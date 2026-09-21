@@ -35,7 +35,6 @@ public class RoomItemManager {
     private final RoomItemPlacementService placement;
     private final RoomItemRegistry registry;
 
-    // Tile cache for item lookups
     public final ConcurrentHashMap<RoomTile, Set<HabboItem>> tileCache;
 
     public RoomItemManager(Room room) {
@@ -85,7 +84,7 @@ public class RoomItemManager {
      */
     public void loadWiredData(Connection connection) {
         try (PreparedStatement statement =
-                connection.prepareStatement("SELECT id, wired_data FROM items WHERE room_id = ? AND wired_data<>''")) {
+                connection.prepareStatement("SELECT id, wired_data, extra_data FROM items WHERE room_id = ? AND (wired_data <> '' OR (extra_data LIKE '{%' AND extra_data LIKE '%intParams%'))")) {
             statement.setInt(1, this.room.getId());
 
             try (ResultSet set = statement.executeQuery()) {
@@ -289,11 +288,6 @@ public class RoomItemManager {
             return null;
         }
 
-        // If underpass is disabled for this room, just return the top item
-        if (!this.room.isAllowUnderpass()) {
-            return topItem;
-        }
-
         // If the top item is walkable, just return it
         if (topItem.isWalkable()
                 || topItem.getBaseItem().allowWalk()
@@ -302,7 +296,7 @@ public class RoomItemManager {
             return topItem;
         }
 
-        // Check for underpass: get the walk surface height
+        // Check for any walkable item underneath (e.g. underpass or rug/tile below blocking item)
         double walkSurface =
                 this.room.getLayout() != null ? this.room.getLayout().getHeightAtSquare(x, y) : 0;
         HabboItem walkSurfaceItem = null;
@@ -320,12 +314,11 @@ public class RoomItemManager {
             }
         }
 
-        // If there's enough clearance under the top blocking item, return the walk surface item
-        if (topItem.getZ() - walkSurface >= RoomLayout.UNDERPASS_HEIGHT) {
+        if (walkSurfaceItem != null && this.room.isAllowUnderpass() && topItem.getZ() - walkSurface >= RoomLayout.UNDERPASS_HEIGHT) {
             return walkSurfaceItem;
         }
 
-        return topItem;
+        return walkSurfaceItem;
     }
 
     /**

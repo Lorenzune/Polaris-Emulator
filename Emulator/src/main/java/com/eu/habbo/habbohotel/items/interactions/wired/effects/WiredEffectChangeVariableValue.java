@@ -815,7 +815,7 @@ public class WiredEffectChangeVariableValue extends InteractionWiredEffect {
         RoomTile targetTile = room.getLayout().getTile((short) x, (short) y);
         if (targetTile == null || targetTile.state == RoomTileState.INVALID) return false;
 
-        double targetZ = targetTile.getStackHeight() + ((targetTile.state == RoomTileState.SIT) ? -0.5 : 0);
+        double targetZ = WiredUserMovementHelper.resolveUserTargetZ(room, targetTile);
         return WiredUserMovementHelper.moveUser(
                 room,
                 roomUnit,
@@ -833,7 +833,7 @@ public class WiredEffectChangeVariableValue extends InteractionWiredEffect {
         RoomTile targetTile = room.getLayout().getTile((short) x, (short) y);
         if (targetTile == null || targetTile.state == RoomTileState.INVALID) return false;
 
-        FurnitureMovementError error = room.moveFurniTo(item, targetTile, rotation, z, null, true, true);
+        FurnitureMovementError error = room.moveFurniTo(item, targetTile, rotation, z, null, true, false);
         return error == FurnitureMovementError.NONE;
     }
 

@@ -59,16 +59,12 @@ public final class WiredTriggerSourceUtil {
     }
 
     public static boolean containsItemOrTile(Room room, Collection<HabboItem> items, HabboItem sourceItem) {
-        if (room == null || items == null || items.isEmpty() || sourceItem == null) {
+        if (items == null || items.isEmpty() || sourceItem == null) {
             return false;
         }
 
-        if (items.contains(sourceItem)) {
-            return true;
-        }
-
-        for (HabboItem item : room.getItemsAt(sourceItem.getX(), sourceItem.getY())) {
-            if (items.contains(item)) {
+        for (HabboItem item : items) {
+            if (item != null && item.getId() == sourceItem.getId()) {
                 return true;
             }
         }

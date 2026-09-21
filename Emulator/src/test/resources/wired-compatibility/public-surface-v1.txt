@@ -73,6 +73,13 @@ FIELD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscor
 CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore(int,int,com.eu.habbo.habbohotel.items.Item,java.lang.String,int,int) throws -
 CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore(java.sql.ResultSet,com.eu.habbo.habbohotel.items.Item) throws java.sql.SQLException
 METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#canWalkOn(com.eu.habbo.habbohotel.rooms.RoomUnit,com.eu.habbo.habbohotel.rooms.Room,java.lang.Object[]):boolean throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#getDatabaseExtraData(-):java.lang.String throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#getScoreBoardColor(-):java.lang.String throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#getScoreBoardName(-):java.lang.String throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#getScoreBoardOpacity(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#getScoreBoardPodium(-):java.lang.String throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#getScoreBoardX(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#getScoreBoardY(-):int throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#isWalkable(-):boolean throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#onClick(com.eu.habbo.habbohotel.gameclients.GameClient,com.eu.habbo.habbohotel.rooms.Room,java.lang.Object[]):void throws java.lang.Exception
 METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#onPickUp(com.eu.habbo.habbohotel.rooms.Room):void throws -
@@ -80,6 +87,11 @@ METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighsco
 METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#onWalk(com.eu.habbo.habbohotel.rooms.RoomUnit,com.eu.habbo.habbohotel.rooms.Room,java.lang.Object[]):void throws java.lang.Exception
 METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#reloadData(-):void throws -
 METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#serializeExtradata(com.eu.habbo.messages.ServerMessage):void throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#setScoreBoardColor(java.lang.String):void throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#setScoreBoardName(java.lang.String):void throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#setScoreBoardOpacity(int):void throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#setScoreBoardPodium(java.lang.String):void throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore#setScoreBoardPos(int,int):void throws -
 
 TYPE public abstract com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger extends com.eu.habbo.habbohotel.items.interactions.InteractionWired implements com.eu.habbo.habbohotel.wired.api.IWiredTrigger
 CONSTRUCTOR protected com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger(int,int,com.eu.habbo.habbohotel.items.Item,java.lang.String,int,int) throws -
@@ -3522,6 +3534,180 @@ METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraV
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFilterBase#saveData(com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings,com.eu.habbo.habbohotel.gameclients.GameClient):boolean throws com.eu.habbo.messages.incoming.wired.WiredSaveException
 METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFilterBase#serializeWiredData(com.eu.habbo.messages.ServerMessage,com.eu.habbo.habbohotel.rooms.Room):void throws -
 
+TYPE public abstract com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase extends com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#audienceVariableId:java.lang.String
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#audienceVariableValue:int
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#changeFilter:int
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#colorId:int
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#defaultMaxValue:int
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#defaultMinValue:int
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#hasValue:boolean
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#icon:java.lang.String
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#iconAlignment:int
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#overrideMaxEnabled:boolean
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#overrideMaxTarget:int
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#overrideMaxVariableId:java.lang.String
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#overrideMinEnabled:boolean
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#overrideMinTarget:int
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#overrideMinVariableId:java.lang.String
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#rendererId:int
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#segments:int
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#showDuration:int
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#showMode:int
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#showOnMouseHover:boolean
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#sourceType:int
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#styleId:int
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#subRendererId:int
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#variableName:java.lang.String
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#visibility:int
+FIELD protected com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#widthId:int
+CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase(int,int,com.eu.habbo.habbohotel.items.Item,java.lang.String,int,int) throws -
+CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase(java.sql.ResultSet,com.eu.habbo.habbohotel.items.Item) throws java.sql.SQLException
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#applyJsonData(java.lang.String):void throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#execute(com.eu.habbo.habbohotel.rooms.RoomUnit,com.eu.habbo.habbohotel.rooms.Room,java.lang.Object[]):boolean throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getAudienceVariableId(-):java.lang.String throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getAudienceVariableValue(-):int throws -
+METHOD public abstract com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getCategoryId(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getChangeFilter(-):int throws -
+METHOD public abstract com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getCode(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getColorId(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getDefaultMaxValue(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getDefaultMinValue(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getDefaultVariableName(-):java.lang.String throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getIcon(-):java.lang.String throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getIconAlignment(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getOverrideMaxTarget(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getOverrideMaxVariableId(-):java.lang.String throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getOverrideMinTarget(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getOverrideMinVariableId(-):java.lang.String throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getRendererId(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getSegments(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getShowDuration(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getShowMode(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getSourceType(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getStyleId(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getSubRendererId(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getVariableName(-):java.lang.String throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getVisibility(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getWidthId(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#getWiredData(-):java.lang.String throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#hasConfiguration(-):boolean throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#hasValue(-):boolean throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#isOverrideMaxEnabled(-):boolean throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#isOverrideMinEnabled(-):boolean throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#isPermanentAvailability(-):boolean throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#isSharedAvailability(-):boolean throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#isShowOnMouseHover(-):boolean throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#loadWiredData(java.sql.ResultSet,com.eu.habbo.habbohotel.rooms.Room):void throws java.sql.SQLException
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#onPickUp(-):void throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#resolveStackVariableName(com.eu.habbo.habbohotel.rooms.Room):java.lang.String throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#saveData(com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings,com.eu.habbo.habbohotel.gameclients.GameClient):boolean throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#serializeWiredData(com.eu.habbo.messages.ServerMessage,com.eu.habbo.habbohotel.rooms.Room):void throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#setHasValue(boolean):void throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase#setVariableName(java.lang.String):void throws -
+
+TYPE public static com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData extends java.lang.Object
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#audienceVariableId:java.lang.String
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#audienceVariableId com.google.gson.annotations.SerializedName[alternate=[], value=aud_v]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#audienceVariableValue:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#audienceVariableValue com.google.gson.annotations.SerializedName[alternate=[], value=aud_val]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#changeFilter:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#changeFilter com.google.gson.annotations.SerializedName[alternate=[], value=flt]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#colorId:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#colorId com.google.gson.annotations.SerializedName[alternate=[], value=clr]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#defaultMaxValue:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#defaultMaxValue com.google.gson.annotations.SerializedName[alternate=[], value=max]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#defaultMinValue:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#defaultMinValue com.google.gson.annotations.SerializedName[alternate=[], value=min]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#icon:java.lang.String
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#icon com.google.gson.annotations.SerializedName[alternate=[], value=icn]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#iconAlignment:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#iconAlignment com.google.gson.annotations.SerializedName[alternate=[], value=icn_alg]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#overrideMaxEnabled:boolean
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#overrideMaxEnabled com.google.gson.annotations.SerializedName[alternate=[], value=omax_e]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#overrideMaxTarget:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#overrideMaxTarget com.google.gson.annotations.SerializedName[alternate=[], value=omax_t]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#overrideMaxVariableId:java.lang.String
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#overrideMaxVariableId com.google.gson.annotations.SerializedName[alternate=[], value=omax_v]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#overrideMinEnabled:boolean
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#overrideMinEnabled com.google.gson.annotations.SerializedName[alternate=[], value=omin_e]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#overrideMinTarget:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#overrideMinTarget com.google.gson.annotations.SerializedName[alternate=[], value=omin_t]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#overrideMinVariableId:java.lang.String
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#overrideMinVariableId com.google.gson.annotations.SerializedName[alternate=[], value=omin_v]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#rendererId:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#rendererId com.google.gson.annotations.SerializedName[alternate=[], value=rnd]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#segments:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#segments com.google.gson.annotations.SerializedName[alternate=[], value=seg]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#showDuration:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#showDuration com.google.gson.annotations.SerializedName[alternate=[], value=dur]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#showMode:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#showMode com.google.gson.annotations.SerializedName[alternate=[], value=mode]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#showOnMouseHover:boolean
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#showOnMouseHover com.google.gson.annotations.SerializedName[alternate=[], value=hov]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#sourceType:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#sourceType com.google.gson.annotations.SerializedName[alternate=[], value=src]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#styleId:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#styleId com.google.gson.annotations.SerializedName[alternate=[], value=stl]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#subRendererId:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#subRendererId com.google.gson.annotations.SerializedName[alternate=[], value=sub_rnd]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#variableName:java.lang.String
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#variableName com.google.gson.annotations.SerializedName[alternate=[], value=var_name]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#visibility:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#visibility com.google.gson.annotations.SerializedName[alternate=[], value=vis]
+FIELD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#widthId:int
+FIELD-ANNOTATION com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData#widthId com.google.gson.annotations.SerializedName[alternate=[], value=wid]
+CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData(-) throws -
+CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase$JsonData(int,int,int,int,boolean,int,int,int,int,int,int,int,boolean,boolean,int,int,int,int,int,int,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String) throws -
+
+TYPE public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBossBar extends com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase
+FIELD public static final com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBossBar#CATEGORY_ID:int
+FIELD public static final com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBossBar#CODE:int
+CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBossBar(int,int,com.eu.habbo.habbohotel.items.Item,java.lang.String,int,int) throws -
+CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBossBar(java.sql.ResultSet,com.eu.habbo.habbohotel.items.Item) throws java.sql.SQLException
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBossBar#getCategoryId(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBossBar#getCode(-):int throws -
+
+TYPE public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxHealthPoints extends com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase
+FIELD public static final com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxHealthPoints#CATEGORY_ID:int
+FIELD public static final com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxHealthPoints#CODE:int
+CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxHealthPoints(int,int,com.eu.habbo.habbohotel.items.Item,java.lang.String,int,int) throws -
+CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxHealthPoints(java.sql.ResultSet,com.eu.habbo.habbohotel.items.Item) throws java.sql.SQLException
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxHealthPoints#getCategoryId(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxHealthPoints#getCode(-):int throws -
+
+TYPE public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxLevellingProgress extends com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase
+FIELD public static final com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxLevellingProgress#CATEGORY_ID:int
+FIELD public static final com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxLevellingProgress#CODE:int
+CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxLevellingProgress(int,int,com.eu.habbo.habbohotel.items.Item,java.lang.String,int,int) throws -
+CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxLevellingProgress(java.sql.ResultSet,com.eu.habbo.habbohotel.items.Item) throws java.sql.SQLException
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxLevellingProgress#getCategoryId(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxLevellingProgress#getCode(-):int throws -
+
+TYPE public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxNumberDisplay extends com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase
+FIELD public static final com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxNumberDisplay#CATEGORY_ID:int
+FIELD public static final com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxNumberDisplay#CODE:int
+CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxNumberDisplay(int,int,com.eu.habbo.habbohotel.items.Item,java.lang.String,int,int) throws -
+CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxNumberDisplay(java.sql.ResultSet,com.eu.habbo.habbohotel.items.Item) throws java.sql.SQLException
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxNumberDisplay#getCategoryId(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxNumberDisplay#getCode(-):int throws -
+
+TYPE public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxProgressBar extends com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase
+FIELD public static final com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxProgressBar#CATEGORY_ID:int
+FIELD public static final com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxProgressBar#CODE:int
+CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxProgressBar(int,int,com.eu.habbo.habbohotel.items.Item,java.lang.String,int,int) throws -
+CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxProgressBar(java.sql.ResultSet,com.eu.habbo.habbohotel.items.Item) throws java.sql.SQLException
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxProgressBar#getCategoryId(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxProgressBar#getCode(-):int throws -
+
+TYPE public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxStatusBar extends com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxBase
+FIELD public static final com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxStatusBar#CATEGORY_ID:int
+FIELD public static final com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxStatusBar#CODE:int
+CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxStatusBar(int,int,com.eu.habbo.habbohotel.items.Item,java.lang.String,int,int) throws -
+CONSTRUCTOR public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxStatusBar(java.sql.ResultSet,com.eu.habbo.habbohotel.items.Item) throws java.sql.SQLException
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxStatusBar#getCategoryId(-):int throws -
+METHOD public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableFxStatusBar#getCode(-):int throws -
+
 TYPE public com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableLevelUpSystem extends com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra
 FIELD public static final com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableLevelUpSystem#CODE:int
 FIELD public static final com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableLevelUpSystem#MODE_EXPONENTIAL:int
@@ -5756,6 +5942,8 @@ TYPE public com.eu.habbo.habbohotel.wired.highscores.WiredHighscoreManager exten
 FIELD public static com.eu.habbo.habbohotel.wired.highscores.WiredHighscoreManager#midnightUpdater:java.util.concurrent.ScheduledFuture<?>
 CONSTRUCTOR public com.eu.habbo.habbohotel.wired.highscores.WiredHighscoreManager(-) throws -
 METHOD public com.eu.habbo.habbohotel.wired.highscores.WiredHighscoreManager#addHighscoreData(com.eu.habbo.habbohotel.wired.highscores.WiredHighscoreDataEntry):void throws -
+METHOD public com.eu.habbo.habbohotel.wired.highscores.WiredHighscoreManager#addOrUpdateTeamScore(int,java.util.List<java.lang.Integer>,int,com.eu.habbo.habbohotel.wired.highscores.WiredHighscoreClearType):void throws -
+METHOD public com.eu.habbo.habbohotel.wired.highscores.WiredHighscoreManager#addOrUpdateUserScore(int,int,int,com.eu.habbo.habbohotel.wired.highscores.WiredHighscoreClearType):void throws -
 METHOD public com.eu.habbo.habbohotel.wired.highscores.WiredHighscoreManager#dispose(-):void throws -
 METHOD public com.eu.habbo.habbohotel.wired.highscores.WiredHighscoreManager#getData(-):java.util.Map<java.lang.Integer, java.util.List<com.eu.habbo.habbohotel.wired.highscores.WiredHighscoreDataEntry>> throws -
 METHOD public com.eu.habbo.habbohotel.wired.highscores.WiredHighscoreManager#getEntriesForItemId(int):java.util.List<com.eu.habbo.habbohotel.wired.highscores.WiredHighscoreDataEntry> throws -
@@ -5864,6 +6052,16 @@ METHOD public com.eu.habbo.habbohotel.wired.tick.WiredTickable#onUnregistered(co
 METHOD public abstract com.eu.habbo.habbohotel.wired.tick.WiredTickable#onWiredTick(com.eu.habbo.habbohotel.rooms.Room,long,int):void throws -
 METHOD public abstract com.eu.habbo.habbohotel.wired.tick.WiredTickable#resetTimer(-):void throws -
 
+TYPE public com.eu.habbo.messages.incoming.wired.WiredAccountPreferencesRequestEvent extends com.eu.habbo.messages.incoming.MessageHandler
+CONSTRUCTOR public com.eu.habbo.messages.incoming.wired.WiredAccountPreferencesRequestEvent(-) throws -
+METHOD public com.eu.habbo.messages.incoming.wired.WiredAccountPreferencesRequestEvent#getRatelimit(-):int throws -
+METHOD public com.eu.habbo.messages.incoming.wired.WiredAccountPreferencesRequestEvent#handle(-):void throws -
+
+TYPE public com.eu.habbo.messages.incoming.wired.WiredAccountPreferencesSaveEvent extends com.eu.habbo.messages.incoming.MessageHandler
+CONSTRUCTOR public com.eu.habbo.messages.incoming.wired.WiredAccountPreferencesSaveEvent(-) throws -
+METHOD public com.eu.habbo.messages.incoming.wired.WiredAccountPreferencesSaveEvent#getRatelimit(-):int throws -
+METHOD public com.eu.habbo.messages.incoming.wired.WiredAccountPreferencesSaveEvent#handle(-):void throws -
+
 TYPE public com.eu.habbo.messages.incoming.wired.WiredApplySetConditionsEvent extends com.eu.habbo.messages.incoming.MessageHandler
 CONSTRUCTOR public com.eu.habbo.messages.incoming.wired.WiredApplySetConditionsEvent(-) throws -
 METHOD public com.eu.habbo.messages.incoming.wired.WiredApplySetConditionsEvent#getRatelimit(-):int throws -
@@ -5965,6 +6163,10 @@ METHOD public static com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer
 METHOD public static com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer#userSlideMovement(int,int,int,int,int,double,double,int,int,int):com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer$MovementData throws -
 METHOD public static com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer#userWalkMovement(int,int,int,int,int,double,double,int,int,int):com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer$MovementData throws -
 METHOD public static com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer#wallItemMovement(int,boolean,int[]):com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer$MovementData throws -
+
+TYPE public com.eu.habbo.messages.outgoing.wired.WiredAccountPreferencesDataComposer extends com.eu.habbo.messages.outgoing.MessageComposer
+CONSTRUCTOR public com.eu.habbo.messages.outgoing.wired.WiredAccountPreferencesDataComposer(com.eu.habbo.habbohotel.users.Habbo) throws -
+METHOD protected com.eu.habbo.messages.outgoing.wired.WiredAccountPreferencesDataComposer#composeInternal(-):com.eu.habbo.messages.ServerMessage throws -
 
 TYPE public com.eu.habbo.messages.outgoing.wired.WiredConditionDataComposer extends com.eu.habbo.messages.outgoing.MessageComposer
 CONSTRUCTOR public com.eu.habbo.messages.outgoing.wired.WiredConditionDataComposer(com.eu.habbo.habbohotel.items.interactions.InteractionWiredCondition,com.eu.habbo.habbohotel.rooms.Room) throws -

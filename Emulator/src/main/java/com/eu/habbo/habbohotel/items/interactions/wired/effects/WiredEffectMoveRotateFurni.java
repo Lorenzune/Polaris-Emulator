@@ -115,14 +115,11 @@ public class WiredEffectMoveRotateFurni extends InteractionWiredEffect implement
 
             FurnitureMovementError furniMoveTest =
                     WiredMoveCarryHelper.getMovementError(room, this, item, newLocation, newRotation, ctx);
+
             if (newLocation != null
                     && newLocation.state != RoomTileState.INVALID
                     && (newLocation != oldLocation || newRotation != item.getRotation())
-                    && (furniMoveTest == FurnitureMovementError.NONE
-                            || ((furniMoveTest == FurnitureMovementError.TILE_HAS_BOTS
-                                            || furniMoveTest == FurnitureMovementError.TILE_HAS_HABBOS
-                                            || furniMoveTest == FurnitureMovementError.TILE_HAS_PETS)
-                                    && newLocation == oldLocation))) {
+                    && furniMoveTest == FurnitureMovementError.NONE) {
                 if (WiredMoveCarryHelper.moveFurni(
                                 room, this, item, newLocation, newRotation, null, !slideAnimation, ctx)
                         == FurnitureMovementError.NONE) {

@@ -249,6 +249,7 @@ public class WiredEffectMoveFurniTowards extends InteractionWiredEffect {
                             newTile,
                             item.getRotation(),
                             null,
+                            null,
                             false,
                             ctx,
                             null,
@@ -322,10 +323,10 @@ public class WiredEffectMoveFurniTowards extends InteractionWiredEffect {
                 
                 RoomTile newTile = layout.getTileInFront(currentTile, moveDirection.getValue());
                 if (newTile != null && newTile.state != RoomTileState.INVALID) {
-                    if (!simulation.isTileValidForItem(newTile.x, newTile.y, item)) {
+                    if (!simulation.isTileValidForItem(newTile.x, newTile.y, item, true)) {
                         return false;
                     }
-                    if (!simulation.moveItem(item, newTile.x, newTile.y, currentPos.z, currentPos.rotation)) {
+                    if (!simulation.moveItem(item, newTile.x, newTile.y, currentPos.z, currentPos.rotation, true)) {
                         return false;
                     }
                 }

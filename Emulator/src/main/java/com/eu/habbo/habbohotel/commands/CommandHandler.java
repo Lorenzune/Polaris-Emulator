@@ -308,6 +308,7 @@ public class CommandHandler {
         addCommand(new ReloadRoomCommand());
         addCommand(new RoomAlertCommand());
         addCommand(new RoomBundleCommand());
+        addCommand(new ImportRoomCommand());
         addCommand(new RoomCreditsCommand());
         addCommand(new RoomDanceCommand());
         addCommand(new RoomEffectCommand());

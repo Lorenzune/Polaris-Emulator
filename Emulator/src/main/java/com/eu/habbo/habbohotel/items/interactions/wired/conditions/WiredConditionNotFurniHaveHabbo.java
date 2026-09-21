@@ -204,19 +204,30 @@ public class WiredConditionNotFurniHaveHabbo extends InteractionWiredCondition {
                         item.getBaseItem().getWidth(),
                         item.getBaseItem().getLength(),
                         item.getRotation());
-        return occupiedTiles != null
-                && (habbos.stream()
-                                .anyMatch(character -> character.getRoomUnit() != null
-                                        && occupiedTiles.contains(
-                                                character.getRoomUnit().getCurrentLocation()))
-                        || bots.stream()
-                                .anyMatch(character -> character.getRoomUnit() != null
-                                        && occupiedTiles.contains(
-                                                character.getRoomUnit().getCurrentLocation()))
-                        || pets.stream()
-                                .anyMatch(character -> character.getRoomUnit() != null
-                                        && occupiedTiles.contains(
-                                                character.getRoomUnit().getCurrentLocation())));
+        final Set<RoomTile> effectiveTiles;
+        if (occupiedTiles != null && item.getLastMoveTimestamp() > 0 && (System.currentTimeMillis() - item.getLastMoveTimestamp() <= 600)) {
+            Set<RoomTile> combined = new HashSet<>(occupiedTiles);
+            if (item.getPreviousOccupiedTiles() != null) {
+                combined.addAll(item.getPreviousOccupiedTiles());
+            } else if (item.getPreviousLocation() != null) {
+                combined.add(item.getPreviousLocation());
+            }
+            effectiveTiles = combined;
+        } else {
+            effectiveTiles = occupiedTiles;
+        }
+        return effectiveTiles != null
+                && (habbos.stream().anyMatch(character -> isAvatarOnItem(character != null ? character.getRoomUnit() : null, item, room, effectiveTiles))
+                        || bots.stream().anyMatch(character -> isAvatarOnItem(character != null ? character.getRoomUnit() : null, item, room, effectiveTiles))
+                        || pets.stream().anyMatch(character -> isAvatarOnItem(character != null ? character.getRoomUnit() : null, item, room, effectiveTiles)));
+    }
+
+    private boolean isAvatarOnItem(RoomUnit unit, HabboItem item, Room room, Set<RoomTile> occupiedTiles) {
+        if (unit == null || unit.getCurrentLocation() == null || !occupiedTiles.contains(unit.getCurrentLocation())) {
+            return false;
+        }
+        HabboItem itemOn = WiredSourceUtil.getItemUserIsOn(room, unit);
+        return itemOn != null && itemOn.getId() == item.getId();
     }
 
     private void refresh() {

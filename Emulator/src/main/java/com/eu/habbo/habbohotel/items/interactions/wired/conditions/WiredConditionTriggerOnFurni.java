@@ -73,8 +73,8 @@ public class WiredConditionTriggerOnFurni extends InteractionWiredCondition {
     protected boolean isAnyUserOnFurni(Collection<RoomUnit> users, Collection<HabboItem> items, Room room) {
         for (RoomUnit roomUnit : users) {
             if (roomUnit == null) continue;
-            Set<HabboItem> itemsAtUser = room.getItemsAt(roomUnit.getCurrentLocation());
-            if (items.stream().anyMatch(itemsAtUser::contains)) {
+            HabboItem itemOn = WiredSourceUtil.getItemUserIsOn(room, roomUnit);
+            if (itemOn != null && items.stream().anyMatch(item -> item != null && item.getId() == itemOn.getId())) {
                 return true;
             }
         }
@@ -87,8 +87,8 @@ public class WiredConditionTriggerOnFurni extends InteractionWiredCondition {
                 return false;
             }
 
-            Set<HabboItem> itemsAtUser = room.getItemsAt(roomUnit.getCurrentLocation());
-            if (itemsAtUser == null || items.stream().noneMatch(itemsAtUser::contains)) {
+            HabboItem itemOn = WiredSourceUtil.getItemUserIsOn(room, roomUnit);
+            if (itemOn == null || items.stream().noneMatch(item -> item != null && item.getId() == itemOn.getId())) {
                 return false;
             }
         }

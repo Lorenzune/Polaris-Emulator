@@ -695,7 +695,7 @@ public final class WiredInternalVariableSupport {
             return false;
         }
 
-        FurnitureMovementError error = room.moveFurniTo(item, targetTile, rotation, z, null, true, true);
+        FurnitureMovementError error = room.moveFurniTo(item, targetTile, rotation, z, null, true, false);
         return error == FurnitureMovementError.NONE;
     }
 

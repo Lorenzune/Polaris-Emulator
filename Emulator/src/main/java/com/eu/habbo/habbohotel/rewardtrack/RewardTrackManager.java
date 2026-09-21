@@ -192,6 +192,69 @@ public class RewardTrackManager {
         }
     }
 
+    /** Applies progress to the exact track/task configured by a wired action. */
+    public int applyWiredProgress(int userId, String trackCode, String taskCode, int amount, boolean addToExistingScore) {
+        if (userId <= 0 || !isValidWiredId(trackCode) || !isValidWiredId(taskCode) || amount <= 0) return 0;
+
+        int normalizedAmount = Math.min(Integer.MAX_VALUE, amount);
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "INSERT INTO user_reward_track_progress (user_id, task_id, progress, updated_at) " +
+                             "SELECT ?, t.id, ?, ? FROM reward_track_tasks t " +
+                             "INNER JOIN reward_tracks rt ON rt.id = t.track_id AND rt.enabled = 1 " +
+                             "WHERE rt.code = ? AND t.action_type = ? AND t.enabled = 1 " +
+                             "ON DUPLICATE KEY UPDATE progress = LEAST(2147483647, " +
+                             (addToExistingScore ? "progress + VALUES(progress)" : "VALUES(progress)") +
+                             "), updated_at = VALUES(updated_at)")) {
+            statement.setInt(1, userId);
+            statement.setInt(2, normalizedAmount);
+            statement.setInt(3, Emulator.getIntUnixTimestamp());
+            statement.setString(4, trackCode.trim());
+            statement.setString(5, taskCode.trim());
+
+            int updated = statement.executeUpdate();
+            if (updated > 0) syncCompletionAchievement(userId);
+            LOGGER.debug("RewardTrackManager -> Wired progress track={} task={} user={} amount={} add={} rows={}",
+                    trackCode, taskCode, userId, normalizedAmount, addToExistingScore, updated);
+            return updated;
+        } catch (SQLException e) {
+            LOGGER.warn("RewardTrackManager -> Could not apply wired progress track={} task={} user={}",
+                    trackCode, taskCode, userId, e);
+            return 0;
+        }
+    }
+
+    /** Reset progress for one track while preserving already claimed prizes. */
+    public int resetWiredProgress(int userId, String trackCode) {
+        if (userId <= 0 || !isValidWiredText(trackCode)) return 0;
+
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "DELETE p FROM user_reward_track_progress p " +
+                             "INNER JOIN reward_track_tasks t ON t.id = p.task_id " +
+                             "INNER JOIN reward_tracks rt ON rt.id = t.track_id " +
+                             "WHERE p.user_id = ? AND rt.code = ?")) {
+            statement.setInt(1, userId);
+            statement.setString(2, trackCode.trim());
+
+            int deleted = statement.executeUpdate();
+            if (deleted > 0) syncCompletionAchievement(userId);
+            LOGGER.debug("RewardTrackManager -> Wired progress reset track={} user={} rows={}", trackCode, userId, deleted);
+            return deleted;
+        } catch (SQLException e) {
+            LOGGER.warn("RewardTrackManager -> Could not reset wired progress track={} user={}", trackCode, userId, e);
+            return 0;
+        }
+    }
+
+    private static boolean isValidWiredId(String value) {
+        return value != null && value.length() <= 100 && value.matches("[a-zA-Z0-9_]+");
+    }
+
+    private static boolean isValidWiredText(String value) {
+        return value != null && value.length() <= 100 && !value.matches(".*[\\t\\r\\n].*");
+    }
+
     private void syncCompletionAchievement(int userId) {
         Habbo habbo = Emulator.getGameEnvironment().getHabboManager().getHabbo(userId);
         if (habbo == null) return;

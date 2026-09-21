@@ -137,7 +137,7 @@ public final class WiredManager {
         boolean debug = Emulator.getConfig().getBoolean(CONFIG_DEBUG, false);
 
         // Load the remaining configurable wired limits.
-        MAXIMUM_FURNI_SELECTION = Emulator.getConfig().getInt("hotel.wired.furni.selection.count", 5);
+        MAXIMUM_FURNI_SELECTION = Emulator.getConfig().getInt("hotel.wired.furni.selection.count", 20);
 
         // Apply the configured value on every runtime generation so an in-process restart cannot
         // inherit debug mode from the previous generation.
@@ -718,11 +718,15 @@ public final class WiredManager {
      * Trigger bot collision.
      */
     public static boolean triggerBotCollision(Room room, RoomUnit botUnit) {
+        return triggerBotCollision(room, botUnit, null);
+    }
+
+    public static boolean triggerBotCollision(Room room, RoomUnit botUnit, HabboItem item) {
         if (!isEnabled() || room == null || botUnit == null) {
             return false;
         }
 
-        WiredEvent event = WiredEvents.botCollision(room, botUnit);
+        WiredEvent event = WiredEvents.botCollision(room, botUnit, item);
         return handleEvent(event);
     }
 
@@ -955,7 +959,7 @@ public final class WiredManager {
     // ========== Configuration Constants (moved from WiredHandler) ==========
 
     /** Maximum number of furniture items that can be selected in a single wired component */
-    public static volatile int MAXIMUM_FURNI_SELECTION = 5;
+    public static volatile int MAXIMUM_FURNI_SELECTION = 20;
 
     /**
      * Released compatibility field; runtime teleport code uses

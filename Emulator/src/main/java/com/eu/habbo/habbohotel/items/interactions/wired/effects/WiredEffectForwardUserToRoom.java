@@ -34,7 +34,7 @@ import java.util.List;
  * not a URL/in-client link.
  */
 public class WiredEffectForwardUserToRoom extends InteractionWiredEffect {
-    public static final WiredEffectType type = WiredEffectType.SHOW_MESSAGE;
+    public static final WiredEffectType type = WiredEffectType.TELEPORT_TO_ROOM;
 
     private String roomIdText = "";
     private int userSource = WiredSourceUtil.SOURCE_TRIGGER;
