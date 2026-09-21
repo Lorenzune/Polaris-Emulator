@@ -8,6 +8,7 @@ import com.eu.habbo.habbohotel.rooms.RoomTile;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
+import com.eu.habbo.habbohotel.wired.core.WiredTeleportTiming;
 import com.google.gson.GsonBuilder;
 import java.util.Collection;
 
@@ -19,9 +20,9 @@ import java.util.Collection;
  */
 public class WiredHandler {
 
-    // Configuration fields retained exactly for released plugin binary compatibility.
+    // Released fields retained exactly for plugin binary compatibility.
     public static int MAXIMUM_FURNI_SELECTION = Emulator.getConfig().getInt("hotel.wired.furni.selection.count", 5);
-    public static int TELEPORT_DELAY = Emulator.getConfig().getInt("wired.effect.teleport.delay", 500);
+    public static int TELEPORT_DELAY = WiredTeleportTiming.NORMAL_DELAY_MS;
 
     public WiredHandler() {}
 

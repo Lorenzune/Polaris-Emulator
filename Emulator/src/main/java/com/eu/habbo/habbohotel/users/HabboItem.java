@@ -24,6 +24,7 @@ import com.eu.habbo.habbohotel.rooms.RoomLayout;
 import com.eu.habbo.habbohotel.rooms.RoomTile;
 import com.eu.habbo.habbohotel.rooms.RoomTileState;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
+import com.eu.habbo.habbohotel.rooms.RoomUnitStatus;
 import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
@@ -366,7 +367,29 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
         /*if (objects != null && objects.length >= 1 && objects[0] instanceof InteractionWired)
         return;*/
 
-        WiredManager.triggerUserWalksOn(room, roomUnit, this);
+        boolean wiredTriggered = WiredManager.triggerUserWalksOn(room, roomUnit, this);
+
+        // A walk-on trigger is evaluated synchronously while RoomUnit.cycle is
+        // building the final step status. Some wired effects can clear MOVE as
+        // part of their execution, which makes the client receive the avatar
+        // stopped in front of the furni instead of seeing the normal step onto
+        // it. Restore only that successful walk-on status; teleports invoke
+        // onWalkOn with a third argument and must keep their own teleport
+        // positioning semantics.
+        RoomTile walkedOnTile = objects != null && objects.length == 2 && objects[1] instanceof RoomTile
+                ? (RoomTile) objects[1]
+                : null;
+        RoomTile destination = roomUnit != null ? roomUnit.getCurrentLocation() : null;
+        if (wiredTriggered
+                && walkedOnTile != null
+                && destination != null
+                && destination.x == walkedOnTile.x
+                && destination.y == walkedOnTile.y
+                && !roomUnit.hasStatus(RoomUnitStatus.MOVE)) {
+            roomUnit.setStatus(
+                    RoomUnitStatus.MOVE,
+                    destination.x + "," + destination.y + "," + roomUnit.getZ());
+        }
 
         if ((this.getBaseItem().allowSit() || this.getBaseItem().allowLay())
                 && !roomUnit.getDanceType().equals(DanceType.NONE)) {

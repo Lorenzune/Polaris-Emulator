@@ -16,6 +16,7 @@ import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredEvent;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
+import com.eu.habbo.habbohotel.wired.core.WiredTeleportTiming;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserEffectComposer;
@@ -59,6 +60,11 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
     }
 
     public static void teleportUnitToTile(RoomUnit roomUnit, RoomTile tile, boolean fastTeleport) {
+        teleportUnitToTile(roomUnit, tile, fastTeleport, false);
+    }
+
+    private static void teleportUnitToTile(RoomUnit roomUnit, RoomTile tile, boolean fastTeleport,
+                                           boolean waitForCurrentMovement) {
         if (roomUnit == null || tile == null || roomUnit.isWiredTeleporting)
             return;
 
@@ -92,9 +98,12 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
         // makes a temporary effect
 
         int teleportDelay = getTeleportDelay(fastTeleport);
+        if (waitForCurrentMovement) {
+            teleportDelay = Math.max(teleportDelay, getRemainingMovementDelay(roomUnit));
+        }
 
         roomUnit.getRoom().unIdle(roomUnit.getRoom().getHabbo(roomUnit));
-        sendTeleportEffect(room, roomUnit, fastTeleport);
+        sendTeleportEffect(room, roomUnit, fastTeleport, teleportDelay);
 
         if (tile == roomUnit.getCurrentLocation()) {
             return;
@@ -117,7 +126,15 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
             }
         }
 
-        Emulator.getThreading().run(() -> { roomUnit.isWiredTeleporting = true; }, Math.max(0, teleportDelay - 500));
+        // Mark the unit as pending immediately. The old implementation only
+        // did this shortly before the runnable fired, allowing a second
+        // walk-on/teleport chain to be scheduled during the visual walk.
+        roomUnit.isWiredTeleporting = true;
+        if (waitForCurrentMovement) {
+            // The step already in progress must finish visually, but the user
+            // must not start the next path step before the teleport runnable.
+            roomUnit.getPath().clear();
+        }
         Emulator.getThreading().run(new RoomUnitTeleport(roomUnit, room, tile.x, tile.y, tile.getStackHeight() + (tile.state == RoomTileState.SIT ? -0.5 : 0), roomUnit.getEffectId()), teleportDelay);
     }
 
@@ -245,7 +262,8 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
                 if (shouldBatchSignalTeleport(ctx)) {
                     queueSignalTeleport(ctx, roomUnit, tile);
                 } else {
-                    teleportUnitToTile(roomUnit, tile, this.fastTeleport);
+                    teleportUnitToTile(roomUnit, tile, this.fastTeleport,
+                            ctx.eventType() == WiredEvent.Type.USER_WALKS_ON);
                 }
             }
         }
@@ -294,6 +312,19 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
         if (tile != null) {
             teleportUnitToTile(pending.roomUnit, tile, pending.fastTeleport);
         }
+    }
+
+    private static int getRemainingMovementDelay(RoomUnit roomUnit) {
+        long movementStartedAt = roomUnit.getMoveStatusTimestamp();
+        if (movementStartedAt <= 0L) {
+            return WiredTeleportTiming.MOVEMENT_UPDATE_INTERVAL_MS
+                    + WiredTeleportTiming.WALK_ON_SYNC_BUFFER_MS;
+        }
+
+        long movementEndAt = movementStartedAt
+                + WiredTeleportTiming.MOVEMENT_UPDATE_INTERVAL_MS
+                + WiredTeleportTiming.WALK_ON_SYNC_BUFFER_MS;
+        return (int) Math.max(0L, movementEndAt - System.currentTimeMillis());
     }
 
     @Deprecated
@@ -379,22 +410,19 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
     }
 
     private static int getTeleportDelay(boolean fastTeleport) {
-        // The SWF's fast teleport option is the short variant of the normal
-        // teleport, not an almost-instant 1/5 delay. Keep both timings tied to
-        // the configured normal duration so the checkbox remains predictable.
-        return fastTeleport
-                ? Math.max(1, WiredManager.TELEPORT_DELAY / 2)
-                : WiredManager.TELEPORT_DELAY;
+        return fastTeleport ? WiredTeleportTiming.FAST_DELAY_MS : WiredTeleportTiming.NORMAL_DELAY_MS;
     }
 
     private static int getTeleportEffectDuration(boolean fastTeleport) {
-        int normalDuration = WiredManager.TELEPORT_DELAY + 1000;
-        return fastTeleport ? Math.max(300, normalDuration / 2) : normalDuration;
+        return fastTeleport
+                ? WiredTeleportTiming.FAST_EFFECT_DURATION_MS
+                : WiredTeleportTiming.NORMAL_EFFECT_DURATION_MS;
     }
 
-    private static void sendTeleportEffect(Room room, RoomUnit roomUnit, boolean fastTeleport) {
+    private static void sendTeleportEffect(Room room, RoomUnit roomUnit, boolean fastTeleport, int teleportDelay) {
         room.sendComposer(new RoomUserEffectComposer(roomUnit, 4).compose());
-        Emulator.getThreading().run(new SendRoomUnitEffectComposer(room, roomUnit), getTeleportEffectDuration(fastTeleport));
+        Emulator.getThreading().run(new SendRoomUnitEffectComposer(room, roomUnit),
+                Math.max(getTeleportEffectDuration(fastTeleport), teleportDelay));
     }
 
     static class JsonData {

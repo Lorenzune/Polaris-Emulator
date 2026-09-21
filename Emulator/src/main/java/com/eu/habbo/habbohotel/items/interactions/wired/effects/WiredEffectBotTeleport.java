@@ -16,6 +16,7 @@ import com.eu.habbo.habbohotel.wired.core.WiredBotSourceUtil;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
+import com.eu.habbo.habbohotel.wired.core.WiredTeleportTiming;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserEffectComposer;
@@ -63,7 +64,8 @@ public class WiredEffectBotTeleport extends InteractionWiredEffect {
 
         roomUnit.getRoom().unIdle(roomUnit.getRoom().getHabbo(roomUnit));
         room.sendComposer(new RoomUserEffectComposer(roomUnit, 4).compose());
-        Emulator.getThreading().run(new SendRoomUnitEffectComposer(room, roomUnit), WiredManager.TELEPORT_DELAY + 1000);
+        Emulator.getThreading().run(
+                new SendRoomUnitEffectComposer(room, roomUnit), WiredTeleportTiming.NORMAL_EFFECT_DURATION_MS);
 
         if (tile == roomUnit.getCurrentLocation()) {
             return;
@@ -86,8 +88,18 @@ public class WiredEffectBotTeleport extends InteractionWiredEffect {
             }
         }
 
-        Emulator.getThreading().run(() -> { roomUnit.isWiredTeleporting = true; }, Math.max(0, WiredManager.TELEPORT_DELAY - 500));
-        Emulator.getThreading().run(new RoomUnitTeleport(roomUnit, room, tile.x, tile.y, tile.getStackHeight() + (tile.state == RoomTileState.SIT ? -0.5 : 0), roomUnit.getEffectId()), WiredManager.TELEPORT_DELAY);
+        Emulator.getThreading().run(
+                () -> { roomUnit.isWiredTeleporting = true; },
+                Math.max(0, WiredTeleportTiming.NORMAL_DELAY_MS - 500));
+        Emulator.getThreading().run(
+                new RoomUnitTeleport(
+                        roomUnit,
+                        room,
+                        tile.x,
+                        tile.y,
+                        tile.getStackHeight() + (tile.state == RoomTileState.SIT ? -0.5 : 0),
+                        roomUnit.getEffectId()),
+                WiredTeleportTiming.NORMAL_DELAY_MS);
     }
 
     @Override

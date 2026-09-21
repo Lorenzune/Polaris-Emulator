@@ -18,9 +18,6 @@ final class WiredConfigurationBinder extends ConfigurationBinder {
                 () -> WiredManager.MAXIMUM_FURNI_SELECTION =
                         this.configuration.getInt("hotel.wired.furni.selection.count"));
         this.apply(
-                "wired.effect.teleport.delay",
-                () -> WiredManager.TELEPORT_DELAY = this.configuration.getInt("wired.effect.teleport.delay", 500));
-        this.apply(
                 "wired.signal.max.depth",
                 () -> WiredEffectSendSignal.MAX_SIGNAL_DEPTH =
                         this.configuration.getInt("wired.signal.max.depth", 0));

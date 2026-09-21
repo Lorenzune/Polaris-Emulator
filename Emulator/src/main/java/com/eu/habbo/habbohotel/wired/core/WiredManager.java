@@ -136,9 +136,8 @@ public final class WiredManager {
         int maxSteps = Emulator.getConfig().getInt(CONFIG_MAX_STEPS, DEFAULT_MAX_STEPS);
         boolean debug = Emulator.getConfig().getBoolean(CONFIG_DEBUG, false);
 
-        // Load additional configuration
+        // Load the remaining configurable wired limits.
         MAXIMUM_FURNI_SELECTION = Emulator.getConfig().getInt("hotel.wired.furni.selection.count", 5);
-        TELEPORT_DELAY = Emulator.getConfig().getInt("wired.effect.teleport.delay", 500);
 
         // Apply the configured value on every runtime generation so an in-process restart cannot
         // inherit debug mode from the previous generation.
@@ -958,8 +957,12 @@ public final class WiredManager {
     /** Maximum number of furniture items that can be selected in a single wired component */
     public static volatile int MAXIMUM_FURNI_SELECTION = 5;
 
-    /** Delay in milliseconds between teleport executions */
-    public static volatile int TELEPORT_DELAY = 500;
+    /**
+     * Released compatibility field; runtime teleport code uses
+     * {@link WiredTeleportTiming} and never reads this value.
+     */
+    @Deprecated
+    public static volatile int TELEPORT_DELAY = WiredTeleportTiming.NORMAL_DELAY_MS;
 
     // ========== Debug Mode ==========
 

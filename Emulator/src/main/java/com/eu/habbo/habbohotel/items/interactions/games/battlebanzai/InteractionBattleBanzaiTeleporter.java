@@ -5,7 +5,6 @@ import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
-import com.eu.habbo.habbohotel.rooms.RoomUnitStatus;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.threading.runnables.BanzaiRandomTeleport;
@@ -62,7 +61,9 @@ public class InteractionBattleBanzaiTeleporter extends HabboItem {
 
             this.setExtradata("1");
             room.updateItemState(this);
-            roomUnit.removeStatus(RoomUnitStatus.MOVE);
+            // Keep MOVE in the status composer for this cycle. Removing it
+            // here makes the client receive the avatar already stopped before
+            // it can animate the final step onto the teleporter.
             roomUnit.setGoalLocation(roomUnit.getCurrentLocation());
             roomUnit.setCanWalk(false);
             Emulator.getThreading().run(new BanzaiRandomTeleport(this, target, roomUnit, room), 500);
