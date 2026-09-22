@@ -81,11 +81,13 @@ jobs:
           git push origin HEAD:main
 
       - name: Attest release JAR provenance
+        if: vars.GITHUB_ATTESTATIONS_ENABLED == 'true'
         uses: actions/attest@v4
         with:
           subject-path: Emulator/target/Polaris-${{ steps.bump.outputs.new_version }}-jar-with-dependencies.jar
 
       - name: Attest release SBOM
+        if: vars.GITHUB_ATTESTATIONS_ENABLED == 'true'
         uses: actions/attest@v4
         with:
           subject-path: Emulator/target/Polaris-${{ steps.bump.outputs.new_version }}-jar-with-dependencies.jar
