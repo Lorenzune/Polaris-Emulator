@@ -17,7 +17,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.habbohotel.wired.core.WiredTriggerSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredTriggerSaveException;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -42,7 +41,8 @@ public class WiredTriggerReceiveSignal extends InteractionWiredTrigger {
         this.items = new LinkedHashSet<>();
     }
 
-    public WiredTriggerReceiveSignal(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredTriggerReceiveSignal(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
         this.items = new LinkedHashSet<>();
     }
@@ -51,13 +51,13 @@ public class WiredTriggerReceiveSignal extends InteractionWiredTrigger {
     public boolean matches(HabboItem triggerItem, WiredEvent event) {
         if (event.getType() != WiredEvent.Type.SIGNAL_RECEIVED) return false;
 
-        List<HabboItem> resolvedAntennas = WiredTriggerSourceUtil.resolveItems(this, event, this.furniSource, this.items).stream()
-                .filter(this::isAntennaItem)
-                .collect(Collectors.toList());
+        List<HabboItem> resolvedAntennas =
+                WiredTriggerSourceUtil.resolveItems(this, event, this.furniSource, this.items).stream()
+                        .filter(this::isAntennaItem)
+                        .collect(Collectors.toList());
 
         if (!resolvedAntennas.isEmpty()) {
-            return resolvedAntennas.stream()
-                    .anyMatch(item -> item != null && item.getId() == event.getSignalChannel());
+            return resolvedAntennas.stream().anyMatch(item -> item != null && item.getId() == event.getSignalChannel());
         }
 
         return this.channel > 0 && event.getSignalChannel() == this.channel;
@@ -139,7 +139,7 @@ public class WiredTriggerReceiveSignal extends InteractionWiredTrigger {
         } catch (Exception e) {
             WiredCompatibilityDiagnostics.record(
                     WiredCompatibilityDiagnostics.FailurePoint.TRIGGER_RECEIVE_SIGNAL_SERIALIZE,
-                    room != null ? room.getId() : this.getRoomId(),
+                    room.getId(),
                     this.getId(),
                     e);
         }
@@ -230,11 +230,11 @@ public class WiredTriggerReceiveSignal extends InteractionWiredTrigger {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(
-                channel,
-                furniSource,
-                this.items.stream().map(HabboItem::getId).collect(Collectors.toList())
-        ));
+        return WiredManager.getGson()
+                .toJson(new JsonData(
+                        channel,
+                        furniSource,
+                        this.items.stream().map(HabboItem::getId).collect(Collectors.toList())));
     }
 
     @Override

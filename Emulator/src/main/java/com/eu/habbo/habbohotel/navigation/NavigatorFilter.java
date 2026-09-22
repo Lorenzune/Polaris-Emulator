@@ -139,7 +139,7 @@ public abstract class NavigatorFilter {
                     }
                 }
             }
-        } catch (Exception e) {
+        } catch (ReflectiveOperationException | RuntimeException e) {
         }
 
         result.removeAll(toRemove);
