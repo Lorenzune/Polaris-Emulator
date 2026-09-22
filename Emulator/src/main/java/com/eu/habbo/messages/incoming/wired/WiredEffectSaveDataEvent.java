@@ -20,13 +20,15 @@ public class WiredEffectSaveDataEvent extends MessageHandler {
         Room room = this.client.getHabbo().getHabboInfo().getCurrentRoom();
 
         if (room != null) {
-            if (room.canModifyWired(this.client.getHabbo())) {
-                InteractionWiredEffect effect = room.getRoomSpecialTypes().getEffect(itemId);
-                InteractionWiredExtra extra = room.getRoomSpecialTypes().getExtra(itemId);
+            InteractionWiredEffect effect = room.getRoomSpecialTypes().getEffect(itemId);
+            InteractionWiredExtra extra = room.getRoomSpecialTypes().getExtra(itemId);
+
+            if (room.canModifyWired(this.client.getHabbo(), effect != null ? effect : extra)) {
 
                 try {
                     if (effect == null && extra == null)
-                        throw new WiredSaveException(String.format("Wired effect/extra with item id %s not found in room", itemId));
+                        throw new WiredSaveException(
+                                String.format("Wired effect/extra with item id %s not found in room", itemId));
 
                     WiredSettings settings;
                     try {
@@ -50,7 +52,9 @@ public class WiredEffectSaveDataEvent extends MessageHandler {
                                 if (effect.usesExistingSelectorTargets()) {
                                     effect.setExtradata("3");
                                     room.sendComposer(new ItemStateComposer(effect).compose());
-                                } else if ("3".equals(effect.getExtradata()) || "4".equals(effect.getExtradata()) || "5".equals(effect.getExtradata())) {
+                                } else if ("3".equals(effect.getExtradata())
+                                        || "4".equals(effect.getExtradata())
+                                        || "5".equals(effect.getExtradata())) {
                                     effect.setExtradata("0");
                                     room.sendComposer(new ItemStateComposer(effect).compose());
                                 }
@@ -66,10 +70,10 @@ public class WiredEffectSaveDataEvent extends MessageHandler {
                         // Invalidate wired cache when effect is saved
                         WiredManager.invalidateRoom(room);
                     } else {
-                        this.client.sendResponse(new UpdateFailedComposer("There was an error while saving that effect"));
+                        this.client.sendResponse(
+                                new UpdateFailedComposer("There was an error while saving that effect"));
                     }
-                }
-                catch (WiredSaveException e) {
+                } catch (WiredSaveException e) {
                     this.client.sendResponse(new UpdateFailedComposer(e.getMessage()));
                 }
             }

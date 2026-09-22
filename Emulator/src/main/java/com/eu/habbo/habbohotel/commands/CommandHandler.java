@@ -46,6 +46,18 @@ public class CommandHandler {
         commands.put(command.getClass().getName(), command);
     }
 
+    public static void addCommand(String key, Command command) {
+        if (command == null || key == null) return;
+
+        commands.put(key, command);
+    }
+
+    public static void removeCommandsByKeyPrefix(String prefix) {
+        if (prefix == null) return;
+
+        commands.entrySet().removeIf(entry -> entry.getKey().startsWith(prefix));
+    }
+
     public static void addCommand(Class<? extends Command> command) {
         try {
             // command.getConstructor().setAccessible(true);
@@ -269,7 +281,6 @@ public class CommandHandler {
         addCommand(new HotelAlertLinkCommand());
         addCommand(new InvisibleCommand());
         addCommand(new IPBanCommand());
-        addCommand(new KissCommand());
         addCommand(new LayCommand());
         addCommand(new MachineBanCommand());
         addCommand(new MassBadgeCommand());
@@ -288,6 +299,7 @@ public class CommandHandler {
         addCommand(new PickallCommand());
         addCommand(new PingCommand());
         addCommand(new PixelCommand());
+        addCommand(new PlayCommand());
         addCommand(new PointsCommand());
         addCommand(new PromoteTargetOfferCommand());
         addCommand(new PullCommand());
@@ -296,6 +308,7 @@ public class CommandHandler {
         addCommand(new ReloadRoomCommand());
         addCommand(new RoomAlertCommand());
         addCommand(new RoomBundleCommand());
+        addCommand(new ImportRoomCommand());
         addCommand(new RoomCreditsCommand());
         addCommand(new RoomDanceCommand());
         addCommand(new RoomEffectCommand());
@@ -331,6 +344,8 @@ public class CommandHandler {
         addCommand(new UnbanCommand());
         addCommand(new UnloadRoomCommand());
         addCommand(new UnmuteCommand());
+        addCommand(new VocalBanCommand());
+        addCommand(new UnvocalBanCommand());
         addCommand(new UpdateAllCommand());
         addCommand(new UpdateAchievements());
         addCommand(new UpdateBotsCommand());
@@ -353,6 +368,7 @@ public class CommandHandler {
         addCommand(new AddYoutubePlaylistCommand());
         addCommand(new SoftKickCommand());
         addCommand(new SubscriptionCommand());
+        addCommand(new UpdateRoleplayCommandsCommand());
         addCommand(new UpdateChatBubblesCommand());
         addCommand(new GivePrefixCommand());
         addCommand(new ListPrefixesCommand());
@@ -362,9 +378,13 @@ public class CommandHandler {
         addCommand(new UpdateCustomizeProfileCommand());
         addCommand(new UpdateCosmeticsCommand());
         addCommand(new UpdateHabbiconsCommand());
+        addCommand(new UpdateExternalTextsCommand());
         addCommand(new WiredCommand());
         addCommand(new VisitCommand());
         addCommand(new TestCommand());
+
+        com.eu.habbo.habbohotel.commands.roleplay.RoleplayCommandManager.getInstance()
+                .load();
     }
 
     public List<Command> getCommandsForRank(int rankId) {

@@ -19,6 +19,9 @@ public class Incoming {
     public static final int ChestRequestRoomLogsEvent = 9329;
     public static final int ChestCloseEvent = 9341;
     public static final int RoomVoiceSignalEvent = 9345;
+    public static final int GuildUploadCustomBadgeEvent = 9347;
+    public static final int GuildCustomBadgeRequestsEvent = 9349;
+    public static final int GuildCustomBadgeReviewEvent = 9351;
     public static final int ChangeNameCheckUsernameEvent = 3950;
     public static final int ConfirmChangeNameEvent = 2977;
     public static final int ActivateEffectEvent = 2959;
@@ -27,6 +30,7 @@ public class Incoming {
     public static final int NavigatorCategoryListModeEvent = 1202;
     public static final int NavigatorCollapseCategoryEvent = 1834;
     public static final int NavigatorUncollapseCategoryEvent = 637;
+    public static final int UpdateNavigatorRoomOrderEvent = 8005;
     public static final int PickNewUserGiftEvent = 1822;
     public static final int FootballGateSaveLookEvent = 924;
     public static final int MannequinSaveLookEvent = 2209;
@@ -274,6 +278,7 @@ public class Incoming {
     public static final int RequestRoomWordFilterEvent = 1911;
     public static final int RoomWordFilterModifyEvent = 3001;
     public static final int RequestRoomUserTagsEvent = 17;
+    public static final int SaveUserTagsEvent = 3305;
     public static final int CatalogSearchedItemEvent = 2594;
     public static final int JukeBoxRequestTrackCodeEvent = 3189;
     public static final int JukeBoxRequestTrackDataEvent = 3082;
@@ -438,6 +443,9 @@ public class Incoming {
     public static final int WiredFurniRuntimeStateRequestEvent = 10028;
     public static final int WiredFeatureCapabilitiesEvent = 10029;
     public static final int WiredRoomRollbackEvent = 10034;
+    public static final int WiredAccountPreferencesRequestEvent = 10035;
+    public static final int WiredAccountPreferencesSaveEvent = 10036;
+    public static final int SaveBadgeSlotsPreferenceEvent = 10037;
     public static final int TranslationLanguagesRequestEvent = 10032;
     public static final int TranslationTextRequestEvent = 10033;
     public static final int RequestInventoryPetDelete = 10030;
@@ -503,6 +511,8 @@ public class Incoming {
     public static final int YouTubeRoomWatchingEvent = 8002;
     public static final int YouTubeRoomSettingsEvent = 8003;
     public static final int EmbeddedMediaControlEvent = 8004;
+    public static final int MusicPartyRoomPlayEvent = 8007;
+    public static final int YouTubeSearchEvent = 8006;
 
     // Housekeeping (in-client admin panel) — IDs 9100..9199 reserved
     public static final int HousekeepingFindUserByNameEvent = 9100;
@@ -550,6 +560,9 @@ public class Incoming {
     public static final int RequestAchievementEditorEvent = 10074;
     public static final int AchievementEditorSaveEvent = 10075;
     public static final int AchievementEditorDeleteEvent = 10076;
+    public static final int RequestCalendarEditorEvent = 10077;
+    public static final int CalendarEditorSaveRewardEvent = 10078;
+    public static final int CalendarEditorDeleteRewardEvent = 10079;
     public static final int TraxEditorRequestSongsEvent = 9330;
     public static final int TraxEditorBuySongEvent = 9331;
     public static final int TraxEditorSaveSongEvent = 9332;

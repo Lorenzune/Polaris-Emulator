@@ -21,6 +21,7 @@ import com.eu.habbo.messages.outgoing.rooms.items.FloorItemOnRollerComposer;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserStatusComposer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -44,28 +45,56 @@ public final class WiredMoveCarryHelper {
 
     public static FurnitureMovementError getMovementError(
             Room room, HabboItem stackItem, HabboItem movingItem, RoomTile targetTile, int rotation, WiredContext ctx) {
+        return getMovementError(room, stackItem, movingItem, targetTile, rotation, ctx, false);
+    }
+
+    public static FurnitureMovementError getMovementError(
+            Room room,
+            HabboItem stackItem,
+            HabboItem movingItem,
+            RoomTile targetTile,
+            int rotation,
+            WiredContext ctx,
+            boolean checkForUnitCollision) {
         if (room == null || movingItem == null || targetTile == null) {
             return FurnitureMovementError.INVALID_MOVE;
         }
 
         if (!hasMovementBehaviorExtra(room, stackItem)) {
-            return room.furnitureFitsAt(targetTile, movingItem, rotation, true);
+            FurnitureMovementError movementError =
+                    room.furnitureFitsAt(targetTile, movingItem, rotation, checkForUnitCollision);
+            if (checkForUnitCollision) {
+                triggerCollisionsForMovementError(
+                        room, movingItem, targetTile, rotation, null, WiredMovementPhysics.NONE, movementError);
+            }
+            return movementError;
         }
 
         CarryContext carryContext = prepareCarryContext(room, stackItem, movingItem, ctx);
         WiredMovementPhysics movementPhysics = getMovementPhysics(room, stackItem, movingItem, ctx);
-        FurnitureMovementError movementError =
-                room.furnitureFitsAtWithPhysics(targetTile, movingItem, rotation, false, movementPhysics);
+        FurnitureMovementError movementError = room.furnitureFitsAtWithPhysics(
+                targetTile, movingItem, rotation, checkForUnitCollision && !carryContext.active, movementPhysics);
 
         if (movementError != FurnitureMovementError.NONE) {
+            if (checkForUnitCollision) {
+                triggerCollisionsForMovementError(
+                        room, movingItem, targetTile, rotation, carryContext, movementPhysics, movementError);
+            }
             return movementError;
         }
 
-        if (!carryContext.active) {
-            return room.furnitureFitsAtWithPhysics(targetTile, movingItem, rotation, true, movementPhysics);
+        if (!checkForUnitCollision && !carryContext.active) {
+            return FurnitureMovementError.NONE;
         }
 
-        return getBlockingUnitError(room, movingItem, targetTile, rotation, carryContext, movementPhysics);
+        movementError = getBlockingUnitError(room, movingItem, targetTile, rotation, carryContext, movementPhysics);
+        if (movementError != FurnitureMovementError.NONE) {
+            if (checkForUnitCollision) {
+                triggerCollisionsForMovementError(
+                        room, movingItem, targetTile, rotation, carryContext, movementPhysics, movementError);
+            }
+        }
+        return movementError;
     }
 
     public static FurnitureMovementError moveFurni(
@@ -188,12 +217,45 @@ public final class WiredMoveCarryHelper {
             Integer animationElapsedOverride,
             int anchorType,
             int anchorId) {
+        return moveFurni(
+                room,
+                stackItem,
+                movingItem,
+                targetTile,
+                rotation,
+                z,
+                actor,
+                sendUpdates,
+                ctx,
+                animationDurationOverride,
+                animationElapsedOverride,
+                anchorType,
+                anchorId,
+                false);
+    }
+
+    public static FurnitureMovementError moveFurni(
+            Room room,
+            HabboItem stackItem,
+            HabboItem movingItem,
+            RoomTile targetTile,
+            int rotation,
+            Double z,
+            Habbo actor,
+            boolean sendUpdates,
+            WiredContext ctx,
+            Integer animationDurationOverride,
+            Integer animationElapsedOverride,
+            int anchorType,
+            int anchorId,
+            boolean checkForUnitCollision) {
         if (room == null || movingItem == null || targetTile == null) {
             return FurnitureMovementError.INVALID_MOVE;
         }
 
         if (!hasMovementBehaviorExtra(room, stackItem)) {
-            return moveFurniLegacy(room, movingItem, targetTile, rotation, z, actor, sendUpdates);
+            return moveFurniLegacy(
+                    room, movingItem, targetTile, rotation, z, actor, sendUpdates, checkForUnitCollision);
         }
 
         RoomTile oldLocation =
@@ -201,10 +263,15 @@ public final class WiredMoveCarryHelper {
         double oldZ = movingItem.getZ();
         CarryContext carryContext = prepareCarryContext(room, stackItem, movingItem, ctx);
         WiredMovementPhysics movementPhysics = getMovementPhysics(room, stackItem, movingItem, ctx);
-        FurnitureMovementError movementError =
-                room.furnitureFitsAtWithPhysics(targetTile, movingItem, rotation, false, movementPhysics);
+
+        FurnitureMovementError movementError = room.furnitureFitsAtWithPhysics(
+                targetTile, movingItem, rotation, checkForUnitCollision && !carryContext.active, movementPhysics);
 
         if (movementError != FurnitureMovementError.NONE) {
+            if (checkForUnitCollision) {
+                triggerCollisionsForMovementError(
+                        room, movingItem, targetTile, rotation, carryContext, movementPhysics, movementError);
+            }
             return movementError;
         }
 
@@ -212,12 +279,10 @@ public final class WiredMoveCarryHelper {
             movementError = getBlockingUnitError(room, movingItem, targetTile, rotation, carryContext, movementPhysics);
 
             if (movementError != FurnitureMovementError.NONE) {
-                return movementError;
-            }
-        } else {
-            movementError = room.furnitureFitsAtWithPhysics(targetTile, movingItem, rotation, true, movementPhysics);
-
-            if (movementError != FurnitureMovementError.NONE) {
+                if (checkForUnitCollision) {
+                    triggerCollisionsForMovementError(
+                            room, movingItem, targetTile, rotation, carryContext, movementPhysics, movementError);
+                }
                 return movementError;
             }
         }
@@ -246,7 +311,13 @@ public final class WiredMoveCarryHelper {
         try {
             result = (targetZ == null)
                     ? room.moveFurniToWithPhysics(
-                            movingItem, targetTile, rotation, actor, !useWiredMovements, false, movementPhysics)
+                            movingItem,
+                            targetTile,
+                            rotation,
+                            actor,
+                            !useWiredMovements,
+                            checkForUnitCollision && !carryContext.active,
+                            movementPhysics)
                     : room.moveFurniToWithPhysics(
                             movingItem,
                             targetTile,
@@ -254,7 +325,7 @@ public final class WiredMoveCarryHelper {
                             targetZ,
                             actor,
                             !useWiredMovements,
-                            false,
+                            checkForUnitCollision && !carryContext.active,
                             movementPhysics);
         } finally {
             if (carryContext.active) {
@@ -267,6 +338,16 @@ public final class WiredMoveCarryHelper {
         }
 
         if (result == FurnitureMovementError.NONE) {
+            if (checkForUnitCollision && room.getLayout() != null) {
+                Collection<RoomTile> targetOccupiedTiles = room.getLayout()
+                        .getTilesAt(
+                                targetTile,
+                                movingItem.getBaseItem().getWidth(),
+                                movingItem.getBaseItem().getLength(),
+                                rotation);
+                triggerCollisionsAtTiles(room, movingItem, targetOccupiedTiles, carryContext, movementPhysics);
+            }
+
             if (!useWiredMovements) {
                 applyInstantCarryState(room, movingItem, targetTile, rotation, carryContext);
             } else if (oldLocation != null) {
@@ -297,7 +378,8 @@ public final class WiredMoveCarryHelper {
             int rotation,
             Double z,
             Habbo actor,
-            boolean sendUpdates) {
+            boolean sendUpdates,
+            boolean checkForUnitCollision) {
         if (room == null || movingItem == null || targetTile == null) {
             return FurnitureMovementError.INVALID_MOVE;
         }
@@ -307,8 +389,13 @@ public final class WiredMoveCarryHelper {
         double oldZ = movingItem.getZ();
 
         FurnitureMovementError result = (z == null)
-                ? room.moveFurniTo(movingItem, targetTile, rotation, actor, sendUpdates)
-                : room.moveFurniTo(movingItem, targetTile, rotation, z, actor, sendUpdates, false);
+                ? room.moveFurniTo(movingItem, targetTile, rotation, actor, sendUpdates, checkForUnitCollision)
+                : room.moveFurniTo(movingItem, targetTile, rotation, z, actor, sendUpdates, checkForUnitCollision);
+
+        if (checkForUnitCollision) {
+            triggerCollisionsForMovementError(
+                    room, movingItem, targetTile, rotation, null, WiredMovementPhysics.NONE, result);
+        }
 
         if (result == FurnitureMovementError.NONE
                 && !sendUpdates
@@ -337,6 +424,16 @@ public final class WiredMoveCarryHelper {
                 room.sendComposer(new FloorItemOnRollerComposer(
                                 movingItem, null, oldLocation, oldZ, targetTile, movingItem.getZ(), 0, room)
                         .compose());
+            }
+
+            if (checkForUnitCollision && room.getLayout() != null) {
+                Collection<RoomTile> targetOccupiedTiles = room.getLayout()
+                        .getTilesAt(
+                                targetTile,
+                                movingItem.getBaseItem().getWidth(),
+                                movingItem.getBaseItem().getLength(),
+                                rotation);
+                triggerCollisionsAtTiles(room, movingItem, targetOccupiedTiles, null, WiredMovementPhysics.NONE);
             }
         }
 
@@ -535,8 +632,8 @@ public final class WiredMoveCarryHelper {
                     continue;
                 }
 
-                int animationElapsed = resolveMoveStepElapsed(roomUnit);
-                int animationDuration = resolveMoveStepDuration(roomUnit);
+                int animationElapsed = 0;
+                int animationDuration = getAnimationDuration(room, stackItem, WiredMovementsComposer.DEFAULT_DURATION);
                 Double targetZ = resolveFollowerStackZ(
                         room, movingItem, roomUnit.getCurrentLocation(), movingItem.getRotation());
                 FurnitureMovementError error = moveFurni(
@@ -780,11 +877,87 @@ public final class WiredMoveCarryHelper {
         return false;
     }
 
+    public static void triggerCollisionsAtTiles(
+            Room room, HabboItem movingItem, Collection<RoomTile> occupiedTiles, CarryContext carryContext) {
+        triggerCollisionsAtTiles(room, movingItem, occupiedTiles, carryContext, WiredMovementPhysics.NONE);
+    }
+
+    private static void triggerCollisionsAtTiles(
+            Room room,
+            HabboItem movingItem,
+            Collection<RoomTile> occupiedTiles,
+            CarryContext carryContext,
+            WiredMovementPhysics movementPhysics) {
+        if (room == null || movingItem == null || occupiedTiles == null || occupiedTiles.isEmpty()) {
+            return;
+        }
+
+        Set<Integer> carriedIds =
+                (carryContext != null && carryContext.active) ? carryContext.carriedUserIds : Collections.emptySet();
+
+        Set<RoomUnit> collidedUnits = new HashSet<>();
+
+        for (RoomTile tile : occupiedTiles) {
+            if (tile == null) continue;
+
+            for (RoomUnit unit : room.getRoomUnits(tile)) {
+                if (unit != null
+                        && !carriedIds.contains(unit.getId())
+                        && (movementPhysics == null || !movementPhysics.shouldIgnoreUser(unit))) {
+                    collidedUnits.add(unit);
+                }
+            }
+        }
+
+        for (RoomUnit unit : collidedUnits) {
+            WiredManager.triggerBotCollision(room, unit, movingItem);
+        }
+    }
+
+    public static void triggerCollisionsAtTiles(Room room, HabboItem movingItem, Collection<RoomTile> occupiedTiles) {
+        triggerCollisionsAtTiles(room, movingItem, occupiedTiles, null);
+    }
+
+    private static void triggerCollisionsForMovementError(
+            Room room,
+            HabboItem movingItem,
+            RoomTile targetTile,
+            int rotation,
+            CarryContext carryContext,
+            WiredMovementPhysics movementPhysics,
+            FurnitureMovementError movementError) {
+        if (!isUnitCollisionError(movementError)
+                || room == null
+                || movingItem == null
+                || targetTile == null
+                || room.getLayout() == null) {
+            return;
+        }
+
+        Collection<RoomTile> targetOccupiedTiles = room.getLayout()
+                .getTilesAt(
+                        targetTile,
+                        movingItem.getBaseItem().getWidth(),
+                        movingItem.getBaseItem().getLength(),
+                        rotation);
+        triggerCollisionsAtTiles(room, movingItem, targetOccupiedTiles, carryContext, movementPhysics);
+    }
+
+    private static boolean isUnitCollisionError(FurnitureMovementError movementError) {
+        return movementError == FurnitureMovementError.TILE_HAS_HABBOS
+                || movementError == FurnitureMovementError.TILE_HAS_BOTS
+                || movementError == FurnitureMovementError.TILE_HAS_PETS;
+    }
+
     private static CarryContext prepareCarryContext(
             Room room, HabboItem stackItem, HabboItem movingItem, WiredContext ctx) {
-        WiredExtraMoveCarryUsers extra = getActiveExtra(room, stackItem);
+        if (room == null || movingItem == null || room.getLayout() == null) {
+            return CarryContext.disabled();
+        }
 
-        if (extra == null || ctx == null || room.getLayout() == null) {
+        WiredExtraMoveCarryUsers extra = (stackItem != null) ? getActiveExtra(room, stackItem) : null;
+
+        if (extra == null) {
             return CarryContext.disabled();
         }
 
@@ -804,7 +977,10 @@ public final class WiredMoveCarryHelper {
             return CarryContext.disabled();
         }
 
-        Collection<RoomUnit> targetUsers = resolveUsers(room, ctx, extra.getUserSource());
+        int userSource = extra.getUserSource();
+        int carryMode = extra.getCarryMode();
+
+        Collection<RoomUnit> targetUsers = resolveUsers(room, ctx, userSource);
         if (targetUsers == null || targetUsers.isEmpty()) {
             return CarryContext.disabled();
         }
@@ -813,7 +989,7 @@ public final class WiredMoveCarryHelper {
         HashSet<Integer> carriedIds = new HashSet<>();
 
         for (RoomUnit roomUnit : targetUsers) {
-            if (!isEligibleUser(room, movingItem, roomUnit, occupiedTiles, extra.getCarryMode())) {
+            if (!isEligibleUser(room, movingItem, roomUnit, occupiedTiles, carryMode)) {
                 continue;
             }
 
@@ -839,6 +1015,10 @@ public final class WiredMoveCarryHelper {
     private static Collection<RoomUnit> resolveUsers(Room room, WiredContext ctx, int userSource) {
         if (userSource == WiredExtraMoveCarryUsers.SOURCE_ALL_ROOM_USERS) {
             return new ArrayList<>(room.getRoomUnits());
+        }
+
+        if (ctx == null) {
+            return new ArrayList<>();
         }
 
         return WiredSourceUtil.resolveUsers(ctx, userSource);
@@ -873,9 +1053,23 @@ public final class WiredMoveCarryHelper {
     }
 
     private static boolean isDirectlyOnMovingFurni(Room room, HabboItem movingItem, RoomUnit roomUnit) {
+        if (room == null || movingItem == null || roomUnit == null) {
+            return false;
+        }
+
         HabboItem topItem = room.getTopItemAt(roomUnit.getX(), roomUnit.getY());
         if (topItem == movingItem) {
             return true;
+        }
+
+        if (room.getLayout() != null) {
+            RoomTile tile = room.getLayout().getTile(roomUnit.getX(), roomUnit.getY());
+            if (tile != null) {
+                HabboItem tallestChair = room.getTallestChair(tile);
+                if (tallestChair == movingItem) {
+                    return true;
+                }
+            }
         }
 
         double carrySurfaceZ = getCarrySurfaceZ(movingItem, roomUnit, roomUnit.getZ());

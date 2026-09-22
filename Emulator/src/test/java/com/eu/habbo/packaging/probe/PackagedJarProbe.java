@@ -174,10 +174,7 @@ public final class PackagedJarProbe {
 
     private static void prepareMinimalEmulatorConfig() throws Exception {
         Path config = Path.of("packaged-wired-probe.ini");
-        Files.writeString(
-                config,
-                "hotel.wired.furni.selection.count=5\nwired.effect.teleport.delay=500\n",
-                StandardCharsets.UTF_8);
+        Files.writeString(config, "hotel.wired.furni.selection.count=5\n", StandardCharsets.UTF_8);
         Field configField = Emulator.class.getDeclaredField("config");
         configField.setAccessible(true);
         configField.set(null, new ConfigurationManager(config.toString()));

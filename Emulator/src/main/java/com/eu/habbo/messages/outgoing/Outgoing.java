@@ -12,6 +12,9 @@ public class Outgoing {
     public static final int ChestOpenComposer = 9327;
     public static final int ChestRoomLogComposer = 9340;
     public static final int RoomVoiceSignalComposer = 9346;
+    public static final int GuildCustomBadgeSavedComposer = 9348;
+    public static final int GuildCustomBadgeRequestsComposer = 9350;
+    public static final int GuildCustomBadgeReviewResultComposer = 9352;
     public static final int FavoriteRoomsCountComposer = 151;
     public static final int UserCurrencyComposer = 2018;
     public static final int RedeemVoucherOKComposer = 3336;
@@ -131,6 +134,7 @@ public class Outgoing {
     public static final int WiredMonitorDataComposer = 5101; // CUSTOM
     public static final int WiredRoomSettingsDataComposer = 5102; // CUSTOM
     public static final int WiredUserVariablesDataComposer = 5103; // CUSTOM
+    public static final int WiredAccountPreferencesDataComposer = 5111; // CUSTOM
     public static final int ConfInvisStateComposer = 5104; // CUSTOM
     public static final int TranslationLanguagesComposer = 5106; // CUSTOM
     public static final int TranslationResultComposer = 5107; // CUSTOM
@@ -602,6 +606,8 @@ public class Outgoing {
     public static final int YouTubeRoomWatchersComposer = 8002;
     public static final int YouTubeRoomSettingsComposer = 8003;
     public static final int EmbeddedMediaStateComposer = 8004;
+    public static final int MusicPartyRoomBroadcastComposer = 8005;
+    public static final int YouTubeSearchResultsComposer = 8006;
 
     // Housekeeping (in-client admin panel) — IDs 9200..9299 reserved
     public static final int HousekeepingUserDetailComposer = 9200;
@@ -629,8 +635,11 @@ public class Outgoing {
     public static final int CrackableEditorResultComposer = 10073;
     public static final int AchievementEditorStateComposer = 10074;
     public static final int AchievementEditorResultComposer = 10075;
+    public static final int CalendarEditorStateComposer = 10076;
+    public static final int CalendarEditorResultComposer = 10077;
     public static final int TraxEditorSongsComposer = 9430;
     public static final int TraxEditorErrorComposer = 9431;
+    public static final int RoleplayCommandsComposer = 9450;
     public static final int MentionReceivedComposer = 4801;
     public static final int MentionsListComposer = 4802;
     public static final int MessengerConversationsComposer = 4900;
@@ -645,4 +654,7 @@ public class Outgoing {
     // Profile Cosmetics
     public static final int UserProfileCosmeticsComposer = 7040;
     public static final int ProfileCosmeticsPurchaseFailedComposer = 7041;
+
+    // ExternalTexts Live Reload
+    public static final int ExternalTextsReloadComposer = 10048;
 }

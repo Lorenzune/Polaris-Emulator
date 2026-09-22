@@ -5,6 +5,7 @@ import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.Habbo;
 import java.lang.reflect.Method;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -155,8 +156,7 @@ public class NavigatorManager {
                 rooms = Emulator.getGameEnvironment().getRoomManager().getRoomsFavourite(habbo);
                 break;
             case "history_freq":
-                rooms = Emulator.getGameEnvironment().getRoomManager().getRoomsVisited(habbo, false, 20);
-                break;
+                return Emulator.getGameEnvironment().getRoomManager().getRoomsVisited(habbo, true, 50);
             case "my_groups":
                 rooms = Emulator.getGameEnvironment().getRoomManager().getGroupRooms(habbo, 25);
                 break;
@@ -184,8 +184,57 @@ public class NavigatorManager {
                 return null;
         }
 
-        Collections.sort(rooms);
+        if ("official-root".equals(category)) {
+            return this.getOrderedPublicRooms("public-root", rooms);
+        }
+
+        if (!"my".equals(category)) {
+            Collections.sort(rooms);
+        }
 
         return rooms;
+    }
+
+    public List<Room> getPublicCategoryRooms(int categoryId) {
+        NavigatorPublicCategory category = this.publicCategories.get(categoryId);
+        if (category == null) return null;
+
+        return this.getOrderedPublicRooms("public-category:" + categoryId, category.rooms);
+    }
+
+    public String getPersonalCategoryKey(String categoryCode) {
+        if (categoryCode == null || !categoryCode.startsWith("public-category:")) return categoryCode;
+
+        try {
+            int categoryId = Integer.parseInt(categoryCode.substring("public-category:".length()));
+            NavigatorPublicCategory category = this.publicCategories.get(categoryId);
+            return category != null ? category.name : categoryCode;
+        } catch (NumberFormatException e) {
+            return categoryCode;
+        }
+    }
+
+    public List<Room> getOrderedPublicRooms(String listKey, List<Room> rooms) {
+        List<Room> ordered = new ArrayList<>(rooms);
+        Collections.sort(ordered);
+
+        Map<Integer, Integer> positions = new HashMap<>();
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        "SELECT room_id, order_num FROM navigator_room_order WHERE list_key = ?")) {
+            statement.setString(1, listKey);
+            try (ResultSet set = statement.executeQuery()) {
+                while (set.next()) positions.put(set.getInt("room_id"), set.getInt("order_num"));
+            }
+        } catch (SQLException e) {
+            LOGGER.error("Caught SQL exception loading navigator order for {}", listKey, e);
+        }
+
+        ordered.sort((left, right) -> {
+            int leftOrder = positions.getOrDefault(left.getId(), Integer.MAX_VALUE);
+            int rightOrder = positions.getOrDefault(right.getId(), Integer.MAX_VALUE);
+            return Integer.compare(leftOrder, rightOrder);
+        });
+        return ordered;
     }
 }

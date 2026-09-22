@@ -121,8 +121,13 @@ class HotQueryProjectionCoverageTest {
         String source = source("habbohotel/rooms/RoomManager.java");
 
         assertProjectionCovers(
-                source, "rooms", "WHERE is_public = \\? OR is_staff_picked = \\? ORDER BY id DESC", ROOM_COLUMNS);
-        assertProjectionCovers(source, "rooms", "WHERE owner_name = \\? ORDER BY id DESC LIMIT 25", Set.of("id"));
+                source, "rooms", "WHERE is_public = \\?\\s+OR is_staff_picked = \\?\\s+ORDER BY id DESC", ROOM_COLUMNS);
+        assertProjectionCovers(
+                source,
+                "rooms",
+                "WHERE owner_name = \\?\\s+ORDER BY CASE WHEN navigator_order = 0 THEN 1 ELSE 0 END,"
+                        + " navigator_order ASC, id DESC\\s+LIMIT 25",
+                Set.of("id"));
         assertProjectionCovers(source, "rooms", "WHERE owner_id = \\?", ROOM_COLUMNS);
     }
 

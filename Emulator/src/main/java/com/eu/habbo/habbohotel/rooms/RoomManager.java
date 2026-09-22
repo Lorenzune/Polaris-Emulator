@@ -17,7 +17,6 @@ import com.eu.habbo.habbohotel.games.wired.WiredGame;
 import com.eu.habbo.habbohotel.guilds.Guild;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWired;
 import com.eu.habbo.habbohotel.messenger.MessengerBuddy;
-import com.eu.habbo.habbohotel.navigation.NavigatorFilterComparator;
 import com.eu.habbo.habbohotel.navigation.NavigatorFilterField;
 import com.eu.habbo.habbohotel.navigation.NavigatorManager;
 import com.eu.habbo.habbohotel.permissions.Permission;
@@ -97,7 +96,7 @@ public class RoomManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RoomManager.class);
     private static final String PUBLIC_ROOMS_SQL = """
-            SELECT id, owner_id, owner_name, name, description, password, state,
+            SELECT id, owner_id, owner_name, navigator_order, name, description, password, state,
                    users_max, score, category, paper_floor, paper_wall,
                    paper_landscape, thickness_wall, wall_height, thickness_floor,
                    tags, is_public, is_staff_picked, allow_other_pets,
@@ -118,10 +117,12 @@ public class RoomManager {
     private static final String ROOM_IDS_BY_OWNER_NAME_SQL = """
             SELECT id
             FROM rooms
-            WHERE owner_name = ? ORDER BY id DESC LIMIT 25
+            WHERE owner_name = ?
+            ORDER BY CASE WHEN navigator_order = 0 THEN 1 ELSE 0 END, navigator_order ASC, id DESC
+            LIMIT 25
             """;
     private static final String ROOMS_BY_OWNER_ID_SQL = """
-            SELECT id, owner_id, owner_name, name, description, password, state,
+            SELECT id, owner_id, owner_name, navigator_order, name, description, password, state,
                    users_max, score, category, paper_floor, paper_wall,
                    paper_landscape, thickness_wall, wall_height, thickness_floor,
                    tags, is_public, is_staff_picked, allow_other_pets,
@@ -282,14 +283,18 @@ public class RoomManager {
     public Map<Integer, List<Room>> findRooms(
             NavigatorFilterField filterField, String value, int category, boolean showInvisible) {
         Map<Integer, List<Room>> rooms = new HashMap<>();
-        String query = filterField.databaseQuery + " AND rooms.state NOT LIKE " + (showInvisible ? "''" : "'invisible'")
-                + (category >= 0 ? "AND rooms.category = '" + category + "'" : "")
-                + "  ORDER BY rooms.users, rooms.id DESC LIMIT " + (page * NavigatorManager.MAXIMUM_RESULTS_PER_PAGE)
-                + "" + ((page * NavigatorManager.MAXIMUM_RESULTS_PER_PAGE) + NavigatorManager.MAXIMUM_RESULTS_PER_PAGE);
+        String val = value != null ? value.trim() : "";
+        if (val.isEmpty()) {
+            return rooms;
+        }
+
+        RoomSearchQuery query = buildRoomSearchQuery(filterField, val, category, showInvisible);
+
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-                PreparedStatement statement = connection.prepareStatement(query)) {
-            statement.setString(
-                    1, (filterField.comparator == NavigatorFilterComparator.EQUALS ? value : "%" + value + "%"));
+                PreparedStatement statement = connection.prepareStatement(query.sql())) {
+            for (int idx = 0; idx < query.parameters().size(); idx++) {
+                statement.setString(idx + 1, query.parameters().get(idx));
+            }
             try (ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
                     Room room = this.activeRooms.get(set.getInt("id"));
@@ -312,6 +317,86 @@ public class RoomManager {
 
         return rooms;
     }
+
+    static RoomSearchQuery buildRoomSearchQuery(
+            NavigatorFilterField filterField, String value, int category, boolean showInvisible) {
+        String key = (filterField != null && filterField.key != null) ? filterField.key.toLowerCase() : "anything";
+        String pattern = "%" + value + "%";
+        List<String> parameters = new ArrayList<>();
+        String predicate;
+
+        switch (key) {
+            case "desc" -> {
+                predicate = "rooms.description LIKE ?";
+                parameters.add(pattern);
+            }
+            case "group" -> {
+                predicate = "EXISTS (SELECT 1 FROM guilds g WHERE (g.id = rooms.guild_id OR g.room_id = rooms.id) "
+                        + "AND CONCAT(COALESCE(g.name, ''), ' ', COALESCE(g.description, '')) LIKE ?)";
+                parameters.add(pattern);
+            }
+            case "owner" -> {
+                predicate = "LOWER(rooms.owner_name) = LOWER(?)";
+                parameters.add(value);
+            }
+            case "promo" -> {
+                predicate = "EXISTS (SELECT 1 FROM room_promotions rp WHERE rp.room_id = rooms.id "
+                        + "AND rp.end_timestamp > UNIX_TIMESTAMP() "
+                        + "AND CONCAT(COALESCE(rp.title, ''), ' ', COALESCE(rp.description, '')) LIKE ?)";
+                parameters.add(pattern);
+            }
+            case "roomname" -> {
+                predicate = "rooms.name LIKE ?";
+                parameters.add(pattern);
+            }
+            case "tag" -> {
+                predicate = "(rooms.tags = ? OR rooms.tags LIKE CONCAT(?, ';%') "
+                        + "OR rooms.tags LIKE CONCAT('%;', ?, ';%') OR rooms.tags LIKE CONCAT('%;', ?))";
+                parameters.add(value);
+                parameters.add(value);
+                parameters.add(value);
+                parameters.add(value);
+            }
+            case "anything" -> {
+                predicate = "(rooms.name LIKE ? OR rooms.description LIKE ? OR rooms.owner_name LIKE ? "
+                        + "OR rooms.tags LIKE ? OR EXISTS (SELECT 1 FROM guilds g "
+                        + "WHERE (g.id = rooms.guild_id OR g.room_id = rooms.id) "
+                        + "AND CONCAT(COALESCE(g.name, ''), ' ', COALESCE(g.description, '')) LIKE ?))";
+                parameters.add(pattern);
+                parameters.add(pattern);
+                parameters.add(pattern);
+                parameters.add(pattern);
+                parameters.add(pattern);
+            }
+            default -> {
+                predicate = "(rooms.name LIKE ? OR rooms.description LIKE ? OR rooms.owner_name LIKE ? "
+                        + "OR rooms.tags LIKE ? OR EXISTS (SELECT 1 FROM guilds g "
+                        + "WHERE (g.id = rooms.guild_id OR g.room_id = rooms.id) "
+                        + "AND CONCAT(COALESCE(g.name, ''), ' ', COALESCE(g.description, '')) LIKE ?))";
+                parameters.add(pattern);
+                parameters.add(pattern);
+                parameters.add(pattern);
+                parameters.add(pattern);
+                parameters.add(pattern);
+            }
+        }
+
+        StringBuilder sql = new StringBuilder("SELECT DISTINCT rooms.* FROM rooms WHERE ").append(predicate);
+        if (!showInvisible) {
+            sql.append(" AND rooms.state != 'invisible'");
+        }
+        if (category >= 0) {
+            sql.append(" AND rooms.category = ").append(category);
+        }
+        sql.append(" ORDER BY rooms.users, rooms.id DESC LIMIT ")
+                .append(page * NavigatorManager.MAXIMUM_RESULTS_PER_PAGE)
+                .append(", ")
+                .append(NavigatorManager.MAXIMUM_RESULTS_PER_PAGE);
+
+        return new RoomSearchQuery(sql.toString(), List.copyOf(parameters));
+    }
+
+    record RoomSearchQuery(String sql, List<String> parameters) {}
 
     public RoomCategory getCategory(int id) {
         return this.roomCategories.get(id);
@@ -385,8 +470,136 @@ public class RoomManager {
         for (Room room : this.activeRooms.values()) {
             if (room.getOwnerId() == habbo.getHabboInfo().getId()) rooms.add(room);
         }
-        rooms.sort(Room.SORT_ID);
+        rooms.sort((left, right) -> {
+            int leftOrder = left.getNavigatorOrder() == 0 ? Integer.MAX_VALUE : left.getNavigatorOrder();
+            int rightOrder = right.getNavigatorOrder() == 0 ? Integer.MAX_VALUE : right.getNavigatorOrder();
+            int byOrder = Integer.compare(leftOrder, rightOrder);
+            return byOrder != 0 ? byOrder : Room.SORT_ID.compare(left, right);
+        });
         return rooms;
+    }
+
+    public boolean saveNavigatorRoomOrder(Habbo habbo, String scope, int categoryId, List<Integer> submittedRoomIds) {
+        if (habbo == null || submittedRoomIds == null || submittedRoomIds.isEmpty() || submittedRoomIds.size() > 2000) {
+            return false;
+        }
+
+        if ("own".equals(scope)) {
+            if (categoryId != 0 || submittedRoomIds.size() > 100) return false;
+            return this.saveOwnedNavigatorRoomOrder(habbo, submittedRoomIds);
+        }
+
+        if (!habbo.hasPermission(Permission.ACC_NAVIGATOR_ROOM_ORDER)) return false;
+
+        String listKey;
+        List<Room> eligibleRooms;
+        if ("public_root".equals(scope) && categoryId == 0) {
+            listKey = "public-root";
+            eligibleRooms = Emulator.getGameEnvironment()
+                    .getNavigatorManager()
+                    .getOrderedPublicRooms(listKey, this.getPublicRooms());
+        } else if ("public_category".equals(scope) && categoryId > 0) {
+            listKey = "public-category:" + categoryId;
+            eligibleRooms = Emulator.getGameEnvironment().getNavigatorManager().getPublicCategoryRooms(categoryId);
+            if (eligibleRooms == null) return false;
+        } else {
+            return false;
+        }
+
+        List<Integer> mergedRoomIds = this.mergeSubmittedNavigatorOrder(eligibleRooms, submittedRoomIds);
+        if (mergedRoomIds == null) return false;
+
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement delete =
+                    connection.prepareStatement("DELETE FROM navigator_room_order WHERE list_key = ?")) {
+                delete.setString(1, listKey);
+                delete.executeUpdate();
+            }
+
+            try (PreparedStatement insert = connection.prepareStatement(
+                    "INSERT INTO navigator_room_order (list_key, room_id, order_num) VALUES (?, ?, ?)")) {
+                for (int index = 0; index < mergedRoomIds.size(); index++) {
+                    insert.setString(1, listKey);
+                    insert.setInt(2, mergedRoomIds.get(index));
+                    insert.setInt(3, index + 1);
+                    insert.addBatch();
+                }
+
+                for (int result : insert.executeBatch()) {
+                    if (result == Statement.EXECUTE_FAILED) {
+                        connection.rollback();
+                        return false;
+                    }
+                }
+            }
+
+            connection.commit();
+            return true;
+        } catch (SQLException e) {
+            LOGGER.error("Caught SQL exception saving navigator room order for {}", listKey, e);
+            return false;
+        }
+    }
+
+    private boolean saveOwnedNavigatorRoomOrder(Habbo habbo, List<Integer> submittedRoomIds) {
+        List<Room> ownedRooms = this.getRoomsForHabbo(habbo);
+        List<Integer> orderedRoomIds = this.mergeSubmittedNavigatorOrder(ownedRooms, submittedRoomIds);
+        if (orderedRoomIds == null) return false;
+
+        int ownerId = habbo.getHabboInfo().getId();
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement statement =
+                    connection.prepareStatement("UPDATE rooms SET navigator_order = ? WHERE id = ? AND owner_id = ?")) {
+                for (int index = 0; index < orderedRoomIds.size(); index++) {
+                    statement.setInt(1, index + 1);
+                    statement.setInt(2, orderedRoomIds.get(index));
+                    statement.setInt(3, ownerId);
+                    statement.addBatch();
+                }
+                for (int result : statement.executeBatch()) {
+                    if (result == Statement.EXECUTE_FAILED) {
+                        connection.rollback();
+                        return false;
+                    }
+                }
+            }
+            connection.commit();
+
+            Map<Integer, Room> roomsById = new HashMap<>();
+            for (Room room : ownedRooms) roomsById.put(room.getId(), room);
+            for (int index = 0; index < orderedRoomIds.size(); index++) {
+                Room room = roomsById.get(orderedRoomIds.get(index));
+                if (room != null) room.setNavigatorOrder(index + 1);
+            }
+            return true;
+        } catch (SQLException e) {
+            LOGGER.error("Caught SQL exception saving navigator room order for user {}", ownerId, e);
+            return false;
+        }
+    }
+
+    private List<Integer> mergeSubmittedNavigatorOrder(List<Room> eligibleRooms, List<Integer> submittedRoomIds) {
+        if (eligibleRooms == null || eligibleRooms.isEmpty()) return null;
+
+        Set<Integer> eligibleIds = new HashSet<>();
+        List<Integer> mergedRoomIds = new ArrayList<>(eligibleRooms.size());
+        for (Room room : eligibleRooms) {
+            if (eligibleIds.add(room.getId())) mergedRoomIds.add(room.getId());
+        }
+
+        Set<Integer> submittedIds = new HashSet<>(submittedRoomIds);
+        if (submittedIds.size() != submittedRoomIds.size() || !eligibleIds.containsAll(submittedIds)) return null;
+
+        int submittedIndex = 0;
+        for (int index = 0; index < mergedRoomIds.size(); index++) {
+            if (submittedIds.contains(mergedRoomIds.get(index))) {
+                mergedRoomIds.set(index, submittedRoomIds.get(submittedIndex++));
+            }
+        }
+
+        return submittedIndex == submittedRoomIds.size() ? mergedRoomIds : null;
     }
 
     public List<Room> getRoomsForHabbo(String username) {
@@ -587,11 +800,11 @@ public class RoomManager {
                 h.getClient().sendResponse(new RoomScoreComposer(room.getScore(), !this.hasVotedForRoom(h, room)));
             }
 
-              try {
-                  this.roomRepository.recordVote(
-                          room.getId(), habbo.getHabboInfo().getId());
-                  AchievementInteractions.progress(habbo, "RoomCompetitionVoter");
-              } catch (SQLException e) {
+            try {
+                this.roomRepository.recordVote(
+                        room.getId(), habbo.getHabboInfo().getId());
+                AchievementInteractions.progress(habbo, "RoomCompetitionVoter");
+            } catch (SQLException e) {
                 LOGGER.error("Caught SQL exception", e);
             }
         }
@@ -720,7 +933,12 @@ public class RoomManager {
         }
 
         habbo.getRoomUnit().setRoomUnitType(RoomUnitType.USER);
-        if (room.isBanned(habbo) || (habbo.getHabboInfo().getId() != room.getOwnerId() && com.eu.habbo.habbohotel.users.HabboStats.isUserBlocked(room.getOwnerId(), habbo.getHabboInfo().getId()) && !habbo.hasPermission(Permission.ACC_ANYROOMOWNER) && !habbo.hasPermission(Permission.ACC_ENTERANYROOM))) {
+        if (room.isBanned(habbo)
+                || (habbo.getHabboInfo().getId() != room.getOwnerId()
+                        && com.eu.habbo.habbohotel.users.HabboStats.isUserBlocked(
+                                room.getOwnerId(), habbo.getHabboInfo().getId())
+                        && !habbo.hasPermission(Permission.ACC_ANYROOMOWNER)
+                        && !habbo.hasPermission(Permission.ACC_ENTERANYROOM))) {
             habbo.getClient().sendResponse(new RoomEnterErrorComposer(RoomEnterErrorComposer.ROOM_ERROR_BANNED));
             return;
         }
@@ -784,10 +1002,12 @@ public class RoomManager {
         if (room.getOwnerId() != habbo.getHabboInfo().getId()) {
             if (!habbo.getHabboStats().visitedRoom(room.getId())) {
                 AchievementManager.progressAchievement(
-                        habbo, Emulator.getGameEnvironment().getAchievementManager().getAchievement("RoomEntry"));
+                        habbo,
+                        Emulator.getGameEnvironment().getAchievementManager().getAchievement("RoomEntry"));
             }
 
-            Emulator.getGameEnvironment().getRewardTrackManager()
+            Emulator.getGameEnvironment()
+                    .getRewardTrackManager()
                     .addProgress(habbo.getHabboInfo().getId(), "enter_other_users_room", 1);
         }
     }
@@ -847,6 +1067,7 @@ public class RoomManager {
         room.addHabbo(habbo);
         BuildersClubRoomSupport.sendCurrentRoomPlacementStatus(room);
         room.getUserVariableManager().restorePermanentAssignments(habbo);
+        room.getUserVariableManager().sendSnapshot(habbo);
 
         habbo.getClient()
                 .sendResponse(new UserBadgesComposer(
@@ -1080,7 +1301,26 @@ public class RoomManager {
                     .sendResponse(new com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomBroadcastComposer(
                                     room.getYoutubeCurrentVideo(),
                                     room.getYoutubeSenderName(),
-                                    room.getYoutubePlaylist())
+                                    room.getYoutubePlaylist(),
+                                    room.getYoutubeElapsedSeconds(),
+                                    room.isYoutubeAudioOnly(),
+                                    room.isYoutubePaused(),
+                                    room.getYoutubeRevision(),
+                                    room.getYoutubePositionMs())
+                            .compose());
+        }
+        if (!room.getMusicPartyCurrentVideo().isEmpty()) {
+            habbo.getClient()
+                    .sendResponse(new com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomBroadcastComposer(
+                                    room.getMusicPartyCurrentVideo(),
+                                    room.getMusicPartySenderName(),
+                                    room.getMusicPartyPlaylist(),
+                                    room.getMusicPartyElapsedSeconds(),
+                                    true,
+                                    room.isMusicPartyPaused(),
+                                    room.getMusicPartyRevision(),
+                                    room.getMusicPartyPositionMs(),
+                                    true)
                             .compose());
         }
         if (!room.getYoutubeWatchers().isEmpty()) {
@@ -1096,8 +1336,9 @@ public class RoomManager {
                         (com.eu.habbo.habbohotel.items.interactions.InteractionYoutubeTV) roomItem;
 
                 if (videoPlayer.isEmbeddedPlayer() && videoPlayer.getEmbeddedState() != 0) {
-                    habbo.getClient().sendResponse(
-                            new com.eu.habbo.messages.outgoing.rooms.youtube.EmbeddedMediaStateComposer(videoPlayer, 1));
+                    habbo.getClient()
+                            .sendResponse(new com.eu.habbo.messages.outgoing.rooms.youtube.EmbeddedMediaStateComposer(
+                                    videoPlayer, 1));
                 }
             }
         }
@@ -1331,13 +1572,18 @@ public class RoomManager {
     public ArrayList<Room> getRoomsVisited(Habbo habbo, boolean includeSelf, int limit) {
         ArrayList<Room> rooms = new ArrayList<>();
 
+        String sql =
+                "SELECT rooms.* FROM room_enter_log INNER JOIN rooms ON room_enter_log.room_id = rooms.id WHERE user_id = ? AND timestamp >= ?"
+                        + (includeSelf ? "" : " AND rooms.owner_id != ?")
+                        + " GROUP BY rooms.id ORDER BY MAX(room_enter_log.timestamp) DESC LIMIT " + limit;
+
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-                PreparedStatement statement = connection.prepareStatement(
-                        "SELECT rooms.* FROM room_enter_log INNER JOIN rooms ON room_enter_log.room_id = rooms.id WHERE user_id = ? AND timestamp >= ? AND rooms.owner_id != ? GROUP BY rooms.id ORDER BY MAX(timestamp) DESC LIMIT "
-                                + limit)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, habbo.getHabboInfo().getId());
             statement.setInt(2, Emulator.getIntUnixTimestamp() - 2592000);
-            statement.setInt(3, (includeSelf ? 0 : habbo.getHabboInfo().getId()));
+            if (!includeSelf) {
+                statement.setInt(3, habbo.getHabboInfo().getId());
+            }
             try (ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
                     Room room = this.activeRooms.get(set.getInt("id"));

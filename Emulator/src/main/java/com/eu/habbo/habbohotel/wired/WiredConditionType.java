@@ -43,12 +43,13 @@ public enum WiredConditionType {
     NOT_HAS_VAR(41),
     VAR_VAL_MATCH(42),
     VAR_AGE_MATCH(43),
-    // Phase-2 chest/storage conditions. Require the matching Nitro WiredConditionLayoutCode.
-    CHEST_HAS_ITEMS(47),
-    CHEST_HAS_ITEM_TYPE(48),
-    NO_BATTLEBANZAI(44),
-    USER_ON_FURNI_WITH_STATE(45),
-    TRG_FURNI_ADJACENT_STATE(46);
+    // These are the official SWF condition codes. Keep custom conditions out of this range.
+    CHEST_HAS_ITEMS(45),
+    CHEST_HAS_ITEM_TYPE(46),
+    USER_LEVEL(44),
+    NO_BATTLEBANZAI(99),
+    USER_ON_FURNI_WITH_STATE(2045),
+    TRG_FURNI_ADJACENT_STATE(2046);
 
     public final int code;
 

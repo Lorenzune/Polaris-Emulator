@@ -7,6 +7,7 @@ import com.eu.habbo.habbohotel.users.HabboStats;
 import com.eu.habbo.habbohotel.users.infostand.InfostandBackgroundManager;
 import com.eu.habbo.habbohotel.users.infostand.InfostandBackgroundManager.Category;
 import com.eu.habbo.messages.incoming.MessageHandler;
+import com.eu.habbo.messages.outgoing.inventory.cosmetics.UserProfileCosmeticsComposer;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserDataComposer;
 
 public class ChangeInfostandBgEvent extends MessageHandler {
@@ -36,15 +37,19 @@ public class ChangeInfostandBgEvent extends MessageHandler {
         int requestedBg = sanitize(this.packet.readInt());
         int requestedStand = sanitize(this.packet.readInt());
         int requestedOverlay = sanitize(this.packet.readInt());
-        int requestedCard = this.packet.bytesAvailable() >= 4 ? sanitize(this.packet.readInt()) : 0;
-        int requestedBorder = this.packet.bytesAvailable() >= 4 ? sanitize(this.packet.readInt()) : 0;
+        // The card-background feature is disabled. Keep consuming the legacy field
+        // so the five-field client packet remains aligned, but never apply it.
+        this.packet.readInt();
+        int requestedBorder = sanitize(this.packet.readInt());
 
-        InfostandBackgroundManager manager = Emulator.getGameEnvironment() != null ? Emulator.getGameEnvironment().getInfostandBackgroundManager() : null;
+        InfostandBackgroundManager manager = Emulator.getGameEnvironment() != null
+                ? Emulator.getGameEnvironment().getInfostandBackgroundManager()
+                : null;
 
         int backgroundImage = resolve(manager, habbo, Category.BACKGROUND, requestedBg, info.getInfostandBg());
         int backgroundStand = resolve(manager, habbo, Category.STAND, requestedStand, info.getInfostandStand());
         int backgroundOverlay = resolve(manager, habbo, Category.OVERLAY, requestedOverlay, info.getInfostandOverlay());
-        int backgroundCard = resolve(manager, habbo, Category.CARD, requestedCard, info.getInfostandCardBg());
+        int backgroundCard = 0;
         int backgroundBorder = resolve(manager, habbo, Category.BORDER, requestedBorder, info.getInfostandBorder());
 
         if (info.getInfostandBg() == backgroundImage
@@ -58,7 +63,7 @@ public class ChangeInfostandBgEvent extends MessageHandler {
         info.setInfostandBg(backgroundImage);
         info.setInfostandStand(backgroundStand);
         info.setInfostandOverlay(backgroundOverlay);
-        info.setInfostandCardBg(backgroundCard);
+        info.setInfostandCardBg(0);
         info.setInfostandBorder(backgroundBorder);
         info.run();
 
@@ -67,6 +72,7 @@ public class ChangeInfostandBgEvent extends MessageHandler {
         } else {
             this.client.sendResponse(new RoomUserDataComposer(habbo));
         }
+        this.client.sendResponse(new UserProfileCosmeticsComposer(habbo));
     }
 
     private static int sanitize(int value) {
@@ -74,7 +80,8 @@ public class ChangeInfostandBgEvent extends MessageHandler {
         return value;
     }
 
-    private static int resolve(InfostandBackgroundManager manager, Habbo habbo, Category category, int requested, int current) {
+    private static int resolve(
+            InfostandBackgroundManager manager, Habbo habbo, Category category, int requested, int current) {
         if (manager == null) return requested;
         if (requested == current) return current;
         return manager.tryPurchaseAndEquip(habbo, category, requested) ? requested : current;

@@ -736,11 +736,7 @@ public class RoomUserVariableManager {
     }
 
     public void sendSnapshot(Habbo habbo) {
-        if (habbo == null || habbo.getClient() == null) {
-            return;
-        }
-
-        if (!this.room.canInspectWired(habbo)) {
+        if (habbo == null || habbo.getClient() == null || !this.room.canInspectWired(habbo)) {
             return;
         }
 
@@ -777,11 +773,7 @@ public class RoomUserVariableManager {
                 this.room.getRoomVariableManager().createSnapshot();
 
         for (Habbo habbo : this.room.getCurrentHabbos().values()) {
-            if (habbo == null || habbo.getClient() == null) {
-                continue;
-            }
-
-            if (!this.room.canInspectWired(habbo)) {
+            if (habbo == null || habbo.getClient() == null || !this.room.canInspectWired(habbo)) {
                 continue;
             }
 
@@ -1284,7 +1276,7 @@ public class RoomUserVariableManager {
 
         public void setValue(Integer value, int updatedAt) {
             this.value = value;
-            this.updatedAt = updatedAt;
+            this.updatedAt = Math.max(updatedAt, this.updatedAt + 1);
         }
 
         public int getCreatedAt() {

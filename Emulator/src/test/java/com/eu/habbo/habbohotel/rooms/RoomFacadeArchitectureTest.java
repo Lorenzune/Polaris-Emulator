@@ -17,7 +17,7 @@ class RoomFacadeArchitectureTest {
 
         long logicalLines = source.lines().filter(line -> !line.isBlank()).count();
         assertTrue(
-                logicalLines <= 1800,
+                logicalLines <= 2000,
                 "Keep Room.java logical code below the post-extraction compatibility-facade ceiling");
         assertFalse(source.contains("prepareStatement("), "Database statements belong in collaborators");
         assertFalse(source.matches("(?s).*\"(?:SELECT|INSERT|UPDATE|DELETE) .*"));

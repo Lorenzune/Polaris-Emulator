@@ -6,6 +6,7 @@ import com.eu.habbo.habbohotel.games.GamePlayer;
 import com.eu.habbo.habbohotel.games.GameTeam;
 import com.eu.habbo.habbohotel.games.GameTeamColors;
 import com.eu.habbo.habbohotel.items.FurnitureType;
+import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameUpCounter;
 import com.eu.habbo.habbohotel.pets.Pet;
 import com.eu.habbo.habbohotel.rooms.FurnitureMovementError;
 import com.eu.habbo.habbohotel.rooms.Room;
@@ -19,7 +20,6 @@ import com.eu.habbo.habbohotel.users.DanceType;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboGender;
 import com.eu.habbo.habbohotel.users.HabboItem;
-import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameUpCounter;
 import com.eu.habbo.util.HotelDateTimeUtil;
 import java.time.ZonedDateTime;
 import java.time.temporal.WeekFields;
@@ -138,9 +138,8 @@ public final class WiredInternalVariableSupport {
                     "@dimensions.x",
                     "@dimensions.y" -> true;
             case "~teleport.target_id" -> item.getTeleportTargetId() > 0;
-            case "~clock.is_game_aware",
-                 "~clock.pulse_count",
-                 "~clock.state" -> item instanceof InteractionGameUpCounter;
+            case "~clock.is_game_aware", "~clock.pulse_count", "~clock.state" ->
+                item instanceof InteractionGameUpCounter;
             case "@wallitem_offset" -> item.getBaseItem().getType() == FurnitureType.WALL;
             case "@gravity" -> item.getBaseItem().getType() == FurnitureType.FLOOR;
             case "@opacity" -> true;
@@ -695,7 +694,7 @@ public final class WiredInternalVariableSupport {
             return false;
         }
 
-        FurnitureMovementError error = room.moveFurniTo(item, targetTile, rotation, z, null, true, true);
+        FurnitureMovementError error = room.moveFurniTo(item, targetTile, rotation, z, null, true, false);
         return error == FurnitureMovementError.NONE;
     }
 

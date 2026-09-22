@@ -27,11 +27,21 @@ final class RoomSerializer {
         message.appendInt(0);
         message.appendInt(room.getCategory());
 
-        String[] tags = Arrays.stream(room.getTags().split(";"))
-                .filter(tag -> !tag.isEmpty())
-                .toArray(String[]::new);
-        message.appendInt(tags.length);
-        for (String tag : tags) {
+        java.util.List<String> tagList =
+                new java.util.ArrayList<>(Arrays.stream(room.getTags().split(";"))
+                        .filter(tag -> !tag.isEmpty() && !tag.equalsIgnoreCase("vocal"))
+                        .toList());
+        if (room.isVocalChatEnabled() && room.getVoiceUsers().size() >= 2) {
+            tagList.add("vocal");
+        }
+        if (!room.getYoutubeCurrentVideo().isEmpty()) {
+            tagList.add("youtube_party");
+        }
+        if (!room.getMusicPartyCurrentVideo().isEmpty()) {
+            tagList.add("youtube_music");
+        }
+        message.appendInt(tagList.size());
+        for (String tag : tagList) {
             message.appendString(tag);
         }
 

@@ -38,6 +38,32 @@ final class RoomItemMovementService {
     public FurnitureMovementError furnitureFitsAtWithPhysics(
             RoomTile tile, HabboItem item, int rotation, boolean checkForUnits, WiredMovementPhysics physics) {
         if (physics == null || !physics.isActive()) {
+            if (checkForUnits && this.placement.isStackPlacementBypassItem(item)) {
+                RoomLayout layout = this.room.getLayout();
+                if (!layout.fitsOnMap(
+                        tile, item.getBaseItem().getWidth(), item.getBaseItem().getLength(), rotation)) {
+                    return FurnitureMovementError.INVALID_MOVE;
+                }
+
+                for (RoomTile occupiedTile : layout.getTilesAt(
+                        tile, item.getBaseItem().getWidth(), item.getBaseItem().getLength(), rotation)) {
+                    if (occupiedTile.state == RoomTileState.INVALID) {
+                        return FurnitureMovementError.INVALID_MOVE;
+                    }
+                    if (this.room.hasHabbosAt(occupiedTile.x, occupiedTile.y)) {
+                        return FurnitureMovementError.TILE_HAS_HABBOS;
+                    }
+                    if (this.room.hasBotsAt(occupiedTile.x, occupiedTile.y)) {
+                        return FurnitureMovementError.TILE_HAS_BOTS;
+                    }
+                    if (this.room.hasPetsAt(occupiedTile.x, occupiedTile.y)) {
+                        return FurnitureMovementError.TILE_HAS_PETS;
+                    }
+                }
+
+                return FurnitureMovementError.NONE;
+            }
+
             return this.placement.furnitureFitsAt(tile, item, rotation, checkForUnits);
         }
 
@@ -45,10 +71,6 @@ final class RoomItemMovementService {
         if (!layout.fitsOnMap(
                 tile, item.getBaseItem().getWidth(), item.getBaseItem().getLength(), rotation)) {
             return FurnitureMovementError.INVALID_MOVE;
-        }
-
-        if (this.placement.isStackPlacementBypassItem(item)) {
-            return FurnitureMovementError.NONE;
         }
 
         Set<RoomTile> occupiedTiles = layout.getTilesAt(
@@ -64,6 +86,10 @@ final class RoomItemMovementService {
                     return unitCollision;
                 }
             }
+        }
+
+        if (this.placement.isStackPlacementBypassItem(item)) {
+            return FurnitureMovementError.NONE;
         }
 
         if (this.hasBlockingPhysicsFurni(occupiedTiles, item, physics)) {
@@ -169,6 +195,12 @@ final class RoomItemMovementService {
             if (event.hasChangedHeight()) {
                 z = layout.getHeightAtSquare(tile.x, tile.y) + event.getUpdatedHeight();
             }
+        }
+
+        if (oldLocation != null && (oldLocation.x != tile.x || oldLocation.y != tile.y)) {
+            item.setPreviousLocation(oldLocation);
+            item.setPreviousOccupiedTiles(oldOccupiedTiles);
+            item.setLastMoveTimestamp(System.currentTimeMillis());
         }
 
         item.setX(tile.x);
@@ -337,6 +369,12 @@ final class RoomItemMovementService {
             }
         }
 
+        if (oldLocation != null && (oldLocation.x != tile.x || oldLocation.y != tile.y)) {
+            item.setPreviousLocation(oldLocation);
+            item.setPreviousOccupiedTiles(oldOccupiedTiles);
+            item.setLastMoveTimestamp(System.currentTimeMillis());
+        }
+
         item.setX(tile.x);
         item.setY(tile.y);
         item.setZ(z);
@@ -460,18 +498,15 @@ final class RoomItemMovementService {
                         return FurnitureMovementError.CANT_STACK;
                     }
 
-                    boolean canWalkSitLay = item.isWalkable() || item.getBaseItem().allowSit() || item.getBaseItem().allowLay();
-                    if (!canWalkSitLay) {
-                        if (checkForUnits) {
-                            if (!magicTile && this.room.hasHabbosAt(t.x, t.y)) {
-                                return FurnitureMovementError.TILE_HAS_HABBOS;
-                            }
-                            if (!magicTile && this.room.hasBotsAt(t.x, t.y)) {
-                                return FurnitureMovementError.TILE_HAS_BOTS;
-                            }
-                            if (!magicTile && this.room.hasPetsAt(t.x, t.y)) {
-                                return FurnitureMovementError.TILE_HAS_PETS;
-                            }
+                    if (checkForUnits) {
+                        if (!magicTile && this.room.hasHabbosAt(t.x, t.y)) {
+                            return FurnitureMovementError.TILE_HAS_HABBOS;
+                        }
+                        if (!magicTile && this.room.hasBotsAt(t.x, t.y)) {
+                            return FurnitureMovementError.TILE_HAS_BOTS;
+                        }
+                        if (!magicTile && this.room.hasPetsAt(t.x, t.y)) {
+                            return FurnitureMovementError.TILE_HAS_PETS;
                         }
                     }
                 }
@@ -570,6 +605,12 @@ final class RoomItemMovementService {
 
         if (!pluginHeight && cantStack) {
             return FurnitureMovementError.CANT_STACK;
+        }
+
+        if (oldLocation != null && (oldLocation.x != tile.x || oldLocation.y != tile.y)) {
+            item.setPreviousLocation(oldLocation);
+            item.setPreviousOccupiedTiles(oldOccupiedTiles);
+            item.setLastMoveTimestamp(System.currentTimeMillis());
         }
 
         item.setX(tile.x);
@@ -796,6 +837,12 @@ final class RoomItemMovementService {
             return FurnitureMovementError.CANT_STACK;
         }
 
+        if (oldLocation != null && (oldLocation.x != tile.x || oldLocation.y != tile.y)) {
+            item.setPreviousLocation(oldLocation);
+            item.setPreviousOccupiedTiles(oldOccupiedTiles);
+            item.setLastMoveTimestamp(System.currentTimeMillis());
+        }
+
         item.setX(tile.x);
         item.setY(tile.y);
         item.setZ(height);
@@ -902,13 +949,7 @@ final class RoomItemMovementService {
     }
 
     private boolean shouldCheckUnits(HabboItem item, boolean checkForUnits) {
-        if (!checkForUnits) {
-            return false;
-        }
-
-        return !item.isWalkable()
-                && !item.getBaseItem().allowSit()
-                && !item.getBaseItem().allowLay();
+        return checkForUnits;
     }
 
     private FurnitureMovementError getPhysicsUnitCollision(RoomTile tile, WiredMovementPhysics physics) {

@@ -2,8 +2,8 @@ package com.eu.habbo.habbohotel.rooms;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
-import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableEcho;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraFurniVariable;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableEcho;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.core.WiredEvent;
@@ -11,9 +11,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredVariableLevelSystemSupport;
 import com.eu.habbo.habbohotel.wired.core.WiredVariableTextConnectorSupport;
 import com.eu.habbo.messages.outgoing.wired.WiredUserVariablesDataComposer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -30,6 +27,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RoomFurniVariableManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(RoomFurniVariableManager.class);
@@ -38,7 +37,8 @@ public class RoomFurniVariableManager {
     private final RoomDependencies.ConnectionProvider database;
     private final ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, VariableAssignment>> activeAssignmentsByFurniId;
     private volatile boolean permanentAssignmentsLoaded;
-    private final java.util.concurrent.atomic.AtomicBoolean broadcastRequested = new java.util.concurrent.atomic.AtomicBoolean(false);
+    private final java.util.concurrent.atomic.AtomicBoolean broadcastRequested =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
 
     public RoomFurniVariableManager(Room room) {
         this(room, () -> Emulator.getDatabase().getDataSource().getConnection());
@@ -64,7 +64,8 @@ public class RoomFurniVariableManager {
             List<int[]> staleRows = new ArrayList<>();
 
             try (Connection connection = this.database.openConnection();
-                 PreparedStatement statement = connection.prepareStatement("SELECT furni_id, variable_item_id, value, created_at, updated_at FROM room_furni_wired_variables WHERE room_id = ?")) {
+                    PreparedStatement statement = connection.prepareStatement(
+                            "SELECT furni_id, variable_item_id, value, created_at, updated_at FROM room_furni_wired_variables WHERE room_id = ?")) {
                 statement.setInt(1, this.room.getId());
 
                 try (ResultSet set = statement.executeQuery()) {
@@ -75,7 +76,7 @@ public class RoomFurniVariableManager {
                         WiredExtraFurniVariable definition = this.getDefinition(definitionItemId);
 
                         if (furni == null || definition == null || !definition.isPermanentAvailability()) {
-                            staleRows.add(new int[]{furniId, definitionItemId});
+                            staleRows.add(new int[] {furniId, definitionItemId});
                             continue;
                         }
 
@@ -89,8 +90,8 @@ public class RoomFurniVariableManager {
                         int updatedAt = normalizeTimestamp(set.getInt("updated_at"), createdAt);
 
                         this.activeAssignmentsByFurniId
-                            .computeIfAbsent(furniId, key -> new ConcurrentHashMap<>())
-                            .put(definitionItemId, new VariableAssignment(value, createdAt, updatedAt));
+                                .computeIfAbsent(furniId, key -> new ConcurrentHashMap<>())
+                                .put(definitionItemId, new VariableAssignment(value, createdAt, updatedAt));
                     }
                 }
             } catch (SQLException e) {
@@ -105,7 +106,8 @@ public class RoomFurniVariableManager {
         }
     }
 
-    public boolean assignVariable(HabboItem furni, WiredExtraFurniVariable definition, Integer value, boolean overrideExisting) {
+    public boolean assignVariable(
+            HabboItem furni, WiredExtraFurniVariable definition, Integer value, boolean overrideExisting) {
         return definition != null && this.assignVariable(furni, definition.getId(), value, overrideExisting);
     }
 
@@ -121,16 +123,25 @@ public class RoomFurniVariableManager {
 
         InteractionWiredExtra extra = this.getDefinitionExtra(definitionItemId);
         boolean hadBefore = this.hasVariable(furni.getId(), definitionItemId);
-        Integer previousValue = (definitionInfo.hasValue() && hadBefore) ? this.getCurrentValue(furni.getId(), definitionItemId) : null;
+        Integer previousValue =
+                (definitionInfo.hasValue() && hadBefore) ? this.getCurrentValue(furni.getId(), definitionItemId) : null;
 
         if (extra instanceof WiredExtraVariableEcho) {
-            boolean changed = ((WiredExtraVariableEcho) extra).assignValue(this.room, furni.getId(), definitionInfo.hasValue() ? value : null, overrideExisting);
-            boolean shouldEmit = changed || (definitionInfo.hasValue() && hadBefore && overrideExisting && Objects.equals(previousValue, value));
+            boolean changed = ((WiredExtraVariableEcho) extra)
+                    .assignValue(this.room, furni.getId(), definitionInfo.hasValue() ? value : null, overrideExisting);
+            boolean shouldEmit = changed
+                    || (definitionInfo.hasValue()
+                            && hadBefore
+                            && overrideExisting
+                            && Objects.equals(previousValue, value));
 
             if (shouldEmit) {
                 boolean hasAfter = this.hasVariable(furni.getId(), definitionItemId);
-                Integer currentValue = (definitionInfo.hasValue() && hasAfter) ? this.getCurrentValue(furni.getId(), definitionItemId) : null;
-                this.emitVariableChangedEvents(furni.getId(), extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
+                Integer currentValue = (definitionInfo.hasValue() && hasAfter)
+                        ? this.getCurrentValue(furni.getId(), definitionItemId)
+                        : null;
+                this.emitVariableChangedEvents(
+                        furni.getId(), extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
             }
 
             if (changed) {
@@ -149,7 +160,8 @@ public class RoomFurniVariableManager {
 
         int furniId = furni.getId();
         Integer normalizedValue = definition.hasValue() ? value : null;
-        ConcurrentHashMap<Integer, VariableAssignment> assignments = this.activeAssignmentsByFurniId.computeIfAbsent(furniId, key -> new ConcurrentHashMap<>());
+        ConcurrentHashMap<Integer, VariableAssignment> assignments =
+                this.activeAssignmentsByFurniId.computeIfAbsent(furniId, key -> new ConcurrentHashMap<>());
         VariableAssignment existingAssignment = assignments.get(definitionItemId);
 
         if (existingAssignment != null && !overrideExisting) {
@@ -157,7 +169,8 @@ public class RoomFurniVariableManager {
         }
 
         boolean overwritten = existingAssignment != null && overrideExisting;
-        boolean valueChanged = existingAssignment == null || !Objects.equals(existingAssignment.getValue(), normalizedValue);
+        boolean valueChanged =
+                existingAssignment == null || !Objects.equals(existingAssignment.getValue(), normalizedValue);
         boolean changed = overwritten || valueChanged;
 
         if (existingAssignment == null || overwritten) {
@@ -173,10 +186,16 @@ public class RoomFurniVariableManager {
             this.deletePersistentAssignment(furniId, definitionItemId);
         }
 
-        if (changed || (definitionInfo.hasValue() && hadBefore && overrideExisting && Objects.equals(previousValue, normalizedValue))) {
+        if (changed
+                || (definitionInfo.hasValue()
+                        && hadBefore
+                        && overrideExisting
+                        && Objects.equals(previousValue, normalizedValue))) {
             boolean hasAfter = this.hasVariable(furniId, definitionItemId);
-            Integer currentValue = (definitionInfo.hasValue() && hasAfter) ? this.getCurrentValue(furniId, definitionItemId) : null;
-            this.emitVariableChangedEvents(furniId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
+            Integer currentValue =
+                    (definitionInfo.hasValue() && hasAfter) ? this.getCurrentValue(furniId, definitionItemId) : null;
+            this.emitVariableChangedEvents(
+                    furniId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
         }
 
         if (changed) {
@@ -205,7 +224,8 @@ public class RoomFurniVariableManager {
             if (shouldEmit) {
                 boolean hasAfter = this.hasVariable(furniId, definitionItemId);
                 Integer currentValue = hasAfter ? this.getCurrentValue(furniId, definitionItemId) : null;
-                this.emitVariableChangedEvents(furniId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
+                this.emitVariableChangedEvents(
+                        furniId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
             }
 
             if (changed) {
@@ -236,7 +256,8 @@ public class RoomFurniVariableManager {
         }
 
         if (Objects.equals(assignment.getValue(), value)) {
-            this.emitVariableChangedEvents(furniId, extra, definitionInfo, true, previousValue, true, assignment.getValue());
+            this.emitVariableChangedEvents(
+                    furniId, extra, definitionInfo, true, previousValue, true, assignment.getValue());
             return false;
         }
 
@@ -246,7 +267,8 @@ public class RoomFurniVariableManager {
             this.upsertPersistentAssignment(furniId, definitionItemId, assignment);
         }
 
-        this.emitVariableChangedEvents(furniId, extra, definitionInfo, hadBefore, previousValue, true, assignment.getValue());
+        this.emitVariableChangedEvents(
+                furniId, extra, definitionInfo, hadBefore, previousValue, true, assignment.getValue());
         if (extra != null) {
             extra.activateBox(this.room);
         }
@@ -261,10 +283,13 @@ public class RoomFurniVariableManager {
             return 0;
         }
 
-        WiredVariableLevelSystemSupport.DerivedDefinition derivedDefinition = WiredVariableLevelSystemSupport.resolveDerivedDefinition(this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, definitionItemId);
+        WiredVariableLevelSystemSupport.DerivedDefinition derivedDefinition =
+                WiredVariableLevelSystemSupport.resolveDerivedDefinition(
+                        this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, definitionItemId);
         if (derivedDefinition != null) {
             Integer baseValue = this.getRawValue(furniId, derivedDefinition.getBaseDefinitionItemId());
-            Integer derivedValue = WiredVariableLevelSystemSupport.getDerivedValue(derivedDefinition.getLevelSystem(), derivedDefinition.getSubvariableType(), baseValue);
+            Integer derivedValue = WiredVariableLevelSystemSupport.getDerivedValue(
+                    derivedDefinition.getLevelSystem(), derivedDefinition.getSubvariableType(), baseValue);
             return (derivedValue != null) ? derivedValue : 0;
         }
 
@@ -295,7 +320,9 @@ public class RoomFurniVariableManager {
             return 0;
         }
 
-        WiredVariableLevelSystemSupport.DerivedDefinition derivedDefinition = WiredVariableLevelSystemSupport.resolveDerivedDefinition(this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, definitionItemId);
+        WiredVariableLevelSystemSupport.DerivedDefinition derivedDefinition =
+                WiredVariableLevelSystemSupport.resolveDerivedDefinition(
+                        this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, definitionItemId);
         if (derivedDefinition != null) {
             VariableAssignment assignment = this.getRawAssignment(furniId, derivedDefinition.getBaseDefinitionItemId());
             return (assignment != null) ? assignment.getCreatedAt() : 0;
@@ -323,7 +350,9 @@ public class RoomFurniVariableManager {
             return 0;
         }
 
-        WiredVariableLevelSystemSupport.DerivedDefinition derivedDefinition = WiredVariableLevelSystemSupport.resolveDerivedDefinition(this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, definitionItemId);
+        WiredVariableLevelSystemSupport.DerivedDefinition derivedDefinition =
+                WiredVariableLevelSystemSupport.resolveDerivedDefinition(
+                        this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, definitionItemId);
         if (derivedDefinition != null) {
             VariableAssignment assignment = this.getRawAssignment(furniId, derivedDefinition.getBaseDefinitionItemId());
             return (assignment != null) ? assignment.getUpdatedAt() : 0;
@@ -351,7 +380,9 @@ public class RoomFurniVariableManager {
             return false;
         }
 
-        WiredVariableLevelSystemSupport.DerivedDefinition derivedDefinition = WiredVariableLevelSystemSupport.resolveDerivedDefinition(this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, definitionItemId);
+        WiredVariableLevelSystemSupport.DerivedDefinition derivedDefinition =
+                WiredVariableLevelSystemSupport.resolveDerivedDefinition(
+                        this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, definitionItemId);
         if (derivedDefinition != null) {
             return this.getRawAssignment(furniId, derivedDefinition.getBaseDefinitionItemId()) != null;
         }
@@ -379,7 +410,8 @@ public class RoomFurniVariableManager {
         }
 
         boolean hadBefore = this.hasVariable(furniId, definitionItemId);
-        Integer previousValue = (definitionInfo.hasValue() && hadBefore) ? this.getCurrentValue(furniId, definitionItemId) : null;
+        Integer previousValue =
+                (definitionInfo.hasValue() && hadBefore) ? this.getCurrentValue(furniId, definitionItemId) : null;
 
         InteractionWiredExtra extra = this.getDefinitionExtra(definitionItemId);
         if (extra instanceof WiredExtraVariableEcho) {
@@ -387,8 +419,11 @@ public class RoomFurniVariableManager {
 
             if (changed) {
                 boolean hasAfter = this.hasVariable(furniId, definitionItemId);
-                Integer currentValue = (definitionInfo.hasValue() && hasAfter) ? this.getCurrentValue(furniId, definitionItemId) : null;
-                this.emitVariableChangedEvents(furniId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
+                Integer currentValue = (definitionInfo.hasValue() && hasAfter)
+                        ? this.getCurrentValue(furniId, definitionItemId)
+                        : null;
+                this.emitVariableChangedEvents(
+                        furniId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
             }
 
             if (changed) {
@@ -439,7 +474,8 @@ public class RoomFurniVariableManager {
 
         boolean changed = false;
 
-        for (Map.Entry<Integer, ConcurrentHashMap<Integer, VariableAssignment>> entry : this.activeAssignmentsByFurniId.entrySet()) {
+        for (Map.Entry<Integer, ConcurrentHashMap<Integer, VariableAssignment>> entry :
+                this.activeAssignmentsByFurniId.entrySet()) {
             ConcurrentHashMap<Integer, VariableAssignment> assignments = entry.getValue();
 
             for (Integer definitionItemId : new ArrayList<>(assignments.keySet())) {
@@ -469,7 +505,8 @@ public class RoomFurniVariableManager {
 
         boolean changed = false;
 
-        for (Map.Entry<Integer, ConcurrentHashMap<Integer, VariableAssignment>> entry : this.activeAssignmentsByFurniId.entrySet()) {
+        for (Map.Entry<Integer, ConcurrentHashMap<Integer, VariableAssignment>> entry :
+                this.activeAssignmentsByFurniId.entrySet()) {
             ConcurrentHashMap<Integer, VariableAssignment> assignments = entry.getValue();
 
             if (assignments.remove(definitionItemId) != null) {
@@ -495,7 +532,8 @@ public class RoomFurniVariableManager {
         if (!definition.isPermanentAvailability()) {
             this.deletePersistentAssignmentsForDefinition(definition.getId());
         } else {
-            for (Map.Entry<Integer, ConcurrentHashMap<Integer, VariableAssignment>> entry : this.activeAssignmentsByFurniId.entrySet()) {
+            for (Map.Entry<Integer, ConcurrentHashMap<Integer, VariableAssignment>> entry :
+                    this.activeAssignmentsByFurniId.entrySet()) {
                 VariableAssignment assignment = entry.getValue().get(definition.getId());
 
                 if (assignment == null) continue;
@@ -516,11 +554,19 @@ public class RoomFurniVariableManager {
         List<WiredExtraVariableEcho> furniEchoes = this.getFurniEchoes();
 
         for (WiredVariableDefinitionInfo definition : this.getAllDefinitionInfos()) {
-            DefinitionEntry entry = new DefinitionEntry(definition.getItemId(), definition.getName(), definition.hasValue(), definition.getAvailability(), definition.isTextConnected(), definition.isReadOnly());
+            DefinitionEntry entry = new DefinitionEntry(
+                    definition.getItemId(),
+                    definition.getName(),
+                    definition.hasValue(),
+                    definition.getAvailability(),
+                    definition.isTextConnected(),
+                    definition.isReadOnly());
             definitions.add(entry);
             definitionsById.put(entry.getItemId(), entry);
 
-            if (WiredVariableLevelSystemSupport.resolveDerivedDefinition(this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, definition.getItemId()) != null) {
+            if (WiredVariableLevelSystemSupport.resolveDerivedDefinition(
+                            this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, definition.getItemId())
+                    != null) {
                 derivedDefinitionIds.add(definition.getItemId());
             }
         }
@@ -543,7 +589,8 @@ public class RoomFurniVariableManager {
             }
 
             List<AssignmentEntry> assignments = new ArrayList<>();
-            ConcurrentHashMap<Integer, VariableAssignment> localAssignments = this.activeAssignmentsByFurniId.get(furniId);
+            ConcurrentHashMap<Integer, VariableAssignment> localAssignments =
+                    this.activeAssignmentsByFurniId.get(furniId);
 
             if (localAssignments != null) {
                 for (Map.Entry<Integer, VariableAssignment> assignmentEntry : localAssignments.entrySet()) {
@@ -552,11 +599,10 @@ public class RoomFurniVariableManager {
                     }
 
                     assignments.add(new AssignmentEntry(
-                        assignmentEntry.getKey(),
-                        assignmentEntry.getValue().getValue(),
-                        assignmentEntry.getValue().getCreatedAt(),
-                        assignmentEntry.getValue().getUpdatedAt()
-                    ));
+                            assignmentEntry.getKey(),
+                            assignmentEntry.getValue().getValue(),
+                            assignmentEntry.getValue().getCreatedAt(),
+                            assignmentEntry.getValue().getUpdatedAt()));
                 }
             }
 
@@ -566,11 +612,10 @@ public class RoomFurniVariableManager {
                 }
 
                 assignments.add(new AssignmentEntry(
-                    echo.getId(),
-                    echo.getCurrentValue(this.room, furniId),
-                    echo.getCreatedAt(this.room, furniId),
-                    echo.getUpdatedAt(this.room, furniId)
-                ));
+                        echo.getId(),
+                        echo.getCurrentValue(this.room, furniId),
+                        echo.getCreatedAt(this.room, furniId),
+                        echo.getUpdatedAt(this.room, furniId)));
             }
 
             for (Integer derivedDefinitionId : derivedDefinitionIds) {
@@ -579,11 +624,10 @@ public class RoomFurniVariableManager {
                 }
 
                 assignments.add(new AssignmentEntry(
-                    derivedDefinitionId,
-                    this.getCurrentValue(furniId, derivedDefinitionId),
-                    this.getCreatedAt(furniId, derivedDefinitionId),
-                    this.getUpdatedAt(furniId, derivedDefinitionId)
-                ));
+                        derivedDefinitionId,
+                        this.getCurrentValue(furniId, derivedDefinitionId),
+                        this.getCreatedAt(furniId, derivedDefinitionId),
+                        this.getUpdatedAt(furniId, derivedDefinitionId)));
             }
 
             assignments.sort(Comparator.comparingInt(AssignmentEntry::getVariableItemId));
@@ -616,8 +660,7 @@ public class RoomFurniVariableManager {
                 continue;
             }
 
-            ConcurrentHashMap<Integer, VariableAssignment> assignments =
-                    this.activeAssignmentsByFurniId.get(furniId);
+            ConcurrentHashMap<Integer, VariableAssignment> assignments = this.activeAssignmentsByFurniId.get(furniId);
             if (assignments == null || assignments.isEmpty()) {
                 continue;
             }
@@ -696,17 +739,24 @@ public class RoomFurniVariableManager {
             return;
         }
 
-        habbo.getClient().sendResponse(new WiredUserVariablesDataComposer(this.room.getUserVariableManager().createSnapshot(), this.createSnapshot(), this.room.getRoomVariableManager().createSnapshot()));
+        habbo.getClient()
+                .sendResponse(new WiredUserVariablesDataComposer(
+                        this.room.getUserVariableManager().createSnapshot(),
+                        this.createSnapshot(),
+                        this.room.getRoomVariableManager().createSnapshot()));
     }
 
     public void requestBroadcast() {
         if (this.broadcastRequested.compareAndSet(false, true)) {
-            Emulator.getThreading().run(() -> {
-                this.broadcastRequested.set(false);
-                if (this.room.isLoaded()) {
-                    this.broadcastSnapshotRaw();
-                }
-            }, 50);
+            Emulator.getThreading()
+                    .run(
+                            () -> {
+                                this.broadcastRequested.set(false);
+                                if (this.room.isLoaded()) {
+                                    this.broadcastSnapshotRaw();
+                                }
+                            },
+                            50);
         }
     }
 
@@ -715,16 +765,19 @@ public class RoomFurniVariableManager {
     }
 
     public void broadcastSnapshotRaw() {
-        RoomUserVariableManager.Snapshot userSnapshot = this.room.getUserVariableManager().createSnapshot();
+        RoomUserVariableManager.Snapshot userSnapshot =
+                this.room.getUserVariableManager().createSnapshot();
         Snapshot furniSnapshot = this.createSnapshot();
-        RoomVariableManager.Snapshot roomSnapshot = this.room.getRoomVariableManager().createSnapshot();
+        RoomVariableManager.Snapshot roomSnapshot =
+                this.room.getRoomVariableManager().createSnapshot();
 
         for (Habbo habbo : this.room.getCurrentHabbos().values()) {
             if (habbo == null || habbo.getClient() == null || !this.room.canInspectWired(habbo)) {
                 continue;
             }
 
-            habbo.getClient().sendResponse(new WiredUserVariablesDataComposer(userSnapshot, furniSnapshot, roomSnapshot));
+            habbo.getClient()
+                    .sendResponse(new WiredUserVariablesDataComposer(userSnapshot, furniSnapshot, roomSnapshot));
         }
     }
 
@@ -733,7 +786,8 @@ public class RoomFurniVariableManager {
             return Collections.emptyList();
         }
 
-        Collection<InteractionWiredExtra> extras = this.room.getRoomSpecialTypes().getExtras();
+        Collection<InteractionWiredExtra> extras =
+                this.room.getRoomSpecialTypes().getExtras();
         List<WiredExtraFurniVariable> result = new ArrayList<>();
 
         for (InteractionWiredExtra extra : extras) {
@@ -748,7 +802,8 @@ public class RoomFurniVariableManager {
             }
         }
 
-        result.sort(Comparator.comparing(WiredExtraFurniVariable::getVariableName, String.CASE_INSENSITIVE_ORDER).thenComparingInt(WiredExtraFurniVariable::getId));
+        result.sort(Comparator.comparing(WiredExtraFurniVariable::getVariableName, String.CASE_INSENSITIVE_ORDER)
+                .thenComparingInt(WiredExtraFurniVariable::getId));
         return result;
     }
 
@@ -758,13 +813,12 @@ public class RoomFurniVariableManager {
 
         for (WiredExtraFurniVariable definition : this.getDefinitions()) {
             baseDefinitions.add(new WiredVariableDefinitionInfo(
-                definition.getId(),
-                definition.getVariableName(),
-                definition.hasValue(),
-                definition.getAvailability(),
-                WiredVariableTextConnectorSupport.isTextConnected(this.room, definition),
-                false
-            ));
+                    definition.getId(),
+                    definition.getVariableName(),
+                    definition.hasValue(),
+                    definition.getAvailability(),
+                    WiredVariableTextConnectorSupport.isTextConnected(this.room, definition),
+                    false));
         }
 
         for (WiredExtraVariableEcho echo : this.getFurniEchoes()) {
@@ -774,10 +828,15 @@ public class RoomFurniVariableManager {
         result.addAll(baseDefinitions);
 
         for (WiredVariableDefinitionInfo definition : baseDefinitions) {
-            result.addAll(WiredVariableLevelSystemSupport.getDerivedDefinitions(this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, this.getDefinitionExtra(definition.getItemId()), definition));
+            result.addAll(WiredVariableLevelSystemSupport.getDerivedDefinitions(
+                    this.room,
+                    WiredVariableLevelSystemSupport.TARGET_FURNI,
+                    this.getDefinitionExtra(definition.getItemId()),
+                    definition));
         }
 
-        result.sort(Comparator.comparing(WiredVariableDefinitionInfo::getName, String.CASE_INSENSITIVE_ORDER).thenComparingInt(WiredVariableDefinitionInfo::getItemId));
+        result.sort(Comparator.comparing(WiredVariableDefinitionInfo::getName, String.CASE_INSENSITIVE_ORDER)
+                .thenComparingInt(WiredVariableDefinitionInfo::getItemId));
         return result;
     }
 
@@ -796,13 +855,12 @@ public class RoomFurniVariableManager {
             }
 
             return new WiredVariableDefinitionInfo(
-                definition.getId(),
-                definition.getVariableName(),
-                definition.hasValue(),
-                definition.getAvailability(),
-                WiredVariableTextConnectorSupport.isTextConnected(this.room, definition),
-                false
-            );
+                    definition.getId(),
+                    definition.getVariableName(),
+                    definition.hasValue(),
+                    definition.getAvailability(),
+                    WiredVariableTextConnectorSupport.isTextConnected(this.room, definition),
+                    false);
         }
 
         if (extra instanceof WiredExtraVariableEcho && ((WiredExtraVariableEcho) extra).isFurniEcho()) {
@@ -810,7 +868,8 @@ public class RoomFurniVariableManager {
             return (info != null && hasVisibleDefinitionName(info.getName())) ? info : null;
         }
 
-        return WiredVariableLevelSystemSupport.getDerivedDefinitionInfo(this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, definitionItemId);
+        return WiredVariableLevelSystemSupport.getDerivedDefinitionInfo(
+                this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, definitionItemId);
     }
 
     private WiredExtraFurniVariable getDefinition(int definitionItemId) {
@@ -850,7 +909,8 @@ public class RoomFurniVariableManager {
             }
         }
 
-        result.sort(Comparator.comparing(WiredExtraVariableEcho::getVariableName, String.CASE_INSENSITIVE_ORDER).thenComparingInt(WiredExtraVariableEcho::getId));
+        result.sort(Comparator.comparing(WiredExtraVariableEcho::getVariableName, String.CASE_INSENSITIVE_ORDER)
+                .thenComparingInt(WiredExtraVariableEcho::getId));
         return result;
     }
 
@@ -870,7 +930,10 @@ public class RoomFurniVariableManager {
                 return null;
             }
 
-            return new VariableAssignment(echo.getCurrentValue(this.room, furniId), echo.getCreatedAt(this.room, furniId), echo.getUpdatedAt(this.room, furniId));
+            return new VariableAssignment(
+                    echo.getCurrentValue(this.room, furniId),
+                    echo.getCreatedAt(this.room, furniId),
+                    echo.getUpdatedAt(this.room, furniId));
         }
 
         ConcurrentHashMap<Integer, VariableAssignment> assignments = this.activeAssignmentsByFurniId.get(furniId);
@@ -882,35 +945,69 @@ public class RoomFurniVariableManager {
         return (assignment != null) ? assignment.getValue() : null;
     }
 
-    private void emitVariableChangedEvents(int furniId, InteractionWiredExtra definitionExtra, WiredVariableDefinitionInfo definitionInfo, boolean existedBefore, Integer previousValue, boolean existsAfter, Integer currentValue) {
+    private void emitVariableChangedEvents(
+            int furniId,
+            InteractionWiredExtra definitionExtra,
+            WiredVariableDefinitionInfo definitionInfo,
+            boolean existedBefore,
+            Integer previousValue,
+            boolean existsAfter,
+            Integer currentValue) {
         if (definitionInfo == null) {
             return;
         }
 
-        this.emitVariableChangedEvent(furniId, definitionInfo.getItemId(), definitionInfo.hasValue(), existedBefore, previousValue, existsAfter, currentValue);
+        this.emitVariableChangedEvent(
+                furniId,
+                definitionInfo.getItemId(),
+                definitionInfo.hasValue(),
+                existedBefore,
+                previousValue,
+                existsAfter,
+                currentValue);
 
-        for (WiredVariableDefinitionInfo derivedDefinition : WiredVariableLevelSystemSupport.getDerivedDefinitions(this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, definitionExtra, definitionInfo)) {
-            WiredVariableLevelSystemSupport.DerivedDefinition resolvedDefinition = WiredVariableLevelSystemSupport.resolveDerivedDefinition(this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, derivedDefinition.getItemId());
+        for (WiredVariableDefinitionInfo derivedDefinition : WiredVariableLevelSystemSupport.getDerivedDefinitions(
+                this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, definitionExtra, definitionInfo)) {
+            WiredVariableLevelSystemSupport.DerivedDefinition resolvedDefinition =
+                    WiredVariableLevelSystemSupport.resolveDerivedDefinition(
+                            this.room, WiredVariableLevelSystemSupport.TARGET_FURNI, derivedDefinition.getItemId());
 
             if (resolvedDefinition == null) {
                 continue;
             }
 
             Integer derivedPreviousValue = existedBefore
-                    ? WiredVariableLevelSystemSupport.getDerivedValue(resolvedDefinition.getLevelSystem(), resolvedDefinition.getSubvariableType(), previousValue)
+                    ? WiredVariableLevelSystemSupport.getDerivedValue(
+                            resolvedDefinition.getLevelSystem(), resolvedDefinition.getSubvariableType(), previousValue)
                     : null;
             Integer derivedCurrentValue = existsAfter
-                    ? WiredVariableLevelSystemSupport.getDerivedValue(resolvedDefinition.getLevelSystem(), resolvedDefinition.getSubvariableType(), currentValue)
+                    ? WiredVariableLevelSystemSupport.getDerivedValue(
+                            resolvedDefinition.getLevelSystem(), resolvedDefinition.getSubvariableType(), currentValue)
                     : null;
 
-            this.emitVariableChangedEvent(furniId, derivedDefinition.getItemId(), true, existedBefore, derivedPreviousValue, existsAfter, derivedCurrentValue);
+            this.emitVariableChangedEvent(
+                    furniId,
+                    derivedDefinition.getItemId(),
+                    true,
+                    existedBefore,
+                    derivedPreviousValue,
+                    existsAfter,
+                    derivedCurrentValue);
         }
     }
 
-    private void emitVariableChangedEvent(int furniId, int definitionItemId, boolean hasValue, boolean existedBefore, Integer previousValue, boolean existsAfter, Integer currentValue) {
+    private void emitVariableChangedEvent(
+            int furniId,
+            int definitionItemId,
+            boolean hasValue,
+            boolean existedBefore,
+            Integer previousValue,
+            boolean existsAfter,
+            Integer currentValue) {
         boolean created = !existedBefore && existsAfter;
         boolean deleted = existedBefore && !existsAfter;
-        WiredEvent.VariableChangeKind changeKind = resolveVariableChangeKind(hasValue, existedBefore, previousValue, existsAfter, currentValue);
+        WiredEvent.VariableChangeKind changeKind =
+                resolveVariableChangeKind(hasValue, existedBefore, previousValue, existsAfter, currentValue);
 
         if (!created && !deleted && changeKind == WiredEvent.VariableChangeKind.NONE) {
             return;
@@ -919,7 +1016,8 @@ public class RoomFurniVariableManager {
         WiredManager.triggerFurniVariableChanged(this.room, furniId, definitionItemId, created, deleted, changeKind);
     }
 
-    private static WiredEvent.VariableChangeKind resolveVariableChangeKind(boolean hasValue, boolean existedBefore, Integer previousValue, boolean existsAfter, Integer currentValue) {
+    private static WiredEvent.VariableChangeKind resolveVariableChangeKind(
+            boolean hasValue, boolean existedBefore, Integer previousValue, boolean existsAfter, Integer currentValue) {
         if (!hasValue || !existedBefore || !existsAfter) {
             return WiredEvent.VariableChangeKind.NONE;
         }
@@ -938,7 +1036,8 @@ public class RoomFurniVariableManager {
 
     private void upsertPersistentAssignment(int furniId, int definitionItemId, VariableAssignment assignment) {
         try (Connection connection = this.database.openConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO room_furni_wired_variables (room_id, furni_id, variable_item_id, value, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at)")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "INSERT INTO room_furni_wired_variables (room_id, furni_id, variable_item_id, value, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at)")) {
             statement.setInt(1, this.room.getId());
             statement.setInt(2, furniId);
             statement.setInt(3, definitionItemId);
@@ -955,41 +1054,62 @@ public class RoomFurniVariableManager {
 
             statement.executeUpdate();
         } catch (SQLException e) {
-            LOGGER.error("Failed to store permanent wired furni variable for room {}, furni {}, item {}", this.room.getId(), furniId, definitionItemId, e);
+            LOGGER.error(
+                    "Failed to store permanent wired furni variable for room {}, furni {}, item {}",
+                    this.room.getId(),
+                    furniId,
+                    definitionItemId,
+                    e);
         }
     }
 
     private void deletePersistentAssignment(int furniId, int definitionItemId) {
         try (Connection connection = this.database.openConnection();
-             PreparedStatement statement = connection.prepareStatement("DELETE FROM room_furni_wired_variables WHERE room_id = ? AND furni_id = ? AND variable_item_id = ?")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "DELETE FROM room_furni_wired_variables WHERE room_id = ? AND furni_id = ? AND variable_item_id = ?")) {
             statement.setInt(1, this.room.getId());
             statement.setInt(2, furniId);
             statement.setInt(3, definitionItemId);
             statement.executeUpdate();
         } catch (SQLException e) {
-            LOGGER.error("Failed to delete permanent wired furni variable for room {}, furni {}, item {}", this.room.getId(), furniId, definitionItemId, e);
+            LOGGER.error(
+                    "Failed to delete permanent wired furni variable for room {}, furni {}, item {}",
+                    this.room.getId(),
+                    furniId,
+                    definitionItemId,
+                    e);
         }
     }
 
     private void deletePersistentAssignmentsForDefinition(int definitionItemId) {
         try (Connection connection = this.database.openConnection();
-             PreparedStatement statement = connection.prepareStatement("DELETE FROM room_furni_wired_variables WHERE room_id = ? AND variable_item_id = ?")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "DELETE FROM room_furni_wired_variables WHERE room_id = ? AND variable_item_id = ?")) {
             statement.setInt(1, this.room.getId());
             statement.setInt(2, definitionItemId);
             statement.executeUpdate();
         } catch (SQLException e) {
-            LOGGER.error("Failed to delete permanent wired furni variables for room {} and item {}", this.room.getId(), definitionItemId, e);
+            LOGGER.error(
+                    "Failed to delete permanent wired furni variables for room {} and item {}",
+                    this.room.getId(),
+                    definitionItemId,
+                    e);
         }
     }
 
     private void deletePersistentAssignmentsForFurni(int furniId) {
         try (Connection connection = this.database.openConnection();
-             PreparedStatement statement = connection.prepareStatement("DELETE FROM room_furni_wired_variables WHERE room_id = ? AND furni_id = ?")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "DELETE FROM room_furni_wired_variables WHERE room_id = ? AND furni_id = ?")) {
             statement.setInt(1, this.room.getId());
             statement.setInt(2, furniId);
             statement.executeUpdate();
         } catch (SQLException e) {
-            LOGGER.error("Failed to delete permanent wired furni variables for room {} and furni {}", this.room.getId(), furniId, e);
+            LOGGER.error(
+                    "Failed to delete permanent wired furni variables for room {} and furni {}",
+                    this.room.getId(),
+                    furniId,
+                    e);
         }
     }
 
@@ -1029,7 +1149,8 @@ public class RoomFurniVariableManager {
         private final boolean textConnected;
         private final boolean readOnly;
 
-        public DefinitionEntry(int itemId, String name, boolean hasValue, int availability, boolean textConnected, boolean readOnly) {
+        public DefinitionEntry(
+                int itemId, String name, boolean hasValue, int availability, boolean textConnected, boolean readOnly) {
             this.itemId = itemId;
             this.name = name;
             this.hasValue = hasValue;
@@ -1132,7 +1253,7 @@ public class RoomFurniVariableManager {
 
         public void setValue(Integer value, int updatedAt) {
             this.value = value;
-            this.updatedAt = updatedAt;
+            this.updatedAt = Math.max(updatedAt, this.updatedAt + 1);
         }
 
         public int getCreatedAt() {

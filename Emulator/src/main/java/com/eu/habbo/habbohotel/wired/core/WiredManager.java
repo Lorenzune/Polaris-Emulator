@@ -136,9 +136,8 @@ public final class WiredManager {
         int maxSteps = Emulator.getConfig().getInt(CONFIG_MAX_STEPS, DEFAULT_MAX_STEPS);
         boolean debug = Emulator.getConfig().getBoolean(CONFIG_DEBUG, false);
 
-        // Load additional configuration
-        MAXIMUM_FURNI_SELECTION = Emulator.getConfig().getInt("hotel.wired.furni.selection.count", 5);
-        TELEPORT_DELAY = Emulator.getConfig().getInt("wired.effect.teleport.delay", 500);
+        // Load the remaining configurable wired limits.
+        MAXIMUM_FURNI_SELECTION = Emulator.getConfig().getInt("hotel.wired.furni.selection.count", 20);
 
         // Apply the configured value on every runtime generation so an in-process restart cannot
         // inherit debug mode from the previous generation.
@@ -327,9 +326,8 @@ public final class WiredManager {
         }
 
         boolean handled = false;
-        WiredRoomUpdateScope visualUpdateScope = shouldBatchVisualUpdatesForRoot(event)
-                ? WiredRoomUpdateScope.batchVisualUpdates()
-                : null;
+        WiredRoomUpdateScope visualUpdateScope =
+                shouldBatchVisualUpdatesForRoot(event) ? WiredRoomUpdateScope.batchVisualUpdates() : null;
 
         try {
             handled = engine.handleEvent(event, negateConditions);
@@ -719,11 +717,15 @@ public final class WiredManager {
      * Trigger bot collision.
      */
     public static boolean triggerBotCollision(Room room, RoomUnit botUnit) {
+        return triggerBotCollision(room, botUnit, null);
+    }
+
+    public static boolean triggerBotCollision(Room room, RoomUnit botUnit, HabboItem item) {
         if (!isEnabled() || room == null || botUnit == null) {
             return false;
         }
 
-        WiredEvent event = WiredEvents.botCollision(room, botUnit);
+        WiredEvent event = WiredEvents.botCollision(room, botUnit, item);
         return handleEvent(event);
     }
 
@@ -956,10 +958,14 @@ public final class WiredManager {
     // ========== Configuration Constants (moved from WiredHandler) ==========
 
     /** Maximum number of furniture items that can be selected in a single wired component */
-    public static volatile int MAXIMUM_FURNI_SELECTION = 5;
+    public static volatile int MAXIMUM_FURNI_SELECTION = 20;
 
-    /** Delay in milliseconds between teleport executions */
-    public static volatile int TELEPORT_DELAY = 500;
+    /**
+     * Released compatibility field; runtime teleport code uses
+     * {@link WiredTeleportTiming} and never reads this value.
+     */
+    @Deprecated
+    public static volatile int TELEPORT_DELAY = WiredTeleportTiming.NORMAL_DELAY_MS;
 
     // ========== Debug Mode ==========
 

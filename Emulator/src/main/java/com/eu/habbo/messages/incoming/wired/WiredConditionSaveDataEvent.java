@@ -19,8 +19,9 @@ public class WiredConditionSaveDataEvent extends MessageHandler {
         Room room = this.client.getHabbo().getHabboInfo().getCurrentRoom();
 
         if (room != null) {
-            if (room.canModifyWired(this.client.getHabbo())) {
-                InteractionWiredCondition condition = room.getRoomSpecialTypes().getCondition(itemId);
+            InteractionWiredCondition condition = room.getRoomSpecialTypes().getCondition(itemId);
+
+            if (room.canModifyWired(this.client.getHabbo(), condition)) {
 
                 if (condition != null) {
                     boolean saved;

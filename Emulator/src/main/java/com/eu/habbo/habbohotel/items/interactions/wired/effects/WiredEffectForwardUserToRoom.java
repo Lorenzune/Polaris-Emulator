@@ -16,7 +16,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.rooms.ForwardToRoomComposer;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -34,7 +33,7 @@ import java.util.List;
  * not a URL/in-client link.
  */
 public class WiredEffectForwardUserToRoom extends InteractionWiredEffect {
-    public static final WiredEffectType type = WiredEffectType.SHOW_MESSAGE;
+    public static final WiredEffectType type = WiredEffectType.TELEPORT_TO_ROOM;
 
     private String roomIdText = "";
     private int userSource = WiredSourceUtil.SOURCE_TRIGGER;
@@ -43,7 +42,8 @@ public class WiredEffectForwardUserToRoom extends InteractionWiredEffect {
         super(set, baseItem);
     }
 
-    public WiredEffectForwardUserToRoom(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredEffectForwardUserToRoom(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 

@@ -108,6 +108,14 @@ public final class ConfigRegistry {
                 "habbo.console.style");
         add(
                 keys,
+                ConfigKey.ValueType.STRING,
+                "",
+                true,
+                "voice.chat.livekit.url",
+                "voice.chat.livekit.api.key",
+                "voice.chat.livekit.api.secret");
+        add(
+                keys,
                 ConfigKey.ValueType.INTEGER,
                 "0",
                 true,
@@ -222,6 +230,9 @@ public final class ConfigRegistry {
             case "rcon.host" -> "RCON_HOST";
             case "rcon.port" -> "RCON_PORT";
             case "rcon.allowed" -> "RCON_ALLOWED";
+            case "voice.chat.livekit.url" -> "LIVEKIT_URL";
+            case "voice.chat.livekit.api.key" -> "LIVEKIT_API_KEY";
+            case "voice.chat.livekit.api.secret" -> "LIVEKIT_API_SECRET";
             default -> "";
         };
     }
@@ -265,6 +276,9 @@ public final class ConfigRegistry {
         }
         if (name.startsWith("ws.") || name.startsWith("crypto.ws.")) {
             return "WebSocket listener setting.";
+        }
+        if (name.startsWith("voice.chat.livekit.")) {
+            return "LiveKit voice-chat server setting; API secret must remain server-side.";
         }
         if (name.startsWith("enc.")) {
             return "Legacy transport encryption setting.";

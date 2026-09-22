@@ -86,7 +86,6 @@ This allows safe rollout during migration.
 | `hotel.wired.furni.selection.count` | `5` | Maximum furni count selectable/storable by wired boxes. |
 | `hotel.wired.max_delay` | `20` | Maximum accepted wired delay value for delayed effects. |
 | `hotel.wired.message.max_length` | `100` | Maximum length of wired/bot text fields. |
-| `wired.effect.teleport.delay` | `500` | Delay in milliseconds used by wired teleports. |
 | `wired.place.under` | `0` | Allows wired furniture placement under other items. |
 | `wired.tick.interval.ms` | `50` | Global tick interval in milliseconds for repeater-style wired. |
 | `wired.tick.resolution` | `100` | Legacy compatibility tick resolution value. |

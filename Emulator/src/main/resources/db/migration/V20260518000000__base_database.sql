@@ -30115,7 +30115,7 @@ CREATE TABLE `rooms` (
   `jukebox_active` enum('0','1') NOT NULL DEFAULT '0',
   `hidewired` enum('0','1') NOT NULL DEFAULT '0',
   `is_forsale` enum('0','1','2') NOT NULL DEFAULT '0',
-  `youtube_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `youtube_enabled` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`) USING BTREE,
   KEY `name` (`name`) USING BTREE,
   KEY `owner_name` (`owner_name`) USING BTREE,

@@ -104,7 +104,8 @@ final class WiredEffectPlanner {
         return effectType == WiredEffectType.NEG_CALL_STACKS
                 || effectType == WiredEffectType.NEG_SEND_SIGNAL
                 || effectType == WiredEffectType.NEG_SHOW_MESSAGE
-                || effectType == WiredEffectType.NEG_LOG;
+                || effectType == WiredEffectType.NEG_LOG
+                || effectType == WiredEffectType.NEG_WRITE_TO_LOGS;
     }
 
     private static boolean isExecutableNegativeConditionEffect(IWiredEffect effect) {
@@ -115,7 +116,8 @@ final class WiredEffectPlanner {
         WiredEffectType effectType = interactionEffect.getType();
         return effectType == WiredEffectType.NEG_CALL_STACKS
                 || effectType == WiredEffectType.NEG_SEND_SIGNAL
-                || effectType == WiredEffectType.NEG_LOG;
+                || effectType == WiredEffectType.NEG_LOG
+                || effectType == WiredEffectType.NEG_WRITE_TO_LOGS;
     }
 
     record SelectorPlan(List<IWiredEffect> immediate, List<IWiredEffect> deferred) {

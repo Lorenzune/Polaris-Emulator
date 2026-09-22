@@ -1,7 +1,8 @@
 package com.eu.habbo.habbohotel.permissions;
 
 public class Permission {
-    public static String ACC_ANYCHATCOLOR = "acc_anychatcolor"; // allows them to pick and choose any color from the chat bubbles.
+    public static String ACC_ANYCHATCOLOR =
+            "acc_anychatcolor"; // allows them to pick and choose any color from the chat bubbles.
     public static final String ACC_ANYHABBICON = "acc_anyhabbicon"; // allows using all habbicons freely.
     public static String ACC_ANYROOMOWNER = "acc_anyroomowner";
     public static String ACC_EMPTY_OTHERS = "acc_empty_others";
@@ -32,6 +33,7 @@ public class Permission {
     public static String ACC_CHAT_NO_FILTER = "acc_chat_no_filter";
     public static String ACC_NOMUTE = "acc_nomute";
     public static String ACC_GUILD_ADMIN = "acc_guild_admin";
+    public static final String ACC_CUSTOM_GROUP_BADGE = "acc_custom_group_badge";
     public static String ACC_CATALOG_IDS = "acc_catalog_ids";
     public static String ACC_CATALOGFURNI = "acc_catalogfurni";
     public static final String ACC_RECYCLER_EDITOR = "acc_recycler_editor";
@@ -42,17 +44,24 @@ public class Permission {
     public static String ACC_MODTOOL_USER_BAN = "acc_modtool_user_ban";
     public static String ACC_MODTOOL_ROOM_INFO = "acc_modtool_room_info";
     public static String ACC_MODTOOL_ROOM_LOGS = "acc_modtool_room_logs";
+    public static final String ACC_VOICE_SURVEILLANCE = "acc_voice_surveillance";
     public static String ACC_TRADE_ANYWHERE = "acc_trade_anywhere";
     public static String ACC_HELPER_USE_GUIDE_TOOL = "acc_helper_use_guide_tool";
     public static String ACC_HELPER_GIVE_GUIDE_TOURS = "acc_helper_give_guide_tours";
     public static String ACC_HELPER_JUDGE_CHAT_REVIEWS = "acc_helper_judge_chat_reviews";
     public static String ACC_FLOORPLAN_EDITOR = "acc_floorplan_editor";
-    public static String ACC_CRAFTING_EDITOR = "acc_crafting_editor";
-    public static String ACC_CRACKABLE_EDITOR = "acc_crackable_editor";
-    public static String ACC_ACHIEVEMENT_EDITOR = "acc_achievement_editor";
+    public static final String ACC_CRAFTING_EDITOR = "acc_crafting_editor";
+    public static final String ACC_CRACKABLE_EDITOR = "acc_crackable_editor";
+    public static final String ACC_ACHIEVEMENT_EDITOR = "acc_achievement_editor";
+    public static final String ACC_NAVIGATOR_ROOM_ORDER = "acc_navigator_room_order";
+    public static final String ACC_CALENDAR_EDITOR = "acc_calendar_editor";
+    public static final String ACC_CALENDAR_FORCE = "acc_calendar_force";
     public static String ACC_UNIGNORABLE = "acc_unignorable";
+    public static final String CMD_VOCALBAN = "cmd_vocalban";
+    public static final String CMD_UNVOCALBAN = "cmd_unvocalban";
     public final String key;
     public final PermissionSetting setting;
+
     public Permission(String key, PermissionSetting setting) {
         this.key = key;
         this.setting = setting;

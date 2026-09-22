@@ -1,16 +1,26 @@
 package com.eu.habbo.messages.incoming.navigator;
 
 import com.eu.habbo.Emulator;
-import com.eu.habbo.habbohotel.navigation.*;
+import com.eu.habbo.habbohotel.navigation.DisplayMode;
+import com.eu.habbo.habbohotel.navigation.DisplayOrder;
+import com.eu.habbo.habbohotel.navigation.ListMode;
+import com.eu.habbo.habbohotel.navigation.NavigatorFilter;
+import com.eu.habbo.habbohotel.navigation.NavigatorFilterField;
+import com.eu.habbo.habbohotel.navigation.SearchAction;
+import com.eu.habbo.habbohotel.navigation.SearchResultList;
 import com.eu.habbo.habbohotel.permissions.Permission;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomCategory;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.navigator.NewNavigatorSearchResultsComposer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
 
 public class RequestNewNavigatorRoomsEvent extends MessageHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestNewNavigatorRoomsEvent.class);
@@ -30,16 +40,39 @@ public class RequestNewNavigatorRoomsEvent extends MessageHandler {
         if (query.length() > MAX_QUERY_LENGTH) query = query.substring(0, MAX_QUERY_LENGTH);
         if (view.equals("query")) view = "hotel_view";
         if (view.equals("groups")) view = "hotel_view";
+        if (view.equalsIgnoreCase("Cronologia stanze") || view.equalsIgnoreCase("history")) view = "history_freq";
 
-        NavigatorFilter filter = Emulator.getGameEnvironment().getNavigatorManager().filters.get(view);
+        NavigatorFilter filter =
+                Emulator.getGameEnvironment().getNavigatorManager().filters.get(view);
         RoomCategory category = Emulator.getGameEnvironment().getRoomManager().getCategoryBySafeCaption(view);
 
         if (filter == null) {
-            List<Room> rooms = Emulator.getGameEnvironment().getNavigatorManager().getRoomsForCategory(view, this.client.getHabbo());
+            List<Room> rooms = Emulator.getGameEnvironment()
+                    .getNavigatorManager()
+                    .getRoomsForCategory(view, this.client.getHabbo());
 
             if (rooms != null) {
                 List<SearchResultList> resultLists = new ArrayList<>();
-                resultLists.add(new SearchResultList(0, view, query, SearchAction.NONE, this.client.getHabbo().getHabboStats().navigatorWindowSettings.getListModeForCategory(view, ListMode.LIST), this.client.getHabbo().getHabboStats().navigatorWindowSettings.getDisplayModeForCategory(view, DisplayMode.VISIBLE), rooms, true, true, DisplayOrder.ACTIVITY, -1));
+                resultLists.add(new SearchResultList(
+                        0,
+                        view,
+                        query,
+                        SearchAction.NONE,
+                        this.client
+                                .getHabbo()
+                                .getHabboStats()
+                                .navigatorWindowSettings
+                                .getListModeForCategory(view, ListMode.LIST),
+                        this.client
+                                .getHabbo()
+                                .getHabboStats()
+                                .navigatorWindowSettings
+                                .getDisplayModeForCategory(view, DisplayMode.VISIBLE),
+                        rooms,
+                        true,
+                        true,
+                        DisplayOrder.ACTIVITY,
+                        -1));
                 this.client.sendResponse(new NewNavigatorSearchResultsComposer(view, query, resultLists));
                 return;
             }
@@ -47,38 +80,42 @@ public class RequestNewNavigatorRoomsEvent extends MessageHandler {
 
         String filterField = "anything";
         String part = query;
-        NavigatorFilterField field = Emulator.getGameEnvironment().getNavigatorManager().filterSettings.get(filterField);
-        if (filter != null) {
-            if (query.contains(":")) {
-                String[] parts = query.split(":", 2);
+        if (query.contains(":")) {
+            String[] parts = query.split(":", 2);
 
-                if (parts.length > 1) {
-                    filterField = parts[0];
-                    part = parts[1];
-                } else {
-                    filterField = parts[0].replace(":", "");
-                    if (!Emulator.getGameEnvironment().getNavigatorManager().filterSettings.containsKey(filterField)) {
-                        filterField = "anything";
-                    }
-                    part = "";
-                }
-            }
-
-            if (Emulator.getGameEnvironment().getNavigatorManager().filterSettings.get(filterField) != null) {
-                field = Emulator.getGameEnvironment().getNavigatorManager().filterSettings.get(filterField);
+            if (parts.length > 1) {
+                filterField = parts[0].toLowerCase().trim();
+                part = parts[1].trim();
+            } else {
+                filterField = parts[0].replace(":", "").toLowerCase().trim();
+                part = "";
             }
         }
+        if (filterField.equals("room_name")) filterField = "roomname";
+        if (filterField.equals("groups")) filterField = "group";
 
-        if (field == null || query.isEmpty()) {
-            if (filter == null)
-                return;
+        NavigatorFilterField field = Emulator.getGameEnvironment()
+                .getNavigatorManager()
+                .filterSettings
+                .get(filterField);
+        if (field == null) {
+            field = Emulator.getGameEnvironment()
+                    .getNavigatorManager()
+                    .filterSettings
+                    .get("anything");
+        }
+
+        if (part.isEmpty()) {
+            if (filter == null) {
+                filter = Emulator.getGameEnvironment()
+                        .getNavigatorManager()
+                        .filters
+                        .get("hotel_view");
+            }
+            if (filter == null) return;
 
             List<SearchResultList> resultLists = filter.getResult(this.client.getHabbo());
             Collections.sort(resultLists);
-
-            if (!query.isEmpty()) {
-                resultLists = toQueryResults(resultLists);
-            }
 
             this.client.sendResponse(new NewNavigatorSearchResultsComposer(view, query, resultLists));
             return;
@@ -92,25 +129,30 @@ public class RequestNewNavigatorRoomsEvent extends MessageHandler {
             category = Emulator.getGameEnvironment().getRoomManager().getCategoryBySafeCaption("hotel_view");
         }
 
-        if (filter == null)
-            return;
+        if (filter == null) return;
 
         try {
-            List<SearchResultList> resultLists2 = filter.getResult(this.client.getHabbo(), field, part, category != null ? category.getId() : -1);
+            List<SearchResultList> resultLists2 =
+                    filter.getResult(this.client.getHabbo(), field, part, category != null ? category.getId() : -1);
             List<SearchResultList> resultLists = new ArrayList<>();
-            for(SearchResultList searchResultList : resultLists2) {
-                List<Room> rooms = new ArrayList<>();
-                rooms.addAll(searchResultList.rooms);
-                resultLists.add(new SearchResultList(searchResultList.order, searchResultList.code, searchResultList.query, searchResultList.action, searchResultList.mode, searchResultList.hidden, rooms, searchResultList.filter, searchResultList.showInvisible, searchResultList.displayOrder, searchResultList.categoryOrder));
+            for (SearchResultList searchResultList : resultLists2) {
+                List<Room> rooms = new ArrayList<>(searchResultList.rooms);
+                resultLists.add(new SearchResultList(
+                        searchResultList.order,
+                        searchResultList.code,
+                        searchResultList.query,
+                        searchResultList.action,
+                        searchResultList.mode,
+                        searchResultList.hidden,
+                        rooms,
+                        searchResultList.filter,
+                        searchResultList.showInvisible,
+                        searchResultList.displayOrder,
+                        searchResultList.categoryOrder));
             }
-            if ("group".equals(filterField)) {
-                final String needle = part.toLowerCase();
-                for (SearchResultList list : resultLists) {
-                    list.rooms.removeIf(room -> !room.belongsToGuild()
-                            || (!needle.isEmpty() && !room.getGuildName().toLowerCase().contains(needle)));
-                }
+            if (field != null && field.field != null) {
+                filter.filter(field.field, part, resultLists);
             }
-            filter.filter(field.field, part, resultLists);
             resultLists = toQueryResults(resultLists);
             this.client.sendResponse(new NewNavigatorSearchResultsComposer(view, query, resultLists));
         } catch (Exception e) {
@@ -120,7 +162,7 @@ public class RequestNewNavigatorRoomsEvent extends MessageHandler {
 
     private ArrayList<SearchResultList> toQueryResults(List<SearchResultList> resultLists) {
         ArrayList<SearchResultList> nList = new ArrayList<>();
-        Map<Integer, Room> searchRooms = new HashMap<>();
+        Map<Integer, Room> searchRooms = new LinkedHashMap<>();
 
         for (SearchResultList li : resultLists) {
             for (Room room : li.rooms) {
@@ -128,7 +170,19 @@ public class RequestNewNavigatorRoomsEvent extends MessageHandler {
             }
         }
 
-        SearchResultList list = new SearchResultList(0, "query", "", SearchAction.NONE, ListMode.LIST, DisplayMode.VISIBLE, new ArrayList<Room>(searchRooms.values()), true, this.client.getHabbo().hasPermission(Permission.ACC_ENTERANYROOM) || this.client.getHabbo().hasPermission(Permission.ACC_ANYROOMOWNER), DisplayOrder.ACTIVITY, -1);
+        SearchResultList list = new SearchResultList(
+                0,
+                "query",
+                "",
+                SearchAction.NONE,
+                ListMode.LIST,
+                DisplayMode.VISIBLE,
+                new ArrayList<Room>(searchRooms.values()),
+                true,
+                this.client.getHabbo().hasPermission(Permission.ACC_ENTERANYROOM)
+                        || this.client.getHabbo().hasPermission(Permission.ACC_ANYROOMOWNER),
+                DisplayOrder.ACTIVITY,
+                -1);
         nList.add(list);
         return nList;
     }
@@ -138,7 +192,10 @@ public class RequestNewNavigatorRoomsEvent extends MessageHandler {
         List<SearchResultList> toRemove = new ArrayList<>();
         Map<Integer, HashMap<Integer, Room>> filteredRooms = new HashMap<>();
 
-        for (NavigatorFilterField field : Emulator.getGameEnvironment().getNavigatorManager().filterSettings.values()) {
+        for (NavigatorFilterField field : Emulator.getGameEnvironment()
+                .getNavigatorManager()
+                .filterSettings
+                .values()) {
             for (SearchResultList result : resultLists) {
                 if (result.filter) {
                     List<Room> rooms = new ArrayList<>(result.rooms.subList(0, result.rooms.size()));

@@ -3,7 +3,13 @@
 -- Some production databases already added an `id` column to this legacy
 -- table. The recycler does not need that column, so do not impose either
 -- schema shape here; only make its writes transaction-safe.
-ALTER TABLE `recycler_prizes` ENGINE = InnoDB;
+-- The base dump creates this legacy table as MyISAM ROW_FORMAT=FIXED.
+-- InnoDB does not accept ROW_FORMAT=FIXED, so set a valid row format while
+-- converting it. This keeps the conversion valid across supported MariaDB
+-- versions instead of failing with errno 140 (Wrong create options).
+ALTER TABLE `recycler_prizes`
+    ENGINE = InnoDB,
+    ROW_FORMAT = DYNAMIC;
 
 CREATE TABLE IF NOT EXISTS `recycler_prize_levels` (
     `rarity` INT UNSIGNED NOT NULL,

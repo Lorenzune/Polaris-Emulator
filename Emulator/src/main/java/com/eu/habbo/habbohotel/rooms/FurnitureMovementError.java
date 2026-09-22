@@ -15,9 +15,9 @@ public enum FurnitureMovementError {
     MAX_SOUNDFURNI("${room.errors.max_soundfurni}"),
     MAX_ITEMS("${room.error.max_furniture}"),
     MAX_STICKIES("${room.error.max_stickies}"),
+    YOUTUBE_ALREADY_IN_ROOM("${room.error.cant_set_item}"),
     MAX_SIGNAL_SENDERS("${room.error.max_signal_senders}"),
     MAX_SIGNAL_RECEIVERS("${room.error.max_signal_receivers}");
-
 
     public final String errorCode;
 

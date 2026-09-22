@@ -220,8 +220,11 @@ public class CatalogBuyItemAsGiftEvent extends MessageHandler {
                         userId = habbo.getHabboInfo().getId();
                     }
 
-                    if (userId == 0 || this.client.getHabbo().getHabboStats().userBlocked(userId)
-                            || com.eu.habbo.habbohotel.users.HabboStats.isUserBlocked(userId, this.client.getHabbo().getHabboInfo().getId())) {
+                    if (userId == 0
+                            || this.client.getHabbo().getHabboStats().userBlocked(userId)
+                            || com.eu.habbo.habbohotel.users.HabboStats.isUserBlocked(
+                                    userId,
+                                    this.client.getHabbo().getHabboInfo().getId())) {
                         LOGGER.debug("receiver not found or blocked -> {}", username);
                         this.client.sendResponse(new GiftReceiverNotFoundComposer());
                         return;
@@ -696,6 +699,9 @@ public class CatalogBuyItemAsGiftEvent extends MessageHandler {
                         giftData.append(i.getId()).append("\t");
                     }
 
+                    boolean isStaff =
+                            this.client.getHabbo().getHabboInfo().getRank().getId() > 5;
+
                     giftData.append(color)
                             .append("\t")
                             .append(ribbonId)
@@ -706,7 +712,9 @@ public class CatalogBuyItemAsGiftEvent extends MessageHandler {
                             .append("\t")
                             .append(this.client.getHabbo().getHabboInfo().getUsername())
                             .append("\t")
-                            .append(this.client.getHabbo().getHabboInfo().getLook());
+                            .append(this.client.getHabbo().getHabboInfo().getLook())
+                            .append("\t")
+                            .append(isStaff ? "1" : "0");
 
                     HabboItem gift = Emulator.getGameEnvironment()
                             .getItemManager()

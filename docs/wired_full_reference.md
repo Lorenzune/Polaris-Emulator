@@ -255,7 +255,6 @@ Current context-status note:
 | `hotel.wired.furni.selection.count` | Max furni selection size stored by wired boxes |
 | `hotel.wired.max_delay` | Max accepted delay value |
 | `hotel.wired.message.max_length` | Max wired/bot text size |
-| `wired.effect.teleport.delay` | Teleport effect delay |
 | `wired.tick.interval.ms` | Global tick loop interval |
 | `wired.tick.debug` | Tick debug logging |
 | `wired.tick.thread.priority` | Tick thread priority |
@@ -507,8 +506,8 @@ Current context-status note:
 
 - **Class:** `WiredEffectTeleport`
 - **Behavior:** teleports the target user to the configured destination.
-- **Main settings:** target furni/tile, effect delay.
-- **Notes:** also respects `wired.effect.teleport.delay`.
+- **Main settings:** target furni/tile, fast-teleport option.
+- **Notes:** uses the standard server-side teleport timings defined in code.
 
 ### `wf_act_join_team`
 

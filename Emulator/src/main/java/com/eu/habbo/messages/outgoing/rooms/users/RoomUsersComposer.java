@@ -8,7 +8,6 @@ import com.eu.habbo.habbohotel.users.UserCustomizationData;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
-
 import java.util.Collection;
 
 public class RoomUsersComposer extends MessageComposer {
@@ -46,13 +45,14 @@ public class RoomUsersComposer extends MessageComposer {
             this.response.appendInt(this.habbo.getHabboInfo().getInfostandOverlay());
             this.response.appendInt(this.habbo.getHabboInfo().getInfostandCardBg());
             this.response.appendString(this.habbo.getHabboInfo().getLook());
-            this.response.appendInt(this.habbo.getRoomUnit().getId()); //Room Unit ID
+            this.response.appendInt(this.habbo.getRoomUnit().getId()); // Room Unit ID
             this.response.appendInt(this.habbo.getRoomUnit().getX());
             this.response.appendInt(this.habbo.getRoomUnit().getY());
             this.response.appendString(this.habbo.getRoomUnit().getZ() + "");
             this.response.appendInt(this.habbo.getRoomUnit().getBodyRotation().getValue());
             this.response.appendInt(1);
-            this.response.appendString(this.habbo.getHabboInfo().getGender().name().toUpperCase());
+            this.response.appendString(
+                    this.habbo.getHabboInfo().getGender().name().toUpperCase());
             this.response.appendInt(this.habbo.getHabboStats().guild != 0 ? this.habbo.getHabboStats().guild : -1);
             this.response.appendInt(this.habbo.getHabboStats().guild != 0 ? 1 : -1);
 
@@ -60,8 +60,7 @@ public class RoomUsersComposer extends MessageComposer {
             if (this.habbo.getHabboStats().guild != 0) {
                 Guild g = Emulator.getGameEnvironment().getGuildManager().getGuild(this.habbo.getHabboStats().guild);
 
-                if (g != null)
-                    name = g.getName();
+                if (g != null) name = g.getName();
             }
             this.response.appendString(name);
 
@@ -82,6 +81,12 @@ public class RoomUsersComposer extends MessageComposer {
             this.response.appendString(customizationData.nickColor);
             this.response.appendString(customizationData.nickEffect);
             this.response.appendString(customizationData.nickFont);
+            this.response.appendInt(this.habbo.getHabboInfo().getInfostandDirection());
+            this.response.appendInt(this.habbo.getHabboInfo().getInfostandHeadDirection());
+            this.response.appendString(this.habbo.getHabboInfo().getInfostandAction());
+            this.response.appendInt(this.habbo.getHabboInfo().getProfileDirection());
+            this.response.appendInt(this.habbo.getHabboInfo().getProfileHeadDirection());
+            this.response.appendString(this.habbo.getHabboInfo().getProfileAction());
         } else if (this.habbos != null) {
             this.response.appendInt(this.habbos.size());
             for (Habbo habbo : this.habbos) {
@@ -94,21 +99,23 @@ public class RoomUsersComposer extends MessageComposer {
                     this.response.appendInt(habbo.getHabboInfo().getInfostandOverlay());
                     this.response.appendInt(habbo.getHabboInfo().getInfostandCardBg());
                     this.response.appendString(habbo.getHabboInfo().getLook());
-                    this.response.appendInt(habbo.getRoomUnit().getId()); //Room Unit ID
+                    this.response.appendInt(habbo.getRoomUnit().getId()); // Room Unit ID
                     this.response.appendInt(habbo.getRoomUnit().getX());
                     this.response.appendInt(habbo.getRoomUnit().getY());
                     this.response.appendString(habbo.getRoomUnit().getZ() + "");
-                    this.response.appendInt(habbo.getRoomUnit().getBodyRotation().getValue());
+                    this.response.appendInt(
+                            habbo.getRoomUnit().getBodyRotation().getValue());
                     this.response.appendInt(1);
-                    this.response.appendString(habbo.getHabboInfo().getGender().name().toUpperCase());
+                    this.response.appendString(
+                            habbo.getHabboInfo().getGender().name().toUpperCase());
                     this.response.appendInt(habbo.getHabboStats().guild != 0 ? habbo.getHabboStats().guild : -1);
                     this.response.appendInt(habbo.getHabboStats().guild != 0 ? 1 : -1);
                     String name = "";
                     if (habbo.getHabboStats().guild != 0) {
-                        Guild g = Emulator.getGameEnvironment().getGuildManager().getGuild(habbo.getHabboStats().guild);
+                        Guild g =
+                                Emulator.getGameEnvironment().getGuildManager().getGuild(habbo.getHabboStats().guild);
 
-                        if (g != null)
-                            name = g.getName();
+                        if (g != null) name = g.getName();
                     }
                     this.response.appendString(name);
                     this.response.appendString("");
@@ -128,6 +135,12 @@ public class RoomUsersComposer extends MessageComposer {
                     this.response.appendString(customizationData.nickColor);
                     this.response.appendString(customizationData.nickEffect);
                     this.response.appendString(customizationData.nickFont);
+                    this.response.appendInt(habbo.getHabboInfo().getInfostandDirection());
+                    this.response.appendInt(habbo.getHabboInfo().getInfostandHeadDirection());
+                    this.response.appendString(habbo.getHabboInfo().getInfostandAction());
+                    this.response.appendInt(habbo.getHabboInfo().getProfileDirection());
+                    this.response.appendInt(habbo.getHabboInfo().getProfileHeadDirection());
+                    this.response.appendString(habbo.getHabboInfo().getProfileAction());
                 }
             }
         } else if (this.bot != null) {
@@ -135,10 +148,10 @@ public class RoomUsersComposer extends MessageComposer {
             this.response.appendInt(0 - this.bot.getId());
             this.response.appendString(this.bot.getName());
             this.response.appendString(this.bot.getMotto());
+            this.response.appendInt(this.bot.getBackgroundId());
+            this.response.appendInt(this.bot.getBackgroundStandId());
             this.response.appendInt(0);
-            this.response.appendInt(0);
-            this.response.appendInt(0);
-            this.response.appendInt(0);
+            this.response.appendInt(this.bot.getBackgroundCardId());
             this.response.appendString(this.bot.getFigure());
             this.response.appendInt(this.bot.getRoomUnit().getId());
             this.response.appendInt(this.bot.getRoomUnit().getX());
@@ -156,17 +169,19 @@ public class RoomUsersComposer extends MessageComposer {
             }
             this.response.appendString("unknown");
             this.response.appendInt(0);
-            this.response.appendInt(0);
+            this.response.appendInt(this.bot.getInfostandBorderId());
+            for (String badge : this.bot.getBadges()) this.response.appendString(badge == null ? "" : badge);
+            this.response.appendBoolean(this.bot.isVipSlotsActive());
         } else if (this.bots != null) {
             this.response.appendInt(this.bots.size());
             for (Bot bot : this.bots) {
                 this.response.appendInt(0 - bot.getId());
                 this.response.appendString(bot.getName());
                 this.response.appendString(bot.getMotto());
+                this.response.appendInt(bot.getBackgroundId());
+                this.response.appendInt(bot.getBackgroundStandId());
                 this.response.appendInt(0);
-                this.response.appendInt(0);
-                this.response.appendInt(0);
-                this.response.appendInt(0);
+                this.response.appendInt(bot.getBackgroundCardId());
                 this.response.appendString(bot.getFigure());
                 this.response.appendInt(bot.getRoomUnit().getId());
                 this.response.appendInt(bot.getRoomUnit().getX());
@@ -184,7 +199,9 @@ public class RoomUsersComposer extends MessageComposer {
                 }
                 this.response.appendString("unknown");
                 this.response.appendInt(0);
-                this.response.appendInt(0);
+                this.response.appendInt(bot.getInfostandBorderId());
+                for (String badge : bot.getBadges()) this.response.appendString(badge == null ? "" : badge);
+                this.response.appendBoolean(bot.isVipSlotsActive());
             }
         }
         return this.response;

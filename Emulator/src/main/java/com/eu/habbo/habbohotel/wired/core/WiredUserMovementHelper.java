@@ -120,6 +120,8 @@ public final class WiredUserMovementHelper {
         RoomUserRotation resolvedHeadRotation = headRotation == null ? roomUnit.getHeadRotation() : headRotation;
 
         if (noAnimation) {
+            HabboItem oldTopItem = room.getTopItemAt(oldLocation.x, oldLocation.y);
+            HabboItem newTopItem = resolveEnteredItem(room, targetTile);
             return moveUserInstant(
                     room,
                     roomUnit,
@@ -129,8 +131,8 @@ public final class WiredUserMovementHelper {
                     targetZ,
                     resolvedBodyRotation,
                     resolvedHeadRotation,
-                    room.getTopItemAt(oldLocation.x, oldLocation.y),
-                    resolveEnteredItem(room, targetTile),
+                    oldTopItem,
+                    newTopItem,
                     room.getHabbo(roomUnit));
         }
 
@@ -528,8 +530,9 @@ public final class WiredUserMovementHelper {
             return 0;
         }
 
-        HabboItem targetItem = resolveEnteredItem(room, targetTile);
         double targetZ = room.getLayout().getHeightAtSquare(targetTile.x, targetTile.y);
+
+        HabboItem targetItem = resolveEnteredItem(room, targetTile);
 
         if (targetItem != null) {
             targetZ = targetItem.getZ();

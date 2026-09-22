@@ -3,6 +3,7 @@ package com.eu.habbo.habbohotel.messenger;
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.achievements.Achievement;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
+import com.eu.habbo.habbohotel.guilds.Guild;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboInfo;
 import com.eu.habbo.habbohotel.users.HabboManager;
@@ -247,6 +248,41 @@ public class Messenger {
                     StaffChatBuddy.BUDDY_ID,
                     new StaffChatBuddy(habbo.getHabboInfo().getId()));
         }
+
+        List<com.eu.habbo.habbohotel.guilds.Guild> userGuilds = Emulator.getGameEnvironment()
+                .getGuildManager()
+                .getGuilds(habbo.getHabboInfo().getId());
+        if (userGuilds != null) {
+            for (com.eu.habbo.habbohotel.guilds.Guild guild : userGuilds) {
+                if (guild != null) {
+                    this.friends.putIfAbsent(
+                            GuildChatBuddy.getBuddyId(guild.getId()),
+                            new GuildChatBuddy(guild, habbo.getHabboInfo().getId()));
+                }
+            }
+        }
+    }
+
+    public void addGuildBuddy(Habbo habbo, Guild guild) {
+        if (habbo == null || guild == null) return;
+        if (!GuildChatBuddy.isChatMember(
+                Emulator.getGameEnvironment().getGuildManager().getGuildMember(guild, habbo))) return;
+
+        int buddyId = GuildChatBuddy.getBuddyId(guild.getId());
+        GuildChatBuddy buddy = new GuildChatBuddy(guild, habbo.getHabboInfo().getId());
+        MessengerBuddy existing = this.friends.put(buddyId, buddy);
+        if (existing == null && habbo.getClient() != null) {
+            habbo.getClient().sendResponse(new UpdateFriendComposer(habbo, buddy, 1));
+        }
+    }
+
+    public void removeGuildBuddy(Habbo habbo, int guildId) {
+        if (habbo == null) return;
+
+        MessengerBuddy buddy = this.friends.remove(GuildChatBuddy.getBuddyId(guildId));
+        if (buddy != null && habbo.getClient() != null) {
+            habbo.getClient().sendResponse(new UpdateFriendComposer(habbo, buddy, -1));
+        }
     }
 
     public MessengerBuddy loadFriend(Habbo habbo, int userId) {
@@ -489,19 +525,18 @@ public class Messenger {
             Message message = messages.get(index);
 
             if (this.friends.containsKey(message.getFromId())) {
-                recipient.getClient().sendResponse(new FriendChatMessageComposer(
-                        message,
-                        message.getFromId(),
-                        message.getFromId(),
-                        "offline"));
+                recipient
+                        .getClient()
+                        .sendResponse(new FriendChatMessageComposer(
+                                message, message.getFromId(), message.getFromId(), "offline"));
             }
 
             deliveredIds.add(messageIds.get(index));
         }
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-                PreparedStatement statement = connection.prepareStatement(
-                        "DELETE FROM messenger_offline WHERE id = ? AND user_id = ?")) {
+                PreparedStatement statement =
+                        connection.prepareStatement("DELETE FROM messenger_offline WHERE id = ? AND user_id = ?")) {
             for (int messageId : deliveredIds) {
                 statement.setInt(1, messageId);
                 statement.setInt(2, recipient.getHabboInfo().getId());

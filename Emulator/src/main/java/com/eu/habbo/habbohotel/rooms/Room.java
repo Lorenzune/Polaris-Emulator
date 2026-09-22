@@ -5,6 +5,7 @@ import com.eu.habbo.habbohotel.GameEnvironment;
 import com.eu.habbo.habbohotel.bots.Bot;
 import com.eu.habbo.habbohotel.games.Game;
 import com.eu.habbo.habbohotel.guilds.Guild;
+import com.eu.habbo.habbohotel.items.interactions.InteractionYoutubeTV;
 import com.eu.habbo.habbohotel.pets.Pet;
 import com.eu.habbo.habbohotel.users.DanceType;
 import com.eu.habbo.habbohotel.users.Habbo;
@@ -12,6 +13,7 @@ import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.core.WiredMovementPhysics;
 import com.eu.habbo.messages.ISerialize;
 import com.eu.habbo.messages.ServerMessage;
+import com.eu.habbo.messages.incoming.navigator.SearchRoomsEvent;
 import com.eu.habbo.messages.outgoing.rooms.HideDoorbellComposer;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserIgnoredComposer;
 import com.eu.habbo.plugin.PluginManager;
@@ -71,6 +73,8 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     private RoomUserVariableManager userVariableManager;
     private RoomFurniVariableManager furniVariableManager;
     private RoomVariableManager roomVariableManager;
+    private String youtubeTelevisionVideoId = "";
+    private final RoomMediaSession musicPartyMedia = new RoomMediaSession(this);
 
     public static final Comparator<Room> SORT_SCORE = (o1, o2) -> o2.getScore() - o1.getScore();
     public static final Comparator<Room> SORT_ID = (o1, o2) -> o2.getId() - o1.getId();
@@ -139,6 +143,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     public volatile boolean preventUncaching = false;
     /** Legacy plugin ABI: external plugins may still enqueue composers through this field. */
     public Set<ServerMessage> scheduledComposers = ConcurrentHashMap.newKeySet();
+
     private final java.util.concurrent.ConcurrentLinkedQueue<ServerMessage> scheduledComposerQueue =
             new java.util.concurrent.ConcurrentLinkedQueue<>();
     public final java.util.concurrent.ConcurrentLinkedQueue<HabboItem> scheduledItemDataUpdates =
@@ -152,6 +157,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     public volatile ScheduledFuture<?> roomCycleTask;
     private int id;
     private int ownerId;
+    private int navigatorOrder;
     private volatile BiConsumer<Room, Integer> ownerChangeListener;
     private String ownerName;
     private String name;
@@ -198,7 +204,8 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     private int idleSleepTimeoutSeconds;
     private boolean idleAutokickEnabled;
     private int idleAutokickTimeoutSeconds;
-    private boolean vocalChatEnabled;
+    private boolean vocalChatEnabled = true;
+    private final java.util.Set<Integer> voiceUsers = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private boolean jukeboxActive;
     private boolean hideWired;
     private boolean buildersClubTrialLocked;
@@ -243,12 +250,125 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         return this.media.watchers();
     }
 
+    public int getYoutubeElapsedSeconds() {
+        return this.media.elapsedSeconds();
+    }
+
+    public long getYoutubePositionMs() {
+        return this.media.positionMs();
+    }
+
+    public int getYoutubeRevision() {
+        return this.media.revision();
+    }
+
+    public long getYoutubeServerTimeMs() {
+        return System.currentTimeMillis();
+    }
+
+    public boolean isYoutubeAudioOnly() {
+        return this.media.isAudioOnly();
+    }
+
+    public boolean isYoutubePaused() {
+        return this.media.isPaused();
+    }
+
+    public void setYoutubePaused(boolean paused, int offset) {
+        this.media.setPaused(paused, offset);
+    }
+
+    public void setYoutubeVideo(
+            String videoId,
+            String senderName,
+            java.util.List<String> playlist,
+            boolean isAudioOnly,
+            int startOffset,
+            boolean isPaused) {
+        this.setYoutubeVideo(videoId, senderName, playlist, isAudioOnly, (long) startOffset * 1000L, isPaused);
+    }
+
+    public void setYoutubeVideo(
+            String videoId,
+            String senderName,
+            java.util.List<String> playlist,
+            boolean isAudioOnly,
+            long positionMs,
+            boolean isPaused) {
+        this.media.setVideo(videoId, senderName, playlist, isAudioOnly, positionMs, isPaused);
+        this.synchronizeYoutubeTelevisions();
+    }
+
+    public void setYoutubeVideo(
+            String videoId, String senderName, java.util.List<String> playlist, boolean isAudioOnly, int startOffset) {
+        this.setYoutubeVideo(videoId, senderName, playlist, isAudioOnly, (long) startOffset * 1000L, false);
+    }
+
+    public void setYoutubeVideo(
+            String videoId, String senderName, java.util.List<String> playlist, boolean isAudioOnly) {
+        this.setYoutubeVideo(videoId, senderName, playlist, isAudioOnly, 0L, false);
+    }
+
     public void setYoutubeVideo(String videoId, String senderName, java.util.List<String> playlist) {
-        this.media.setVideo(videoId, senderName, playlist);
+        this.setYoutubeVideo(videoId, senderName, playlist, false, 0L, false);
     }
 
     public void clearYoutubeVideo() {
         this.media.clearVideo();
+        this.synchronizeYoutubeTelevisions();
+    }
+
+    public String getMusicPartyCurrentVideo() {
+        return this.musicPartyMedia.currentVideo();
+    }
+
+    public String getMusicPartySenderName() {
+        return this.musicPartyMedia.senderName();
+    }
+
+    public java.util.List<String> getMusicPartyPlaylist() {
+        return this.musicPartyMedia.playlist();
+    }
+
+    public int getMusicPartyElapsedSeconds() {
+        return this.musicPartyMedia.elapsedSeconds();
+    }
+
+    public long getMusicPartyPositionMs() {
+        return this.musicPartyMedia.positionMs();
+    }
+
+    public int getMusicPartyRevision() {
+        return this.musicPartyMedia.revision();
+    }
+
+    public boolean isMusicPartyPaused() {
+        return this.musicPartyMedia.isPaused();
+    }
+
+    public void setMusicPartyVideo(
+            String videoId, String senderName, java.util.List<String> playlist, long positionMs, boolean isPaused) {
+        this.musicPartyMedia.setVideo(videoId, senderName, playlist, true, positionMs, isPaused);
+    }
+
+    public void clearMusicPartyVideo() {
+        this.musicPartyMedia.clearVideo();
+    }
+
+    private void synchronizeYoutubeTelevisions() {
+        String targetVideoId = this.media.isAudioOnly() ? "" : this.media.currentVideo();
+        if (targetVideoId == null) targetVideoId = "";
+        if (targetVideoId.equals(this.youtubeTelevisionVideoId)) return;
+
+        this.youtubeTelevisionVideoId = targetVideoId;
+        if (this.itemManager == null) return;
+
+        for (HabboItem roomItem : this.itemManager.getFloorItems()) {
+            if (!(roomItem instanceof InteractionYoutubeTV television) || !television.isRoomYoutubeDisplay()) continue;
+            if (television.setRoomYoutubeVideo(targetVideoId)) {
+                this.itemManager.updateItem(roomItem);
+            }
+        }
     }
 
     public final Map<String, Object> cache;
@@ -292,6 +412,11 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         RoomSnapshot.Initial initial = RoomSnapshot.readInitial(set);
         this.id = initial.id();
         this.ownerId = initial.ownerId();
+        try {
+            this.navigatorOrder = set.getInt("navigator_order");
+        } catch (SQLException | RuntimeException ignored) {
+            this.navigatorOrder = 0;
+        }
         this.userCountPersistence = this.createUserCountPersistence();
         this.ownerName = initial.ownerName();
         this.name = initial.name();
@@ -307,7 +432,11 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         this.wallSize = initial.wallSize();
         this.wallHeight = initial.wallHeight();
         this.floorSize = initial.floorSize();
-        this.tags = initial.tags();
+        this.tags = initial.tags() != null
+                ? java.util.Arrays.stream(initial.tags().split(";"))
+                        .filter(t -> !t.isEmpty() && !t.equalsIgnoreCase("vocal"))
+                        .collect(java.util.stream.Collectors.joining(";"))
+                : "";
         this.publicRoom = initial.publicRoom();
         this.staffPromotedRoom = initial.staffPromotedRoom();
         this.allowPets = initial.allowPets();
@@ -829,6 +958,14 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         return this.ownerId;
     }
 
+    public int getNavigatorOrder() {
+        return this.navigatorOrder;
+    }
+
+    public void setNavigatorOrder(int navigatorOrder) {
+        this.navigatorOrder = Math.max(0, navigatorOrder);
+    }
+
     public void setOwnerId(int ownerId) {
         int previousOwnerId = this.ownerId;
         this.ownerId = ownerId;
@@ -1016,11 +1153,18 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     }
 
     public String getTags() {
-        return this.tags;
+        if (this.tags == null || this.tags.isEmpty()) return "";
+        return java.util.Arrays.stream(this.tags.split(";"))
+                .filter(t -> !t.isEmpty() && !t.equalsIgnoreCase("vocal"))
+                .collect(java.util.stream.Collectors.joining(";"));
     }
 
     public void setTags(String tags) {
-        this.tags = tags;
+        this.tags = tags != null
+                ? java.util.Arrays.stream(tags.split(";"))
+                        .filter(t -> !t.isEmpty() && !t.equalsIgnoreCase("vocal"))
+                        .collect(java.util.stream.Collectors.joining(";"))
+                : "";
     }
 
     public int getTradeMode() {
@@ -1160,8 +1304,13 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         this.idleAutokickTimeoutSeconds = idleAutokickTimeoutSeconds;
     }
 
+    public java.util.Set<Integer> getVoiceUsers() {
+        this.voiceUsers.removeIf(userId -> this.getHabbo(userId) == null);
+        return this.voiceUsers;
+    }
+
     public boolean isVocalChatEnabled() {
-        return this.vocalChatEnabled || (this.tags != null && this.tags.contains("vocal")) || (this.name != null && this.name.toLowerCase().startsWith("[vocal]"));
+        return this.vocalChatEnabled;
     }
 
     public void setVocalChatEnabled(boolean vocalChatEnabled) {
@@ -1299,7 +1448,14 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     }
 
     public String[] filterAnything() {
-        return new String[] {this.getOwnerName(), this.getGuildName(), this.getDescription(), this.getPromotionDesc()};
+        return new String[] {
+            this.getName(),
+            this.getOwnerName(),
+            this.getGuildName(),
+            this.getDescription(),
+            this.getTags(),
+            this.getPromotionDesc()
+        };
     }
 
     public long getCycleTimestamp() {
@@ -1502,6 +1658,10 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     }
 
     public void addHabboItem(HabboItem item) {
+        if (item instanceof InteractionYoutubeTV television && television.isRoomYoutubeDisplay()) {
+            television.setRoomYoutubeVideo(this.youtubeTelevisionVideoId);
+        }
+
         this.itemManager.addHabboItem(item);
     }
 
@@ -1543,11 +1703,21 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
 
     public void removeHabbo(Habbo habbo) {
         this.cleanupYoutubeWatcher(habbo);
+        if (habbo != null && habbo.getHabboInfo() != null) {
+            if (this.voiceUsers.remove(habbo.getHabboInfo().getId())) {
+                SearchRoomsEvent.invalidateCachedResults();
+            }
+        }
         this.unitManager.removeHabbo(habbo);
     }
 
     public void removeHabbo(Habbo habbo, boolean sendRemovePacket) {
         this.cleanupYoutubeWatcher(habbo);
+        if (habbo != null && habbo.getHabboInfo() != null) {
+            if (this.voiceUsers.remove(habbo.getHabboInfo().getId())) {
+                SearchRoomsEvent.invalidateCachedResults();
+            }
+        }
         this.unitManager.removeHabbo(habbo, sendRemovePacket);
     }
 
@@ -1902,6 +2072,20 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
 
     public boolean canModifyWired(Habbo habbo) {
         return this.wiredAccess.canModify(habbo);
+    }
+
+    /**
+     * The owner of a Wired furni can always configure that specific furni.
+     * Room-wide Wired permissions still apply to everyone else.
+     */
+    public boolean canModifyWired(Habbo habbo, HabboItem wiredItem) {
+        if (habbo != null
+                && wiredItem != null
+                && wiredItem.getUserId() == habbo.getHabboInfo().getId()) {
+            return true;
+        }
+
+        return this.canModifyWired(habbo);
     }
 
     public boolean canManageWiredSettings(Habbo habbo) {

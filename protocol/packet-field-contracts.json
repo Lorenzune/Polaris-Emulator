@@ -7745,6 +7745,42 @@
       ]
     },
     {
+      "name": "WIRED_ACCOUNT_PREFERENCES_REQUEST",
+      "direction": "client_to_server",
+      "header": 10035,
+      "java": {
+        "symbol": "WiredAccountPreferencesRequestEvent",
+        "className": "WiredAccountPreferencesRequestEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/wired/WiredAccountPreferencesRequestEvent.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_ACCOUNT_PREFERENCES_REQUEST",
+        "className": "WiredAccountPreferencesRequestComposer",
+        "path": "packages/communication/src/messages/outgoing/user/settings/WiredAccountPreferencesRequestComposer.ts"
+      },
+      "fields": []
+    },
+    {
+      "name": "WIRED_ACCOUNT_PREFERENCES_SAVE",
+      "direction": "client_to_server",
+      "header": 10036,
+      "java": {
+        "symbol": "WiredAccountPreferencesSaveEvent",
+        "className": "WiredAccountPreferencesSaveEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/wired/WiredAccountPreferencesSaveEvent.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_ACCOUNT_PREFERENCES_SAVE",
+        "className": "WiredAccountPreferencesSaveComposer",
+        "path": "packages/communication/src/messages/outgoing/user/settings/WiredAccountPreferencesSaveComposer.ts"
+      },
+      "fields": [
+        { "kind": "scalar", "type": "boolean", "name": "showToolbarButton" },
+        { "kind": "scalar", "type": "boolean", "name": "showInspectButton" },
+        { "kind": "scalar", "type": "boolean", "name": "showSystemNotifications" }
+      ]
+    },
+    {
       "name": "WIRED_ROOM_SETTINGS_REQUEST",
       "direction": "client_to_server",
       "header": 10022,
@@ -15430,6 +15466,26 @@
       ]
     },
     {
+      "name": "WIRED_ACCOUNT_PREFERENCES_DATA",
+      "direction": "server_to_client",
+      "header": 5111,
+      "java": {
+        "symbol": "WiredAccountPreferencesDataComposer",
+        "className": "WiredAccountPreferencesDataComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/wired/WiredAccountPreferencesDataComposer.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_ACCOUNT_PREFERENCES_DATA",
+        "className": "WiredAccountPreferencesParser",
+        "path": "packages/communication/src/messages/parser/user/data/WiredAccountPreferencesParser.ts"
+      },
+      "fields": [
+        { "kind": "scalar", "type": "boolean", "name": "showToolbarButton" },
+        { "kind": "scalar", "type": "boolean", "name": "showInspectButton" },
+        { "kind": "scalar", "type": "boolean", "name": "showSystemNotifications" }
+      ]
+    },
+    {
       "name": "WIRED_ROOM_SETTINGS_DATA",
       "direction": "server_to_client",
       "header": 5102,
@@ -17890,6 +17946,150 @@
       "symbol": "PurchaseHabbiconEvent",
       "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/inventory/habbicons/PurchaseHabbiconEvent.java",
       "reason": "Custom habbicons inventory packet"
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 8005,
+      "symbol": "UpdateNavigatorRoomOrderEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/navigator/UpdateNavigatorRoomOrderEvent.java",
+      "reason": "Custom navigator ordering packet has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 8006,
+      "symbol": "YouTubeSearchEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/rooms/youtube/YouTubeSearchEvent.java",
+      "reason": "Custom YouTube search packet has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 8007,
+      "symbol": "MusicPartyRoomPlayEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/rooms/youtube/MusicPartyRoomPlayEvent.java",
+      "reason": "Custom Music Party packet has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 8005,
+      "symbol": "MusicPartyRoomBroadcastComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/youtube/YouTubeRoomBroadcastComposer.java",
+      "reason": "Custom Music Party broadcast header has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 8006,
+      "symbol": "YouTubeSearchResultsComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/youtube/YouTubeSearchResultsComposer.java",
+      "reason": "Custom YouTube search result packet has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9347,
+      "symbol": "GuildUploadCustomBadgeEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/guilds/GuildUploadCustomBadgeEvent.java",
+      "reason": "Custom guild badge upload packet has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9349,
+      "symbol": "GuildCustomBadgeRequestsEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/guilds/GuildCustomBadgeRequestsEvent.java",
+      "reason": "Custom guild badge request packet has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9351,
+      "symbol": "GuildCustomBadgeReviewEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/guilds/GuildCustomBadgeReviewEvent.java",
+      "reason": "Custom guild badge review packet has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 9348,
+      "symbol": "GuildCustomBadgeSavedComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/guilds/GuildCustomBadgeSavedComposer.java",
+      "reason": "Custom guild badge saved packet has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 9350,
+      "symbol": "GuildCustomBadgeRequestsComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/guilds/GuildCustomBadgeRequestsComposer.java",
+      "reason": "Custom guild badge request result has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 9352,
+      "symbol": "GuildCustomBadgeReviewResultComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/guilds/GuildCustomBadgeReviewResultComposer.java",
+      "reason": "Custom guild badge review result has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 9450,
+      "symbol": "RoleplayCommandsComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/roleplay/RoleplayCommandsComposer.java",
+      "reason": "Custom roleplay commands packet has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 10037,
+      "symbol": "SaveBadgeSlotsPreferenceEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/inventory/cosmetics/SaveBadgeSlotsPreferenceEvent.java",
+      "reason": "Custom badge-slot preference packet has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 10077,
+      "symbol": "RequestCalendarEditorEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/events/calendar/RequestCalendarEditorEvent.java",
+      "reason": "Custom calendar editor packet has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 10078,
+      "symbol": "CalendarEditorSaveRewardEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/events/calendar/CalendarEditorSaveRewardEvent.java",
+      "reason": "Custom calendar reward packet has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 10079,
+      "symbol": "CalendarEditorDeleteRewardEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/events/calendar/CalendarEditorDeleteRewardEvent.java",
+      "reason": "Custom calendar reward deletion packet has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 10076,
+      "symbol": "CalendarEditorStateComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/events/calendar/CalendarEditorStateComposer.java",
+      "reason": "Custom calendar editor state packet has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 10077,
+      "symbol": "CalendarEditorResultComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/events/calendar/CalendarEditorResultComposer.java",
+      "reason": "Custom calendar editor result packet has no paired public Nitro protocol source."
     }
   ],
   "exemptions": [
@@ -23428,6 +23628,34 @@
         "path": "packages/communication/src/messages/parser/furniture/FurnitureDataReloadParser.ts"
       },
       "reason": "Java analyzer: Data-dependent packet operations in IfStmt inside composeInternal; TypeScript analyzer: Data-dependent packet operations in IfStatement inside parse"
+    },
+    {
+      "name": "EXTERNAL_TEXTS_RELOAD",
+      "direction": "server_to_client",
+      "header": 10048,
+      "java": {
+        "symbol": "ExternalTextsReloadComposer",
+        "className": "ExternalTextsReloadComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/generic/ExternalTextsReloadComposer.java"
+      },
+      "typescript": {
+        "symbol": "EXTERNAL_TEXTS_RELOAD",
+        "className": "ExternalTextsReloadParser",
+        "path": "packages/communication/src/messages/parser/generic/ExternalTextsReloadParser.ts"
+      },
+      "reason": "The payload contains a variable number of text entries selected at runtime, so the static packet analyzer cannot prove the complete field sequence.",
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "timestamp"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "urlHint"
+        }
+      ]
     }
   ]
 }

@@ -214,6 +214,19 @@ public class HabboManager {
         return "Unknown";
     }
 
+    public String getCachedLook(int id) {
+        Habbo online = this.getHabbo(id);
+        if (online != null) {
+            return online.getHabboInfo().getLook();
+        }
+
+        HabboInfo offline = getOfflineHabboInfo(id);
+        if (offline != null) {
+            return offline.getLook();
+        }
+        return "";
+    }
+
     public int getOnlineCount() {
         return this.onlineHabbos.size();
     }

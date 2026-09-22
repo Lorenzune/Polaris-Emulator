@@ -38,6 +38,7 @@ public class OpenGift implements Runnable {
 
             Collection<HabboItem> items = ((InteractionGift) this.item).loadItems();
             for (HabboItem i : items) {
+                if (i == null) continue;
                 if (inside == null) inside = i;
 
                 i.setUserId(this.habbo.getHabboInfo().getId());
@@ -45,9 +46,11 @@ public class OpenGift implements Runnable {
                 i.run();
             }
 
-            if (inside != null) inside.setFromGift(true);
+            if (inside != null) inside.setFromGift(false);
 
-            this.habbo.getInventory().getItemsComponent().addItems(items);
+            if (!items.isEmpty()) {
+                this.habbo.getInventory().getItemsComponent().addItems(items);
+            }
 
             RoomTile tile = this.room.getLayout().getTile(this.item.getX(), this.item.getY());
             if (tile != null) {
@@ -60,11 +63,14 @@ public class OpenGift implements Runnable {
                             new RemoveFloorItemTask(this.room, this.item),
                             this.item.getBaseItem().getName().contains("present_wrap") ? 5000 : 0);
 
-            this.habbo.getClient().sendResponse(new InventoryRefreshComposer());
+            if (this.habbo.getClient() != null) {
+                this.habbo.getClient().sendResponse(new InventoryRefreshComposer());
+            }
 
             Map<AddHabboItemComposer.AddHabboItemCategory, List<Integer>> unseenItems = new HashMap<>();
 
             for (HabboItem item : items) {
+                if (item == null || item.getBaseItem() == null) continue;
                 switch (item.getBaseItem().getType()) {
                     case WALL:
                     case FLOOR:
@@ -109,11 +115,13 @@ public class OpenGift implements Runnable {
                 }
             }
 
-            this.habbo.getClient().sendResponse(new AddHabboItemComposer(unseenItems));
+            if (this.habbo.getClient() != null) {
+                this.habbo.getClient().sendResponse(new AddHabboItemComposer(unseenItems));
 
-            if (inside != null) {
-                this.habbo.getClient().sendResponse(new InventoryUpdateItemComposer(inside));
-                this.habbo.getClient().sendResponse(new PresentItemOpenedComposer(inside, "", false));
+                if (inside != null) {
+                    this.habbo.getClient().sendResponse(new InventoryUpdateItemComposer(inside));
+                    this.habbo.getClient().sendResponse(new PresentItemOpenedComposer(inside, "", false));
+                }
             }
         } catch (Exception e) {
             LOGGER.error("Caught exception", e);

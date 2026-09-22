@@ -2,6 +2,7 @@ package com.eu.habbo.habbohotel.rooms;
 
 import com.eu.habbo.habbohotel.items.FurnitureType;
 import com.eu.habbo.habbohotel.items.interactions.InteractionMultiHeight;
+import com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.core.WiredRoomUpdateScope;
 import com.eu.habbo.messages.ServerMessage;
@@ -53,7 +54,7 @@ final class RoomItemOperations {
             return;
         }
 
-        if (RoomAreaHideSupport.isControllerItem(item)) {
+        if (RoomAreaHideSupport.isControllerItem(item) || item instanceof InteractionWiredHighscore) {
             this.updateItem(item);
             return;
         }

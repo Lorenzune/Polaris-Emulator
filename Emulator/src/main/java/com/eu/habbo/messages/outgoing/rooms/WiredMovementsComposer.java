@@ -4,9 +4,7 @@ import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.UUID;
 
 public class WiredMovementsComposer extends MessageComposer {
     public static final int TYPE_USER_MOVE = 0;
@@ -25,7 +23,7 @@ public class WiredMovementsComposer extends MessageComposer {
     private final List<MovementData> movements;
 
     public WiredMovementsComposer(List<MovementData> movements) {
-        this.movements = normalizeMovements(movements == null ? new ArrayList<>() : movements);
+        this.movements = normalizeMovements(movements);
     }
 
     @Override
@@ -44,93 +42,13 @@ public class WiredMovementsComposer extends MessageComposer {
     private static List<MovementData> normalizeMovements(List<MovementData> source) {
         if ((source == null) || source.isEmpty()) return new ArrayList<>();
 
-        final LinkedHashMap<String, MovementData> normalized = new LinkedHashMap<>();
+        final List<MovementData> normalized = new ArrayList<>();
 
         for (final MovementData movement : source) {
-            if (movement == null) continue;
-
-            final String key = movementKey(movement);
-
-            if (key == null) {
-                normalized.put(UUID.randomUUID().toString(), movement);
-                continue;
-            }
-
-            final MovementData existing = normalized.get(key);
-
-            if (existing == null) {
-                normalized.put(key, movement);
-                continue;
-            }
-
-            normalized.put(key, mergeMovement(existing, movement));
+            if (movement != null) normalized.add(movement);
         }
 
-        return new ArrayList<>(normalized.values());
-    }
-
-    private static String movementKey(MovementData movement) {
-        if (movement instanceof FurniMovementData) {
-            return "furni:" + ((FurniMovementData) movement).id;
-        }
-
-        if (movement instanceof UserMovementData) {
-            return "user:" + ((UserMovementData) movement).id;
-        }
-
-        if (movement instanceof UserDirectionData) {
-            return "userdir:" + ((UserDirectionData) movement).id;
-        }
-
-        if (movement instanceof WallItemMovementData) {
-            return "wall:" + ((WallItemMovementData) movement).id;
-        }
-
-        return null;
-    }
-
-    private static MovementData mergeMovement(MovementData previous, MovementData current) {
-        if ((previous instanceof FurniMovementData) && (current instanceof FurniMovementData)) {
-            final FurniMovementData oldMovement = (FurniMovementData) previous;
-            final FurniMovementData newMovement = (FurniMovementData) current;
-
-            return furniMovement(
-                    oldMovement.id,
-                    oldMovement.fromX,
-                    oldMovement.fromY,
-                    newMovement.toX,
-                    newMovement.toY,
-                    oldMovement.fromZ,
-                    newMovement.toZ,
-                    newMovement.rotation,
-                    newMovement.duration,
-                    newMovement.elapsed,
-                    newMovement.anchorType,
-                    newMovement.anchorId,
-                    newMovement.overshootingDistance,
-                    newMovement.curveStrength);
-        }
-
-        if ((previous instanceof UserMovementData) && (current instanceof UserMovementData)) {
-            final UserMovementData oldMovement = (UserMovementData) previous;
-            final UserMovementData newMovement = (UserMovementData) current;
-
-            return new UserMovementData(
-                    oldMovement.id,
-                    oldMovement.fromX,
-                    oldMovement.fromY,
-                    newMovement.toX,
-                    newMovement.toY,
-                    oldMovement.fromZ,
-                    newMovement.toZ,
-                    newMovement.movementType,
-                    newMovement.bodyDirection,
-                    newMovement.headDirection,
-                    newMovement.duration,
-                    newMovement.jumpPower);
-        }
-
-        return current;
+        return normalized;
     }
 
     public static MovementData furniMovement(int id, int fromX, int fromY, int toX, int toY, double fromZ, double toZ) {
@@ -189,7 +107,20 @@ public class WiredMovementsComposer extends MessageComposer {
             Integer overshootingDistance,
             Integer curveStrength) {
         return new FurniMovementData(
-                id, fromX, fromY, toX, toY, fromZ, toZ, rotation, duration, elapsed, anchorType, anchorId, overshootingDistance, curveStrength);
+                id,
+                fromX,
+                fromY,
+                toX,
+                toY,
+                fromZ,
+                toZ,
+                rotation,
+                duration,
+                elapsed,
+                anchorType,
+                anchorId,
+                overshootingDistance,
+                curveStrength);
     }
 
     public static MovementData userWalkMovement(
@@ -204,7 +135,18 @@ public class WiredMovementsComposer extends MessageComposer {
             int headDirection,
             int duration) {
         return new UserMovementData(
-                id, fromX, fromY, toX, toY, fromZ, toZ, USER_MOVEMENT_WALK, bodyDirection, headDirection, duration, null);
+                id,
+                fromX,
+                fromY,
+                toX,
+                toY,
+                fromZ,
+                toZ,
+                USER_MOVEMENT_WALK,
+                bodyDirection,
+                headDirection,
+                duration,
+                null);
     }
 
     public static MovementData userSlideMovement(
@@ -219,7 +161,18 @@ public class WiredMovementsComposer extends MessageComposer {
             int headDirection,
             int duration) {
         return new UserMovementData(
-                id, fromX, fromY, toX, toY, fromZ, toZ, USER_MOVEMENT_SLIDE, bodyDirection, headDirection, duration, null);
+                id,
+                fromX,
+                fromY,
+                toX,
+                toY,
+                fromZ,
+                toZ,
+                USER_MOVEMENT_SLIDE,
+                bodyDirection,
+                headDirection,
+                duration,
+                null);
     }
 
     public static MovementData userDirectionUpdate(int id, int headDirection, int bodyDirection) {
@@ -378,9 +331,6 @@ public class WiredMovementsComposer extends MessageComposer {
             if (this.curveStrength != null) {
                 response.appendInt(this.curveStrength);
             }
-            response.appendInt(this.elapsed);
-            response.appendInt(this.anchorType);
-            response.appendInt(this.anchorId);
         }
     }
 

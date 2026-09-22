@@ -3,6 +3,7 @@ package com.eu.habbo.messages.incoming.rooms.youtube;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.incoming.MessageHandler;
+import com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomBroadcastComposer;
 import com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomWatchersComposer;
 
 public class YouTubeRoomWatchingEvent extends MessageHandler {
@@ -31,9 +32,22 @@ public class YouTubeRoomWatchingEvent extends MessageHandler {
         }
 
         if (changed) {
-            room.sendComposer(
-                new YouTubeRoomWatchersComposer(room.getYoutubeWatchers()).compose()
-            );
+            room.sendComposer(new YouTubeRoomWatchersComposer(room.getYoutubeWatchers()).compose());
+        } else if (watching) {
+            this.client.sendResponse(new YouTubeRoomWatchersComposer(room.getYoutubeWatchers()).compose());
+        }
+
+        if (watching && !room.getYoutubeCurrentVideo().isEmpty()) {
+            this.client.sendResponse(new YouTubeRoomBroadcastComposer(
+                            room.getYoutubeCurrentVideo(),
+                            room.getYoutubeSenderName(),
+                            room.getYoutubePlaylist(),
+                            room.getYoutubeElapsedSeconds(),
+                            room.isYoutubeAudioOnly(),
+                            room.isYoutubePaused(),
+                            room.getYoutubeRevision(),
+                            room.getYoutubePositionMs())
+                    .compose());
         }
     }
 }
