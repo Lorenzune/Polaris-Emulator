@@ -1,10 +1,6 @@
 package com.eu.habbo.habbohotel.guilds;
 
 import com.eu.habbo.Emulator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -17,6 +13,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+import javax.imageio.ImageIO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class GuildCustomBadgeRequestManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(GuildCustomBadgeRequestManager.class);
@@ -26,8 +25,7 @@ public final class GuildCustomBadgeRequestManager {
     private static final int MAX_PENDING_PER_REQUESTER = 3;
     private static final Pattern BADGE_CODE_PATTERN = Pattern.compile("^custom_[A-Za-z0-9_-]{1,57}$");
 
-    private GuildCustomBadgeRequestManager() {
-    }
+    private GuildCustomBadgeRequestManager() {}
 
     public static final class Request {
         public final int id;
@@ -100,8 +98,8 @@ public final class GuildCustomBadgeRequestManager {
         if (guildId <= 0 || requesterId <= 0 || !isSafeBadgeCode(badgeCode)) return false;
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "INSERT INTO group_custom_badge_requests (guild_id, requester_id, badge_code, status, reviewer_id, created_at, reviewed_at) VALUES (?, ?, ?, ?, ?, ?, ?)")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "INSERT INTO group_custom_badge_requests (guild_id, requester_id, badge_code, status, reviewer_id, created_at, reviewed_at) VALUES (?, ?, ?, ?, ?, ?, ?)")) {
             int timestamp = Emulator.getIntUnixTimestamp();
             statement.setInt(1, guildId);
             statement.setInt(2, requesterId);
@@ -121,8 +119,8 @@ public final class GuildCustomBadgeRequestManager {
         if (!isSafeBadgeCode(badgeCode)) return false;
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "SELECT 1 FROM group_custom_badge_requests WHERE badge_code = ? AND status = ? LIMIT 1")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "SELECT 1 FROM group_custom_badge_requests WHERE badge_code = ? AND status = ? LIMIT 1")) {
             statement.setString(1, badgeCode);
             statement.setInt(2, APPROVED);
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -137,12 +135,12 @@ public final class GuildCustomBadgeRequestManager {
     public static List<Request> listPending() {
         List<Request> requests = new ArrayList<>();
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "SELECT r.id, r.guild_id, r.requester_id, u.username AS requester_name, g.name AS guild_name, r.badge_code, r.created_at "
-                             + "FROM group_custom_badge_requests r "
-                             + "LEFT JOIN users u ON u.id = r.requester_id "
-                             + "LEFT JOIN guilds g ON g.id = r.guild_id "
-                             + "WHERE r.status = ? ORDER BY r.created_at ASC LIMIT 100")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "SELECT r.id, r.guild_id, r.requester_id, u.username AS requester_name, g.name AS guild_name, r.badge_code, r.created_at "
+                                + "FROM group_custom_badge_requests r "
+                                + "LEFT JOIN users u ON u.id = r.requester_id "
+                                + "LEFT JOIN guilds g ON g.id = r.guild_id "
+                                + "WHERE r.status = ? ORDER BY r.created_at ASC LIMIT 100")) {
             statement.setInt(1, PENDING);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) requests.add(new Request(resultSet));
@@ -174,8 +172,9 @@ public final class GuildCustomBadgeRequestManager {
                 }
             }
 
-            if (approve && (Emulator.getGameEnvironment().getGuildManager().getGuild(request.guildId) == null
-                    || !badgeFilesExist(request.badgeCode))) {
+            if (approve
+                    && (Emulator.getGameEnvironment().getGuildManager().getGuild(request.guildId) == null
+                            || !badgeFilesExist(request.badgeCode))) {
                 connection.rollback();
                 return null;
             }
@@ -203,14 +202,16 @@ public final class GuildCustomBadgeRequestManager {
         return new ReviewResult(request, approve);
     }
 
-    public static void saveBadgeFiles(String badgeCode, BufferedImage badgeImage1x, BufferedImage badgeImage2x) throws IOException {
+    public static void saveBadgeFiles(String badgeCode, BufferedImage badgeImage1x, BufferedImage badgeImage2x)
+            throws IOException {
         if (!isSafeBadgeCode(badgeCode)) throw new IOException("Invalid badge code");
         Path directory = getBadgeDirectory();
         Files.createDirectories(directory);
         Path standard = directory.resolve(badgeCode + ".png");
         Path large = directory.resolve(badgeCode + "_big.png");
         try {
-            if (!ImageIO.write(badgeImage1x, "png", standard.toFile())) throw new IOException("No PNG writer available");
+            if (!ImageIO.write(badgeImage1x, "png", standard.toFile()))
+                throw new IOException("No PNG writer available");
             if (!ImageIO.write(badgeImage2x, "png", large.toFile())) throw new IOException("No PNG writer available");
         } catch (IOException e) {
             Files.deleteIfExists(standard);

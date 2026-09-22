@@ -6,7 +6,6 @@ import com.eu.habbo.habbohotel.users.HabboGender;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -17,7 +16,10 @@ public class UserSearchResultComposer extends MessageComposer {
     private final Set<MessengerBuddy> friends;
     private final Habbo habbo;
 
-    private static Comparator<MessengerBuddy> COMPARATOR = Comparator.comparing((MessengerBuddy b) -> b.getUsername().length()).thenComparing((MessengerBuddy b, MessengerBuddy b2) -> b.getUsername().compareToIgnoreCase(b2.getUsername()));
+    private static Comparator<MessengerBuddy> COMPARATOR = Comparator.comparing(
+                    (MessengerBuddy b) -> b.getUsername().length())
+            .thenComparing(
+                    (MessengerBuddy b, MessengerBuddy b2) -> b.getUsername().compareToIgnoreCase(b2.getUsername()));
 
     public UserSearchResultComposer(Set<MessengerBuddy> users, Set<MessengerBuddy> friends, Habbo habbo) {
         this.users = users;
@@ -49,7 +51,8 @@ public class UserSearchResultComposer extends MessageComposer {
             this.response.appendBoolean(buddy.isVisibleOnline());
             this.response.appendBoolean(buddy.isVisibleInRoom());
             this.response.appendString("");
-            this.response.appendInt(buddy.getGender() != null && buddy.getGender().equals(HabboGender.M) ? 0 : 1);
+            this.response.appendInt(
+                    buddy.getGender() != null && buddy.getGender().equals(HabboGender.M) ? 0 : 1);
             this.response.appendString(buddy.getLook() != null ? buddy.getLook() : "");
             this.response.appendString("");
         }
@@ -62,7 +65,8 @@ public class UserSearchResultComposer extends MessageComposer {
             this.response.appendBoolean(buddy.isVisibleOnline());
             this.response.appendBoolean(false);
             this.response.appendString("");
-            this.response.appendInt(buddy.getGender() != null && buddy.getGender().equals(HabboGender.M) ? 0 : 1);
+            this.response.appendInt(
+                    buddy.getGender() != null && buddy.getGender().equals(HabboGender.M) ? 0 : 1);
             this.response.appendString(buddy.getLook() != null ? buddy.getLook() : "");
             this.response.appendString("");
         }
@@ -72,8 +76,7 @@ public class UserSearchResultComposer extends MessageComposer {
 
     private boolean inFriendList(MessengerBuddy buddy) {
         for (MessengerBuddy friend : this.friends) {
-            if (friend.getUsername().equals(buddy.getUsername()))
-                return true;
+            if (friend.getUsername().equals(buddy.getUsername())) return true;
         }
 
         return false;

@@ -58,8 +58,7 @@ class RoomManagerSearchQueryTest {
     }
 
     private static RoomManager.RoomSearchQuery query(String key, String value, int category, boolean showInvisible) {
-        NavigatorFilterField field = new NavigatorFilterField(
-                key, null, "", NavigatorFilterComparator.CONTAINS);
+        NavigatorFilterField field = new NavigatorFilterField(key, null, "", NavigatorFilterComparator.CONTAINS);
         return RoomManager.buildRoomSearchQuery(field, value, category, showInvisible);
     }
 }

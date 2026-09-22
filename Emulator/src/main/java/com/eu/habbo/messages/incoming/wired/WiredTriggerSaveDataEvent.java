@@ -40,7 +40,8 @@ public class WiredTriggerSaveDataEvent extends MessageHandler {
                             Emulator.getThreading().run(trigger);
                             WiredManager.invalidateRoom(room);
                         } else {
-                            this.client.sendResponse(new UpdateFailedComposer("There was an error while saving that trigger"));
+                            this.client.sendResponse(
+                                    new UpdateFailedComposer("There was an error while saving that trigger"));
                         }
                     } catch (WiredTriggerSaveException e) {
                         this.client.sendResponse(new UpdateFailedComposer(e.getMessage()));

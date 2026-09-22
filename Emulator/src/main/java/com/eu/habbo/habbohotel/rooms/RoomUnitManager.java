@@ -200,9 +200,9 @@ public class RoomUnitManager {
                 .clearAssignmentsForUser(habbo.getHabboInfo().getId());
 
         if (this.room.getYoutubeWatchers().remove(habbo.getHabboInfo().getId())) {
-            this.room.sendComposer(
-                new com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomWatchersComposer(this.room.getYoutubeWatchers()).compose()
-            );
+            this.room.sendComposer(new com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomWatchersComposer(
+                            this.room.getYoutubeWatchers())
+                    .compose());
         }
 
         if (sendRemovePacket && habbo.getRoomUnit() != null && !habbo.getRoomUnit().isTeleporting) {
@@ -322,8 +322,8 @@ public class RoomUnitManager {
             boolean isMoving = habbo.getRoomUnit().hasStatus(RoomUnitStatus.MOVE);
             RoomTile currentLocation = habbo.getRoomUnit().getCurrentLocation();
             RoomTile previousLocation = habbo.getRoomUnit().getPreviousLocation();
-            boolean preserveMovementOrigin = isMoving
-                    && (previousLocation == null || !currentLocation.equals(previousLocation));
+            boolean preserveMovementOrigin =
+                    isMoving && (previousLocation == null || !currentLocation.equals(previousLocation));
             double z = isMoving
                     ? RoomUnit.resolveWalkingHeight(this.room, currentLocation)
                     : currentLocation.getStackHeight();
@@ -415,7 +415,8 @@ public class RoomUnitManager {
             if (isMoving && habbo.getRoomUnit().hasStatus(RoomUnitStatus.MOVE)) {
                 habbo.getRoomUnit().updateMoveStatusZ(habbo.getRoomUnit().getZ());
 
-                if (previousLocation != null && previousLocation.equals(habbo.getRoomUnit().getCurrentLocation())) {
+                if (previousLocation != null
+                        && previousLocation.equals(habbo.getRoomUnit().getCurrentLocation())) {
                     habbo.getRoomUnit().setPreviousLocationZ(habbo.getRoomUnit().getZ());
                 }
             }

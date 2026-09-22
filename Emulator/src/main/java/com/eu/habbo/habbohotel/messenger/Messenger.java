@@ -249,7 +249,9 @@ public class Messenger {
                     new StaffChatBuddy(habbo.getHabboInfo().getId()));
         }
 
-        List<com.eu.habbo.habbohotel.guilds.Guild> userGuilds = Emulator.getGameEnvironment().getGuildManager().getGuilds(habbo.getHabboInfo().getId());
+        List<com.eu.habbo.habbohotel.guilds.Guild> userGuilds = Emulator.getGameEnvironment()
+                .getGuildManager()
+                .getGuilds(habbo.getHabboInfo().getId());
         if (userGuilds != null) {
             for (com.eu.habbo.habbohotel.guilds.Guild guild : userGuilds) {
                 if (guild != null) {
@@ -263,7 +265,8 @@ public class Messenger {
 
     public void addGuildBuddy(Habbo habbo, Guild guild) {
         if (habbo == null || guild == null) return;
-        if (!GuildChatBuddy.isChatMember(Emulator.getGameEnvironment().getGuildManager().getGuildMember(guild, habbo))) return;
+        if (!GuildChatBuddy.isChatMember(
+                Emulator.getGameEnvironment().getGuildManager().getGuildMember(guild, habbo))) return;
 
         int buddyId = GuildChatBuddy.getBuddyId(guild.getId());
         GuildChatBuddy buddy = new GuildChatBuddy(guild, habbo.getHabboInfo().getId());
@@ -522,19 +525,18 @@ public class Messenger {
             Message message = messages.get(index);
 
             if (this.friends.containsKey(message.getFromId())) {
-                recipient.getClient().sendResponse(new FriendChatMessageComposer(
-                        message,
-                        message.getFromId(),
-                        message.getFromId(),
-                        "offline"));
+                recipient
+                        .getClient()
+                        .sendResponse(new FriendChatMessageComposer(
+                                message, message.getFromId(), message.getFromId(), "offline"));
             }
 
             deliveredIds.add(messageIds.get(index));
         }
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-                PreparedStatement statement = connection.prepareStatement(
-                        "DELETE FROM messenger_offline WHERE id = ? AND user_id = ?")) {
+                PreparedStatement statement =
+                        connection.prepareStatement("DELETE FROM messenger_offline WHERE id = ? AND user_id = ?")) {
             for (int messageId : deliveredIds) {
                 statement.setInt(1, messageId);
                 statement.setInt(2, recipient.getHabboInfo().getId());

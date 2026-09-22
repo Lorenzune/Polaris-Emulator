@@ -383,7 +383,8 @@ public class CommandHandler {
         addCommand(new VisitCommand());
         addCommand(new TestCommand());
 
-        com.eu.habbo.habbohotel.commands.roleplay.RoleplayCommandManager.getInstance().load();
+        com.eu.habbo.habbohotel.commands.roleplay.RoleplayCommandManager.getInstance()
+                .load();
     }
 
     public List<Command> getCommandsForRank(int rankId) {

@@ -9,13 +9,8 @@ import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.guilds.GuildCustomBadgeSavedComposer;
 import io.netty.buffer.ByteBuf;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.stream.ImageInputStream;
-import java.awt.*;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -23,6 +18,11 @@ import java.security.SecureRandom;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GuildUploadCustomBadgeEvent extends MessageHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(GuildUploadCustomBadgeEvent.class);
@@ -53,7 +53,8 @@ public class GuildUploadCustomBadgeEvent extends MessageHandler {
 
         boolean hasCustomPermission = habbo.hasPermission(Permission.ACC_CUSTOM_GROUP_BADGE);
         boolean isGuildAdmin = habbo.hasPermission(Permission.ACC_GUILD_ADMIN);
-        boolean isOwner = guild != null && guild.getOwnerId() == habbo.getHabboInfo().getId();
+        boolean isOwner =
+                guild != null && guild.getOwnerId() == habbo.getHabboInfo().getId();
 
         // Custom group badges are only valid for an existing group. This also
         // prevents the creator flow from generating orphaned files.
@@ -72,8 +73,13 @@ public class GuildUploadCustomBadgeEvent extends MessageHandler {
             return;
         }
 
-        if (byteCount <= 0 || byteCount > MAX_BADGE_BYTES || this.packet.getBuffer().readableBytes() < byteCount) {
-            LOGGER.warn("User {} attempted custom group badge upload with invalid size: {} bytes", habbo.getHabboInfo().getUsername(), byteCount);
+        if (byteCount <= 0
+                || byteCount > MAX_BADGE_BYTES
+                || this.packet.getBuffer().readableBytes() < byteCount) {
+            LOGGER.warn(
+                    "User {} attempted custom group badge upload with invalid size: {} bytes",
+                    habbo.getHabboInfo().getUsername(),
+                    byteCount);
             habbo.alert("L'immagine non è valida o supera il limite consentito.");
             return;
         }
@@ -98,14 +104,24 @@ public class GuildUploadCustomBadgeEvent extends MessageHandler {
                 reader.dispose();
             }
         } catch (Exception e) {
-            LOGGER.warn("Failed to read custom group badge image header uploaded by {}", habbo.getHabboInfo().getUsername(), e);
+            LOGGER.warn(
+                    "Failed to read custom group badge image header uploaded by {}",
+                    habbo.getHabboInfo().getUsername(),
+                    e);
             habbo.alert("Non è stato possibile leggere l'immagine.");
             return;
         }
 
-        if (imageWidth <= 0 || imageHeight <= 0 || imageWidth > MAX_IMAGE_WIDTH || imageHeight > MAX_IMAGE_HEIGHT
+        if (imageWidth <= 0
+                || imageHeight <= 0
+                || imageWidth > MAX_IMAGE_WIDTH
+                || imageHeight > MAX_IMAGE_HEIGHT
                 || (long) imageWidth * imageHeight > MAX_IMAGE_PIXELS) {
-            LOGGER.warn("User {} uploaded an image with invalid dimensions for group badge: {}x{}", habbo.getHabboInfo().getUsername(), imageWidth, imageHeight);
+            LOGGER.warn(
+                    "User {} uploaded an image with invalid dimensions for group badge: {}x{}",
+                    habbo.getHabboInfo().getUsername(),
+                    imageWidth,
+                    imageHeight);
             habbo.alert("Le dimensioni dell'immagine non sono valide.");
             return;
         }
@@ -114,13 +130,20 @@ public class GuildUploadCustomBadgeEvent extends MessageHandler {
         try {
             originalImage = ImageIO.read(new ByteArrayInputStream(imageBytes));
         } catch (Exception e) {
-            LOGGER.warn("Failed to decode custom group badge image uploaded by {}", habbo.getHabboInfo().getUsername(), e);
+            LOGGER.warn(
+                    "Failed to decode custom group badge image uploaded by {}",
+                    habbo.getHabboInfo().getUsername(),
+                    e);
             habbo.alert("Non è stato possibile leggere l'immagine.");
             return;
         }
 
-        if (originalImage == null || originalImage.getWidth() != imageWidth || originalImage.getHeight() != imageHeight) {
-            LOGGER.warn("User {} uploaded an image with invalid dimensions for group badge", habbo.getHabboInfo().getUsername());
+        if (originalImage == null
+                || originalImage.getWidth() != imageWidth
+                || originalImage.getHeight() != imageHeight) {
+            LOGGER.warn(
+                    "User {} uploaded an image with invalid dimensions for group badge",
+                    habbo.getHabboInfo().getUsername());
             habbo.alert("Le dimensioni dell'immagine non sono valide.");
             return;
         }
@@ -138,9 +161,11 @@ public class GuildUploadCustomBadgeEvent extends MessageHandler {
             return;
         }
 
-        boolean requiresApproval = habbo.getHabboInfo().getRank() == null || habbo.getHabboInfo().getRank().getId() < 7;
+        boolean requiresApproval = habbo.getHabboInfo().getRank() == null
+                || habbo.getHabboInfo().getRank().getId() < 7;
         if (requiresApproval) {
-            if (!GuildCustomBadgeRequestManager.createPending(guildId, habbo.getHabboInfo().getId(), badgeCode)) {
+            if (!GuildCustomBadgeRequestManager.createPending(
+                    guildId, habbo.getHabboInfo().getId(), badgeCode)) {
                 GuildCustomBadgeRequestManager.deleteBadgeFiles(badgeCode);
                 habbo.alert("Esiste già una richiesta pendente per questo gruppo oppure hai raggiunto il limite.");
                 return;
@@ -150,7 +175,8 @@ public class GuildUploadCustomBadgeEvent extends MessageHandler {
             return;
         }
 
-        if (!GuildCustomBadgeRequestManager.createApproved(guildId, habbo.getHabboInfo().getId(), badgeCode)) {
+        if (!GuildCustomBadgeRequestManager.createApproved(
+                guildId, habbo.getHabboInfo().getId(), badgeCode)) {
             GuildCustomBadgeRequestManager.deleteBadgeFiles(badgeCode);
             habbo.alert("Non Ã¨ stato possibile registrare lo stemma.");
             return;
@@ -167,7 +193,8 @@ public class GuildUploadCustomBadgeEvent extends MessageHandler {
             graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
             graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
             graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            graphics.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
+            graphics.setRenderingHint(
+                    RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
             graphics.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY);
             graphics.drawImage(originalImage, 0, 0, size, size, null);
         } finally {
@@ -177,7 +204,8 @@ public class GuildUploadCustomBadgeEvent extends MessageHandler {
     }
 
     private static String createBadgeCode(int guildId) {
-        return "custom_" + System.currentTimeMillis() + "_" + guildId + "_" + Long.toUnsignedString(RANDOM.nextLong(), 36);
+        return "custom_" + System.currentTimeMillis() + "_" + guildId + "_"
+                + Long.toUnsignedString(RANDOM.nextLong(), 36);
     }
 
     public static void applyBadge(Guild guild, String badgeCode, Habbo habbo) {
@@ -187,14 +215,18 @@ public class GuildUploadCustomBadgeEvent extends MessageHandler {
         Room guildRoom = Emulator.getGameEnvironment().getRoomManager().getRoom(guild.getRoomId());
         if (guildRoom != null) {
             guildRoom.refreshGuild(guild);
-            guildRoom.sendComposer(new com.eu.habbo.messages.outgoing.rooms.users.RoomUsersAddGuildBadgeComposer(guild).compose());
+            guildRoom.sendComposer(
+                    new com.eu.habbo.messages.outgoing.rooms.users.RoomUsersAddGuildBadgeComposer(guild).compose());
         }
 
         Room currentRoom = habbo.getHabboInfo().getCurrentRoom();
         if (currentRoom != null) {
-            currentRoom.sendComposer(new com.eu.habbo.messages.outgoing.rooms.users.RoomUsersAddGuildBadgeComposer(guild).compose());
+            currentRoom.sendComposer(
+                    new com.eu.habbo.messages.outgoing.rooms.users.RoomUsersAddGuildBadgeComposer(guild).compose());
             if (habbo.getHabboStats().guild == guild.getId() && habbo.getRoomUnit() != null) {
-                currentRoom.sendComposer(new com.eu.habbo.messages.outgoing.guilds.GuildFavoriteRoomUserUpdateComposer(habbo.getRoomUnit(), guild).compose());
+                currentRoom.sendComposer(new com.eu.habbo.messages.outgoing.guilds.GuildFavoriteRoomUserUpdateComposer(
+                                habbo.getRoomUnit(), guild)
+                        .compose());
             }
         }
 

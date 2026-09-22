@@ -1,7 +1,6 @@
 package com.eu.habbo.habbohotel.items.interactions.wired.extra;
 
 import com.eu.habbo.habbohotel.items.Item;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -13,7 +12,8 @@ public class WiredExtraVariableFxHealthPoints extends WiredExtraVariableFxBase {
         super(set, baseItem);
     }
 
-    public WiredExtraVariableFxHealthPoints(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredExtraVariableFxHealthPoints(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 

@@ -3,11 +3,10 @@ package com.eu.habbo.habbohotel.navigation;
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.Habbo;
-import org.apache.commons.lang3.StringUtils;
-
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 
 public abstract class NavigatorFilter {
     public final String viewName;
@@ -83,7 +82,8 @@ public abstract class NavigatorFilter {
                 }
 
                 if (method.getName().equals("getGuildName")) {
-                    if (!room.belongsToGuild() || !room.getGuildName().toLowerCase().contains(strVal.toLowerCase())) {
+                    if (!room.belongsToGuild()
+                            || !room.getGuildName().toLowerCase().contains(strVal.toLowerCase())) {
                         toRemove.add(room);
                     }
                     continue;
@@ -94,7 +94,8 @@ public abstract class NavigatorFilter {
                     if (room.getName().toLowerCase().contains(strVal.toLowerCase())) matches = true;
                     else if (room.getDescription().toLowerCase().contains(strVal.toLowerCase())) matches = true;
                     else if (room.getOwnerName().equalsIgnoreCase(strVal)) matches = true;
-                    else if (room.belongsToGuild() && room.getGuildName().toLowerCase().contains(strVal.toLowerCase())) matches = true;
+                    else if (room.belongsToGuild()
+                            && room.getGuildName().toLowerCase().contains(strVal.toLowerCase())) matches = true;
                     else {
                         String tags = room.getTags();
                         if (tags != null && !tags.isEmpty()) {
@@ -114,7 +115,8 @@ public abstract class NavigatorFilter {
 
                 Object o = method.invoke(room);
                 if (o instanceof String) {
-                    NavigatorFilterComparator comparator = Emulator.getGameEnvironment().getNavigatorManager().comperatorForField(method);
+                    NavigatorFilterComparator comparator =
+                            Emulator.getGameEnvironment().getNavigatorManager().comperatorForField(method);
                     if (comparator != null) {
                         if (!this.applies(comparator, (String) o, strVal)) {
                             toRemove.add(room);
@@ -123,7 +125,8 @@ public abstract class NavigatorFilter {
                         toRemove.add(room);
                     }
                 } else if (o instanceof String[]) {
-                    NavigatorFilterComparator comparator = Emulator.getGameEnvironment().getNavigatorManager().comperatorForField(method);
+                    NavigatorFilterComparator comparator =
+                            Emulator.getGameEnvironment().getNavigatorManager().comperatorForField(method);
                     boolean matchesAny = false;
                     for (String s : (String[]) o) {
                         if (s != null && comparator != null && this.applies(comparator, s, strVal)) {
@@ -145,15 +148,15 @@ public abstract class NavigatorFilter {
 
     public abstract List<SearchResultList> getResult(Habbo habbo);
 
-    public List<SearchResultList> getResult(Habbo habbo, NavigatorFilterField filterField, String value, int roomCategory) {
+    public List<SearchResultList> getResult(
+            Habbo habbo, NavigatorFilterField filterField, String value, int roomCategory) {
         return this.getResult(habbo);
     }
 
     private boolean applies(NavigatorFilterComparator comparator, String o, String value) {
         switch (comparator) {
             case CONTAINS:
-                if (StringUtils.containsIgnoreCase(o,
-                        value)) {
+                if (StringUtils.containsIgnoreCase(o, value)) {
                     return true;
                 }
                 break;

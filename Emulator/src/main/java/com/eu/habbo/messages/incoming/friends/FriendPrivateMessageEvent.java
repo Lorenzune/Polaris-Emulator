@@ -16,7 +16,8 @@ public class FriendPrivateMessageEvent extends MessageHandler {
 
         // -1 is the virtual Staff Chat buddy. userId <= -10000 are guild chat buddies.
         // They are authorized through their respective buddy handlers.
-        if ((userId != -1 && !GuildChatBuddy.isGuildBuddy(userId) && !FriendInputGuard.isPositiveId(userId)) || message.isEmpty()) {
+        if ((userId != -1 && !GuildChatBuddy.isGuildBuddy(userId) && !FriendInputGuard.isPositiveId(userId))
+                || message.isEmpty()) {
             return;
         }
 
@@ -31,17 +32,16 @@ public class FriendPrivateMessageEvent extends MessageHandler {
         this.client.getHabbo().getHabboStats().lastChat = millis;
 
         MessengerBuddy buddy = this.client.getHabbo().getMessenger().getFriend(userId);
-        if (buddy == null)
-            return;
+        if (buddy == null) return;
 
         UserFriendChatEvent event = new UserFriendChatEvent(this.client.getHabbo(), buddy, message);
-        if (Emulator.getPluginManager().fireEvent(event).isCancelled())
-            return;
+        if (Emulator.getPluginManager().fireEvent(event).isCancelled()) return;
 
         if (userId <= 0) {
             buddy.onMessageReceived(this.client.getHabbo(), message);
         } else if (buddy.onMessageReceivedWithDeliveryStatus(this.client.getHabbo(), message)) {
-            Message confirmation = new Message(userId, this.client.getHabbo().getHabboInfo().getId(), "");
+            Message confirmation =
+                    new Message(userId, this.client.getHabbo().getHabboInfo().getId(), "");
             this.client.sendResponse(new FriendChatMessageComposer(confirmation, userId, userId, "offline-sent"));
         }
     }

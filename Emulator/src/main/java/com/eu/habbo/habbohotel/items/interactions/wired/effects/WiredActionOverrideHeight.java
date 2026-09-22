@@ -1,6 +1,5 @@
 package com.eu.habbo.habbohotel.items.interactions.wired.effects;
 
-import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWired;
@@ -14,7 +13,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserStatusComposer;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -28,7 +26,8 @@ public class WiredActionOverrideHeight extends InteractionWiredEffect {
         super(set, baseItem);
     }
 
-    public WiredActionOverrideHeight(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredActionOverrideHeight(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 

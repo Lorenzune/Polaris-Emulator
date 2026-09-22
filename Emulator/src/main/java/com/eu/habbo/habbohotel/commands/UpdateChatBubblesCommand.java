@@ -9,7 +9,11 @@ import com.eu.habbo.messages.outgoing.inventory.chatbubbles.UserChatBubblesCompo
 public class UpdateChatBubblesCommand extends Command {
 
     public UpdateChatBubblesCommand() {
-        super("cmd_update_chat_bubbles", Emulator.getTexts().getValue("commands.keys.cmd_update_chat_bubbles").split(";"));
+        super(
+                "cmd_update_chat_bubbles",
+                Emulator.getTexts()
+                        .getValue("commands.keys.cmd_update_chat_bubbles")
+                        .split(";"));
     }
 
     @Override
@@ -17,13 +21,20 @@ public class UpdateChatBubblesCommand extends Command {
         RoomChatMessageBubbles.removeDynamicBubbles();
         Emulator.getGameEnvironment().getRoomChatBubbleManager().reload();
 
-        for (Habbo habbo : Emulator.getGameEnvironment().getHabboManager().getOnlineHabbos().values()) {
+        for (Habbo habbo : Emulator.getGameEnvironment()
+                .getHabboManager()
+                .getOnlineHabbos()
+                .values()) {
             if (habbo != null && habbo.getClient() != null) {
                 habbo.getClient().sendResponse(new UserChatBubblesComposer(habbo));
             }
         }
 
-        gameClient.getHabbo().whisper(Emulator.getTexts().getValue("commands.success.cmd_update_chat_bubbles"), RoomChatMessageBubbles.ALERT);
+        gameClient
+                .getHabbo()
+                .whisper(
+                        Emulator.getTexts().getValue("commands.success.cmd_update_chat_bubbles"),
+                        RoomChatMessageBubbles.ALERT);
         return true;
     }
 }

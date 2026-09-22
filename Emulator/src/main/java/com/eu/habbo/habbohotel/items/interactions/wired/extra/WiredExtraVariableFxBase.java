@@ -11,7 +11,6 @@ import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
 import com.google.gson.annotations.SerializedName;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -48,27 +47,38 @@ public abstract class WiredExtraVariableFxBase extends InteractionWiredExtra {
         super(set, baseItem);
     }
 
-    public WiredExtraVariableFxBase(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredExtraVariableFxBase(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
     public abstract int getCode();
+
     public abstract int getCategoryId();
 
     public String getDefaultVariableName() {
         switch (getCategoryId()) {
-            case 0: return "hp";
-            case 1: return "prog";
-            case 2: return "level";
-            case 3: return "status";
-            case 4: return "boss_hp";
-            case 5: return "number";
-            default: return "varfx";
+            case 0:
+                return "hp";
+            case 1:
+                return "prog";
+            case 2:
+                return "level";
+            case 3:
+                return "status";
+            case 4:
+                return "boss_hp";
+            case 5:
+                return "number";
+            default:
+                return "varfx";
         }
     }
 
     public String getVariableName() {
-        return (this.variableName != null && !this.variableName.isEmpty()) ? this.variableName : this.getDefaultVariableName();
+        return (this.variableName != null && !this.variableName.isEmpty())
+                ? this.variableName
+                : this.getDefaultVariableName();
     }
 
     public void setVariableName(String variableName) {
@@ -163,12 +173,29 @@ public abstract class WiredExtraVariableFxBase extends InteractionWiredExtra {
         return this.audienceVariableValue;
     }
 
-    public boolean isOverrideMinEnabled() { return this.overrideMinEnabled; }
-    public boolean isOverrideMaxEnabled() { return this.overrideMaxEnabled; }
-    public int getOverrideMinTarget() { return this.overrideMinTarget; }
-    public int getOverrideMaxTarget() { return this.overrideMaxTarget; }
-    public String getOverrideMinVariableId() { return this.overrideMinVariableId; }
-    public String getOverrideMaxVariableId() { return this.overrideMaxVariableId; }
+    public boolean isOverrideMinEnabled() {
+        return this.overrideMinEnabled;
+    }
+
+    public boolean isOverrideMaxEnabled() {
+        return this.overrideMaxEnabled;
+    }
+
+    public int getOverrideMinTarget() {
+        return this.overrideMinTarget;
+    }
+
+    public int getOverrideMaxTarget() {
+        return this.overrideMaxTarget;
+    }
+
+    public String getOverrideMinVariableId() {
+        return this.overrideMinVariableId;
+    }
+
+    public String getOverrideMaxVariableId() {
+        return this.overrideMaxVariableId;
+    }
 
     @Override
     public boolean execute(RoomUnit roomUnit, Room room, Object[] stuff) {
@@ -237,8 +264,10 @@ public abstract class WiredExtraVariableFxBase extends InteractionWiredExtra {
         String wiredJson = this.getWiredData();
         this.needsUpdate(true);
 
-        try (java.sql.Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             java.sql.PreparedStatement statement = connection.prepareStatement("UPDATE items SET wired_data = ? WHERE id = ?")) {
+        try (java.sql.Connection connection =
+                        Emulator.getDatabase().getDataSource().getConnection();
+                java.sql.PreparedStatement statement =
+                        connection.prepareStatement("UPDATE items SET wired_data = ? WHERE id = ?")) {
             statement.setString(1, wiredJson);
             statement.setInt(2, this.getId());
             statement.execute();
@@ -247,7 +276,9 @@ public abstract class WiredExtraVariableFxBase extends InteractionWiredExtra {
                     WiredCompatibilityDiagnostics.FailurePoint.EXTRA_VARIABLE_FX_PERSISTENCE, ignored);
         }
 
-        Room room = (gameClient != null && gameClient.getHabbo() != null) ? gameClient.getHabbo().getHabboInfo().getCurrentRoom() : null;
+        Room room = (gameClient != null && gameClient.getHabbo() != null)
+                ? gameClient.getHabbo().getHabboInfo().getCurrentRoom()
+                : null;
         if (room != null) {
             room.updateItem(this);
             if (room.getUserVariableManager() != null) {
@@ -262,57 +293,88 @@ public abstract class WiredExtraVariableFxBase extends InteractionWiredExtra {
 
     private static boolean isKnownIcon(String str) {
         if (str == null || str.isEmpty()) return false;
-        return str.equals("health") || str.equals("mana") || str.equals("energy") || str.equals("poison")
-                || str.equals("burning") || str.equals("freezing") || str.equals("shield") || str.equals("honor")
-                || str.equals("reputation") || str.equals("stamina") || str.equals("gold") || str.equals("gems")
-                || str.equals("cash") || str.equals("droplet") || str.equals("eye") || str.equals("magic")
-                || str.equals("cooldown") || str.equals("timeleft") || str.equals("battery") || str.equals("star_power")
-                || str.equals("stealth") || str.equals("repairing") || str.equals("upgrading") || str.equals("wooden_logs")
-                || str.equals("food") || str.equals("fish") || str.startsWith("ranch.") || str.startsWith("ranch_") || str.startsWith("misc_");
+        return str.equals("health")
+                || str.equals("mana")
+                || str.equals("energy")
+                || str.equals("poison")
+                || str.equals("burning")
+                || str.equals("freezing")
+                || str.equals("shield")
+                || str.equals("honor")
+                || str.equals("reputation")
+                || str.equals("stamina")
+                || str.equals("gold")
+                || str.equals("gems")
+                || str.equals("cash")
+                || str.equals("droplet")
+                || str.equals("eye")
+                || str.equals("magic")
+                || str.equals("cooldown")
+                || str.equals("timeleft")
+                || str.equals("battery")
+                || str.equals("star_power")
+                || str.equals("stealth")
+                || str.equals("repairing")
+                || str.equals("upgrading")
+                || str.equals("wooden_logs")
+                || str.equals("food")
+                || str.equals("fish")
+                || str.startsWith("ranch.")
+                || str.startsWith("ranch_")
+                || str.startsWith("misc_");
     }
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(
-                this.sourceType,
-                this.visibility,
-                this.showMode,
-                this.changeFilter,
-                this.showOnMouseHover,
-                this.showDuration,
-                this.styleId,
-                this.colorId,
-                this.widthId,
-                this.rendererId,
-                this.defaultMinValue,
-                this.defaultMaxValue,
-                this.overrideMinEnabled,
-                this.overrideMaxEnabled,
-                this.overrideMinTarget,
-                this.overrideMaxTarget,
-                this.audienceVariableValue,
-                this.segments,
-                this.subRendererId,
-                this.iconAlignment,
-                this.icon,
-                this.getVariableName(),
-                this.overrideMinVariableId,
-                this.overrideMaxVariableId,
-                this.audienceVariableId
-        ));
+        return WiredManager.getGson()
+                .toJson(new JsonData(
+                        this.sourceType,
+                        this.visibility,
+                        this.showMode,
+                        this.changeFilter,
+                        this.showOnMouseHover,
+                        this.showDuration,
+                        this.styleId,
+                        this.colorId,
+                        this.widthId,
+                        this.rendererId,
+                        this.defaultMinValue,
+                        this.defaultMaxValue,
+                        this.overrideMinEnabled,
+                        this.overrideMaxEnabled,
+                        this.overrideMinTarget,
+                        this.overrideMaxTarget,
+                        this.audienceVariableValue,
+                        this.segments,
+                        this.subRendererId,
+                        this.iconAlignment,
+                        this.icon,
+                        this.getVariableName(),
+                        this.overrideMinVariableId,
+                        this.overrideMaxVariableId,
+                        this.audienceVariableId));
     }
 
     public String resolveStackVariableName(Room room) {
         if (room == null) return (this.variableName != null) ? this.variableName : "";
         for (com.eu.habbo.habbohotel.users.HabboItem item : room.getFloorItems()) {
-            if (item != null && item.getX() == this.getX() && item.getY() == this.getY() && item.getId() != this.getId()) {
-                if (item instanceof WiredExtraUserVariable userVar && userVar.getVariableName() != null && !userVar.getVariableName().isEmpty()) {
+            if (item != null
+                    && item.getX() == this.getX()
+                    && item.getY() == this.getY()
+                    && item.getId() != this.getId()) {
+                if (item instanceof WiredExtraUserVariable userVar
+                        && userVar.getVariableName() != null
+                        && !userVar.getVariableName().isEmpty()) {
                     return userVar.getVariableName();
                 }
-                if (item instanceof WiredExtraFurniVariable furniVar && furniVar.getVariableName() != null && !furniVar.getVariableName().isEmpty()) {
+                if (item instanceof WiredExtraFurniVariable furniVar
+                        && furniVar.getVariableName() != null
+                        && !furniVar.getVariableName().isEmpty()) {
                     return furniVar.getVariableName();
                 }
-                if (item instanceof WiredExtraContextVariable ctxVar && ctxVar.getVariableName() != null && !ctxVar.getVariableName().isEmpty()) {
+                if (item instanceof WiredExtraContextVariable ctxVar
+                        && ctxVar.getVariableName() != null
+                        && !ctxVar.getVariableName().isEmpty()) {
                     return ctxVar.getVariableName();
                 }
             }
@@ -447,23 +509,45 @@ public abstract class WiredExtraVariableFxBase extends InteractionWiredExtra {
         switch (getCategoryId()) {
             case 0 -> {
                 this.styleId = Math.max(0, Math.min(3, this.styleId));
-                if (this.styleId == 0) { this.rendererId = 10; this.colorId = 1000; this.widthId = Math.max(1, Math.min(3, this.widthId)); }
-                else if (this.styleId == 1) { this.rendererId = 12; if (this.widthId != 2 && this.widthId != 3) this.widthId = 2; }
-                else if (this.styleId == 2) { this.rendererId = 13; this.widthId = Math.max(0, Math.min(4, this.widthId)); }
-                else { this.rendererId = 11; this.widthId = -1; }
+                if (this.styleId == 0) {
+                    this.rendererId = 10;
+                    this.colorId = 1000;
+                    this.widthId = Math.max(1, Math.min(3, this.widthId));
+                } else if (this.styleId == 1) {
+                    this.rendererId = 12;
+                    if (this.widthId != 2 && this.widthId != 3) this.widthId = 2;
+                } else if (this.styleId == 2) {
+                    this.rendererId = 13;
+                    this.widthId = Math.max(0, Math.min(4, this.widthId));
+                } else {
+                    this.rendererId = 11;
+                    this.widthId = -1;
+                }
                 if (this.styleId == 0) this.colorId = 1000;
                 else if (this.styleId == 2) this.colorId = -1;
                 else if (!isAllOrTeamColor(this.colorId)) this.colorId = 5;
             }
-            case 1 -> { this.styleId = Math.max(0, Math.min(3, this.styleId)); this.rendererId = this.styleId == 0 ? 0 : this.styleId + 1; this.widthId = Math.max(0, Math.min(4, this.widthId)); if (!isAllOrTeamColor(this.colorId)) this.colorId = 1; }
+            case 1 -> {
+                this.styleId = Math.max(0, Math.min(3, this.styleId));
+                this.rendererId = this.styleId == 0 ? 0 : this.styleId + 1;
+                this.widthId = Math.max(0, Math.min(4, this.widthId));
+                if (!isAllOrTeamColor(this.colorId)) this.colorId = 1;
+            }
             case 2 -> {
                 this.styleId = Math.max(0, Math.min(1, this.styleId));
                 this.rendererId = this.styleId == 0 ? 20 : 21;
-                this.widthId = this.styleId == 0 ? Math.max(1, Math.min(3, this.widthId)) : Math.max(1, Math.min(4, this.widthId));
+                this.widthId = this.styleId == 0
+                        ? Math.max(1, Math.min(3, this.widthId))
+                        : Math.max(1, Math.min(4, this.widthId));
                 if (this.subRendererId < 2 || this.subRendererId > 4) this.subRendererId = 2;
                 if (!(isNormalColor(this.colorId) || this.colorId == 1001 || this.colorId == 1002)) this.colorId = 1002;
             }
-            case 3 -> { this.styleId = Math.max(0, Math.min(21, this.styleId)); this.rendererId = Math.max(2, Math.min(4, this.rendererId)); this.widthId = Math.max(0, Math.min(4, this.widthId)); this.colorId = this.styleId == 16 ? 1000 : -1; }
+            case 3 -> {
+                this.styleId = Math.max(0, Math.min(21, this.styleId));
+                this.rendererId = Math.max(2, Math.min(4, this.rendererId));
+                this.widthId = Math.max(0, Math.min(4, this.widthId));
+                this.colorId = this.styleId == 16 ? 1000 : -1;
+            }
             case 4 -> {
                 this.styleId = Math.max(0, Math.min(1, this.styleId));
                 this.rendererId = 100;
@@ -471,15 +555,29 @@ public abstract class WiredExtraVariableFxBase extends InteractionWiredExtra {
                 else if (!(isAllOrTeamColor(this.colorId) || this.colorId == 1000)) this.colorId = 5;
                 if (this.widthId != 3 && this.widthId != 4 && this.widthId != 100) this.widthId = 3;
             }
-            case 5 -> { this.styleId = Math.max(0, Math.min(2, this.styleId)); this.rendererId = this.styleId == 0 ? 201 : 200; this.widthId = -1; if (this.styleId == 0 && !(this.colorId == 1 || this.colorId == 3 || this.colorId == 5 || this.colorId == 7 || this.colorId == 19 || this.colorId == 1001)) this.colorId = 1; else if (this.styleId != 0 && !isAllOrTeamColor(this.colorId)) this.colorId = 1; }
-            default -> { }
+            case 5 -> {
+                this.styleId = Math.max(0, Math.min(2, this.styleId));
+                this.rendererId = this.styleId == 0 ? 201 : 200;
+                this.widthId = -1;
+                if (this.styleId == 0
+                        && !(this.colorId == 1
+                                || this.colorId == 3
+                                || this.colorId == 5
+                                || this.colorId == 7
+                                || this.colorId == 19
+                                || this.colorId == 1001)) this.colorId = 1;
+                else if (this.styleId != 0 && !isAllOrTeamColor(this.colorId)) this.colorId = 1;
+            }
+            default -> {}
         }
 
         int segmentRenderer = (getCategoryId() == 2) ? this.subRendererId : this.rendererId;
         if (segmentRenderer != 2 && segmentRenderer != 4 && segmentRenderer != 13) this.segments = 0;
         else this.segments = Math.max(0, Math.min(100, this.segments));
         if (this.defaultMaxValue < this.defaultMinValue) {
-            int swap = this.defaultMinValue; this.defaultMinValue = this.defaultMaxValue; this.defaultMaxValue = swap;
+            int swap = this.defaultMinValue;
+            this.defaultMinValue = this.defaultMaxValue;
+            this.defaultMaxValue = swap;
         }
     }
 
@@ -535,41 +633,109 @@ public abstract class WiredExtraVariableFxBase extends InteractionWiredExtra {
     }
 
     public static class JsonData {
-        @SerializedName("src") public int sourceType;
-        @SerializedName("vis") public int visibility;
-        @SerializedName("mode") public int showMode;
-        @SerializedName("flt") public int changeFilter;
-        @SerializedName("hov") public boolean showOnMouseHover;
-        @SerializedName("dur") public int showDuration;
-        @SerializedName("stl") public int styleId;
-        @SerializedName("clr") public int colorId;
-        @SerializedName("wid") public int widthId;
-        @SerializedName("rnd") public int rendererId;
-        @SerializedName("min") public int defaultMinValue;
-        @SerializedName("max") public int defaultMaxValue;
-        @SerializedName("omin_e") public boolean overrideMinEnabled;
-        @SerializedName("omax_e") public boolean overrideMaxEnabled;
-        @SerializedName("omin_t") public int overrideMinTarget;
-        @SerializedName("omax_t") public int overrideMaxTarget;
-        @SerializedName("aud_val") public int audienceVariableValue;
-        @SerializedName("seg") public int segments;
-        @SerializedName("sub_rnd") public int subRendererId;
-        @SerializedName("icn_alg") public int iconAlignment;
-        @SerializedName("icn") public String icon;
-        @SerializedName("var_name") public String variableName;
-        @SerializedName("omin_v") public String overrideMinVariableId;
-        @SerializedName("omax_v") public String overrideMaxVariableId;
-        @SerializedName("aud_v") public String audienceVariableId;
+        @SerializedName("src")
+        public int sourceType;
+
+        @SerializedName("vis")
+        public int visibility;
+
+        @SerializedName("mode")
+        public int showMode;
+
+        @SerializedName("flt")
+        public int changeFilter;
+
+        @SerializedName("hov")
+        public boolean showOnMouseHover;
+
+        @SerializedName("dur")
+        public int showDuration;
+
+        @SerializedName("stl")
+        public int styleId;
+
+        @SerializedName("clr")
+        public int colorId;
+
+        @SerializedName("wid")
+        public int widthId;
+
+        @SerializedName("rnd")
+        public int rendererId;
+
+        @SerializedName("min")
+        public int defaultMinValue;
+
+        @SerializedName("max")
+        public int defaultMaxValue;
+
+        @SerializedName("omin_e")
+        public boolean overrideMinEnabled;
+
+        @SerializedName("omax_e")
+        public boolean overrideMaxEnabled;
+
+        @SerializedName("omin_t")
+        public int overrideMinTarget;
+
+        @SerializedName("omax_t")
+        public int overrideMaxTarget;
+
+        @SerializedName("aud_val")
+        public int audienceVariableValue;
+
+        @SerializedName("seg")
+        public int segments;
+
+        @SerializedName("sub_rnd")
+        public int subRendererId;
+
+        @SerializedName("icn_alg")
+        public int iconAlignment;
+
+        @SerializedName("icn")
+        public String icon;
+
+        @SerializedName("var_name")
+        public String variableName;
+
+        @SerializedName("omin_v")
+        public String overrideMinVariableId;
+
+        @SerializedName("omax_v")
+        public String overrideMaxVariableId;
+
+        @SerializedName("aud_v")
+        public String audienceVariableId;
 
         public JsonData() {}
 
-        public JsonData(int sourceType, int visibility, int showMode, int changeFilter, boolean showOnMouseHover,
-                        int showDuration, int styleId, int colorId, int widthId, int rendererId,
-                        int defaultMinValue, int defaultMaxValue, boolean overrideMinEnabled,
-                        boolean overrideMaxEnabled, int overrideMinTarget, int overrideMaxTarget,
-                        int audienceVariableValue, int segments, int subRendererId, int iconAlignment,
-                        String icon, String variableName, String overrideMinVariableId, String overrideMaxVariableId,
-                        String audienceVariableId) {
+        public JsonData(
+                int sourceType,
+                int visibility,
+                int showMode,
+                int changeFilter,
+                boolean showOnMouseHover,
+                int showDuration,
+                int styleId,
+                int colorId,
+                int widthId,
+                int rendererId,
+                int defaultMinValue,
+                int defaultMaxValue,
+                boolean overrideMinEnabled,
+                boolean overrideMaxEnabled,
+                int overrideMinTarget,
+                int overrideMaxTarget,
+                int audienceVariableValue,
+                int segments,
+                int subRendererId,
+                int iconAlignment,
+                String icon,
+                String variableName,
+                String overrideMinVariableId,
+                String overrideMaxVariableId,
+                String audienceVariableId) {
             this.sourceType = sourceType;
             this.visibility = visibility;
             this.showMode = showMode;

@@ -7,10 +7,9 @@ import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeSearchResultsComposer;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 public class YouTubeSearchEvent extends MessageHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(YouTubeSearchEvent.class);
@@ -38,7 +37,8 @@ public class YouTubeSearchEvent extends MessageHandler {
         final String searchQuery = query;
         Emulator.getThreading().run(() -> {
             try {
-                YoutubeManager manager = Emulator.getGameEnvironment().getItemManager().getYoutubeManager();
+                YoutubeManager manager =
+                        Emulator.getGameEnvironment().getItemManager().getYoutubeManager();
                 List<YoutubeManager.YoutubeSearchResult> results = manager.searchVideos(searchQuery);
                 if (client.getHabbo() != null) {
                     client.sendResponse(new YouTubeSearchResultsComposer(searchQuery, "", results).compose());
@@ -47,9 +47,10 @@ public class YouTubeSearchEvent extends MessageHandler {
                 LOGGER.warn("YouTube search failed for query '{}': {}", searchQuery, e.getMessage());
                 if (client.getHabbo() != null) {
                     client.sendResponse(new YouTubeSearchResultsComposer(
-                            searchQuery,
-                            "Ricerca YouTube non disponibile: verifica youtube.apikey e la quota API.",
-                            List.of()).compose());
+                                    searchQuery,
+                                    "Ricerca YouTube non disponibile: verifica youtube.apikey e la quota API.",
+                                    List.of())
+                            .compose());
                 }
             }
         });

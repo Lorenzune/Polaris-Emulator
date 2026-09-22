@@ -13,12 +13,11 @@ import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.WiredEffectType;
-import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
+import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -53,7 +52,9 @@ public class WiredEffectGiveScore extends InteractionWiredEffect {
         if (this.directMode == 1) {
             Set<InteractionWiredHighscore> targetHighscores = new LinkedHashSet<>();
             for (HabboItem item : this.items) {
-                if (item instanceof InteractionWiredHighscore highscore && item.getRoomId() == room.getId() && room.getHabboItem(item.getId()) != null) {
+                if (item instanceof InteractionWiredHighscore highscore
+                        && item.getRoomId() == room.getId()
+                        && room.getHabboItem(item.getId()) != null) {
                     targetHighscores.add(highscore);
                 }
             }
@@ -70,12 +71,11 @@ public class WiredEffectGiveScore extends InteractionWiredEffect {
                 if (habbo == null) continue;
 
                 for (InteractionWiredHighscore highscore : targetHighscores) {
-                    Emulator.getGameEnvironment().getItemManager().getHighscoreManager().addOrUpdateUserScore(
-                            highscore.getId(),
-                            habbo.getHabboInfo().getId(),
-                            applied,
-                            highscore.clearType
-                    );
+                    Emulator.getGameEnvironment()
+                            .getItemManager()
+                            .getHighscoreManager()
+                            .addOrUpdateUserScore(
+                                    highscore.getId(), habbo.getHabboInfo().getId(), applied, highscore.clearType);
                     highscore.reloadData();
                     room.updateItem(highscore);
                 }
@@ -89,8 +89,7 @@ public class WiredEffectGiveScore extends InteractionWiredEffect {
 
             Game game = room.getGame(habbo.getHabboInfo().getCurrentGame());
 
-            if (game == null)
-                continue;
+            if (game == null) continue;
 
             if (habbo.getHabboInfo().getGamePlayer() != null) {
                 habbo.getHabboInfo().getGamePlayer().addScore(applied, true);
@@ -110,7 +109,9 @@ public class WiredEffectGiveScore extends InteractionWiredEffect {
         for (HabboItem item : this.items) {
             if (item != null) itemIds.add(item.getId());
         }
-        return WiredManager.getGson().toJson(new JsonData(this.score, this.operation, this.getDelay(), this.userSource, this.directMode, itemIds));
+        return WiredManager.getGson()
+                .toJson(new JsonData(
+                        this.score, this.operation, this.getDelay(), this.userSource, this.directMode, itemIds));
     }
 
     @Override
@@ -118,7 +119,7 @@ public class WiredEffectGiveScore extends InteractionWiredEffect {
         this.items.clear();
         String wiredData = set.getString("wired_data");
 
-        if(wiredData.startsWith("{")) {
+        if (wiredData.startsWith("{")) {
             JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
             this.score = data.score;
             this.operation = this.normalizeOperation(data.operation);
@@ -134,8 +135,7 @@ public class WiredEffectGiveScore extends InteractionWiredEffect {
                     }
                 }
             }
-        }
-        else {
+        } else {
             String[] data = wiredData.split(";");
 
             if (data.length >= 3) {
@@ -168,7 +168,8 @@ public class WiredEffectGiveScore extends InteractionWiredEffect {
     @Override
     public void serializeWiredData(ServerMessage message, Room room) {
         List<HabboItem> itemsSnapshot = new ArrayList<>(this.items);
-        itemsSnapshot.removeIf(item -> item == null || item.getRoomId() != room.getId() || room.getHabboItem(item.getId()) == null);
+        itemsSnapshot.removeIf(
+                item -> item == null || item.getRoomId() != room.getId() || room.getHabboItem(item.getId()) == null);
         this.items.clear();
         this.items.addAll(itemsSnapshot);
 
@@ -209,12 +210,11 @@ public class WiredEffectGiveScore extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
-        if(settings.getIntParams().length < 3) throw new WiredSaveException("Invalid data");
+        if (settings.getIntParams().length < 3) throw new WiredSaveException("Invalid data");
 
         int score = settings.getIntParams()[0];
 
-        if(score < 1 || score > 1000)
-            throw new WiredSaveException("Score is invalid");
+        if (score < 1 || score > 1000) throw new WiredSaveException("Score is invalid");
 
         int operation = this.normalizeOperation(settings.getIntParams()[1]);
 
@@ -244,7 +244,7 @@ public class WiredEffectGiveScore extends InteractionWiredEffect {
 
         int delay = settings.getDelay();
 
-        if(delay > Emulator.getConfig().getInt("hotel.wired.max_delay", 20))
+        if (delay > Emulator.getConfig().getInt("hotel.wired.max_delay", 20))
             throw new WiredSaveException("Delay too long");
 
         this.items.clear();

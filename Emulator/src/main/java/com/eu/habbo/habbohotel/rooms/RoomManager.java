@@ -495,7 +495,8 @@ public class RoomManager {
         List<Room> eligibleRooms;
         if ("public_root".equals(scope) && categoryId == 0) {
             listKey = "public-root";
-            eligibleRooms = Emulator.getGameEnvironment().getNavigatorManager()
+            eligibleRooms = Emulator.getGameEnvironment()
+                    .getNavigatorManager()
                     .getOrderedPublicRooms(listKey, this.getPublicRooms());
         } else if ("public_category".equals(scope) && categoryId > 0) {
             listKey = "public-category:" + categoryId;
@@ -510,8 +511,8 @@ public class RoomManager {
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
             connection.setAutoCommit(false);
-            try (PreparedStatement delete = connection.prepareStatement(
-                    "DELETE FROM navigator_room_order WHERE list_key = ?")) {
+            try (PreparedStatement delete =
+                    connection.prepareStatement("DELETE FROM navigator_room_order WHERE list_key = ?")) {
                 delete.setString(1, listKey);
                 delete.executeUpdate();
             }
@@ -549,8 +550,8 @@ public class RoomManager {
         int ownerId = habbo.getHabboInfo().getId();
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
             connection.setAutoCommit(false);
-            try (PreparedStatement statement = connection.prepareStatement(
-                    "UPDATE rooms SET navigator_order = ? WHERE id = ? AND owner_id = ?")) {
+            try (PreparedStatement statement =
+                    connection.prepareStatement("UPDATE rooms SET navigator_order = ? WHERE id = ? AND owner_id = ?")) {
                 for (int index = 0; index < orderedRoomIds.size(); index++) {
                     statement.setInt(1, index + 1);
                     statement.setInt(2, orderedRoomIds.get(index));
@@ -799,11 +800,11 @@ public class RoomManager {
                 h.getClient().sendResponse(new RoomScoreComposer(room.getScore(), !this.hasVotedForRoom(h, room)));
             }
 
-              try {
-                  this.roomRepository.recordVote(
-                          room.getId(), habbo.getHabboInfo().getId());
-                  AchievementInteractions.progress(habbo, "RoomCompetitionVoter");
-              } catch (SQLException e) {
+            try {
+                this.roomRepository.recordVote(
+                        room.getId(), habbo.getHabboInfo().getId());
+                AchievementInteractions.progress(habbo, "RoomCompetitionVoter");
+            } catch (SQLException e) {
                 LOGGER.error("Caught SQL exception", e);
             }
         }
@@ -932,7 +933,12 @@ public class RoomManager {
         }
 
         habbo.getRoomUnit().setRoomUnitType(RoomUnitType.USER);
-        if (room.isBanned(habbo) || (habbo.getHabboInfo().getId() != room.getOwnerId() && com.eu.habbo.habbohotel.users.HabboStats.isUserBlocked(room.getOwnerId(), habbo.getHabboInfo().getId()) && !habbo.hasPermission(Permission.ACC_ANYROOMOWNER) && !habbo.hasPermission(Permission.ACC_ENTERANYROOM))) {
+        if (room.isBanned(habbo)
+                || (habbo.getHabboInfo().getId() != room.getOwnerId()
+                        && com.eu.habbo.habbohotel.users.HabboStats.isUserBlocked(
+                                room.getOwnerId(), habbo.getHabboInfo().getId())
+                        && !habbo.hasPermission(Permission.ACC_ANYROOMOWNER)
+                        && !habbo.hasPermission(Permission.ACC_ENTERANYROOM))) {
             habbo.getClient().sendResponse(new RoomEnterErrorComposer(RoomEnterErrorComposer.ROOM_ERROR_BANNED));
             return;
         }
@@ -996,10 +1002,12 @@ public class RoomManager {
         if (room.getOwnerId() != habbo.getHabboInfo().getId()) {
             if (!habbo.getHabboStats().visitedRoom(room.getId())) {
                 AchievementManager.progressAchievement(
-                        habbo, Emulator.getGameEnvironment().getAchievementManager().getAchievement("RoomEntry"));
+                        habbo,
+                        Emulator.getGameEnvironment().getAchievementManager().getAchievement("RoomEntry"));
             }
 
-            Emulator.getGameEnvironment().getRewardTrackManager()
+            Emulator.getGameEnvironment()
+                    .getRewardTrackManager()
                     .addProgress(habbo.getHabboInfo().getId(), "enter_other_users_room", 1);
         }
     }
@@ -1328,8 +1336,9 @@ public class RoomManager {
                         (com.eu.habbo.habbohotel.items.interactions.InteractionYoutubeTV) roomItem;
 
                 if (videoPlayer.isEmbeddedPlayer() && videoPlayer.getEmbeddedState() != 0) {
-                    habbo.getClient().sendResponse(
-                            new com.eu.habbo.messages.outgoing.rooms.youtube.EmbeddedMediaStateComposer(videoPlayer, 1));
+                    habbo.getClient()
+                            .sendResponse(new com.eu.habbo.messages.outgoing.rooms.youtube.EmbeddedMediaStateComposer(
+                                    videoPlayer, 1));
                 }
             }
         }
@@ -1563,9 +1572,10 @@ public class RoomManager {
     public ArrayList<Room> getRoomsVisited(Habbo habbo, boolean includeSelf, int limit) {
         ArrayList<Room> rooms = new ArrayList<>();
 
-        String sql = "SELECT rooms.* FROM room_enter_log INNER JOIN rooms ON room_enter_log.room_id = rooms.id WHERE user_id = ? AND timestamp >= ?"
-                + (includeSelf ? "" : " AND rooms.owner_id != ?")
-                + " GROUP BY rooms.id ORDER BY MAX(room_enter_log.timestamp) DESC LIMIT " + limit;
+        String sql =
+                "SELECT rooms.* FROM room_enter_log INNER JOIN rooms ON room_enter_log.room_id = rooms.id WHERE user_id = ? AND timestamp >= ?"
+                        + (includeSelf ? "" : " AND rooms.owner_id != ?")
+                        + " GROUP BY rooms.id ORDER BY MAX(room_enter_log.timestamp) DESC LIMIT " + limit;
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {

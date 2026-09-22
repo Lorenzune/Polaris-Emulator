@@ -7,20 +7,20 @@ import com.eu.habbo.habbohotel.permissions.Permission;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.events.calendar.CalendarEditorResultComposer;
 import com.eu.habbo.messages.outgoing.events.calendar.CalendarEditorStateComposer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CalendarEditorSaveRewardEvent extends MessageHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(CalendarEditorSaveRewardEvent.class);
 
     @Override
     public void handle() throws Exception {
-        if (this.client.getHabbo() == null || (!this.client.getHabbo().hasPermission(Permission.ACC_CALENDAR_EDITOR) && !this.client.getHabbo().hasPermission(Permission.ACC_CALENDAR_FORCE))) {
+        if (this.client.getHabbo() == null
+                || (!this.client.getHabbo().hasPermission(Permission.ACC_CALENDAR_EDITOR)
+                        && !this.client.getHabbo().hasPermission(Permission.ACC_CALENDAR_FORCE))) {
             return;
         }
 
@@ -41,16 +41,18 @@ public class CalendarEditorSaveRewardEvent extends MessageHandler {
             campaignName = Emulator.getConfig().getValue("hotel.calendar.default", "test");
         }
 
-        CalendarCampaign campaign = Emulator.getGameEnvironment().getCalendarManager().getCalendarCampaign(campaignName);
+        CalendarCampaign campaign =
+                Emulator.getGameEnvironment().getCalendarManager().getCalendarCampaign(campaignName);
         int campaignId = campaign != null ? campaign.getId() : 1;
 
         try {
             if (id <= 0) {
-                try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-                     PreparedStatement statement = connection.prepareStatement(
-                             "INSERT INTO calendar_rewards (campaign_id, product_name, custom_image, credits, pixels, points, points_type, badge, item_id, subscription_type, subscription_days) " +
-                                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                             Statement.RETURN_GENERATED_KEYS)) {
+                try (Connection connection =
+                                Emulator.getDatabase().getDataSource().getConnection();
+                        PreparedStatement statement = connection.prepareStatement(
+                                "INSERT INTO calendar_rewards (campaign_id, product_name, custom_image, credits, pixels, points, points_type, badge, item_id, subscription_type, subscription_days) "
+                                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                                Statement.RETURN_GENERATED_KEYS)) {
                     statement.setInt(1, campaignId);
                     statement.setString(2, productName != null ? productName : "");
                     statement.setString(3, customImage != null ? customImage : "");
@@ -85,7 +87,8 @@ public class CalendarEditorSaveRewardEvent extends MessageHandler {
 
             this.client.sendResponse(new CalendarEditorResultComposer(true, "Reward saved successfully!"));
 
-            CalendarCampaign updatedCampaign = Emulator.getGameEnvironment().getCalendarManager().getCalendarCampaign(campaignName);
+            CalendarCampaign updatedCampaign =
+                    Emulator.getGameEnvironment().getCalendarManager().getCalendarCampaign(campaignName);
             if (updatedCampaign != null) {
                 this.client.sendResponse(new CalendarEditorStateComposer(
                         updatedCampaign.getId(),
@@ -94,7 +97,8 @@ public class CalendarEditorSaveRewardEvent extends MessageHandler {
             }
         } catch (Exception e) {
             LOGGER.error("Error saving calendar reward", e);
-            this.client.sendResponse(new CalendarEditorResultComposer(false, "Failed to save reward: " + e.getMessage()));
+            this.client.sendResponse(
+                    new CalendarEditorResultComposer(false, "Failed to save reward: " + e.getMessage()));
         }
     }
 }

@@ -32,7 +32,9 @@ public class PurchaseProfileCosmeticEvent extends MessageHandler {
 
         if (category == null) return;
 
-        InfostandBackgroundManager manager = Emulator.getGameEnvironment() != null ? Emulator.getGameEnvironment().getInfostandBackgroundManager() : null;
+        InfostandBackgroundManager manager = Emulator.getGameEnvironment() != null
+                ? Emulator.getGameEnvironment().getInfostandBackgroundManager()
+                : null;
         if (manager == null) return;
 
         boolean success = manager.tryPurchaseAndEquip(habbo, category, itemId);

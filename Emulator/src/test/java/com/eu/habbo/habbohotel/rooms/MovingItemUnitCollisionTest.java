@@ -1,19 +1,26 @@
 package com.eu.habbo.habbohotel.rooms;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionTileWalkMagic;
-import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.core.WiredMovementPhysics;
-import org.junit.jupiter.api.Test;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import org.junit.jupiter.api.Test;
 
 class MovingItemUnitCollisionTest {
 
@@ -43,8 +50,8 @@ class MovingItemUnitCollisionTest {
         // Target tile has a habbo
         when(room.hasHabbosAt(3, 3)).thenReturn(true);
 
-        FurnitureMovementError error = movementService.furnitureFitsAtWithPhysics(
-                targetTile, chair, 0, true, WiredMovementPhysics.NONE);
+        FurnitureMovementError error =
+                movementService.furnitureFitsAtWithPhysics(targetTile, chair, 0, true, WiredMovementPhysics.NONE);
 
         assertEquals(FurnitureMovementError.TILE_HAS_HABBOS, error);
     }
@@ -75,8 +82,8 @@ class MovingItemUnitCollisionTest {
         // Target tile has a habbo, and rug is moving with checkForUnits = true
         when(room.hasHabbosAt(3, 3)).thenReturn(true);
 
-        FurnitureMovementError error = movementService.furnitureFitsAtWithPhysics(
-                targetTile, rug, 0, true, WiredMovementPhysics.NONE);
+        FurnitureMovementError error =
+                movementService.furnitureFitsAtWithPhysics(targetTile, rug, 0, true, WiredMovementPhysics.NONE);
 
         assertEquals(FurnitureMovementError.TILE_HAS_HABBOS, error);
     }
@@ -107,8 +114,8 @@ class MovingItemUnitCollisionTest {
         // Target tile has a habbo
         when(room.hasHabbosAt(3, 3)).thenReturn(true);
 
-        FurnitureMovementError error = movementService.furnitureFitsAtWithPhysics(
-                targetTile, magicTile, 0, true, WiredMovementPhysics.NONE);
+        FurnitureMovementError error =
+                movementService.furnitureFitsAtWithPhysics(targetTile, magicTile, 0, true, WiredMovementPhysics.NONE);
 
         assertEquals(FurnitureMovementError.TILE_HAS_HABBOS, error);
     }
@@ -145,11 +152,10 @@ class MovingItemUnitCollisionTest {
 
         Set<Integer> passThroughUserIds = new HashSet<>();
         passThroughUserIds.add(42);
-        WiredMovementPhysics physics = new WiredMovementPhysics(
-                false, Collections.emptySet(), passThroughUserIds, Collections.emptySet());
+        WiredMovementPhysics physics =
+                new WiredMovementPhysics(false, Collections.emptySet(), passThroughUserIds, Collections.emptySet());
 
-        FurnitureMovementError error = movementService.furnitureFitsAtWithPhysics(
-                targetTile, chair, 0, true, physics);
+        FurnitureMovementError error = movementService.furnitureFitsAtWithPhysics(targetTile, chair, 0, true, physics);
 
         assertEquals(FurnitureMovementError.NONE, error);
     }
@@ -206,8 +212,9 @@ class MovingItemUnitCollisionTest {
         // Configure trigger to have chair in its items selection
         com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings settings =
                 mock(com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings.class);
-        when(settings.getIntParams()).thenReturn(new int[]{com.eu.habbo.habbohotel.wired.core.WiredSourceUtil.SOURCE_SELECTED});
-        when(settings.getFurniIds()).thenReturn(new int[]{202});
+        when(settings.getIntParams())
+                .thenReturn(new int[] {com.eu.habbo.habbohotel.wired.core.WiredSourceUtil.SOURCE_SELECTED});
+        when(settings.getFurniIds()).thenReturn(new int[] {202});
         com.eu.habbo.Emulator emulator = mock(com.eu.habbo.Emulator.class);
         com.eu.habbo.habbohotel.GameEnvironment gameEnvironment = mock(com.eu.habbo.habbohotel.GameEnvironment.class);
         com.eu.habbo.habbohotel.rooms.RoomManager roomManager = mock(com.eu.habbo.habbohotel.rooms.RoomManager.class);
@@ -216,7 +223,9 @@ class MovingItemUnitCollisionTest {
 
         // Use reflection to add chair to trigger items
         try {
-            java.lang.reflect.Field itemsField = com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerCollision.class.getDeclaredField("items");
+            java.lang.reflect.Field itemsField =
+                    com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerCollision.class
+                            .getDeclaredField("items");
             itemsField.setAccessible(true);
             @SuppressWarnings("unchecked")
             Set<HabboItem> items = (Set<HabboItem>) itemsField.get(trigger);

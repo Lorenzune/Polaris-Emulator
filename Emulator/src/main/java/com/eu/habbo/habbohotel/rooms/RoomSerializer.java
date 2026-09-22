@@ -27,9 +27,10 @@ final class RoomSerializer {
         message.appendInt(0);
         message.appendInt(room.getCategory());
 
-        java.util.List<String> tagList = new java.util.ArrayList<>(Arrays.stream(room.getTags().split(";"))
-                .filter(tag -> !tag.isEmpty() && !tag.equalsIgnoreCase("vocal"))
-                .toList());
+        java.util.List<String> tagList =
+                new java.util.ArrayList<>(Arrays.stream(room.getTags().split(";"))
+                        .filter(tag -> !tag.isEmpty() && !tag.equalsIgnoreCase("vocal"))
+                        .toList());
         if (room.isVocalChatEnabled() && room.getVoiceUsers().size() >= 2) {
             tagList.add("vocal");
         }
@@ -66,7 +67,6 @@ final class RoomSerializer {
             message.appendString(promotion.getDescription());
             message.appendInt((promotion.getEndTimestamp() - room.currentUnixTimestamp()) / 60);
         }
-
     }
 
     private static void appendGuild(Room room, ServerMessage message) {

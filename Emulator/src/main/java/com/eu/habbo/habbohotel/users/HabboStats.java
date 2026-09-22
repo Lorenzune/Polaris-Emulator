@@ -876,7 +876,8 @@ public class HabboStats implements Runnable {
     public boolean ignoreUser(GameClient gameClient, int userId) {
         final Habbo target = Emulator.getGameEnvironment().getHabboManager().getHabbo(userId);
 
-        if (target != null && !Emulator.getConfig().getBoolean("hotel.allow.ignore.staffs")
+        if (target != null
+                && !Emulator.getConfig().getBoolean("hotel.allow.ignore.staffs")
                 && target.hasPermission(Permission.ACC_UNIGNORABLE)) {
             if (gameClient != null && gameClient.getHabbo() != null) {
                 gameClient
@@ -931,7 +932,8 @@ public class HabboStats implements Runnable {
             return habbo.getHabboStats().userBlocked(targetId);
         }
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-                PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM users_blocked WHERE user_id = ? AND target_id = ? LIMIT 1")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "SELECT 1 FROM users_blocked WHERE user_id = ? AND target_id = ? LIMIT 1")) {
             statement.setInt(1, userId);
             statement.setInt(2, targetId);
             try (ResultSet set = statement.executeQuery()) {
@@ -946,7 +948,8 @@ public class HabboStats implements Runnable {
     public boolean blockUser(GameClient gameClient, int userId) {
         final Habbo target = Emulator.getGameEnvironment().getHabboManager().getHabbo(userId);
 
-        if (target != null && !Emulator.getConfig().getBoolean("hotel.allow.ignore.staffs")
+        if (target != null
+                && !Emulator.getConfig().getBoolean("hotel.allow.ignore.staffs")
                 && target.hasPermission(Permission.ACC_UNIGNORABLE)) {
             if (gameClient != null && gameClient.getHabbo() != null) {
                 gameClient
@@ -973,16 +976,22 @@ public class HabboStats implements Runnable {
             }
         }
 
-        if (gameClient != null && gameClient.getHabbo() != null && gameClient.getHabbo().getMessenger() != null) {
+        if (gameClient != null
+                && gameClient.getHabbo() != null
+                && gameClient.getHabbo().getMessenger() != null) {
             if (gameClient.getHabbo().getMessenger().getFriend(userId) != null) {
                 com.eu.habbo.habbohotel.messenger.Messenger.unfriend(this.habboInfo.getId(), userId);
                 gameClient.getHabbo().getMessenger().removeBuddy(userId);
 
-                Habbo targetHabbo = Emulator.getGameServer().getGameClientManager().getHabbo(userId);
+                Habbo targetHabbo =
+                        Emulator.getGameServer().getGameClientManager().getHabbo(userId);
                 if (targetHabbo != null && targetHabbo.getMessenger() != null) {
                     targetHabbo.getMessenger().removeBuddy(gameClient.getHabbo());
                     if (targetHabbo.getClient() != null) {
-                        targetHabbo.getClient().sendResponse(new com.eu.habbo.messages.outgoing.friends.RemoveFriendComposer(this.habboInfo.getId()));
+                        targetHabbo
+                                .getClient()
+                                .sendResponse(new com.eu.habbo.messages.outgoing.friends.RemoveFriendComposer(
+                                        this.habboInfo.getId()));
                     }
                 }
                 gameClient.sendResponse(new com.eu.habbo.messages.outgoing.friends.RemoveFriendComposer(userId));
@@ -1040,7 +1049,8 @@ public class HabboStats implements Runnable {
         persistFlag("mass_mentions_enabled", enabled);
     }
 
-    public void setWiredAccountPreferences(boolean showToolbarButton, boolean showInspectButton, boolean showSystemNotifications) {
+    public void setWiredAccountPreferences(
+            boolean showToolbarButton, boolean showInspectButton, boolean showSystemNotifications) {
         this.wiredShowToolbarButton = showToolbarButton;
         this.wiredShowInspectButton = showInspectButton;
         this.wiredShowSystemNotifications = showSystemNotifications;
@@ -1077,10 +1087,22 @@ public class HabboStats implements Runnable {
     }
 
     public void setGamePrivacy(boolean hideOnline, boolean blockFollowing, boolean blockFriendRequests) {
-        setGamePrivacy(hideOnline, blockFollowing, blockFriendRequests, this.blockRoleplay, this.blockMimic, this.mentionsEnabled);
+        setGamePrivacy(
+                hideOnline,
+                blockFollowing,
+                blockFriendRequests,
+                this.blockRoleplay,
+                this.blockMimic,
+                this.mentionsEnabled);
     }
 
-    public void setGamePrivacy(boolean hideOnline, boolean blockFollowing, boolean blockFriendRequests, boolean blockRoleplay, boolean blockMimic, boolean mentionsEnabled) {
+    public void setGamePrivacy(
+            boolean hideOnline,
+            boolean blockFollowing,
+            boolean blockFriendRequests,
+            boolean blockRoleplay,
+            boolean blockMimic,
+            boolean mentionsEnabled) {
         this.hideOnline = hideOnline;
         this.blockFollowing = blockFollowing;
         this.blockFriendRequests = blockFriendRequests;
@@ -1088,9 +1110,9 @@ public class HabboStats implements Runnable {
         this.blockMimic = blockMimic;
         this.mentionsEnabled = mentionsEnabled;
 
-            try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-                    PreparedStatement statement = connection.prepareStatement(
-                            "UPDATE users_settings SET hide_online = ?, block_following = ?, block_friendrequests = ?, block_roleplay = ?, block_kiss = ?, block_mimic = ?, mentions_enabled = ? WHERE user_id = ? LIMIT 1")) {
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        "UPDATE users_settings SET hide_online = ?, block_following = ?, block_friendrequests = ?, block_roleplay = ?, block_kiss = ?, block_mimic = ?, mentions_enabled = ? WHERE user_id = ? LIMIT 1")) {
             statement.setString(1, hideOnline ? "1" : "0");
             statement.setString(2, blockFollowing ? "1" : "0");
             statement.setString(3, blockFriendRequests ? "1" : "0");

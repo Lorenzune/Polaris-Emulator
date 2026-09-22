@@ -21,7 +21,8 @@ public final class LiveKitTokenService {
         return "habbo-" + roomId;
     }
 
-    public static String createAccessToken(String apiKey, String apiSecret, int roomId, int userId, String displayName) {
+    public static String createAccessToken(
+            String apiKey, String apiSecret, int roomId, int userId, String displayName) {
         return createAccessToken(apiKey, apiSecret, roomId, userId, displayName, System.currentTimeMillis() / 1_000L);
     }
 
@@ -30,8 +31,15 @@ public final class LiveKitTokenService {
         if (moderatorUserId <= 0 || sessionId == null || !sessionId.matches("[a-fA-F0-9-]{36}")) {
             throw new IllegalArgumentException("Invalid moderator or monitoring session");
         }
-        return createToken(apiKey, apiSecret, roomId, "mod-" + moderatorUserId + "-" + sessionId,
-                displayName, false, true, System.currentTimeMillis() / 1_000L);
+        return createToken(
+                apiKey,
+                apiSecret,
+                roomId,
+                "mod-" + moderatorUserId + "-" + sessionId,
+                displayName,
+                false,
+                true,
+                System.currentTimeMillis() / 1_000L);
     }
 
     static String createAccessToken(
@@ -43,12 +51,19 @@ public final class LiveKitTokenService {
             throw new IllegalArgumentException("userId and issue time must be positive");
         }
 
-        return createToken(apiKey, apiSecret, roomId, Integer.toString(userId), displayName, true, true, nowEpochSeconds);
+        return createToken(
+                apiKey, apiSecret, roomId, Integer.toString(userId), displayName, true, true, nowEpochSeconds);
     }
 
     private static String createToken(
-            String apiKey, String apiSecret, int roomId, String identity, String displayName,
-            boolean canPublish, boolean canSubscribe, long nowEpochSeconds) {
+            String apiKey,
+            String apiSecret,
+            int roomId,
+            String identity,
+            String displayName,
+            boolean canPublish,
+            boolean canSubscribe,
+            long nowEpochSeconds) {
         if (apiKey == null || apiKey.isBlank() || apiSecret == null || apiSecret.isBlank()) {
             throw new IllegalArgumentException("LiveKit API credentials are required");
         }
@@ -83,7 +98,8 @@ public final class LiveKitTokenService {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(apiSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-            return unsignedToken + "." + encoder.encodeToString(mac.doFinal(unsignedToken.getBytes(StandardCharsets.US_ASCII)));
+            return unsignedToken + "."
+                    + encoder.encodeToString(mac.doFinal(unsignedToken.getBytes(StandardCharsets.US_ASCII)));
         } catch (Exception exception) {
             throw new IllegalStateException("Unable to sign LiveKit access token", exception);
         }
@@ -117,6 +133,7 @@ public final class LiveKitTokenService {
             throw new IllegalArgumentException("Invalid JWT");
         }
         byte[] payload = Base64.getUrlDecoder().decode(parts[1]);
-        return JsonParser.parseString(new String(payload, StandardCharsets.UTF_8)).getAsJsonObject();
+        return JsonParser.parseString(new String(payload, StandardCharsets.UTF_8))
+                .getAsJsonObject();
     }
 }

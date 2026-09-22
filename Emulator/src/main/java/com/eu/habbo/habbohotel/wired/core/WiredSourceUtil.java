@@ -242,7 +242,8 @@ public final class WiredSourceUtil {
                         : Collections.emptyList();
             case SOURCE_SIGNAL:
                 if (ctx.eventType() == WiredEvent.Type.SIGNAL_RECEIVED) {
-                    if (!ctx.event().isSignalPerFurni() && !ctx.event().getSignalSourceItems().isEmpty()) {
+                    if (!ctx.event().isSignalPerFurni()
+                            && !ctx.event().getSignalSourceItems().isEmpty()) {
                         return new ArrayList<>(ctx.event().getSignalSourceItems());
                     }
                     return ctx.sourceItem().map(Collections::singletonList).orElse(Collections.emptyList());
@@ -279,7 +280,8 @@ public final class WiredSourceUtil {
                         : Collections.emptyList();
             case SOURCE_SIGNAL:
                 if (ctx.eventType() == WiredEvent.Type.SIGNAL_RECEIVED) {
-                    if (!ctx.event().isSignalPerUser() && !ctx.event().getSignalSourceUsers().isEmpty()) {
+                    if (!ctx.event().isSignalPerUser()
+                            && !ctx.event().getSignalSourceUsers().isEmpty()) {
                         return new ArrayList<>(ctx.event().getSignalSourceUsers());
                     }
                     return ctx.actor().map(Collections::singletonList).orElse(Collections.emptyList());
@@ -312,7 +314,9 @@ public final class WiredSourceUtil {
         }
 
         RoomTile tile = roomUnit.getCurrentLocation();
-        if (roomUnit.hasStatus(RoomUnitStatus.SIT) || roomUnit.hasStatus(RoomUnitStatus.LAY) || room.canSitAt(tile.x, tile.y)) {
+        if (roomUnit.hasStatus(RoomUnitStatus.SIT)
+                || roomUnit.hasStatus(RoomUnitStatus.LAY)
+                || room.canSitAt(tile.x, tile.y)) {
             HabboItem tallestChair = room.getTallestChair(tile);
             if (tallestChair != null) {
                 return tallestChair;

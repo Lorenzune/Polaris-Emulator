@@ -152,7 +152,8 @@ public class RoomRollerManager {
 
         boolean tileInFrontBlockedByUnit = false;
         for (RoomUnit unitOnTile : tileInFront.getUnits()) {
-            if (!rolledUnitIds.contains(unitOnTile.getId()) && unitOnTile.getCurrentLocation().equals(tileInFront)) {
+            if (!rolledUnitIds.contains(unitOnTile.getId())
+                    && unitOnTile.getCurrentLocation().equals(tileInFront)) {
                 tileInFrontBlockedByUnit = true;
                 break;
             }
@@ -189,8 +190,7 @@ public class RoomRollerManager {
 
                 double rollerZ = roller.getZ();
                 double newRollerZ = item.getZ();
-                if ((Math.abs(rollerZ - newRollerZ) > 0.1
-                                || (itemsNewTile.size() > 1 && item != topItem))
+                if ((Math.abs(rollerZ - newRollerZ) > 0.1 || (itemsNewTile.size() > 1 && item != topItem))
                         && !InteractionRoller.NO_RULES) {
                     allowUsers = false;
                     allowFurniture = false;
@@ -383,7 +383,8 @@ public class RoomRollerManager {
         }
     }
 
-    private HabboItem findRidingItem(RoomUnit unit, Set<HabboItem> itemsOnRoller, Set<Integer> rollerFurniIds, double zOffset) {
+    private HabboItem findRidingItem(
+            RoomUnit unit, Set<HabboItem> itemsOnRoller, Set<Integer> rollerFurniIds, double zOffset) {
         if (unit == null || itemsOnRoller == null || itemsOnRoller.isEmpty()) {
             return null;
         }

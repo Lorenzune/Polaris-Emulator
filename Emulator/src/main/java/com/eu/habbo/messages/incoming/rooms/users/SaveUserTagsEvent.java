@@ -4,7 +4,6 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserTagsComposer;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +26,10 @@ public class SaveUserTagsEvent extends MessageHandler {
             if (this.packet.bytesAvailable() <= 0) break;
             String tag = this.packet.readString();
             if (tag == null) continue;
-            tag = tag.replace("#", "").replaceAll("[\\p{Cntrl}]", "").replaceAll("\\s+", "").trim();
+            tag = tag.replace("#", "")
+                    .replaceAll("[\\p{Cntrl}]", "")
+                    .replaceAll("\\s+", "")
+                    .trim();
             if (tag.isEmpty()) continue;
 
             String filteredTag = Emulator.getGameEnvironment().getWordFilter().filter(tag, habbo);

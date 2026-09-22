@@ -1,21 +1,23 @@
 package com.eu.habbo.habbohotel.rewardtrack;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.economy.EconomyLedger;
 import com.eu.habbo.habbohotel.economy.EconomyOperation;
 import com.eu.habbo.habbohotel.users.Habbo;
-import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RewardTrackManager {
 
@@ -115,20 +117,22 @@ public class RewardTrackManager {
             Habbo habbo = Emulator.getGameEnvironment().getHabboManager().getHabbo(userId);
             if (habbo == null) return error("You must be online to unlock premium rewards.");
 
-            if (track.premiumCostCredits > 0 && !habbo.tryTakeCredits(
-                    track.premiumCostCredits,
-                    "reward_track.premium",
-                    "reward-track-premium:credits:" + userId + ":" + track.id,
-                    userId)) {
+            if (track.premiumCostCredits > 0
+                    && !habbo.tryTakeCredits(
+                            track.premiumCostCredits,
+                            "reward_track.premium",
+                            "reward-track-premium:credits:" + userId + ":" + track.id,
+                            userId)) {
                 return error("Not enough credits.");
             }
 
-            if (track.premiumCostDiamonds > 0 && !habbo.tryTakePoints(
-                    5,
-                    track.premiumCostDiamonds,
-                    "reward_track.premium",
-                    "reward-track-premium:diamonds:" + userId + ":" + track.id,
-                    userId)) {
+            if (track.premiumCostDiamonds > 0
+                    && !habbo.tryTakePoints(
+                            5,
+                            track.premiumCostDiamonds,
+                            "reward_track.premium",
+                            "reward-track-premium:diamonds:" + userId + ":" + track.id,
+                            userId)) {
                 if (track.premiumCostCredits > 0) {
                     habbo.giveCredits(
                             track.premiumCostCredits,
@@ -171,12 +175,12 @@ public class RewardTrackManager {
         if (userId <= 0 || actionType == null || actionType.isBlank() || amount <= 0) return 0;
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "INSERT INTO user_reward_track_progress (user_id, task_id, progress, updated_at) " +
-                             "SELECT ?, t.id, ?, ? FROM reward_track_tasks t " +
-                             "INNER JOIN reward_tracks rt ON rt.id = t.track_id AND rt.enabled = 1 " +
-                             "WHERE t.action_type = ? AND t.enabled = 1 " +
-                             "ON DUPLICATE KEY UPDATE progress = progress + VALUES(progress), updated_at = VALUES(updated_at)")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "INSERT INTO user_reward_track_progress (user_id, task_id, progress, updated_at) "
+                                + "SELECT ?, t.id, ?, ? FROM reward_track_tasks t "
+                                + "INNER JOIN reward_tracks rt ON rt.id = t.track_id AND rt.enabled = 1 "
+                                + "WHERE t.action_type = ? AND t.enabled = 1 "
+                                + "ON DUPLICATE KEY UPDATE progress = progress + VALUES(progress), updated_at = VALUES(updated_at)")) {
             statement.setInt(1, userId);
             statement.setInt(2, amount);
             statement.setInt(3, Emulator.getIntUnixTimestamp());
@@ -184,7 +188,12 @@ public class RewardTrackManager {
             int updated = statement.executeUpdate();
             Emulator.getGameEnvironment().getDailyTaskManager().addProgress(userId, actionType, amount);
             syncCompletionAchievement(userId);
-            LOGGER.debug("RewardTrackManager -> Progress action={} user={} amount={} rows={}", actionType, userId, amount, updated);
+            LOGGER.debug(
+                    "RewardTrackManager -> Progress action={} user={} amount={} rows={}",
+                    actionType,
+                    userId,
+                    amount,
+                    updated);
             return updated;
         } catch (SQLException e) {
             LOGGER.warn("RewardTrackManager -> Could not add progress for user {} action {}", userId, actionType, e);
@@ -193,19 +202,20 @@ public class RewardTrackManager {
     }
 
     /** Applies progress to the exact track/task configured by a wired action. */
-    public int applyWiredProgress(int userId, String trackCode, String taskCode, int amount, boolean addToExistingScore) {
+    public int applyWiredProgress(
+            int userId, String trackCode, String taskCode, int amount, boolean addToExistingScore) {
         if (userId <= 0 || !isValidWiredId(trackCode) || !isValidWiredId(taskCode) || amount <= 0) return 0;
 
         int normalizedAmount = Math.min(Integer.MAX_VALUE, amount);
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "INSERT INTO user_reward_track_progress (user_id, task_id, progress, updated_at) " +
-                             "SELECT ?, t.id, ?, ? FROM reward_track_tasks t " +
-                             "INNER JOIN reward_tracks rt ON rt.id = t.track_id AND rt.enabled = 1 " +
-                             "WHERE rt.code = ? AND t.action_type = ? AND t.enabled = 1 " +
-                             "ON DUPLICATE KEY UPDATE progress = LEAST(2147483647, " +
-                             (addToExistingScore ? "progress + VALUES(progress)" : "VALUES(progress)") +
-                             "), updated_at = VALUES(updated_at)")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "INSERT INTO user_reward_track_progress (user_id, task_id, progress, updated_at) "
+                                + "SELECT ?, t.id, ?, ? FROM reward_track_tasks t "
+                                + "INNER JOIN reward_tracks rt ON rt.id = t.track_id AND rt.enabled = 1 "
+                                + "WHERE rt.code = ? AND t.action_type = ? AND t.enabled = 1 "
+                                + "ON DUPLICATE KEY UPDATE progress = LEAST(2147483647, "
+                                + (addToExistingScore ? "progress + VALUES(progress)" : "VALUES(progress)")
+                                + "), updated_at = VALUES(updated_at)")) {
             statement.setInt(1, userId);
             statement.setInt(2, normalizedAmount);
             statement.setInt(3, Emulator.getIntUnixTimestamp());
@@ -214,12 +224,22 @@ public class RewardTrackManager {
 
             int updated = statement.executeUpdate();
             if (updated > 0) syncCompletionAchievement(userId);
-            LOGGER.debug("RewardTrackManager -> Wired progress track={} task={} user={} amount={} add={} rows={}",
-                    trackCode, taskCode, userId, normalizedAmount, addToExistingScore, updated);
+            LOGGER.debug(
+                    "RewardTrackManager -> Wired progress track={} task={} user={} amount={} add={} rows={}",
+                    trackCode,
+                    taskCode,
+                    userId,
+                    normalizedAmount,
+                    addToExistingScore,
+                    updated);
             return updated;
         } catch (SQLException e) {
-            LOGGER.warn("RewardTrackManager -> Could not apply wired progress track={} task={} user={}",
-                    trackCode, taskCode, userId, e);
+            LOGGER.warn(
+                    "RewardTrackManager -> Could not apply wired progress track={} task={} user={}",
+                    trackCode,
+                    taskCode,
+                    userId,
+                    e);
             return 0;
         }
     }
@@ -229,17 +249,17 @@ public class RewardTrackManager {
         if (userId <= 0 || !isValidWiredText(trackCode)) return 0;
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "DELETE p FROM user_reward_track_progress p " +
-                             "INNER JOIN reward_track_tasks t ON t.id = p.task_id " +
-                             "INNER JOIN reward_tracks rt ON rt.id = t.track_id " +
-                             "WHERE p.user_id = ? AND rt.code = ?")) {
+                PreparedStatement statement = connection.prepareStatement("DELETE p FROM user_reward_track_progress p "
+                        + "INNER JOIN reward_track_tasks t ON t.id = p.task_id "
+                        + "INNER JOIN reward_tracks rt ON rt.id = t.track_id "
+                        + "WHERE p.user_id = ? AND rt.code = ?")) {
             statement.setInt(1, userId);
             statement.setString(2, trackCode.trim());
 
             int deleted = statement.executeUpdate();
             if (deleted > 0) syncCompletionAchievement(userId);
-            LOGGER.debug("RewardTrackManager -> Wired progress reset track={} user={} rows={}", trackCode, userId, deleted);
+            LOGGER.debug(
+                    "RewardTrackManager -> Wired progress reset track={} user={} rows={}", trackCode, userId, deleted);
             return deleted;
         } catch (SQLException e) {
             LOGGER.warn("RewardTrackManager -> Could not reset wired progress track={} user={}", trackCode, userId, e);
@@ -259,11 +279,11 @@ public class RewardTrackManager {
         Habbo habbo = Emulator.getGameEnvironment().getHabboManager().getHabbo(userId);
         if (habbo == null) return;
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "SELECT COUNT(*) FROM reward_tracks rt WHERE rt.enabled = 1 AND NOT EXISTS (" +
-                             "SELECT 1 FROM reward_track_tasks t LEFT JOIN user_reward_track_progress p " +
-                             "ON p.task_id = t.id AND p.user_id = ? WHERE t.track_id = rt.id AND t.enabled = 1 " +
-                             "AND COALESCE(p.progress, 0) < (SELECT COALESCE(MAX(target), 1) FROM reward_track_task_levels l WHERE l.task_id = t.id))")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "SELECT COUNT(*) FROM reward_tracks rt WHERE rt.enabled = 1 AND NOT EXISTS ("
+                                + "SELECT 1 FROM reward_track_tasks t LEFT JOIN user_reward_track_progress p "
+                                + "ON p.task_id = t.id AND p.user_id = ? WHERE t.track_id = rt.id AND t.enabled = 1 "
+                                + "AND COALESCE(p.progress, 0) < (SELECT COALESCE(MAX(target), 1) FROM reward_track_task_levels l WHERE l.task_id = t.id))")) {
             statement.setInt(1, userId);
             try (ResultSet set = statement.executeQuery()) {
                 if (set.next()) AchievementInteractions.sync(habbo, "RewardTracksCompleted", set.getInt(1));
@@ -311,8 +331,8 @@ public class RewardTrackManager {
         int premiumCostDiamonds = Math.max(0, intValue(body, "premiumCostDiamonds", 0));
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "UPDATE reward_tracks SET title = ?, description = ?, instructions = ?, theme = ?, enabled = ?, premium_enabled = ?, premium_cost_credits = ?, premium_cost_diamonds = ? WHERE id = ? LIMIT 1")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "UPDATE reward_tracks SET title = ?, description = ?, instructions = ?, theme = ?, enabled = ?, premium_enabled = ?, premium_cost_credits = ?, premium_cost_diamonds = ? WHERE id = ? LIMIT 1")) {
             statement.setString(1, title);
             statement.setString(2, description);
             statement.setString(3, instructions);
@@ -396,7 +416,8 @@ public class RewardTrackManager {
 
     public JsonObject deleteTask(int taskId) throws SQLException {
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement("DELETE FROM reward_track_tasks WHERE id = ? LIMIT 1")) {
+                PreparedStatement statement =
+                        connection.prepareStatement("DELETE FROM reward_track_tasks WHERE id = ? LIMIT 1")) {
             statement.setInt(1, taskId);
             statement.executeUpdate();
         }
@@ -454,7 +475,8 @@ public class RewardTrackManager {
 
     public JsonObject deletePrize(int prizeId) throws SQLException {
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement("DELETE FROM reward_track_prizes WHERE id = ? LIMIT 1")) {
+                PreparedStatement statement =
+                        connection.prepareStatement("DELETE FROM reward_track_prizes WHERE id = ? LIMIT 1")) {
             statement.setInt(1, prizeId);
             statement.executeUpdate();
         }
@@ -464,8 +486,8 @@ public class RewardTrackManager {
 
     private Track loadTrack(Connection connection, String requestedCode) throws SQLException {
         if (requestedCode != null && !requestedCode.isBlank()) {
-            try (PreparedStatement statement = connection.prepareStatement(
-                    "SELECT * FROM reward_tracks WHERE code = ? AND enabled = 1 LIMIT 1")) {
+            try (PreparedStatement statement =
+                    connection.prepareStatement("SELECT * FROM reward_tracks WHERE code = ? AND enabled = 1 LIMIT 1")) {
                 statement.setString(1, requestedCode);
                 try (ResultSet set = statement.executeQuery()) {
                     if (set.next()) return mapTrack(set);
@@ -482,8 +504,8 @@ public class RewardTrackManager {
     }
 
     private Track loadTrackById(Connection connection, int trackId) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT * FROM reward_tracks WHERE id = ? AND enabled = 1 LIMIT 1")) {
+        try (PreparedStatement statement =
+                connection.prepareStatement("SELECT * FROM reward_tracks WHERE id = ? AND enabled = 1 LIMIT 1")) {
             statement.setInt(1, trackId);
             try (ResultSet set = statement.executeQuery()) {
                 return set.next() ? mapTrack(set) : null;
@@ -492,8 +514,8 @@ public class RewardTrackManager {
     }
 
     private Track loadTrackForEditor(Connection connection, String requestedCode) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT * FROM reward_tracks WHERE code = ? LIMIT 1")) {
+        try (PreparedStatement statement =
+                connection.prepareStatement("SELECT * FROM reward_tracks WHERE code = ? LIMIT 1")) {
             statement.setString(1, requestedCode);
             try (ResultSet set = statement.executeQuery()) {
                 return set.next() ? mapTrack(set) : null;
@@ -501,7 +523,8 @@ public class RewardTrackManager {
         }
     }
 
-    private JsonArray loadTasks(Connection connection, int trackId, Map<Integer, Integer> progress) throws SQLException {
+    private JsonArray loadTasks(Connection connection, int trackId, Map<Integer, Integer> progress)
+            throws SQLException {
         JsonArray tasks = new JsonArray();
 
         try (PreparedStatement statement = connection.prepareStatement(
@@ -556,7 +579,9 @@ public class RewardTrackManager {
         return levels;
     }
 
-    private JsonArray loadPrizes(Connection connection, int trackId, Set<Integer> claims, boolean premiumUnlocked, int points) throws SQLException {
+    private JsonArray loadPrizes(
+            Connection connection, int trackId, Set<Integer> claims, boolean premiumUnlocked, int points)
+            throws SQLException {
         JsonArray prizes = new JsonArray();
 
         try (PreparedStatement statement = connection.prepareStatement(
@@ -586,10 +611,10 @@ public class RewardTrackManager {
     }
 
     private Prize loadPrize(Connection connection, int prizeId) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT p.*, t.code AS track_code FROM reward_track_prizes p " +
-                        "INNER JOIN reward_tracks t ON t.id = p.track_id " +
-                        "WHERE p.id = ? AND p.enabled = 1 AND t.enabled = 1 LIMIT 1")) {
+        try (PreparedStatement statement =
+                connection.prepareStatement("SELECT p.*, t.code AS track_code FROM reward_track_prizes p "
+                        + "INNER JOIN reward_tracks t ON t.id = p.track_id "
+                        + "WHERE p.id = ? AND p.enabled = 1 AND t.enabled = 1 LIMIT 1")) {
             statement.setInt(1, prizeId);
             try (ResultSet set = statement.executeQuery()) {
                 if (!set.next()) return null;
@@ -610,10 +635,10 @@ public class RewardTrackManager {
     private JsonArray loadEditorTasks(Connection connection, int trackId) throws SQLException {
         JsonArray tasks = new JsonArray();
 
-        try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT t.*, l.target, l.reward_points FROM reward_track_tasks t " +
-                        "LEFT JOIN reward_track_task_levels l ON l.task_id = t.id AND l.level = 1 " +
-                        "WHERE t.track_id = ? ORDER BY t.sort_order ASC, t.id ASC")) {
+        try (PreparedStatement statement =
+                connection.prepareStatement("SELECT t.*, l.target, l.reward_points FROM reward_track_tasks t "
+                        + "LEFT JOIN reward_track_task_levels l ON l.task_id = t.id AND l.level = 1 "
+                        + "WHERE t.track_id = ? ORDER BY t.sort_order ASC, t.id ASC")) {
             statement.setInt(1, trackId);
             try (ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
@@ -659,12 +684,16 @@ public class RewardTrackManager {
         return levels;
     }
 
-    private void saveTaskLevels(Connection connection, int taskId, JsonObject body, int fallbackTarget, int fallbackPoints) throws SQLException {
-        JsonArray levels = body != null && body.has("levels") && body.get("levels").isJsonArray()
-                ? body.getAsJsonArray("levels")
-                : new JsonArray();
+    private void saveTaskLevels(
+            Connection connection, int taskId, JsonObject body, int fallbackTarget, int fallbackPoints)
+            throws SQLException {
+        JsonArray levels =
+                body != null && body.has("levels") && body.get("levels").isJsonArray()
+                        ? body.getAsJsonArray("levels")
+                        : new JsonArray();
 
-        try (PreparedStatement delete = connection.prepareStatement("DELETE FROM reward_track_task_levels WHERE task_id = ?")) {
+        try (PreparedStatement delete =
+                connection.prepareStatement("DELETE FROM reward_track_task_levels WHERE task_id = ?")) {
             delete.setInt(1, taskId);
             delete.executeUpdate();
         }
@@ -741,8 +770,8 @@ public class RewardTrackManager {
     private Set<Integer> loadClaims(Connection connection, int userId) throws SQLException {
         Set<Integer> claims = new HashSet<>();
 
-        try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT prize_id FROM user_reward_track_claims WHERE user_id = ?")) {
+        try (PreparedStatement statement =
+                connection.prepareStatement("SELECT prize_id FROM user_reward_track_claims WHERE user_id = ?")) {
             statement.setInt(1, userId);
             try (ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
@@ -802,16 +831,18 @@ public class RewardTrackManager {
                 return;
             }
 
-            EconomyLedger.apply(connection, new EconomyOperation(
-                    operationId,
-                    userId,
-                    userId,
-                    "credit_grant",
-                    "reward_track",
-                    EconomyLedger.CREDITS,
-                    prize.rewardAmount,
-                    null,
-                    "reward_track_prize:" + prize.id));
+            EconomyLedger.apply(
+                    connection,
+                    new EconomyOperation(
+                            operationId,
+                            userId,
+                            userId,
+                            "credit_grant",
+                            "reward_track",
+                            EconomyLedger.CREDITS,
+                            prize.rewardAmount,
+                            null,
+                            "reward_track_prize:" + prize.id));
             return;
         }
 
@@ -823,16 +854,18 @@ public class RewardTrackManager {
                 return;
             }
 
-            EconomyLedger.apply(connection, new EconomyOperation(
-                    operationId,
-                    userId,
-                    userId,
-                    "currency_grant",
-                    "reward_track",
-                    currencyType,
-                    prize.rewardAmount,
-                    null,
-                    "reward_track_prize:" + prize.id));
+            EconomyLedger.apply(
+                    connection,
+                    new EconomyOperation(
+                            operationId,
+                            userId,
+                            userId,
+                            "currency_grant",
+                            "reward_track",
+                            currencyType,
+                            prize.rewardAmount,
+                            null,
+                            "reward_track_prize:" + prize.id));
         }
     }
 
@@ -842,7 +875,8 @@ public class RewardTrackManager {
             JsonArray levels = tasks.get(index).getAsJsonObject().getAsJsonArray("levels");
             for (int levelIndex = 0; levelIndex < levels.size(); levelIndex++) {
                 JsonObject level = levels.get(levelIndex).getAsJsonObject();
-                if (level.get("complete").getAsBoolean()) points += level.get("points").getAsInt();
+                if (level.get("complete").getAsBoolean())
+                    points += level.get("points").getAsInt();
             }
         }
         return points;
@@ -873,7 +907,8 @@ public class RewardTrackManager {
     }
 
     private static boolean firstLevelComplete(JsonArray levels) {
-        return levels.size() > 0 && levels.get(0).getAsJsonObject().get("complete").getAsBoolean();
+        return levels.size() > 0
+                && levels.get(0).getAsJsonObject().get("complete").getAsBoolean();
     }
 
     private static Track mapTrack(ResultSet set) throws SQLException {

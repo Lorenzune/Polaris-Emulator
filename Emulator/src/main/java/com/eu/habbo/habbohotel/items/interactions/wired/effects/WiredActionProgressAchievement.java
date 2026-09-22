@@ -16,7 +16,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredContextVariableSupport;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -35,7 +34,8 @@ public class WiredActionProgressAchievement extends InteractionWiredEffect {
         super(set, baseItem);
     }
 
-    public WiredActionProgressAchievement(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredActionProgressAchievement(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -63,7 +63,8 @@ public class WiredActionProgressAchievement extends InteractionWiredEffect {
     private void apply(Habbo habbo, int requestedValue) {
         if (habbo == null || requestedValue <= 0) return;
 
-        Achievement achievement = Emulator.getGameEnvironment().getAchievementManager().getAchievement(this.achievementName);
+        Achievement achievement =
+                Emulator.getGameEnvironment().getAchievementManager().getAchievement(this.achievementName);
         if (achievement == null) return;
 
         int amount = requestedValue;
@@ -103,14 +104,14 @@ public class WiredActionProgressAchievement extends InteractionWiredEffect {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(
-                this.achievementName,
-                this.progressionMode,
-                this.option,
-                this.score,
-                this.target,
-                this.variableId
-        ));
+        return WiredManager.getGson()
+                .toJson(new JsonData(
+                        this.achievementName,
+                        this.progressionMode,
+                        this.option,
+                        this.score,
+                        this.target,
+                        this.variableId));
     }
 
     @Override
@@ -205,7 +206,8 @@ public class WiredActionProgressAchievement extends InteractionWiredEffect {
         private final int target;
         private final String variableId;
 
-        public JsonData(String achievementName, int progressionMode, int option, int score, int target, String variableId) {
+        public JsonData(
+                String achievementName, int progressionMode, int option, int score, int target, String variableId) {
             this.achievementName = achievementName;
             this.progressionMode = progressionMode;
             this.option = option;

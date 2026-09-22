@@ -1,6 +1,7 @@
 package com.eu.habbo.habbohotel.items;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.items.interactions.InteractionAntenna;
 import com.eu.habbo.habbohotel.items.interactions.InteractionAreaHideControl;
 import com.eu.habbo.habbohotel.items.interactions.InteractionBackgroundToner;
 import com.eu.habbo.habbohotel.items.interactions.InteractionBadgeDisplay;
@@ -12,7 +13,6 @@ import com.eu.habbo.habbohotel.items.interactions.InteractionColorPlate;
 import com.eu.habbo.habbohotel.items.interactions.InteractionColorWheel;
 import com.eu.habbo.habbohotel.items.interactions.InteractionConfInvisControl;
 import com.eu.habbo.habbohotel.items.interactions.InteractionCostumeHopper;
-import com.eu.habbo.habbohotel.items.interactions.InteractionAntenna;
 import com.eu.habbo.habbohotel.items.interactions.InteractionCrackable;
 import com.eu.habbo.habbohotel.items.interactions.InteractionCrackableMaster;
 import com.eu.habbo.habbohotel.items.interactions.InteractionDefault;
@@ -204,6 +204,7 @@ import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditio
 import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionTriggerOnFurni;
 import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionTriggererMatch;
 import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionUserInRange;
+import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionUserLevel;
 import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionUserNotInRange;
 import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionUserPerformsAction;
 import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionVariableAgeMatch;
@@ -212,6 +213,10 @@ import com.eu.habbo.habbohotel.items.interactions.wired.contract.InteractionWire
 import com.eu.habbo.habbohotel.items.interactions.wired.contract.InteractionWiredContractReward;
 import com.eu.habbo.habbohotel.items.interactions.wired.contract.InteractionWiredContractTrade;
 import com.eu.habbo.habbohotel.items.interactions.wired.contract.InteractionWiredCustomContract;
+import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionOverrideHeight;
+import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionProgressAchievement;
+import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionProgressRewardTrack;
+import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionResetRewardTrack;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectAddTag;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectAdjustClock;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectAlert;
@@ -248,16 +253,6 @@ import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectGiveR
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectGiveScore;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectGiveScoreToTeam;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectGiveVariable;
-import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionOverrideHeight;
-import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionProgressRewardTrack;
-import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionProgressAchievement;
-import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionResetRewardTrack;
-import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectWriteToLogs;
-import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionUserLevel;
-import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraAchievementEnabler;
-import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraGlobalPlaceholder;
-import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraJumpStrength;
-import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraProjectile;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectInitTransaction;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectJoinTeam;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectKickHabbo;
@@ -276,10 +271,10 @@ import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectMoveR
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectMoveUserTiles;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectMuteHabbo;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectNegativeLog;
-import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectNegativeWriteToLogs;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectNegativeSendSignal;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectNegativeShowMessage;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectNegativeTriggerStacks;
+import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectNegativeWriteToLogs;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectOpenHabboPages;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectPlaceFurni;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectRelativeMove;
@@ -302,7 +297,9 @@ import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectUnfre
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectUserToFurni;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectWalkToFurni;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectWhisper;
+import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectWriteToLogs;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredBlob;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraAchievementEnabler;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraAnimationTime;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraContextVariable;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraExecuteInOrder;
@@ -312,11 +309,14 @@ import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraFilterFu
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraFilterUser;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraFilterUsersByVariable;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraFurniVariable;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraGlobalPlaceholder;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraJumpStrength;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraMoveCarryUsers;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraMoveNoAnimation;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraMovePhysics;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraMovementCurve;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraOrEval;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraProjectile;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraQuest;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraQuestChain;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraRandom;
@@ -869,23 +869,28 @@ public class ItemManager {
         this.interactionsList.add(new ItemInteraction("wf_var_echo", WiredExtraVariableEcho.class));
         this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_hp", WiredExtraVariableFxHealthPoints.class));
         this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_prog", WiredExtraVariableFxProgressBar.class));
-        this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_levelling", WiredExtraVariableFxLevellingProgress.class));
+        this.interactionsList.add(
+                new ItemInteraction("wf_xtra_varfx_levelling", WiredExtraVariableFxLevellingProgress.class));
         this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_status", WiredExtraVariableFxStatusBar.class));
         this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_boss", WiredExtraVariableFxBossBar.class));
         this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_number", WiredExtraVariableFxNumberDisplay.class));
         this.interactionsList.add(new ItemInteraction("wf_xtra_projectile", WiredExtraProjectile.class));
         this.interactionsList.add(new ItemInteraction("wf_xtra_jump_strength", WiredExtraJumpStrength.class));
-        this.interactionsList.add(new ItemInteraction("wf_xtra_achievement_enabler", WiredExtraAchievementEnabler.class));
+        this.interactionsList.add(
+                new ItemInteraction("wf_xtra_achievement_enabler", WiredExtraAchievementEnabler.class));
         this.interactionsList.add(new ItemInteraction("wf_xtra_global_placeholder", WiredExtraGlobalPlaceholder.class));
-        this.interactionsList.add(new ItemInteraction("wf_act_progress_reward_track", WiredActionProgressRewardTrack.class));
-        this.interactionsList.add(new ItemInteraction("wf_act_progress_achievement", WiredActionProgressAchievement.class));
+        this.interactionsList.add(
+                new ItemInteraction("wf_act_progress_reward_track", WiredActionProgressRewardTrack.class));
+        this.interactionsList.add(
+                new ItemInteraction("wf_act_progress_achievement", WiredActionProgressAchievement.class));
         this.interactionsList.add(new ItemInteraction("wf_act_reset_reward_track", WiredActionResetRewardTrack.class));
         this.interactionsList.add(new ItemInteraction("wf_act_override_height", WiredActionOverrideHeight.class));
         // Click options are trigger configuration in the SWF, not a separate action.
         this.interactionsList.add(new ItemInteraction("wf_act_click_settings", WiredTriggerHabboClicksUser.class));
         this.interactionsList.add(new ItemInteraction("wf_act_click_conf", WiredTriggerHabboClicksUser.class));
         this.interactionsList.add(new ItemInteraction("wf_act_write_to_logs", WiredEffectWriteToLogs.class));
-        this.interactionsList.add(new ItemInteraction("wf_act_neg_write_to_logs", WiredEffectNegativeWriteToLogs.class));
+        this.interactionsList.add(
+                new ItemInteraction("wf_act_neg_write_to_logs", WiredEffectNegativeWriteToLogs.class));
         this.interactionsList.add(new ItemInteraction("wf_cnd_user_level", WiredConditionUserLevel.class));
 
         // ---- Inert-furni group: Group A/B + Phase-A aliases + advanced add-ons ----

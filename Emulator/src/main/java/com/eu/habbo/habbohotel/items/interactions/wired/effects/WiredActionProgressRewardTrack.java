@@ -14,7 +14,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredContextVariableSupport;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -33,7 +32,8 @@ public class WiredActionProgressRewardTrack extends InteractionWiredEffect {
         super(set, baseItem);
     }
 
-    public WiredActionProgressRewardTrack(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredActionProgressRewardTrack(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -46,12 +46,14 @@ public class WiredActionProgressRewardTrack extends InteractionWiredEffect {
         ctx.actor().ifPresent(actor -> {
             Habbo habbo = ctx.room().getHabbo(actor);
             if (habbo != null) {
-                Emulator.getGameEnvironment().getRewardTrackManager().applyWiredProgress(
-                        habbo.getHabboInfo().getId(),
-                        this.trackId,
-                        this.taskId,
-                        this.resolveScore(ctx),
-                        this.addToExistingScore);
+                Emulator.getGameEnvironment()
+                        .getRewardTrackManager()
+                        .applyWiredProgress(
+                                habbo.getHabboInfo().getId(),
+                                this.trackId,
+                                this.taskId,
+                                this.resolveScore(ctx),
+                                this.addToExistingScore);
             }
         });
     }
@@ -63,12 +65,14 @@ public class WiredActionProgressRewardTrack extends InteractionWiredEffect {
         Habbo habbo = room.getHabbo(roomUnit);
         if (habbo == null) return false;
 
-        Emulator.getGameEnvironment().getRewardTrackManager().applyWiredProgress(
-                habbo.getHabboInfo().getId(),
-                this.trackId,
-                this.taskId,
-                Math.max(1, this.score),
-                this.addToExistingScore);
+        Emulator.getGameEnvironment()
+                .getRewardTrackManager()
+                .applyWiredProgress(
+                        habbo.getHabboInfo().getId(),
+                        this.trackId,
+                        this.taskId,
+                        Math.max(1, this.score),
+                        this.addToExistingScore);
         return true;
     }
 
@@ -96,15 +100,15 @@ public class WiredActionProgressRewardTrack extends InteractionWiredEffect {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(
-                this.trackId,
-                this.taskId,
-                this.addToExistingScore,
-                this.option,
-                this.score,
-                this.target,
-                this.variableId
-        ));
+        return WiredManager.getGson()
+                .toJson(new JsonData(
+                        this.trackId,
+                        this.taskId,
+                        this.addToExistingScore,
+                        this.option,
+                        this.score,
+                        this.target,
+                        this.variableId));
     }
 
     @Override
@@ -198,7 +202,14 @@ public class WiredActionProgressRewardTrack extends InteractionWiredEffect {
         private final int target;
         private final String variableId;
 
-        public JsonData(String trackId, String taskId, boolean addToExistingScore, int option, int score, int target, String variableId) {
+        public JsonData(
+                String trackId,
+                String taskId,
+                boolean addToExistingScore,
+                int option,
+                int score,
+                int target,
+                String variableId) {
             this.trackId = trackId;
             this.taskId = taskId;
             this.addToExistingScore = addToExistingScore;

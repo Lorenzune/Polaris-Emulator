@@ -1,12 +1,11 @@
 package com.eu.habbo.messages.incoming.rooms.youtube;
 
+import com.eu.habbo.habbohotel.permissions.Permission;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.Habbo;
-import com.eu.habbo.habbohotel.permissions.Permission;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.incoming.navigator.SearchRoomsEvent;
 import com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomBroadcastComposer;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -98,7 +97,8 @@ public class YouTubeRoomPlayEvent extends MessageHandler {
                 List<String> currentPlaylist = new ArrayList<>(playlist(room));
                 if (currentPlaylist.isEmpty()) {
                     clearVideo(room);
-                    room.sendComposer(broadcast("", "", List.of(), 0, isMusicParty(), false, revision(room), positionMs(room)));
+                    room.sendComposer(
+                            broadcast("", "", List.of(), 0, isMusicParty(), false, revision(room), positionMs(room)));
                     return;
                 }
 
@@ -107,19 +107,17 @@ public class YouTubeRoomPlayEvent extends MessageHandler {
                 String nextVideo = normalizeVideoId(nextParts[0]);
                 if (nextVideo == null || nextVideo.isEmpty()) return;
 
-                String nextSender = nextParts.length > 1 && !nextParts[1].isBlank()
-                    ? nextParts[1]
-                    : senderName(room);
+                String nextSender = nextParts.length > 1 && !nextParts[1].isBlank() ? nextParts[1] : senderName(room);
                 setVideo(room, nextVideo, nextSender, currentPlaylist, isAudioOnly, 0L, false);
                 room.sendComposer(broadcast(
-                    nextVideo,
-                    nextSender,
-                    currentPlaylist,
-                    0,
-                    isAudioOnly,
-                    false,
-                    revision(room),
-                    positionMs(room)));
+                        nextVideo,
+                        nextSender,
+                        currentPlaylist,
+                        0,
+                        isAudioOnly,
+                        false,
+                        revision(room),
+                        positionMs(room)));
                 return;
             }
 
@@ -130,7 +128,8 @@ public class YouTubeRoomPlayEvent extends MessageHandler {
                 // may stop it for everybody in the room.
                 if (!isRoomOwner && !isStaff) return;
                 clearVideo(room);
-                room.sendComposer(broadcast("", "", List.of(), 0, isMusicParty(), false, revision(room), positionMs(room)));
+                room.sendComposer(
+                        broadcast("", "", List.of(), 0, isMusicParty(), false, revision(room), positionMs(room)));
                 return;
             }
 
@@ -142,7 +141,15 @@ public class YouTubeRoomPlayEvent extends MessageHandler {
                 boolean paused = keepCurrentPosition ? isPaused(room) : isPaused;
                 List<String> effectivePlaylist = preservePlaylist ? new ArrayList<>(playlist(room)) : playlist;
                 setVideo(room, videoId, senderName(room), effectivePlaylist, isAudioOnly, currentPositionMs, paused);
-                room.sendComposer(broadcast(videoId, senderName(room), effectivePlaylist, offset, isAudioOnly, paused, revision(room), positionMs(room)));
+                room.sendComposer(broadcast(
+                        videoId,
+                        senderName(room),
+                        effectivePlaylist,
+                        offset,
+                        isAudioOnly,
+                        paused,
+                        revision(room),
+                        positionMs(room)));
                 return;
             }
 
@@ -160,7 +167,15 @@ public class YouTubeRoomPlayEvent extends MessageHandler {
             setVideo(room, videoId, senderName, playlist, isAudioOnly, (long) startOffset * 1000L, isPaused);
 
             // Broadcast to everyone in the room
-            room.sendComposer(broadcast(videoId, senderName, playlist, startOffset, isAudioOnly, isPaused, revision(room), positionMs(room)));
+            room.sendComposer(broadcast(
+                    videoId,
+                    senderName,
+                    playlist,
+                    startOffset,
+                    isAudioOnly,
+                    isPaused,
+                    revision(room),
+                    positionMs(room)));
         }
     }
 
@@ -188,7 +203,14 @@ public class YouTubeRoomPlayEvent extends MessageHandler {
         return this.isMusicParty() ? room.isMusicPartyPaused() : room.isYoutubePaused();
     }
 
-    private void setVideo(Room room, String videoId, String senderName, List<String> playlist, boolean audioOnly, long positionMs, boolean paused) {
+    private void setVideo(
+            Room room,
+            String videoId,
+            String senderName,
+            List<String> playlist,
+            boolean audioOnly,
+            long positionMs,
+            boolean paused) {
         if (this.isMusicParty()) {
             room.setMusicPartyVideo(videoId, senderName, playlist, positionMs, paused);
             SearchRoomsEvent.invalidateCachedResults();
@@ -206,20 +228,43 @@ public class YouTubeRoomPlayEvent extends MessageHandler {
         }
     }
 
-    private com.eu.habbo.messages.ServerMessage broadcast(String videoId, String senderName, List<String> playlist,
-                                                           int elapsedSeconds, boolean audioOnly, boolean paused,
-                                                           int revision, long positionMs) {
+    private com.eu.habbo.messages.ServerMessage broadcast(
+            String videoId,
+            String senderName,
+            List<String> playlist,
+            int elapsedSeconds,
+            boolean audioOnly,
+            boolean paused,
+            int revision,
+            long positionMs) {
         if (this.isMusicParty()) {
             return new YouTubeRoomBroadcastComposer(
-                videoId, senderName, playlist, elapsedSeconds, audioOnly, paused, revision, positionMs, true).compose();
+                            videoId,
+                            senderName,
+                            playlist,
+                            elapsedSeconds,
+                            audioOnly,
+                            paused,
+                            revision,
+                            positionMs,
+                            true)
+                    .compose();
         }
-        return new YouTubeRoomBroadcastComposer(videoId, senderName, playlist, elapsedSeconds, audioOnly, paused, revision, positionMs).compose();
+        return new YouTubeRoomBroadcastComposer(
+                        videoId, senderName, playlist, elapsedSeconds, audioOnly, paused, revision, positionMs)
+                .compose();
     }
 
     private com.eu.habbo.messages.ServerMessage currentState(Room room) {
-        return broadcast(currentVideo(room), senderName(room), playlist(room),
-            this.isMusicParty() ? room.getMusicPartyElapsedSeconds() : room.getYoutubeElapsedSeconds(),
-            this.isMusicParty() || room.isYoutubeAudioOnly(), isPaused(room), revision(room), positionMs(room));
+        return broadcast(
+                currentVideo(room),
+                senderName(room),
+                playlist(room),
+                this.isMusicParty() ? room.getMusicPartyElapsedSeconds() : room.getYoutubeElapsedSeconds(),
+                this.isMusicParty() || room.isYoutubeAudioOnly(),
+                isPaused(room),
+                revision(room),
+                positionMs(room));
     }
 
     private static String normalizeVideoId(String value) {

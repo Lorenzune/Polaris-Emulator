@@ -6,9 +6,6 @@ import com.eu.habbo.habbohotel.users.HabboInfo;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -16,6 +13,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class UserProfileCosmeticsComposer extends MessageComposer {
     private static final Logger LOGGER = LoggerFactory.getLogger(UserProfileCosmeticsComposer.class);
@@ -53,7 +52,9 @@ public class UserProfileCosmeticsComposer extends MessageComposer {
         boolean hasSlotCosmetic = this.habbo.getInventory() != null
                 && this.habbo.getInventory().getProfileCosmeticsComponent() != null
                 && this.habbo.getInventory().getProfileCosmeticsComponent().hasAnyCosmetic("slot");
-        this.response.appendBoolean(hasSlotCosmetic && this.habbo.getHabboStats() != null && this.habbo.getHabboStats().isBadgeSlotsActive());
+        this.response.appendBoolean(hasSlotCosmetic
+                && this.habbo.getHabboStats() != null
+                && this.habbo.getHabboStats().isBadgeSlotsActive());
         this.response.appendInt(info.getInfostandDirection());
         this.response.appendInt(info.getInfostandHeadDirection());
         this.response.appendString(info.getInfostandAction());
@@ -63,7 +64,8 @@ public class UserProfileCosmeticsComposer extends MessageComposer {
 
         Set<String> ownedCosmetics = null;
         if (this.habbo.getInventory() != null && this.habbo.getInventory().getProfileCosmeticsComponent() != null) {
-            ownedCosmetics = this.habbo.getInventory().getProfileCosmeticsComponent().getOwnedCosmetics();
+            ownedCosmetics =
+                    this.habbo.getInventory().getProfileCosmeticsComponent().getOwnedCosmetics();
         }
 
         List<CosmeticCategory> categories = new ArrayList<>();
@@ -72,16 +74,15 @@ public class UserProfileCosmeticsComposer extends MessageComposer {
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
             // 1. Categories
             try (PreparedStatement statement = connection.prepareStatement(
-                    "SELECT id, name, category_type, badge, sort_order FROM custom_profile_cosmetic_categories WHERE enabled = 1 AND LOWER(category_type) <> 'card' ORDER BY sort_order ASC, id ASC");
-                 ResultSet set = statement.executeQuery()) {
+                            "SELECT id, name, category_type, badge, sort_order FROM custom_profile_cosmetic_categories WHERE enabled = 1 AND LOWER(category_type) <> 'card' ORDER BY sort_order ASC, id ASC");
+                    ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
                     categories.add(new CosmeticCategory(
                             set.getInt("id"),
                             set.getString("name"),
                             set.getString("category_type"),
                             set.getString("badge") != null ? set.getString("badge") : "",
-                            set.getInt("sort_order")
-                    ));
+                            set.getInt("sort_order")));
                 }
             } catch (SQLException e) {
                 LOGGER.warn("custom_profile_cosmetic_categories table query failed", e);
@@ -89,9 +90,9 @@ public class UserProfileCosmeticsComposer extends MessageComposer {
 
             // 2. Catalog Items
             try (PreparedStatement statement = connection.prepareStatement(
-                    "SELECT id, category_id, display_name, category, image_file, cost_credits, cost_points, points_type, is_free, is_hc_only, min_rank, sort_order " +
-                    "FROM custom_profile_cosmetics_catalog WHERE enabled = 1 AND LOWER(category) <> 'card' ORDER BY sort_order ASC, id ASC");
-                 ResultSet set = statement.executeQuery()) {
+                            "SELECT id, category_id, display_name, category, image_file, cost_credits, cost_points, points_type, is_free, is_hc_only, min_rank, sort_order "
+                                    + "FROM custom_profile_cosmetics_catalog WHERE enabled = 1 AND LOWER(category) <> 'card' ORDER BY sort_order ASC, id ASC");
+                    ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
                     int id = set.getInt("id");
                     int itemId = id;
@@ -107,7 +108,9 @@ public class UserProfileCosmeticsComposer extends MessageComposer {
                     int minRank = set.getInt("min_rank");
                     int sortOrder = set.getInt("sort_order");
 
-                    boolean owned = isFree || (itemId == 0) || (ownedCosmetics != null && ownedCosmetics.contains(type + ":" + itemId));
+                    boolean owned = isFree
+                            || (itemId == 0)
+                            || (ownedCosmetics != null && ownedCosmetics.contains(type + ":" + itemId));
                     boolean active = false;
                     if (type.equals("background") || type.equals("backgrounds")) {
                         active = (info.getInfostandBg() == itemId);
@@ -119,7 +122,23 @@ public class UserProfileCosmeticsComposer extends MessageComposer {
                         active = (info.getInfostandBorder() == itemId);
                     }
 
-                    items.add(new CosmeticItem(id, itemId, categoryId, name, type, file, credits, points, pointsType, isFree, isHcOnly, minRank, sortOrder, owned, active, id));
+                    items.add(new CosmeticItem(
+                            id,
+                            itemId,
+                            categoryId,
+                            name,
+                            type,
+                            file,
+                            credits,
+                            points,
+                            pointsType,
+                            isFree,
+                            isHcOnly,
+                            minRank,
+                            sortOrder,
+                            owned,
+                            active,
+                            id));
                 }
             } catch (SQLException e) {
                 LOGGER.warn("custom_profile_cosmetics_catalog table query failed", e);
@@ -196,7 +215,23 @@ public class UserProfileCosmeticsComposer extends MessageComposer {
         final boolean active;
         final int ownedId;
 
-        CosmeticItem(int id, int itemId, int categoryId, String name, String type, String file, int credits, int points, int pointsType, boolean isFree, boolean isHcOnly, int minRank, int sortOrder, boolean owned, boolean active, int ownedId) {
+        CosmeticItem(
+                int id,
+                int itemId,
+                int categoryId,
+                String name,
+                String type,
+                String file,
+                int credits,
+                int points,
+                int pointsType,
+                boolean isFree,
+                boolean isHcOnly,
+                int minRank,
+                int sortOrder,
+                boolean owned,
+                boolean active,
+                int ownedId) {
             this.id = id;
             this.itemId = itemId;
             this.categoryId = categoryId;

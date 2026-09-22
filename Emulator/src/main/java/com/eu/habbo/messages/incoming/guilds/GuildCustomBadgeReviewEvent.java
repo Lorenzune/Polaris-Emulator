@@ -22,7 +22,8 @@ public class GuildCustomBadgeReviewEvent extends MessageHandler {
         GuildCustomBadgeRequestManager.ReviewResult result = GuildCustomBadgeRequestManager.review(
                 requestId, reviewer.getHabboInfo().getId(), approve);
         if (result == null) {
-            this.client.sendResponse(new GuildCustomBadgeReviewResultComposer(requestId, false, approve, "Richiesta non più disponibile."));
+            this.client.sendResponse(new GuildCustomBadgeReviewResultComposer(
+                    requestId, false, approve, "Richiesta non più disponibile."));
             return;
         }
 
@@ -30,13 +31,18 @@ public class GuildCustomBadgeReviewEvent extends MessageHandler {
         if (result.approved) {
             Guild guild = Emulator.getGameEnvironment().getGuildManager().getGuild(result.request.guildId);
             if (guild != null) {
-                GuildUploadCustomBadgeEvent.applyBadge(guild, result.request.badgeCode, requester != null ? requester : reviewer);
+                GuildUploadCustomBadgeEvent.applyBadge(
+                        guild, result.request.badgeCode, requester != null ? requester : reviewer);
             }
         }
 
         if (requester != null && requester.getClient() != null) {
-            requester.getClient().sendResponse(new GuildCustomBadgeSavedComposer(
-                    result.request.guildId, result.request.badgeCode, result.approved ? "approved" : "rejected"));
+            requester
+                    .getClient()
+                    .sendResponse(new GuildCustomBadgeSavedComposer(
+                            result.request.guildId,
+                            result.request.badgeCode,
+                            result.approved ? "approved" : "rejected"));
         }
 
         this.client.sendResponse(new GuildCustomBadgeReviewResultComposer(

@@ -22,6 +22,7 @@ public final class WiredTeleportTiming {
 
     /** Base delay for the fast variant; walk-on teleports clamp this to movement completion. */
     public static final int FAST_DELAY_MS = 100;
+
     public static final int NORMAL_EFFECT_DURATION_MS = 1500;
     public static final int FAST_EFFECT_DURATION_MS = 500;
 

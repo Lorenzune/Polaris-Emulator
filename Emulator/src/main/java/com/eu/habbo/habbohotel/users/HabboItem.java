@@ -75,6 +75,7 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
     private RoomTile previousLocation;
     private Set<RoomTile> previousOccupiedTiles;
     private long lastMoveTimestamp;
+
     public HabboItem(ResultSet set, Item baseItem) throws SQLException {
         this.id = set.getInt("id");
         this.userId = set.getInt("user_id");
@@ -378,9 +379,8 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
         // it. Restore only that successful walk-on status; teleports invoke
         // onWalkOn with a third argument and must keep their own teleport
         // positioning semantics.
-        RoomTile walkedOnTile = objects != null && objects.length == 2 && objects[1] instanceof RoomTile
-                ? (RoomTile) objects[1]
-                : null;
+        RoomTile walkedOnTile =
+                objects != null && objects.length == 2 && objects[1] instanceof RoomTile ? (RoomTile) objects[1] : null;
         RoomTile destination = roomUnit != null ? roomUnit.getCurrentLocation() : null;
         if (wiredTriggered
                 && walkedOnTile != null
@@ -388,9 +388,7 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
                 && destination.x == walkedOnTile.x
                 && destination.y == walkedOnTile.y
                 && !roomUnit.hasStatus(RoomUnitStatus.MOVE)) {
-            roomUnit.setStatus(
-                    RoomUnitStatus.MOVE,
-                    destination.x + "," + destination.y + "," + roomUnit.getZ());
+            roomUnit.setStatus(RoomUnitStatus.MOVE, destination.x + "," + destination.y + "," + roomUnit.getZ());
         }
 
         if ((this.getBaseItem().allowSit() || this.getBaseItem().allowLay())
@@ -750,5 +748,4 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
     public void setLastMoveTimestamp(long lastMoveTimestamp) {
         this.lastMoveTimestamp = lastMoveTimestamp;
     }
-
 }

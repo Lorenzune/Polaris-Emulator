@@ -2,7 +2,6 @@ package com.eu.habbo.habbohotel.guilds;
 
 import com.eu.habbo.messages.ClientMessage;
 import com.eu.habbo.util.PacketGuard;
-
 import java.util.regex.Pattern;
 
 public final class GuildBadgeBuilder {
@@ -14,8 +13,7 @@ public final class GuildBadgeBuilder {
     private static final int MAX_POSITION = 8;
     private static final Pattern CUSTOM_BADGE_PATTERN = Pattern.compile("^custom_[A-Za-z0-9_-]{1,57}$");
 
-    private GuildBadgeBuilder() {
-    }
+    private GuildBadgeBuilder() {}
 
     public static String readBadge(ClientMessage packet, int flatPartValueCount) {
         if (flatPartValueCount == -1) {
@@ -56,8 +54,11 @@ public final class GuildBadgeBuilder {
     }
 
     private static boolean isValidPart(int id, int color, int position) {
-        return id >= 0 && id <= MAX_PART_ID
-                && color >= 0 && color <= MAX_COLOR_ID
-                && position >= 0 && position <= MAX_POSITION;
+        return id >= 0
+                && id <= MAX_PART_ID
+                && color >= 0
+                && color <= MAX_COLOR_ID
+                && position >= 0
+                && position <= MAX_POSITION;
     }
 }

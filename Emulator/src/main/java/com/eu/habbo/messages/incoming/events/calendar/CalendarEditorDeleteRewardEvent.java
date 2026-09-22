@@ -15,7 +15,9 @@ public class CalendarEditorDeleteRewardEvent extends MessageHandler {
 
     @Override
     public void handle() throws Exception {
-        if (this.client.getHabbo() == null || (!this.client.getHabbo().hasPermission(Permission.ACC_CALENDAR_EDITOR) && !this.client.getHabbo().hasPermission(Permission.ACC_CALENDAR_FORCE))) {
+        if (this.client.getHabbo() == null
+                || (!this.client.getHabbo().hasPermission(Permission.ACC_CALENDAR_EDITOR)
+                        && !this.client.getHabbo().hasPermission(Permission.ACC_CALENDAR_FORCE))) {
             return;
         }
 
@@ -32,7 +34,8 @@ public class CalendarEditorDeleteRewardEvent extends MessageHandler {
 
             this.client.sendResponse(new CalendarEditorResultComposer(true, "Reward deleted successfully!"));
 
-            CalendarCampaign updatedCampaign = Emulator.getGameEnvironment().getCalendarManager().getCalendarCampaign(campaignName);
+            CalendarCampaign updatedCampaign =
+                    Emulator.getGameEnvironment().getCalendarManager().getCalendarCampaign(campaignName);
             if (updatedCampaign != null) {
                 this.client.sendResponse(new CalendarEditorStateComposer(
                         updatedCampaign.getId(),
@@ -41,7 +44,8 @@ public class CalendarEditorDeleteRewardEvent extends MessageHandler {
             }
         } catch (Exception e) {
             LOGGER.error("Error deleting calendar reward", e);
-            this.client.sendResponse(new CalendarEditorResultComposer(false, "Failed to delete reward: " + e.getMessage()));
+            this.client.sendResponse(
+                    new CalendarEditorResultComposer(false, "Failed to delete reward: " + e.getMessage()));
         }
     }
 }

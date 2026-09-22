@@ -5,19 +5,21 @@ import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.messages.incoming.navigator.SearchRoomsEvent;
 import com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomBroadcastComposer;
-
+import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.ArrayList;
 
 public class PlayCommand extends Command {
 
     private static final Pattern YOUTUBE_PATTERN = Pattern.compile(
-        "(?:youtube\\.com\\/(?:watch\\?v=|embed\\/|v\\/|shorts\\/)|youtu\\.be\\/)([a-zA-Z0-9_-]{11})|^([a-zA-Z0-9_-]{11})$"
-    );
+            "(?:youtube\\.com\\/(?:watch\\?v=|embed\\/|v\\/|shorts\\/)|youtu\\.be\\/)([a-zA-Z0-9_-]{11})|^([a-zA-Z0-9_-]{11})$");
 
     public PlayCommand() {
-        super(null, Emulator.getTexts().getValue("commands.keys.cmd_play", "play;youtube;yt").split(";"));
+        super(
+                null,
+                Emulator.getTexts()
+                        .getValue("commands.keys.cmd_play", "play;youtube;yt")
+                        .split(";"));
     }
 
     @Override
@@ -31,7 +33,9 @@ public class PlayCommand extends Command {
         }
 
         if (!room.isOwner(gameClient.getHabbo()) && !room.hasRights(gameClient.getHabbo())) {
-            gameClient.getHabbo().whisper("Puoi usare questo comando solo se sei il proprietario della stanza o hai i diritti.");
+            gameClient
+                    .getHabbo()
+                    .whisper("Puoi usare questo comando solo se sei il proprietario della stanza o hai i diritti.");
             return true;
         }
 
@@ -61,49 +65,51 @@ public class PlayCommand extends Command {
             // If audio is already playing in the room, add it to the playlist queue.
             if (!room.getMusicPartyCurrentVideo().isEmpty()) {
                 ArrayList<String> updatedPlaylist = new ArrayList<>(room.getMusicPartyPlaylist());
-                updatedPlaylist.add(videoId + ":::" + gameClient.getHabbo().getHabboInfo().getUsername());
+                updatedPlaylist.add(
+                        videoId + ":::" + gameClient.getHabbo().getHabboInfo().getUsername());
                 room.setMusicPartyVideo(
-                    room.getMusicPartyCurrentVideo(),
-                    room.getMusicPartySenderName(),
-                    updatedPlaylist,
-                    room.getMusicPartyPositionMs(),
-                    room.isMusicPartyPaused()
-                );
-                SearchRoomsEvent.invalidateCachedResults();
-                room.sendComposer(
-                    new YouTubeRoomBroadcastComposer(
                         room.getMusicPartyCurrentVideo(),
                         room.getMusicPartySenderName(),
                         updatedPlaylist,
-                        room.getMusicPartyElapsedSeconds(),
-                        true,
-                        room.isMusicPartyPaused(),
-                        room.getMusicPartyRevision(),
                         room.getMusicPartyPositionMs(),
-                        true
-                    ).compose()
-                );
-                gameClient.getHabbo().whisper("Traccia aggiunta alla coda (" + updatedPlaylist.size() + " in coda). Apri Music Party dal menu della stanza.");
+                        room.isMusicPartyPaused());
+                SearchRoomsEvent.invalidateCachedResults();
+                room.sendComposer(new YouTubeRoomBroadcastComposer(
+                                room.getMusicPartyCurrentVideo(),
+                                room.getMusicPartySenderName(),
+                                updatedPlaylist,
+                                room.getMusicPartyElapsedSeconds(),
+                                true,
+                                room.isMusicPartyPaused(),
+                                room.getMusicPartyRevision(),
+                                room.getMusicPartyPositionMs(),
+                                true)
+                        .compose());
+                gameClient
+                        .getHabbo()
+                        .whisper("Traccia aggiunta alla coda (" + updatedPlaylist.size()
+                                + " in coda). Apri Music Party dal menu della stanza.");
                 return true;
             }
 
             // Start new audio track with a fresh queue.
-            room.setMusicPartyVideo(videoId, gameClient.getHabbo().getHabboInfo().getUsername(), new ArrayList<>(), 0L, false);
+            room.setMusicPartyVideo(
+                    videoId, gameClient.getHabbo().getHabboInfo().getUsername(), new ArrayList<>(), 0L, false);
             SearchRoomsEvent.invalidateCachedResults();
-            room.sendComposer(
-                new YouTubeRoomBroadcastComposer(
-                    videoId,
-                    gameClient.getHabbo().getHabboInfo().getUsername(),
-                    new ArrayList<>(),
-                    0,
-                    true,
-                    false,
-                    room.getMusicPartyRevision(),
-                    room.getMusicPartyPositionMs(),
-                    true
-                ).compose()
-            );
-            gameClient.getHabbo().whisper("Riproduzione avviata. Gestisci musica e coda da Music Party nel menu della stanza.");
+            room.sendComposer(new YouTubeRoomBroadcastComposer(
+                            videoId,
+                            gameClient.getHabbo().getHabboInfo().getUsername(),
+                            new ArrayList<>(),
+                            0,
+                            true,
+                            false,
+                            room.getMusicPartyRevision(),
+                            room.getMusicPartyPositionMs(),
+                            true)
+                    .compose());
+            gameClient
+                    .getHabbo()
+                    .whisper("Riproduzione avviata. Gestisci musica e coda da Music Party nel menu della stanza.");
         }
         return true;
     }

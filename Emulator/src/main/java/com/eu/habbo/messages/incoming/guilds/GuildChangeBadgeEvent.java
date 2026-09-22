@@ -25,11 +25,11 @@ public class GuildChangeBadgeEvent extends MessageHandler {
 
         Guild guild = Emulator.getGameEnvironment().getGuildManager().getGuild(guildId);
         if (guild != null) {
-            if (guild.getOwnerId() == this.client.getHabbo().getHabboInfo().getId() || this.client.getHabbo().hasPermission(Permission.ACC_GUILD_ADMIN)) {
+            if (guild.getOwnerId() == this.client.getHabbo().getHabboInfo().getId()
+                    || this.client.getHabbo().hasPermission(Permission.ACC_GUILD_ADMIN)) {
                 Room room = Emulator.getGameEnvironment().getRoomManager().getRoom(guild.getRoomId());
 
-                if (room == null || room.getId() != guild.getRoomId())
-                    return;
+                if (room == null || room.getId() != guild.getRoomId()) return;
 
                 int count = this.packet.readInt();
 
@@ -39,19 +39,17 @@ public class GuildChangeBadgeEvent extends MessageHandler {
                 if (badge.startsWith("custom_")) {
                     if (!GuildCustomBadgeRequestManager.badgeFilesExist(badge)
                             || (!GuildCustomBadgeRequestManager.isApprovedBadge(badge)
-                            && !guild.getBadge().equalsIgnoreCase(badge))) {
+                                    && !guild.getBadge().equalsIgnoreCase(badge))) {
                         return;
                     }
                 }
 
-                if (guild.getBadge().equalsIgnoreCase(badge))
-                    return;
+                if (guild.getBadge().equalsIgnoreCase(badge)) return;
 
                 GuildChangedBadgeEvent badgeEvent = new GuildChangedBadgeEvent(guild, badge);
                 Emulator.getPluginManager().fireEvent(badgeEvent);
 
-                if (badgeEvent.isCancelled())
-                    return;
+                if (badgeEvent.isCancelled()) return;
 
                 guild.setBadge(badgeEvent.badge);
                 guild.needsUpdate = true;
@@ -63,14 +61,22 @@ public class GuildChangeBadgeEvent extends MessageHandler {
                 Room guildRoom = Emulator.getGameEnvironment().getRoomManager().getRoom(guild.getRoomId());
                 if (guildRoom != null) {
                     guildRoom.refreshGuild(guild);
-                    guildRoom.sendComposer(new com.eu.habbo.messages.outgoing.rooms.users.RoomUsersAddGuildBadgeComposer(guild).compose());
+                    guildRoom.sendComposer(
+                            new com.eu.habbo.messages.outgoing.rooms.users.RoomUsersAddGuildBadgeComposer(guild)
+                                    .compose());
                 }
 
                 Room currentRoom = this.client.getHabbo().getHabboInfo().getCurrentRoom();
                 if (currentRoom != null) {
-                    currentRoom.sendComposer(new com.eu.habbo.messages.outgoing.rooms.users.RoomUsersAddGuildBadgeComposer(guild).compose());
-                    if (this.client.getHabbo().getHabboStats().guild == guild.getId() && this.client.getHabbo().getRoomUnit() != null) {
-                        currentRoom.sendComposer(new com.eu.habbo.messages.outgoing.guilds.GuildFavoriteRoomUserUpdateComposer(this.client.getHabbo().getRoomUnit(), guild).compose());
+                    currentRoom.sendComposer(
+                            new com.eu.habbo.messages.outgoing.rooms.users.RoomUsersAddGuildBadgeComposer(guild)
+                                    .compose());
+                    if (this.client.getHabbo().getHabboStats().guild == guild.getId()
+                            && this.client.getHabbo().getRoomUnit() != null) {
+                        currentRoom.sendComposer(
+                                new com.eu.habbo.messages.outgoing.guilds.GuildFavoriteRoomUserUpdateComposer(
+                                                this.client.getHabbo().getRoomUnit(), guild)
+                                        .compose());
                     }
                 }
 

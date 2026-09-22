@@ -4,7 +4,6 @@ import com.eu.habbo.habbohotel.guilds.GuildCustomBadgeRequestManager;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
-
 import java.util.List;
 
 public class GuildCustomBadgeRequestsComposer extends MessageComposer {

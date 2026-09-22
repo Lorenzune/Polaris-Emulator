@@ -44,7 +44,9 @@ public class GuildChatBuddy extends MessengerBuddy {
     public void onMessageReceived(Habbo from, String message) {
         if (from == null || message == null || message.isEmpty() || this.guild == null) return;
 
-        GuildMember senderMember = Emulator.getGameEnvironment().getGuildManager().getGuildMember(this.guild.getId(), from.getHabboInfo().getId());
+        GuildMember senderMember = Emulator.getGameEnvironment()
+                .getGuildManager()
+                .getGuildMember(this.guild.getId(), from.getHabboInfo().getId());
         if (!isChatMember(senderMember)) return;
 
         if (message.charAt(0) == ':') {
@@ -54,11 +56,15 @@ public class GuildChatBuddy extends MessengerBuddy {
 
         int buddyId = this.getId();
         Message chatMessage = new Message(from.getHabboInfo().getId(), buddyId, message);
-        String roleName = senderMember.getRank() == null ? "" : senderMember.getRank().name();
+        String roleName =
+                senderMember.getRank() == null ? "" : senderMember.getRank().name();
 
-        ServerMessage response = new FriendChatMessageComposer(chatMessage, buddyId, from.getHabboInfo().getId(), roleName).compose();
+        ServerMessage response = new FriendChatMessageComposer(
+                        chatMessage, buddyId, from.getHabboInfo().getId(), roleName)
+                .compose();
 
-        for (GuildMember member : Emulator.getGameEnvironment().getGuildManager().getGuildMembers(this.guild.getId())) {
+        for (GuildMember member :
+                Emulator.getGameEnvironment().getGuildManager().getGuildMembers(this.guild.getId())) {
             if (!isChatMember(member)) continue;
 
             Habbo memberHabbo = Emulator.getGameEnvironment().getHabboManager().getHabbo(member.getUserId());
@@ -73,16 +79,17 @@ public class GuildChatBuddy extends MessengerBuddy {
         message.appendInt(this.getId());
         message.appendString(this.getUsername());
         message.appendInt(this.getGender().equals(HabboGender.M) ? 0 : 1);
-        message.appendBoolean(true);  // online
+        message.appendBoolean(true); // online
         message.appendBoolean(false); // in room
         message.appendString(this.getLook());
-        message.appendInt(0);         // category
-        message.appendString(this.guild != null && this.guild.getDescription() != null ? this.guild.getDescription() : ""); // motto
-        message.appendString("");     // last seen
-        message.appendString("");     // realname
-        message.appendBoolean(true);  // offline messaging supported
+        message.appendInt(0); // category
+        message.appendString(
+                this.guild != null && this.guild.getDescription() != null ? this.guild.getDescription() : ""); // motto
+        message.appendString(""); // last seen
+        message.appendString(""); // realname
+        message.appendBoolean(true); // offline messaging supported
         message.appendBoolean(false);
         message.appendBoolean(false);
-        message.appendShort(0);       // relation
+        message.appendShort(0); // relation
     }
 }

@@ -14,8 +14,14 @@ public class NavigatorCategoryListModeEvent extends MessageHandler {
 
         NavigatorManager navigatorManager = Emulator.getGameEnvironment().getNavigatorManager();
         String categoryKey = navigatorManager.getPersonalCategoryKey(category);
-        RoomCategory roomCategory = Emulator.getGameEnvironment().getRoomManager().getCategory(categoryKey);
-        this.client.getHabbo().getHabboStats().navigatorWindowSettings.setListMode(
-                roomCategory != null ? roomCategory.getCaptionSave() : categoryKey, viewMode == 1 ? ListMode.THUMBNAILS : ListMode.LIST);
+        RoomCategory roomCategory =
+                Emulator.getGameEnvironment().getRoomManager().getCategory(categoryKey);
+        this.client
+                .getHabbo()
+                .getHabboStats()
+                .navigatorWindowSettings
+                .setListMode(
+                        roomCategory != null ? roomCategory.getCaptionSave() : categoryKey,
+                        viewMode == 1 ? ListMode.THUMBNAILS : ListMode.LIST);
     }
 }

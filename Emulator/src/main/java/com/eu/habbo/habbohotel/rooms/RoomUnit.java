@@ -24,14 +24,21 @@ import com.eu.habbo.plugin.events.users.UserIdleEvent;
 import com.eu.habbo.plugin.events.users.UserTakeStepEvent;
 import com.eu.habbo.threading.runnables.RoomUnitKick;
 import com.eu.habbo.util.pathfinding.Rotation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ScheduledFuture;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RoomUnit {
 
@@ -133,19 +140,21 @@ public class RoomUnit {
             }
 
             if (rider != null) {
-                if (this.status.containsKey(RoomUnitStatus.MOVE) && !rider.getRoomUnit().getStatusMap()
-                    .containsKey(RoomUnitStatus.MOVE)) {
+                if (this.status.containsKey(RoomUnitStatus.MOVE)
+                        && !rider.getRoomUnit().getStatusMap().containsKey(RoomUnitStatus.MOVE)) {
                     this.status.remove(RoomUnitStatus.MOVE);
                 }
 
                 if (rider.getRoomUnit().getCurrentLocation().x != this.getX()
-                    || rider.getRoomUnit().getCurrentLocation().y != this.getY()) {
-                    this.status.put(RoomUnitStatus.MOVE,
-                        rider.getRoomUnit().getCurrentLocation().x + "," + rider.getRoomUnit()
-                            .getCurrentLocation().y + "," + (rider.getRoomUnit().getCurrentLocation()
-                            .getStackHeight()));
+                        || rider.getRoomUnit().getCurrentLocation().y != this.getY()) {
+                    this.status.put(
+                            RoomUnitStatus.MOVE,
+                            rider.getRoomUnit().getCurrentLocation().x + ","
+                                    + rider.getRoomUnit().getCurrentLocation().y + ","
+                                    + (rider.getRoomUnit().getCurrentLocation().getStackHeight()));
                     this.setPreviousLocation(rider.getRoomUnit().getPreviousLocation());
-                    this.setPreviousLocationZ(rider.getRoomUnit().getPreviousLocation().getStackHeight());
+                    this.setPreviousLocationZ(
+                            rider.getRoomUnit().getPreviousLocation().getStackHeight());
                     this.setCurrentLocation(rider.getRoomUnit().getCurrentLocation());
                     this.setZ(rider.getRoomUnit().getCurrentLocation().getStackHeight());
                 }
@@ -156,8 +165,11 @@ public class RoomUnit {
             if (!this.isWalking() && !this.isKicked) {
                 if (this.status.remove(RoomUnitStatus.MOVE) == null) {
                     Habbo habboT = room.getHabbo(this);
-                    if (habboT != null && habboT.getHabboInfo() != null && habboT.getHabboInfo().getRiding() != null) {
-                        RoomUnit ridingRoomUnit = habboT.getHabboInfo().getRiding().getRoomUnit();
+                    if (habboT != null
+                            && habboT.getHabboInfo() != null
+                            && habboT.getHabboInfo().getRiding() != null) {
+                        RoomUnit ridingRoomUnit =
+                                habboT.getHabboInfo().getRiding().getRoomUnit();
                         if (ridingRoomUnit != null) {
                             ridingRoomUnit.status.remove(RoomUnitStatus.MOVE);
                         }
@@ -231,8 +243,7 @@ public class RoomUnit {
                 }
 
                 if (Emulator.getPluginManager().isRegistered(UserTakeStepEvent.class, false)) {
-                    Event e = new UserTakeStepEvent(habbo, room.getLayout().getTile(this.getX(), this.getY()),
-                        next);
+                    Event e = new UserTakeStepEvent(habbo, room.getLayout().getTile(this.getX(), this.getY()), next);
                     Emulator.getPluginManager().fireEvent(e);
 
                     if (e.isCancelled()) {
@@ -262,17 +273,21 @@ public class RoomUnit {
                 }
             }
 
-            if (next.equals(this.goalLocation) && (next.state == RoomTileState.SIT || next.state == RoomTileState.LAY) && !overrideChecks && (
-                item == null || item.getZ() - this.getZ() > RoomLayout.MAXIMUM_STEP_HEIGHT)) {
+            if (next.equals(this.goalLocation)
+                    && (next.state == RoomTileState.SIT || next.state == RoomTileState.LAY)
+                    && !overrideChecks
+                    && (item == null || item.getZ() - this.getZ() > RoomLayout.MAXIMUM_STEP_HEIGHT)) {
                 this.status.remove(RoomUnitStatus.MOVE);
                 return false;
             }
 
             double zHeight = 0.0D;
 
-            if (habbo != null && habbo.getHabboInfo() != null && habbo.getHabboInfo().getRiding() != null
-                && next.equals(this.goalLocation)
-                && next.state == RoomTileState.LAY) {
+            if (habbo != null
+                    && habbo.getHabboInfo() != null
+                    && habbo.getHabboInfo().getRiding() != null
+                    && next.equals(this.goalLocation)
+                    && next.state == RoomTileState.LAY) {
                 this.status.remove(RoomUnitStatus.MOVE);
                 return false;
             }
@@ -294,25 +309,31 @@ public class RoomUnit {
             }
 
             Optional<HabboItem> stackHelper = room.getItemsAt(next).stream()
-                .filter(i -> i instanceof InteractionTileWalkMagic || i instanceof InteractionStackWalkHelper).findAny();
+                    .filter(i -> i instanceof InteractionTileWalkMagic || i instanceof InteractionStackWalkHelper)
+                    .findAny();
             if (stackHelper.isPresent()) {
                 zHeight = stackHelper.get().getZ();
             }
 
             RoomTile oldLocation = this.getCurrentLocation();
             double oldZ = this.getZ();
-            if (oldLocation != null && (habbo == null || habbo.getHabboInfo() == null || habbo.getHabboInfo().getRiding() == null)) {
+            if (oldLocation != null
+                    && (habbo == null
+                            || habbo.getHabboInfo() == null
+                            || habbo.getHabboInfo().getRiding() == null)) {
                 HabboItem currentTileItem = room.getItemManager().getWalkableItemAt(oldLocation.x, oldLocation.y);
                 if (currentTileItem != null) {
                     oldZ = currentTileItem.getZ();
-                    if (!currentTileItem.getBaseItem().allowSit() && !currentTileItem.getBaseItem().allowLay()) {
+                    if (!currentTileItem.getBaseItem().allowSit()
+                            && !currentTileItem.getBaseItem().allowLay()) {
                         oldZ += Item.getCurrentHeight(currentTileItem);
                     }
                 } else {
                     oldZ = room.getLayout().getHeightAtSquare(oldLocation.x, oldLocation.y);
                 }
                 Optional<HabboItem> stackHelperOld = room.getItemsAt(oldLocation).stream()
-                    .filter(i -> i instanceof InteractionTileWalkMagic || i instanceof InteractionStackWalkHelper).findAny();
+                        .filter(i -> i instanceof InteractionTileWalkMagic || i instanceof InteractionStackWalkHelper)
+                        .findAny();
                 if (stackHelperOld.isPresent()) {
                     oldZ = stackHelperOld.get().getZ();
                 }
@@ -329,12 +350,11 @@ public class RoomUnit {
                         ridingUnit.setPreviousLocationZ(this.getZ());
                         this.setZ(zHeight - 1.0);
                         ridingUnit.setRotation(
-                            RoomUserRotation.values()[Rotation.Calculate(oldLocation.x, oldLocation.y, next.x,
-                                next.y)]);
+                                RoomUserRotation.values()[
+                                        Rotation.Calculate(oldLocation.x, oldLocation.y, next.x, next.y)]);
                         ridingUnit.setPreviousLocation(oldLocation);
                         ridingUnit.setGoalLocation(this.getGoal());
-                        ridingUnit.setStatus(RoomUnitStatus.MOVE,
-                            next.x + "," + next.y + "," + (zHeight - 1.0));
+                        ridingUnit.setStatus(RoomUnitStatus.MOVE, next.x + "," + next.y + "," + (zHeight - 1.0));
                         room.sendComposer(new RoomUserStatusComposer(ridingUnit).compose());
                     }
                 }
@@ -347,7 +367,7 @@ public class RoomUnit {
             HabboItem habboItem = room.getTopItemAt(oldLocation.x, oldLocation.y);
             if (habboItem != null) {
                 if (habboItem != item || !itemOccupiesTile(habboItem, next.x, next.y)) {
-                    habboItem.onWalkOff(this, room, new Object[]{oldLocation, next});
+                    habboItem.onWalkOff(this, room, new Object[] {oldLocation, next});
                 }
             }
 
@@ -357,11 +377,11 @@ public class RoomUnit {
 
             RoomUserRotation oldRotation = this.getBodyRotation();
             this.setRotation(
-                RoomUserRotation.values()[Rotation.Calculate(oldLocation.x, oldLocation.y, next.x, next.y)]);
+                    RoomUserRotation.values()[Rotation.Calculate(oldLocation.x, oldLocation.y, next.x, next.y)]);
             if (item != null) {
                 if (item != habboItem || !itemOccupiesTile(item, oldLocation.x, oldLocation.y)) {
                     if (item.canWalkOn(this, room, null)) {
-                        item.onWalkOn(this, room, new Object[]{oldLocation, next});
+                        item.onWalkOn(this, room, new Object[] {oldLocation, next});
                     } else if (item instanceof ConditionalGate) {
                         this.setRotation(oldRotation);
                         this.tilesWalked--;
@@ -374,25 +394,30 @@ public class RoomUnit {
                         room.sendComposer(new RoomUserStatusComposer(this).compose());
 
                         if (habbo != null) {
-                            ((ConditionalGate) item).onRejected(this, this.getRoom(), new Object[]{});
+                            ((ConditionalGate) item).onRejected(this, this.getRoom(), new Object[] {});
                         }
                         return false;
                     }
                 } else {
-                    item.onWalk(this, room, new Object[]{oldLocation, next});
+                    item.onWalk(this, room, new Object[] {oldLocation, next});
                 }
             }
 
             if (habbo != null) {
                 HabboItem topItem = room.getTopItemAt(next.x, next.y);
 
-                boolean isAtDoor =
-                    next.x == room.getLayout().getDoorX() && next.y == room.getLayout().getDoorY();
-                boolean publicRoomKicks = !room.isPublicRoom() || Emulator.getConfig()
-                    .getBoolean("hotel.room.public.doortile.kick");
+                boolean isAtDoor = next.x == room.getLayout().getDoorX()
+                        && next.y == room.getLayout().getDoorY();
+                boolean publicRoomKicks =
+                        !room.isPublicRoom() || Emulator.getConfig().getBoolean("hotel.room.public.doortile.kick");
                 boolean invalidated = topItem != null && topItem.invalidatesToRoomKick();
 
-                if (room.isLeaveOnDoorTileEnabled() && this.canLeaveRoomByDoor && isAtDoor && publicRoomKicks && !invalidated && !RoomDoorkickDisableSupport.isDoorkickDisabled(room)) {
+                if (room.isLeaveOnDoorTileEnabled()
+                        && this.canLeaveRoomByDoor
+                        && isAtDoor
+                        && publicRoomKicks
+                        && !invalidated
+                        && !RoomDoorkickDisableSupport.isDoorkickDisabled(room)) {
                     Emulator.getThreading().run(new RoomUnitKick(habbo, room, false), 500);
                 }
             }
@@ -415,15 +440,17 @@ public class RoomUnit {
             length = swap;
         }
 
-        return RoomLayout.pointInSquare(item.getX(), item.getY(),
-            item.getX() + width - 1, item.getY() + length - 1, x, y);
+        return RoomLayout.pointInSquare(
+                item.getX(), item.getY(), item.getX() + width - 1, item.getY() + length - 1, x, y);
     }
 
-    private static boolean canMoveToTile(Room room, RoomTile next, double height,
-                                         boolean canSitNextTile, boolean canLayNextTile) {
-        return (!room.tileWalkable(next) || (!RoomLayout.ALLOW_FALLING
-            && height < -RoomLayout.MAXIMUM_STEP_HEIGHT) || (next.state == RoomTileState.OPEN
-            && height > RoomLayout.MAXIMUM_STEP_HEIGHT)) && !canSitNextTile && !canLayNextTile;
+    private static boolean canMoveToTile(
+            Room room, RoomTile next, double height, boolean canSitNextTile, boolean canLayNextTile) {
+        return (!room.tileWalkable(next)
+                        || (!RoomLayout.ALLOW_FALLING && height < -RoomLayout.MAXIMUM_STEP_HEIGHT)
+                        || (next.state == RoomTileState.OPEN && height > RoomLayout.MAXIMUM_STEP_HEIGHT))
+                && !canSitNextTile
+                && !canLayNextTile;
     }
 
     public int getId() {
@@ -588,7 +615,7 @@ public class RoomUnit {
         if (goalLocation != null && !noReset) {
             boolean isWalking = this.hasStatus(RoomUnitStatus.MOVE);
             this.goalLocation = goalLocation;
-            this.findPath(); ///< Quadral: this is where we start formulating a path
+            this.findPath(); // /< Quadral: this is where we start formulating a path
             if (!this.path.isEmpty()) {
                 this.tilesWalked = isWalking ? this.tilesWalked : 0;
                 this.cmdSit = false;
@@ -642,17 +669,22 @@ public class RoomUnit {
             return;
         }
 
-        Deque<RoomTile> newPath = this.room.getLayout().getPathfinder()
-            .findPath(this.currentLocation, this.goalLocation, this.goalLocation, this);
+        Deque<RoomTile> newPath = this.room
+                .getLayout()
+                .getPathfinder()
+                .findPath(this.currentLocation, this.goalLocation, this.goalLocation, this);
         if (newPath != null && !newPath.isEmpty()) {
             this.path = new ConcurrentLinkedDeque<>(newPath);
         }
     }
 
     private boolean canFindPath() {
-        return this.room != null && this.room.getLayout() != null && this.goalLocation != null && (
-            this.goalLocation.isWalkable() || this.room.canSitOrLayAt(this.goalLocation.x,
-                this.goalLocation.y) || this.canOverrideTile(this.goalLocation));
+        return this.room != null
+                && this.room.getLayout() != null
+                && this.goalLocation != null
+                && (this.goalLocation.isWalkable()
+                        || this.room.canSitOrLayAt(this.goalLocation.x, this.goalLocation.y)
+                        || this.canOverrideTile(this.goalLocation));
     }
 
     public boolean isAtGoal() {
@@ -867,17 +899,15 @@ public class RoomUnit {
             return;
         }
 
-        RoomUserRotation targetRotation = RoomUserRotation.values()[Rotation.Calculate(
-            this.getX(), this.getY(), location.x, location.y)];
+        RoomUserRotation targetRotation =
+                RoomUserRotation.values()[Rotation.Calculate(this.getX(), this.getY(), location.x, location.y)];
 
         /*
          * A target in front of the avatar, or on either adjacent diagonal, is handled by
          * turning only the head.  The body turns only when the target is outside that
          * peripheral arc, so a click can never rotate the body by a single 45-degree step.
          */
-        if (RoomUserRotation.rotationDistance(
-            this.bodyRotation.getValue(), targetRotation.getValue())
-            <= 1) {
+        if (RoomUserRotation.rotationDistance(this.bodyRotation.getValue(), targetRotation.getValue()) <= 1) {
             this.headRotation = targetRotation;
         } else if (!this.status.containsKey(RoomUnitStatus.SIT)) {
             this.setRotation(targetRotation);
@@ -964,19 +994,22 @@ public class RoomUnit {
 
         Habbo habbo = this.room.getHabbo(this);
 
-        if (habbo != null && habbo.getHabboInfo() != null && habbo.getHabboInfo().getRiding() != null) {
+        if (habbo != null
+                && habbo.getHabboInfo() != null
+                && habbo.getHabboInfo().getRiding() != null) {
             return false;
         }
 
         HabboItem topItem = this.room.getTopItemAt(this.getX(), this.getY());
 
-        return topItem == null || (!(topItem instanceof InteractionWater)
-            && !(topItem instanceof InteractionWaterItem));
+        return topItem == null
+                || (!(topItem instanceof InteractionWater) && !(topItem instanceof InteractionWaterItem));
     }
 
     public RoomTile getClosestTile(List<RoomTile> tiles) {
         return tiles.stream()
-            .min(Comparator.comparingDouble(a -> a.distance(this.getCurrentLocation()))).orElse(null);
+                .min(Comparator.comparingDouble(a -> a.distance(this.getCurrentLocation())))
+                .orElse(null);
     }
 
     public RoomTile getClosestAdjacentTile(short x, short y, boolean diagonal) {
@@ -1003,10 +1036,12 @@ public class RoomUnit {
             rotations.add(RoomUserRotation.SOUTH_WEST.getValue());
         }
 
-        return this.getClosestTile(
-            rotations.stream().map(rotation -> room.getLayout().getTileInFront(baseTile, rotation))
-                .filter(t -> t != null && t.isWalkable() && (this.getCurrentLocation().equals(t)
-                    || !room.hasHabbosAt(t.x, t.y))).collect(Collectors.toList()));
+        return this.getClosestTile(rotations.stream()
+                .map(rotation -> room.getLayout().getTileInFront(baseTile, rotation))
+                .filter(t -> t != null
+                        && t.isWalkable()
+                        && (this.getCurrentLocation().equals(t) || !room.hasHabbosAt(t.x, t.y)))
+                .collect(Collectors.toList()));
     }
 
     public ScheduledFuture<?> getMoveBlockingTask() {

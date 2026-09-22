@@ -1,12 +1,12 @@
 package com.eu.habbo.habbohotel.messenger;
 
-import com.eu.habbo.habbohotel.guilds.GuildMember;
-import com.eu.habbo.habbohotel.guilds.GuildRank;
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.eu.habbo.habbohotel.guilds.GuildMember;
+import com.eu.habbo.habbohotel.guilds.GuildRank;
+import org.junit.jupiter.api.Test;
 
 class GuildChatBuddyTest {
     @Test
@@ -22,7 +22,7 @@ class GuildChatBuddyTest {
 
     @Test
     void onlyCurrentGuildMembersCanUseGuildChat() {
-        for (GuildRank rank : new GuildRank[] { GuildRank.OWNER, GuildRank.ADMIN, GuildRank.MEMBER }) {
+        for (GuildRank rank : new GuildRank[] {GuildRank.OWNER, GuildRank.ADMIN, GuildRank.MEMBER}) {
             assertTrue(GuildChatBuddy.isChatMember(member(rank)));
         }
 

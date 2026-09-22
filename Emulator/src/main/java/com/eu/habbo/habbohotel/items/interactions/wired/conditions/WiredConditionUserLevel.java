@@ -11,7 +11,6 @@ import com.eu.habbo.habbohotel.wired.WiredConditionType;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -25,7 +24,8 @@ public class WiredConditionUserLevel extends InteractionWiredCondition {
         super(set, baseItem);
     }
 
-    public WiredConditionUserLevel(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredConditionUserLevel(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 

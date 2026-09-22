@@ -53,9 +53,9 @@ public class RoleplayCommandData {
         this.sortOrder = set.getInt("sort_order");
         this.keys = set.getString("keys") != null
                 ? Arrays.stream(set.getString("keys").split(";"))
-                .map(String::trim)
-                .filter(key -> !key.isEmpty())
-                .toArray(String[]::new)
+                        .map(String::trim)
+                        .filter(key -> !key.isEmpty())
+                        .toArray(String[]::new)
                 : new String[0];
         this.minRank = set.getInt("min_rank");
         this.permission = set.getString("permission");
@@ -95,11 +95,21 @@ public class RoleplayCommandData {
             }
         }
 
-        this.errorForgotTarget = set.getString("error_forgot_target") != null ? set.getString("error_forgot_target") : "Specifica il nome dell'utente!";
-        this.errorNotFound = set.getString("error_not_found") != null ? set.getString("error_not_found") : "Utente %target% non trovato in questa stanza!";
-        this.errorSelf = set.getString("error_self") != null ? set.getString("error_self") : "Non puoi fare questa azione su te stesso!";
-        this.errorCantReach = set.getString("error_cant_reach") != null ? set.getString("error_cant_reach") : "Sei troppo lontano da %target%!";
-        this.errorDisabled = set.getString("error_disabled") != null ? set.getString("error_disabled") : "%target% ha disattivato le interazioni roleplay!";
+        this.errorForgotTarget = set.getString("error_forgot_target") != null
+                ? set.getString("error_forgot_target")
+                : "Specifica il nome dell'utente!";
+        this.errorNotFound = set.getString("error_not_found") != null
+                ? set.getString("error_not_found")
+                : "Utente %target% non trovato in questa stanza!";
+        this.errorSelf = set.getString("error_self") != null
+                ? set.getString("error_self")
+                : "Non puoi fare questa azione su te stesso!";
+        this.errorCantReach = set.getString("error_cant_reach") != null
+                ? set.getString("error_cant_reach")
+                : "Sei troppo lontano da %target%!";
+        this.errorDisabled = set.getString("error_disabled") != null
+                ? set.getString("error_disabled")
+                : "%target% ha disattivato le interazioni roleplay!";
         this.cooldownSeconds = set.getInt("cooldown_seconds");
         this.senderAchievement = set.getString("sender_achievement");
         this.senderAchievementProgress = set.getInt("sender_achievement_progress");

@@ -4,10 +4,6 @@ import com.eu.habbo.Emulator;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,6 +17,9 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import javax.net.ssl.HttpsURLConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GoogleTranslateManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(GoogleTranslateManager.class);
@@ -30,18 +29,19 @@ public class GoogleTranslateManager {
     private static final int MAX_LANGUAGE_CACHE_SIZE = 32;
     private static final int MAX_ERROR_BODY_CHARS = 8192;
     private static final String FREE_TRANSLATE_ENDPOINT = "https://translate.googleapis.com/translate_a/single";
-    private static final String TRANSLATE_BLOCKED_MESSAGE = "Google Translate has temporarily blocked this request. Please try again later.";
+    private static final String TRANSLATE_BLOCKED_MESSAGE =
+            "Google Translate has temporarily blocked this request. Please try again later.";
     private static final List<SupportedLanguage> FREE_SUPPORTED_LANGUAGES = buildFreeSupportedLanguages();
 
-    private final Map<String, CachedTranslation> translationCache = Collections.synchronizedMap(
-            new LinkedHashMap<String, CachedTranslation>(128, 0.75f, true) {
+    private final Map<String, CachedTranslation> translationCache =
+            Collections.synchronizedMap(new LinkedHashMap<String, CachedTranslation>(128, 0.75f, true) {
                 @Override
                 protected boolean removeEldestEntry(Map.Entry<String, CachedTranslation> eldest) {
                     return this.size() > MAX_TRANSLATION_CACHE_SIZE;
                 }
             });
-    private final Map<String, CachedLanguages> languagesCache = Collections.synchronizedMap(
-            new LinkedHashMap<String, CachedLanguages>(16, 0.75f, true) {
+    private final Map<String, CachedLanguages> languagesCache =
+            Collections.synchronizedMap(new LinkedHashMap<String, CachedLanguages>(16, 0.75f, true) {
                 @Override
                 protected boolean removeEldestEntry(Map.Entry<String, CachedLanguages> eldest) {
                     return this.size() > MAX_LANGUAGE_CACHE_SIZE;
@@ -90,7 +90,8 @@ public class GoogleTranslateManager {
             int statusCode = connection.getResponseCode();
 
             if (statusCode != 200) {
-                return TranslationResponse.failure(safeText, normalizedTargetLanguage, this.readErrorMessage(connection));
+                return TranslationResponse.failure(
+                        safeText, normalizedTargetLanguage, this.readErrorMessage(connection));
             }
 
             if (this.isHtmlResponse(connection.getContentType(), "")) {
@@ -121,14 +122,16 @@ public class GoogleTranslateManager {
             }
 
             String resolvedTranslation = translatedText.length() > 0 ? translatedText.toString() : safeText;
-            TranslationResponse translationResponse = TranslationResponse.success(safeText, resolvedTranslation, detectedLanguage, normalizedTargetLanguage);
+            TranslationResponse translationResponse = TranslationResponse.success(
+                    safeText, resolvedTranslation, detectedLanguage, normalizedTargetLanguage);
 
             this.translationCache.put(cacheKey, new CachedTranslation(translationResponse));
 
             return translationResponse;
         } catch (Exception e) {
             LOGGER.error("Failed to translate text with Google Translate", e);
-            return TranslationResponse.failure(safeText, normalizedTargetLanguage, "Failed to translate text with Google Translate.");
+            return TranslationResponse.failure(
+                    safeText, normalizedTargetLanguage, "Failed to translate text with Google Translate.");
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -146,7 +149,8 @@ public class GoogleTranslateManager {
     }
 
     private HttpsURLConnection openGet(String requestUrl) throws IOException {
-        HttpsURLConnection connection = (HttpsURLConnection) URI.create(requestUrl).toURL().openConnection();
+        HttpsURLConnection connection =
+                (HttpsURLConnection) URI.create(requestUrl).toURL().openConnection();
         connection.setRequestMethod("GET");
         connection.setConnectTimeout(this.getTimeoutMs());
         connection.setReadTimeout(this.getTimeoutMs());
@@ -156,14 +160,14 @@ public class GoogleTranslateManager {
 
     private JsonObject readJson(InputStream inputStream) throws IOException {
         try (InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
-             BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
             return JsonParser.parseReader(bufferedReader).getAsJsonObject();
         }
     }
 
     private JsonArray readJsonArray(InputStream inputStream) throws IOException {
         try (InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
-             BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
             return JsonParser.parseReader(bufferedReader).getAsJsonArray();
         }
     }
@@ -178,13 +182,15 @@ public class GoogleTranslateManager {
 
             String responseText;
             try (InputStreamReader inputStreamReader = new InputStreamReader(errorStream, StandardCharsets.UTF_8);
-                 BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
+                    BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
                 StringBuilder body = new StringBuilder();
                 char[] buffer = new char[1024];
                 int read;
 
                 while (body.length() < MAX_ERROR_BODY_CHARS
-                        && (read = bufferedReader.read(buffer, 0, Math.min(buffer.length, MAX_ERROR_BODY_CHARS - body.length()))) != -1) {
+                        && (read = bufferedReader.read(
+                                        buffer, 0, Math.min(buffer.length, MAX_ERROR_BODY_CHARS - body.length())))
+                                != -1) {
                     body.append(buffer, 0, read);
                 }
                 responseText = body.toString();
@@ -196,7 +202,8 @@ public class GoogleTranslateManager {
 
             if (!responseText.isBlank()) {
                 try {
-                    JsonObject errorResponse = JsonParser.parseString(responseText).getAsJsonObject();
+                    JsonObject errorResponse =
+                            JsonParser.parseString(responseText).getAsJsonObject();
 
                     if (errorResponse.has("error") && errorResponse.get("error").isJsonObject()) {
                         JsonObject errorObject = errorResponse.getAsJsonObject("error");
@@ -223,7 +230,8 @@ public class GoogleTranslateManager {
     }
 
     private boolean isHtmlResponse(String contentType, String responseText) {
-        if (contentType != null && contentType.toLowerCase(java.util.Locale.ROOT).contains("text/html")) {
+        if (contentType != null
+                && contentType.toLowerCase(java.util.Locale.ROOT).contains("text/html")) {
             return true;
         }
 
@@ -428,7 +436,13 @@ public class GoogleTranslateManager {
         private final String detectedLanguage;
         private final String targetLanguage;
 
-        private TranslationResponse(boolean success, String errorMessage, String originalText, String translatedText, String detectedLanguage, String targetLanguage) {
+        private TranslationResponse(
+                boolean success,
+                String errorMessage,
+                String originalText,
+                String translatedText,
+                String detectedLanguage,
+                String targetLanguage) {
             this.success = success;
             this.errorMessage = errorMessage == null ? "" : errorMessage;
             this.originalText = originalText == null ? "" : originalText;
@@ -437,7 +451,8 @@ public class GoogleTranslateManager {
             this.targetLanguage = targetLanguage == null ? "" : targetLanguage;
         }
 
-        public static TranslationResponse success(String originalText, String translatedText, String detectedLanguage, String targetLanguage) {
+        public static TranslationResponse success(
+                String originalText, String translatedText, String detectedLanguage, String targetLanguage) {
             return new TranslationResponse(true, "", originalText, translatedText, detectedLanguage, targetLanguage);
         }
 

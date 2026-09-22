@@ -13,7 +13,6 @@ import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserStatusComposer;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserTalkComposer;
 import com.eu.habbo.util.pathfinding.Rotation;
-
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
@@ -63,9 +62,9 @@ public class GenericRoleplayCommand extends Command {
             target = currentRoom.getHabbo(params[1]);
 
             if (target == null || target.getRoomUnit() == null) {
-                sender.whisper(data.getErrorNotFound()
-                        .replace("%target%", params[1])
-                        .replace("%user%", params[1]), RoomChatMessageBubbles.ALERT);
+                sender.whisper(
+                        data.getErrorNotFound().replace("%target%", params[1]).replace("%user%", params[1]),
+                        RoomChatMessageBubbles.ALERT);
                 return true;
             }
 
@@ -76,22 +75,28 @@ public class GenericRoleplayCommand extends Command {
 
             // Check privacy block
             if (target.getHabboStats() != null && target.getHabboStats().blockRoleplay) {
-                sender.whisper(data.getErrorDisabled()
-                        .replace("%target%", target.getHabboInfo().getUsername())
-                        .replace("%user%", target.getHabboInfo().getUsername()), RoomChatMessageBubbles.ALERT);
+                sender.whisper(
+                        data.getErrorDisabled()
+                                .replace("%target%", target.getHabboInfo().getUsername())
+                                .replace("%user%", target.getHabboInfo().getUsername()),
+                        RoomChatMessageBubbles.ALERT);
                 return true;
             }
 
             // Check distance
             if (data.getMaxDistance() >= 0) {
-                int distanceX = Math.abs(target.getRoomUnit().getX() - sender.getRoomUnit().getX());
-                int distanceY = Math.abs(target.getRoomUnit().getY() - sender.getRoomUnit().getY());
+                int distanceX = Math.abs(
+                        target.getRoomUnit().getX() - sender.getRoomUnit().getX());
+                int distanceY = Math.abs(
+                        target.getRoomUnit().getY() - sender.getRoomUnit().getY());
                 int maxDist = Math.max(distanceX, distanceY);
 
                 if (maxDist > data.getMaxDistance()) {
-                    sender.whisper(data.getErrorCantReach()
-                            .replace("%target%", target.getHabboInfo().getUsername())
-                            .replace("%user%", target.getHabboInfo().getUsername()), RoomChatMessageBubbles.ALERT);
+                    sender.whisper(
+                            data.getErrorCantReach()
+                                    .replace("%target%", target.getHabboInfo().getUsername())
+                                    .replace("%user%", target.getHabboInfo().getUsername()),
+                            RoomChatMessageBubbles.ALERT);
                     return true;
                 }
             }
@@ -110,13 +115,18 @@ public class GenericRoleplayCommand extends Command {
 
             // Knockback / push
             if (data.getKnockbackTiles() > 0 && target != sender) {
-                int rot = Rotation.Calculate(sender.getRoomUnit().getX(), sender.getRoomUnit().getY(),
-                        target.getRoomUnit().getX(), target.getRoomUnit().getY());
+                int rot = Rotation.Calculate(
+                        sender.getRoomUnit().getX(),
+                        sender.getRoomUnit().getY(),
+                        target.getRoomUnit().getX(),
+                        target.getRoomUnit().getY());
                 RoomTile currTile = target.getRoomUnit().getCurrentLocation();
 
                 for (int i = 0; i < data.getKnockbackTiles(); i++) {
                     RoomTile nextTile = currentRoom.getLayout().getTileInFront(currTile, rot);
-                    if (nextTile != null && nextTile.isWalkable() && currentRoom.getLayout().getDoorTile() != nextTile) {
+                    if (nextTile != null
+                            && nextTile.isWalkable()
+                            && currentRoom.getLayout().getDoorTile() != nextTile) {
                         currTile = nextTile;
                     } else {
                         break;
@@ -180,16 +190,23 @@ public class GenericRoleplayCommand extends Command {
         }
 
         // Progress linked Achievements (Sender / Chi esegue l'azione)
-        if (data.getSenderAchievement() != null && !data.getSenderAchievement().trim().isEmpty()) {
-            Achievement senderAch = Emulator.getGameEnvironment().getAchievementManager().getAchievement(data.getSenderAchievement().trim());
+        if (data.getSenderAchievement() != null
+                && !data.getSenderAchievement().trim().isEmpty()) {
+            Achievement senderAch = Emulator.getGameEnvironment()
+                    .getAchievementManager()
+                    .getAchievement(data.getSenderAchievement().trim());
             if (senderAch != null) {
                 AchievementManager.progressAchievement(sender, senderAch, data.getSenderAchievementProgress());
             }
         }
 
         // Progress linked Achievements (Receiver / Chi riceve l'azione)
-        if (target != null && data.getTargetAchievement() != null && !data.getTargetAchievement().trim().isEmpty()) {
-            Achievement targetAch = Emulator.getGameEnvironment().getAchievementManager().getAchievement(data.getTargetAchievement().trim());
+        if (target != null
+                && data.getTargetAchievement() != null
+                && !data.getTargetAchievement().trim().isEmpty()) {
+            Achievement targetAch = Emulator.getGameEnvironment()
+                    .getAchievementManager()
+                    .getAchievement(data.getTargetAchievement().trim());
             if (targetAch != null) {
                 AchievementManager.progressAchievement(target, targetAch, data.getTargetAchievementProgress());
             }
@@ -205,7 +222,7 @@ public class GenericRoleplayCommand extends Command {
         }
         if (target != null && target.getHabboInfo() != null) {
             result = result.replace("%target%", target.getHabboInfo().getUsername())
-                           .replace("%user%", target.getHabboInfo().getUsername());
+                    .replace("%user%", target.getHabboInfo().getUsername());
         }
         if (room != null) {
             result = result.replace("%room%", room.getName());
@@ -235,7 +252,9 @@ public class GenericRoleplayCommand extends Command {
                 long elapsedSeconds = Math.max(0L, (now - lastUsed) / 1000L);
                 if (elapsedSeconds < data.getCooldownSeconds()) {
                     long remaining = data.getCooldownSeconds() - elapsedSeconds;
-                    sender.whisper("Attendi ancora " + remaining + "s prima di riutilizzare questo comando!", RoomChatMessageBubbles.ALERT);
+                    sender.whisper(
+                            "Attendi ancora " + remaining + "s prima di riutilizzare questo comando!",
+                            RoomChatMessageBubbles.ALERT);
                     return false;
                 }
             }

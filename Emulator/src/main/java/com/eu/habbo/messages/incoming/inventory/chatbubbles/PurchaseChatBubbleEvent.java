@@ -9,13 +9,12 @@ import com.eu.habbo.messages.outgoing.generic.alerts.BubbleAlertComposer;
 import com.eu.habbo.messages.outgoing.generic.alerts.BubbleAlertKeys;
 import com.eu.habbo.messages.outgoing.inventory.chatbubbles.UserChatBubblesComposer;
 import com.eu.habbo.messages.outgoing.users.UserCurrencyComposer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PurchaseChatBubbleEvent extends MessageHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(PurchaseChatBubbleEvent.class);
@@ -44,9 +43,9 @@ public class PurchaseChatBubbleEvent extends MessageHandler {
         }
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "SELECT type, name, is_purchasable, price_credits, price_duckets, price_diamonds " +
-                             "FROM chat_bubbles WHERE type = ? AND enabled = 1 LIMIT 1")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "SELECT type, name, is_purchasable, price_credits, price_duckets, price_diamonds "
+                                + "FROM chat_bubbles WHERE type = ? AND enabled = 1 LIMIT 1")) {
             statement.setInt(1, bubbleId);
             try (ResultSet set = statement.executeQuery()) {
                 if (!set.next()) {

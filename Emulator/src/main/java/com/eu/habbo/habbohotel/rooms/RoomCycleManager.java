@@ -11,12 +11,10 @@ import com.eu.habbo.habbohotel.pets.Pet;
 import com.eu.habbo.habbohotel.users.DanceType;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
-import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredMoveCarryHelper;
 import com.eu.habbo.messages.ServerMessage;
-import com.eu.habbo.messages.outgoing.rooms.items.ItemsDataUpdateComposer;
 import com.eu.habbo.messages.outgoing.rooms.RoomAccessDeniedComposer;
-import com.eu.habbo.messages.outgoing.rooms.users.RoomUnitIdleComposer;
+import com.eu.habbo.messages.outgoing.rooms.items.ItemsDataUpdateComposer;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserIgnoredComposer;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserStatusComposer;
 import com.eu.habbo.plugin.events.users.UserExitRoomEvent;
@@ -194,8 +192,7 @@ public class RoomCycleManager {
         long now = System.currentTimeMillis();
         int visitorId = visitor.getHabboInfo().getId();
         long enteredAt = visitor.getHabboStats().roomEnterTimestamp * 1000L;
-        long lastCountedAt = this.hostingVisitorLastCountedAt.getOrDefault(
-                visitorId, enteredAt > 0 ? enteredAt : now);
+        long lastCountedAt = this.hostingVisitorLastCountedAt.getOrDefault(visitorId, enteredAt > 0 ? enteredAt : now);
         long minutes = (now - lastCountedAt) / 60_000L;
         if (minutes > 0) {
             AchievementManager.progressAchievement(
@@ -223,8 +220,7 @@ public class RoomCycleManager {
             long enteredAt = habbo.getHabboStats().roomEnterTimestamp * 1000L;
             TimeSpentSession session = this.timeSpentSessions.get(userId);
             if (session == null) {
-                session = new TimeSpentSession(
-                        achievementName, enteredAt > 0 ? enteredAt : now);
+                session = new TimeSpentSession(achievementName, enteredAt > 0 ? enteredAt : now);
             } else if (!session.achievementName.equals(achievementName)) {
                 this.progressElapsedMinutes(habbo, session, now);
                 session = new TimeSpentSession(achievementName, now);
@@ -247,8 +243,7 @@ public class RoomCycleManager {
             String achievementName = this.roomTimeAchievement();
             if (achievementName == null) return;
             long enteredAt = visitor.getHabboStats().roomEnterTimestamp * 1000L;
-            session = new TimeSpentSession(
-                    achievementName, enteredAt > 0 ? enteredAt : System.currentTimeMillis());
+            session = new TimeSpentSession(achievementName, enteredAt > 0 ? enteredAt : System.currentTimeMillis());
         }
         this.progressElapsedMinutes(visitor, session, System.currentTimeMillis());
     }
@@ -258,41 +253,45 @@ public class RoomCycleManager {
         if (minutes <= 0) return;
 
         AchievementInteractions.progress(
-                habbo,
-                session.achievementName,
-                Math.toIntExact(Math.min(minutes, Integer.MAX_VALUE)));
+                habbo, session.achievementName, Math.toIntExact(Math.min(minutes, Integer.MAX_VALUE)));
         session.lastCountedAt += minutes * 60_000L;
     }
 
     private String roomTimeAchievement() {
         if (this.room.isPublicRoom()) return "TimeSpentRoomTypeChat";
 
-        RoomCategory category = Emulator.getGameEnvironment()
-                .getRoomManager()
-                .getCategory(this.room.getCategory());
+        RoomCategory category = Emulator.getGameEnvironment().getRoomManager().getCategory(this.room.getCategory());
         if (category == null) return null;
 
         String safeCaption = category.getCaptionSave() == null
                 ? ""
                 : category.getCaptionSave().toLowerCase(Locale.ROOT);
-        String caption = category.getCaption() == null
-                ? ""
-                : category.getCaption().toLowerCase(Locale.ROOT);
+        String caption =
+                category.getCaption() == null ? "" : category.getCaption().toLowerCase(Locale.ROOT);
 
         if (matchesConfiguredCategory(
                 "achievements.room_time.games.categories", "caption_save_games", safeCaption, caption)) {
             return "TimeSpentRoomTypeGames";
         }
         if (matchesConfiguredCategory(
-                "achievements.room_time.trade.categories", "caption_save_trade,caption_save_marketplace", safeCaption, caption)) {
+                "achievements.room_time.trade.categories",
+                "caption_save_trade,caption_save_marketplace",
+                safeCaption,
+                caption)) {
             return "TimeSpentRoomTypeTrade";
         }
         if (matchesConfiguredCategory(
-                "achievements.room_time.rpg.categories", "caption_save_rpg,caption_save_agency,caption_save_roleplay", safeCaption, caption)) {
+                "achievements.room_time.rpg.categories",
+                "caption_save_rpg,caption_save_agency,caption_save_roleplay",
+                safeCaption,
+                caption)) {
             return "TimeSpentRoomTypeRPG";
         }
         if (matchesConfiguredCategory(
-                "achievements.room_time.chat.categories", "caption_save_chat,caption_save_discussion", safeCaption, caption)) {
+                "achievements.room_time.chat.categories",
+                "caption_save_chat,caption_save_discussion",
+                safeCaption,
+                caption)) {
             return "TimeSpentRoomTypeChat";
         }
         return null;
@@ -349,9 +348,8 @@ public class RoomCycleManager {
         boolean roomIdleBehaviorEnabled = this.room.isIdleSleepEnabled() || this.room.isIdleAutokickEnabled();
 
         if (Emulator.getConfig().getBoolean("hotel.rooms.auto.idle") || roomIdleBehaviorEnabled) {
-            int sleepCycles = this.room.isIdleSleepEnabled()
-                    ? this.room.getIdleSleepTimeoutSeconds() * 2
-                    : Room.IDLE_CYCLES;
+            int sleepCycles =
+                    this.room.isIdleSleepEnabled() ? this.room.getIdleSleepTimeoutSeconds() * 2 : Room.IDLE_CYCLES;
             int kickCycles = this.room.isIdleAutokickEnabled()
                     ? this.room.getIdleAutokickTimeoutSeconds() * 2
                     : Room.IDLE_CYCLES_KICK;
@@ -562,8 +560,7 @@ public class RoomCycleManager {
                     && (previousLocation.x != currentLocation.x || previousLocation.y != currentLocation.y)) {
                 AchievementInteractions.progress(habbo, "LegDay");
                 int effectId = unit.getEffectId();
-                if (effectId == RoomUnitEffect.SKATEBOARD1.getId()
-                        || effectId == RoomUnitEffect.SKATEBOARD2.getId()) {
+                if (effectId == RoomUnitEffect.SKATEBOARD1.getId() || effectId == RoomUnitEffect.SKATEBOARD2.getId()) {
                     AchievementInteractions.progress(habbo, "SkateBoardSlide");
                 }
             }

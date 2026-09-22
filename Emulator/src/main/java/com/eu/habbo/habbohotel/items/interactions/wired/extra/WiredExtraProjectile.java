@@ -9,17 +9,14 @@ import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 
 public class WiredExtraProjectile extends InteractionWiredExtra {
     public static final int CODE = 2021;
 
     private int[] intParams = new int[19];
-    private String[] variableIds = new String[]{"", ""};
+    private String[] variableIds = new String[] {"", ""};
 
     public WiredExtraProjectile(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -48,7 +45,7 @@ public class WiredExtraProjectile extends InteractionWiredExtra {
         }
 
         int[] varIds = settings.getVariableIds();
-        this.variableIds = new String[]{"", ""};
+        this.variableIds = new String[] {"", ""};
         if (varIds != null && varIds.length > 0) {
             for (int i = 0; i < Math.min(varIds.length, 2); i++) {
                 this.variableIds[i] = String.valueOf(varIds[i]);
@@ -111,7 +108,7 @@ public class WiredExtraProjectile extends InteractionWiredExtra {
     @Override
     public void onPickUp() {
         this.intParams = new int[19];
-        this.variableIds = new String[]{"", ""};
+        this.variableIds = new String[] {"", ""};
     }
 
     public int[] getIntParams() {

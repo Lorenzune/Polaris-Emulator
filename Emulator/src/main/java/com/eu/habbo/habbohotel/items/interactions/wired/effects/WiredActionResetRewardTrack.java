@@ -12,7 +12,6 @@ import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -25,7 +24,8 @@ public class WiredActionResetRewardTrack extends InteractionWiredEffect {
         super(set, baseItem);
     }
 
-    public WiredActionResetRewardTrack(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredActionResetRewardTrack(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -36,8 +36,9 @@ public class WiredActionResetRewardTrack extends InteractionWiredEffect {
         ctx.actor().ifPresent(actor -> {
             com.eu.habbo.habbohotel.users.Habbo habbo = ctx.room().getHabbo(actor);
             if (habbo != null) {
-                Emulator.getGameEnvironment().getRewardTrackManager().resetWiredProgress(
-                        habbo.getHabboInfo().getId(), this.trackId);
+                Emulator.getGameEnvironment()
+                        .getRewardTrackManager()
+                        .resetWiredProgress(habbo.getHabboInfo().getId(), this.trackId);
             }
         });
     }
@@ -49,8 +50,9 @@ public class WiredActionResetRewardTrack extends InteractionWiredEffect {
         com.eu.habbo.habbohotel.users.Habbo habbo = room.getHabbo(roomUnit);
         if (habbo == null) return false;
 
-        Emulator.getGameEnvironment().getRewardTrackManager().resetWiredProgress(
-                habbo.getHabboInfo().getId(), this.trackId);
+        Emulator.getGameEnvironment()
+                .getRewardTrackManager()
+                .resetWiredProgress(habbo.getHabboInfo().getId(), this.trackId);
         return true;
     }
 

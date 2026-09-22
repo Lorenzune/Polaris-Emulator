@@ -1,14 +1,13 @@
 package com.eu.habbo.messages.incoming.inventory.cosmetics;
 
 import com.eu.habbo.Emulator;
-import com.eu.habbo.habbohotel.users.infostand.InfostandBackgroundManager;
-import com.eu.habbo.habbohotel.users.infostand.InfostandBackgroundManager.Category;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboInfo;
+import com.eu.habbo.habbohotel.users.infostand.InfostandBackgroundManager;
+import com.eu.habbo.habbohotel.users.infostand.InfostandBackgroundManager.Category;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.inventory.cosmetics.UserProfileCosmeticsComposer;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserDataComposer;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -65,8 +64,8 @@ public class SaveProfilePoseEvent extends MessageHandler {
         if (manager == null) return false;
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "SELECT id FROM custom_profile_cosmetics_catalog WHERE enabled = 1 AND LOWER(category) = 'pose' AND image_file = ? LIMIT 1")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "SELECT id FROM custom_profile_cosmetics_catalog WHERE enabled = 1 AND LOWER(category) = 'pose' AND image_file = ? LIMIT 1")) {
             statement.setString(1, action);
             try (ResultSet result = statement.executeQuery()) {
                 if (!result.next()) return false;

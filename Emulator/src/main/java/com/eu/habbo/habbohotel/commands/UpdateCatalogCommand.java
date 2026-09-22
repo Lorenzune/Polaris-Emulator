@@ -7,24 +7,29 @@ import com.eu.habbo.habbohotel.rooms.RoomChatMessageBubbles;
 public class UpdateCatalogCommand extends Command {
 
     public UpdateCatalogCommand() {
-        super("cmd_update_catalogue", Emulator.getTexts().getValue("commands.keys.cmd_update_catalogue").split(";"));
+        super(
+                "cmd_update_catalogue",
+                Emulator.getTexts()
+                        .getValue("commands.keys.cmd_update_catalogue")
+                        .split(";"));
     }
 
     @Override
     public boolean handle(GameClient gameClient, String[] params) {
         boolean scheduled = Emulator.getGameEnvironment().reloadCatalogAndCraftingAsync(() -> {
             Emulator.getGameEnvironment().broadcastCatalogReload();
-            Emulator.getGameServer().getGameClientManager().sendBroadcastResponse(
-                    new com.eu.habbo.messages.outgoing.furniture.FurnitureDataReloadComposer(
+            Emulator.getGameServer()
+                    .getGameClientManager()
+                    .sendBroadcastResponse(new com.eu.habbo.messages.outgoing.furniture.FurnitureDataReloadComposer(
                             com.eu.habbo.messages.outgoing.furniture.FurnitureDataReloadComposer.MODE_RELOAD_HINT,
-                            null
-                    )
-            );
+                            null));
 
             if (gameClient.getChannel().isOpen() && gameClient.getHabbo() != null) {
-                gameClient.getHabbo().whisper(
-                        Emulator.getTexts().getValue("commands.succes.cmd_update_catalog"),
-                        RoomChatMessageBubbles.ALERT);
+                gameClient
+                        .getHabbo()
+                        .whisper(
+                                Emulator.getTexts().getValue("commands.succes.cmd_update_catalog"),
+                                RoomChatMessageBubbles.ALERT);
             }
         });
 

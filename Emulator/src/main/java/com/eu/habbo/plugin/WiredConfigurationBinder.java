@@ -19,8 +19,7 @@ final class WiredConfigurationBinder extends ConfigurationBinder {
                         this.configuration.getInt("hotel.wired.furni.selection.count"));
         this.apply(
                 "wired.signal.max.depth",
-                () -> WiredEffectSendSignal.MAX_SIGNAL_DEPTH =
-                        this.configuration.getInt("wired.signal.max.depth", 0));
+                () -> WiredEffectSendSignal.MAX_SIGNAL_DEPTH = this.configuration.getInt("wired.signal.max.depth", 0));
         this.apply(
                 "wired.abuse.max.recursion.depth",
                 () -> WiredEngine.MAX_RECURSION_DEPTH =

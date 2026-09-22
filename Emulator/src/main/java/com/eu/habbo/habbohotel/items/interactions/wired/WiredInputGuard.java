@@ -2,7 +2,6 @@ package com.eu.habbo.habbohotel.items.interactions.wired;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.messages.ClientMessage;
-
 import java.util.Arrays;
 
 public final class WiredInputGuard {
@@ -14,8 +13,7 @@ public final class WiredInputGuard {
     public static final int MIN_STUFF_SELECTION_CODE = -1;
     public static final int MAX_STUFF_SELECTION_CODE = 2;
 
-    private WiredInputGuard() {
-    }
+    private WiredInputGuard() {}
 
     public static int[] readIntParams(ClientMessage packet) {
         return readIntArray(packet, MAX_INT_PARAMS, "wired int param count");
@@ -40,9 +38,7 @@ public final class WiredInputGuard {
             return "";
         }
 
-        return value.length() > MAX_STRING_PARAM_LENGTH
-                ? value.substring(0, MAX_STRING_PARAM_LENGTH)
-                : value;
+        return value.length() > MAX_STRING_PARAM_LENGTH ? value.substring(0, MAX_STRING_PARAM_LENGTH) : value;
     }
 
     public static int[] readFurniIds(ClientMessage packet) {

@@ -221,7 +221,9 @@ public class WiredConditionFurniHaveHabbo extends InteractionWiredCondition {
                         item.getBaseItem().getLength(),
                         item.getRotation());
         final Set<RoomTile> effectiveTiles;
-        if (occupiedTiles != null && item.getLastMoveTimestamp() > 0 && (System.currentTimeMillis() - item.getLastMoveTimestamp() <= 600)) {
+        if (occupiedTiles != null
+                && item.getLastMoveTimestamp() > 0
+                && (System.currentTimeMillis() - item.getLastMoveTimestamp() <= 600)) {
             Set<RoomTile> combined = new HashSet<>(occupiedTiles);
             if (item.getPreviousOccupiedTiles() != null) {
                 combined.addAll(item.getPreviousOccupiedTiles());
@@ -233,9 +235,18 @@ public class WiredConditionFurniHaveHabbo extends InteractionWiredCondition {
             effectiveTiles = occupiedTiles;
         }
         return effectiveTiles != null
-                && (habbos.stream().anyMatch(character -> isAvatarOnItem(character != null ? character.getRoomUnit() : null, item, room, effectiveTiles))
-                        || bots.stream().anyMatch(character -> isAvatarOnItem(character != null ? character.getRoomUnit() : null, item, room, effectiveTiles))
-                        || pets.stream().anyMatch(character -> isAvatarOnItem(character != null ? character.getRoomUnit() : null, item, room, effectiveTiles)));
+                && (habbos.stream()
+                                .anyMatch(character -> isAvatarOnItem(
+                                        character != null ? character.getRoomUnit() : null, item, room, effectiveTiles))
+                        || bots.stream()
+                                .anyMatch(character -> isAvatarOnItem(
+                                        character != null ? character.getRoomUnit() : null, item, room, effectiveTiles))
+                        || pets.stream()
+                                .anyMatch(character -> isAvatarOnItem(
+                                        character != null ? character.getRoomUnit() : null,
+                                        item,
+                                        room,
+                                        effectiveTiles)));
     }
 
     private boolean isAvatarOnItem(RoomUnit unit, HabboItem item, Room room, Set<RoomTile> occupiedTiles) {

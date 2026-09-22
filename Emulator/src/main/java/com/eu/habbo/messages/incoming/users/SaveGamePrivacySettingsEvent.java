@@ -1,8 +1,8 @@
 package com.eu.habbo.messages.incoming.users;
 
 import com.eu.habbo.Emulator;
-import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
+import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.plugin.events.users.UserSavedSettingsEvent;
 
@@ -28,13 +28,13 @@ public class SaveGamePrivacySettingsEvent extends MessageHandler {
             mentionsEnabled = this.packet.readBoolean();
         }
 
-        habbo.getHabboStats().setGamePrivacy(hideOnline, blockFollowing, blockFriendRequests, blockRoleplay, blockMimic, mentionsEnabled);
+        habbo.getHabboStats()
+                .setGamePrivacy(
+                        hideOnline, blockFollowing, blockFriendRequests, blockRoleplay, blockMimic, mentionsEnabled);
         AchievementInteractions.progress(habbo, "Profile1");
 
-        habbo.getMessenger().connectionChanged(
-                habbo,
-                habbo.isOnline(),
-                habbo.getHabboInfo().getCurrentRoom() != null);
+        habbo.getMessenger()
+                .connectionChanged(habbo, habbo.isOnline(), habbo.getHabboInfo().getCurrentRoom() != null);
 
         Emulator.getPluginManager().fireEvent(new UserSavedSettingsEvent(habbo));
     }

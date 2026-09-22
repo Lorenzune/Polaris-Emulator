@@ -42,7 +42,9 @@ public class ChangeInfostandBgEvent extends MessageHandler {
         this.packet.readInt();
         int requestedBorder = sanitize(this.packet.readInt());
 
-        InfostandBackgroundManager manager = Emulator.getGameEnvironment() != null ? Emulator.getGameEnvironment().getInfostandBackgroundManager() : null;
+        InfostandBackgroundManager manager = Emulator.getGameEnvironment() != null
+                ? Emulator.getGameEnvironment().getInfostandBackgroundManager()
+                : null;
 
         int backgroundImage = resolve(manager, habbo, Category.BACKGROUND, requestedBg, info.getInfostandBg());
         int backgroundStand = resolve(manager, habbo, Category.STAND, requestedStand, info.getInfostandStand());
@@ -78,7 +80,8 @@ public class ChangeInfostandBgEvent extends MessageHandler {
         return value;
     }
 
-    private static int resolve(InfostandBackgroundManager manager, Habbo habbo, Category category, int requested, int current) {
+    private static int resolve(
+            InfostandBackgroundManager manager, Habbo habbo, Category category, int requested, int current) {
         if (manager == null) return requested;
         if (requested == current) return current;
         return manager.tryPurchaseAndEquip(habbo, category, requested) ? requested : current;

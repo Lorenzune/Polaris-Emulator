@@ -61,8 +61,8 @@ public final class WiredMoveCarryHelper {
         }
 
         if (!hasMovementBehaviorExtra(room, stackItem)) {
-            FurnitureMovementError movementError = room.furnitureFitsAt(
-                    targetTile, movingItem, rotation, checkForUnitCollision);
+            FurnitureMovementError movementError =
+                    room.furnitureFitsAt(targetTile, movingItem, rotation, checkForUnitCollision);
             if (checkForUnitCollision) {
                 triggerCollisionsForMovementError(
                         room, movingItem, targetTile, rotation, null, WiredMovementPhysics.NONE, movementError);
@@ -72,13 +72,8 @@ public final class WiredMoveCarryHelper {
 
         CarryContext carryContext = prepareCarryContext(room, stackItem, movingItem, ctx);
         WiredMovementPhysics movementPhysics = getMovementPhysics(room, stackItem, movingItem, ctx);
-        FurnitureMovementError movementError =
-                room.furnitureFitsAtWithPhysics(
-                        targetTile,
-                        movingItem,
-                        rotation,
-                        checkForUnitCollision && !carryContext.active,
-                        movementPhysics);
+        FurnitureMovementError movementError = room.furnitureFitsAtWithPhysics(
+                targetTile, movingItem, rotation, checkForUnitCollision && !carryContext.active, movementPhysics);
 
         if (movementError != FurnitureMovementError.NONE) {
             if (checkForUnitCollision) {
@@ -269,13 +264,8 @@ public final class WiredMoveCarryHelper {
         CarryContext carryContext = prepareCarryContext(room, stackItem, movingItem, ctx);
         WiredMovementPhysics movementPhysics = getMovementPhysics(room, stackItem, movingItem, ctx);
 
-        FurnitureMovementError movementError =
-                room.furnitureFitsAtWithPhysics(
-                        targetTile,
-                        movingItem,
-                        rotation,
-                        checkForUnitCollision && !carryContext.active,
-                        movementPhysics);
+        FurnitureMovementError movementError = room.furnitureFitsAtWithPhysics(
+                targetTile, movingItem, rotation, checkForUnitCollision && !carryContext.active, movementPhysics);
 
         if (movementError != FurnitureMovementError.NONE) {
             if (checkForUnitCollision) {
@@ -902,9 +892,8 @@ public final class WiredMoveCarryHelper {
             return;
         }
 
-        Set<Integer> carriedIds = (carryContext != null && carryContext.active)
-                ? carryContext.carriedUserIds
-                : Collections.emptySet();
+        Set<Integer> carriedIds =
+                (carryContext != null && carryContext.active) ? carryContext.carriedUserIds : Collections.emptySet();
 
         Set<RoomUnit> collidedUnits = new HashSet<>();
 
@@ -925,8 +914,7 @@ public final class WiredMoveCarryHelper {
         }
     }
 
-    public static void triggerCollisionsAtTiles(
-            Room room, HabboItem movingItem, Collection<RoomTile> occupiedTiles) {
+    public static void triggerCollisionsAtTiles(Room room, HabboItem movingItem, Collection<RoomTile> occupiedTiles) {
         triggerCollisionsAtTiles(room, movingItem, occupiedTiles, null);
     }
 

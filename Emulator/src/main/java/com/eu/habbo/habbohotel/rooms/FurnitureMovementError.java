@@ -19,7 +19,6 @@ public enum FurnitureMovementError {
     MAX_SIGNAL_SENDERS("${room.error.max_signal_senders}"),
     MAX_SIGNAL_RECEIVERS("${room.error.max_signal_receivers}");
 
-
     public final String errorCode;
 
     FurnitureMovementError(String errorCode) {

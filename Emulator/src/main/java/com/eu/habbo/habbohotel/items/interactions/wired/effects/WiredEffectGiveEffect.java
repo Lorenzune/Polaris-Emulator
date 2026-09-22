@@ -1,6 +1,5 @@
 package com.eu.habbo.habbohotel.items.interactions.wired.effects;
 
-import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
@@ -12,10 +11,8 @@ import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import com.google.gson.JsonObject;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
 
 /**
  * Keep the historical whisper superclass: third-party plugins compiled against the released
@@ -63,7 +60,8 @@ public class WiredEffectGiveEffect extends WiredEffectWhisper {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(this.effectId, this.priority, this.effectType, this.getDelay()));
+        return WiredManager.getGson()
+                .toJson(new JsonData(this.effectId, this.priority, this.effectType, this.getDelay()));
     }
 
     @Override
@@ -88,16 +86,14 @@ public class WiredEffectGiveEffect extends WiredEffectWhisper {
                 }
             } catch (Exception ignored) {
                 com.eu.habbo.WiredCompatibilityDiagnostics.record(
-                        com.eu.habbo.WiredCompatibilityDiagnostics.FailurePoint.EFFECT_GIVE_EFFECT,
-                        ignored);
+                        com.eu.habbo.WiredCompatibilityDiagnostics.FailurePoint.EFFECT_GIVE_EFFECT, ignored);
             }
         } else if (wiredData != null && !wiredData.isEmpty()) {
             try {
                 this.effectId = Integer.parseInt(wiredData.trim());
             } catch (Exception ignored) {
                 com.eu.habbo.WiredCompatibilityDiagnostics.record(
-                        com.eu.habbo.WiredCompatibilityDiagnostics.FailurePoint.EFFECT_GIVE_EFFECT,
-                        ignored);
+                        com.eu.habbo.WiredCompatibilityDiagnostics.FailurePoint.EFFECT_GIVE_EFFECT, ignored);
             }
         }
     }

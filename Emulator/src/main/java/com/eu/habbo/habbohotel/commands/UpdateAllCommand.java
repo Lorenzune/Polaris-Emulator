@@ -15,7 +15,9 @@ public class UpdateAllCommand extends Command {
     private final AtomicBoolean updateInProgress = new AtomicBoolean();
 
     public UpdateAllCommand() {
-        super("cmd_update_all", Emulator.getTexts().getValue("commands.keys.cmd_update_all").split(";"));
+        super(
+                "cmd_update_all",
+                Emulator.getTexts().getValue("commands.keys.cmd_update_all").split(";"));
     }
 
     @Override
@@ -44,16 +46,14 @@ public class UpdateAllCommand extends Command {
 
             // Catalog and crafting are rebuilt as isolated snapshots, then
             // the unchanged client refresh sequence is sent to everyone.
-            if (!Emulator.getGameEnvironment().reloadCatalogAndCraftingNow(
-                    () -> {
-                        Emulator.getGameEnvironment().broadcastCatalogReload();
-                        Emulator.getGameServer().getGameClientManager().sendBroadcastResponse(
-                                new com.eu.habbo.messages.outgoing.furniture.FurnitureDataReloadComposer(
-                                        com.eu.habbo.messages.outgoing.furniture.FurnitureDataReloadComposer.MODE_RELOAD_HINT,
-                                        null
-                                )
-                        );
-                    })) {
+            if (!Emulator.getGameEnvironment().reloadCatalogAndCraftingNow(() -> {
+                Emulator.getGameEnvironment().broadcastCatalogReload();
+                Emulator.getGameServer()
+                        .getGameClientManager()
+                        .sendBroadcastResponse(new com.eu.habbo.messages.outgoing.furniture.FurnitureDataReloadComposer(
+                                com.eu.habbo.messages.outgoing.furniture.FurnitureDataReloadComposer.MODE_RELOAD_HINT,
+                                null));
+            })) {
                 LOGGER.warn("[UpdateAll] Catalog update already in progress; its own notification will follow.");
             }
 
@@ -96,17 +96,20 @@ public class UpdateAllCommand extends Command {
             try {
                 Emulator.getTexts().reload();
                 Emulator.getGameEnvironment().getCommandHandler().reloadCommands();
-                com.eu.habbo.habbohotel.commands.roleplay.RoleplayCommandManager.getInstance().reload();
-                Emulator.getGameServer().getGameClientManager().sendBroadcastResponse(
-                        new com.eu.habbo.messages.outgoing.roleplay.RoleplayCommandsComposer(
-                                com.eu.habbo.habbohotel.commands.roleplay.RoleplayCommandManager.getInstance().getCommandData()
-                        )
-                );
+                com.eu.habbo.habbohotel.commands.roleplay.RoleplayCommandManager.getInstance()
+                        .reload();
+                Emulator.getGameServer()
+                        .getGameClientManager()
+                        .sendBroadcastResponse(new com.eu.habbo.messages.outgoing.roleplay.RoleplayCommandsComposer(
+                                com.eu.habbo.habbohotel.commands.roleplay.RoleplayCommandManager.getInstance()
+                                        .getCommandData()));
             } catch (Exception e) {
                 if (gameClient.getChannel().isOpen() && gameClient.getHabbo() != null) {
-                    gameClient.getHabbo().whisper(
-                            Emulator.getTexts().getValue("commands.error.cmd_update_texts.failed"),
-                            RoomChatMessageBubbles.ALERT);
+                    gameClient
+                            .getHabbo()
+                            .whisper(
+                                    Emulator.getTexts().getValue("commands.error.cmd_update_texts.failed"),
+                                    RoomChatMessageBubbles.ALERT);
                 }
             }
 
@@ -128,24 +131,39 @@ public class UpdateAllCommand extends Command {
             com.eu.habbo.messages.outgoing.generic.ExternalTextsReloadComposer externalTextsReload =
                     new com.eu.habbo.messages.outgoing.generic.ExternalTextsReloadComposer(externalTextsTimestamp);
 
-            for (Habbo habbo : Emulator.getGameEnvironment().getHabboManager().getOnlineHabbos().values()) {
+            for (Habbo habbo : Emulator.getGameEnvironment()
+                    .getHabboManager()
+                    .getOnlineHabbos()
+                    .values()) {
                 if (habbo == null || habbo.getClient() == null) {
                     continue;
                 }
 
-                habbo.getClient().sendResponse(new com.eu.habbo.messages.outgoing.inventory.chatbubbles.UserChatBubblesComposer(habbo));
-                habbo.getClient().sendResponse(new com.eu.habbo.messages.outgoing.inventory.habbicons.UserHabbiconsComposer(habbo));
-                habbo.getClient().sendResponse(new com.eu.habbo.messages.outgoing.inventory.nickicons.UserNickIconsComposer(habbo));
-                habbo.getClient().sendResponse(new com.eu.habbo.messages.outgoing.inventory.nicks.UserNickStylesComposer(habbo));
-                habbo.getClient().sendResponse(new com.eu.habbo.messages.outgoing.inventory.cosmetics.UserProfileCosmeticsComposer(habbo));
+                habbo.getClient()
+                        .sendResponse(new com.eu.habbo.messages.outgoing.inventory.chatbubbles.UserChatBubblesComposer(
+                                habbo));
+                habbo.getClient()
+                        .sendResponse(
+                                new com.eu.habbo.messages.outgoing.inventory.habbicons.UserHabbiconsComposer(habbo));
+                habbo.getClient()
+                        .sendResponse(
+                                new com.eu.habbo.messages.outgoing.inventory.nickicons.UserNickIconsComposer(habbo));
+                habbo.getClient()
+                        .sendResponse(new com.eu.habbo.messages.outgoing.inventory.nicks.UserNickStylesComposer(habbo));
+                habbo.getClient()
+                        .sendResponse(
+                                new com.eu.habbo.messages.outgoing.inventory.cosmetics.UserProfileCosmeticsComposer(
+                                        habbo));
                 habbo.getClient().sendResponse(externalTextsReload);
             }
 
             LOGGER.info("[UpdateAll] All subsystems reloaded successfully!");
             if (gameClient.getChannel().isOpen() && gameClient.getHabbo() != null) {
-                gameClient.getHabbo().whisper(
-                        Emulator.getTexts().getValue("commands.succes.cmd_update_all"),
-                        RoomChatMessageBubbles.ALERT);
+                gameClient
+                        .getHabbo()
+                        .whisper(
+                                Emulator.getTexts().getValue("commands.succes.cmd_update_all"),
+                                RoomChatMessageBubbles.ALERT);
             }
         } catch (Throwable throwable) {
             LOGGER.error("[UpdateAll] Reload failed", throwable);

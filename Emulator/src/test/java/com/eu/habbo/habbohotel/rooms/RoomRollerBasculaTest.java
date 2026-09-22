@@ -1,7 +1,14 @@
 package com.eu.habbo.habbohotel.rooms;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUnitOnRollerComposer;
@@ -26,8 +33,8 @@ class RoomRollerBasculaTest {
         HabboItem roller = mock(HabboItem.class);
         when(roller.getId()).thenReturn(100);
 
-        RoomUnitOnRollerComposer composer = new RoomUnitOnRollerComposer(
-                unit, roller, oldTile, 1.5, newTile, 1.5, room);
+        RoomUnitOnRollerComposer composer =
+                new RoomUnitOnRollerComposer(unit, roller, oldTile, 1.5, newTile, 1.5, room);
 
         composer.compose();
 
@@ -61,8 +68,7 @@ class RoomRollerBasculaTest {
         HabboItem roller = mock(HabboItem.class);
         when(roller.getId()).thenReturn(100);
 
-        RoomUnitOnRollerComposer composer = new RoomUnitOnRollerComposer(
-                unit1, roller, tile1, 1.0, tile2, 1.0, room);
+        RoomUnitOnRollerComposer composer = new RoomUnitOnRollerComposer(unit1, roller, tile1, 1.0, tile2, 1.0, room);
 
         assertNotNull(composer.compose());
         assertEquals(tile2, unit1.getCurrentLocation());
@@ -118,7 +124,8 @@ class RoomRollerBasculaTest {
         unit.setRollerSlideOrigin(null);
 
         // Verify that the arrival check (which compares slideStartTime and currentLocation) rejects execution
-        boolean shouldExecuteArrival = (unit.getLastRollerTime() == slideStartTime) && (unit.getCurrentLocation() == dest);
+        boolean shouldExecuteArrival =
+                (unit.getLastRollerTime() == slideStartTime) && (unit.getCurrentLocation() == dest);
         assertFalse(shouldExecuteArrival, "Cancelled roll must NOT execute arrival onWalkOn");
         verify(destItem, never()).onWalkOn(any(), any(), any());
     }

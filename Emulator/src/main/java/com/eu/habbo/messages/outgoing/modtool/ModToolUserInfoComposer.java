@@ -63,15 +63,18 @@ public class ModToolUserInfoComposer extends MessageComposer {
             int vocalBannedUntil = 0;
             try {
                 vocalBannedUntil = this.set.getInt("vocal_banned_until");
-            } catch (SQLException ignored) {}
+            } catch (SQLException ignored) {
+            }
 
             String vocalStatus = (vocalBannedUntil > now)
-                    ? (vocalBannedUntil >= 2000000000 ? "Bannato (Permanente)" : "Bannato fino al " + formatUnixTimestamp(vocalBannedUntil))
+                    ? (vocalBannedUntil >= 2000000000
+                            ? "Bannato (Permanente)"
+                            : "Bannato fino al " + formatUnixTimestamp(vocalBannedUntil))
                     : "Attiva";
 
             this.response.appendString(this.hideMail ? "" : this.set.getString("mail"));
-            this.response.appendString(
-                    "Rank (" + this.set.getInt("rank_id") + "): " + this.set.getString("rank_name") + " | Vocal: " + vocalStatus); // user_class_txt
+            this.response.appendString("Rank (" + this.set.getInt("rank_id") + "): " + this.set.getString("rank_name")
+                    + " | Vocal: " + vocalStatus); // user_class_txt
 
             ModToolSanctions modToolSanctions = Emulator.getGameEnvironment().getModToolSanctions();
 

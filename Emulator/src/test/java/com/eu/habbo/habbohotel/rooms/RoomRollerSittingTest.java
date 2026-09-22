@@ -1,7 +1,14 @@
 package com.eu.habbo.habbohotel.rooms;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUnitOnRollerComposer;
@@ -19,8 +26,8 @@ class RoomRollerSittingTest {
         RoomTile oldTile = new RoomTile((short) 1, (short) 1, (short) 0, RoomTileState.OPEN, true);
         RoomTile newTile = new RoomTile((short) 1, (short) 2, (short) 0, RoomTileState.OPEN, true);
 
-        RoomUnitOnRollerComposer composer = new RoomUnitOnRollerComposer(
-                unit, roller, oldTile, 1.0, newTile, 1.0, room, pillow);
+        RoomUnitOnRollerComposer composer =
+                new RoomUnitOnRollerComposer(unit, roller, oldTile, 1.0, newTile, 1.0, room, pillow);
 
         assertSame(pillow, composer.getRidingItem());
     }
@@ -34,8 +41,8 @@ class RoomRollerSittingTest {
         RoomTile oldTile = new RoomTile((short) 1, (short) 1, (short) 0, RoomTileState.OPEN, true);
         RoomTile newTile = new RoomTile((short) 1, (short) 2, (short) 0, RoomTileState.OPEN, true);
 
-        RoomUnitOnRollerComposer composer = new RoomUnitOnRollerComposer(
-                unit, roller, oldTile, 0.5, newTile, 0.5, room);
+        RoomUnitOnRollerComposer composer =
+                new RoomUnitOnRollerComposer(unit, roller, oldTile, 0.5, newTile, 0.5, room);
 
         assertNull(composer.getRidingItem());
     }
@@ -66,8 +73,8 @@ class RoomRollerSittingTest {
         when(room.getTopItemAt(2, 2)).thenReturn(oldTileItem);
         when(room.getTopItemAt(2, 3)).thenReturn(newTileItem);
 
-        RoomUnitOnRollerComposer composer = new RoomUnitOnRollerComposer(
-                unit, roller, oldTile, 1.0, newTile, 1.0, room, pillow);
+        RoomUnitOnRollerComposer composer =
+                new RoomUnitOnRollerComposer(unit, roller, oldTile, 1.0, newTile, 1.0, room, pillow);
 
         composer.compose();
 

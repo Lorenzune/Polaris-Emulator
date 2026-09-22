@@ -18,10 +18,24 @@ public class UserWearBadgeEvent extends MessageHandler {
         Map<Integer, HabboBadge> requestedBadges = new LinkedHashMap<>();
 
         int maxSlots = 5;
-        if (this.client.getHabbo() != null && this.client.getHabbo().getInventory() != null && this.client.getHabbo().getInventory().getProfileCosmeticsComponent() != null) {
-            boolean badgeSlotCosmetic = this.client.getHabbo().getInventory().getProfileCosmeticsComponent().hasAnyCosmetic("slot")
-                    || this.client.getHabbo().getInventory().getProfileCosmeticsComponent().hasCosmetic("slot", 2001)
-                    || this.client.getHabbo().getInventory().getProfileCosmeticsComponent().hasCosmetic("slot", 7);
+        if (this.client.getHabbo() != null
+                && this.client.getHabbo().getInventory() != null
+                && this.client.getHabbo().getInventory().getProfileCosmeticsComponent() != null) {
+            boolean badgeSlotCosmetic = this.client
+                            .getHabbo()
+                            .getInventory()
+                            .getProfileCosmeticsComponent()
+                            .hasAnyCosmetic("slot")
+                    || this.client
+                            .getHabbo()
+                            .getInventory()
+                            .getProfileCosmeticsComponent()
+                            .hasCosmetic("slot", 2001)
+                    || this.client
+                            .getHabbo()
+                            .getInventory()
+                            .getProfileCosmeticsComponent()
+                            .hasCosmetic("slot", 7);
             if (this.client.getHabbo().getHabboStats() != null
                     && this.client.getHabbo().getHabboStats().isBadgeSlotsActive()
                     && badgeSlotCosmetic) {
@@ -36,7 +50,8 @@ public class UserWearBadgeEvent extends MessageHandler {
             String badgeId = this.packet.readString();
             if (badgeId.isEmpty()) continue;
 
-            HabboBadge badge = this.client.getHabbo().getInventory().getBadgesComponent().getBadge(badgeId);
+            HabboBadge badge =
+                    this.client.getHabbo().getInventory().getBadgesComponent().getBadge(badgeId);
             if (badge == null || requestedBadges.containsValue(badge) || requestedBadges.containsKey(slot)) continue;
 
             requestedBadges.put(slot, badge);

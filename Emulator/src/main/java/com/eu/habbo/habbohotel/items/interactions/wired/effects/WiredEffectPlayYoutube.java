@@ -13,7 +13,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
 import com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomBroadcastComposer;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
@@ -63,7 +62,15 @@ public class WiredEffectPlayYoutube extends InteractionWiredEffect {
         if (this.autoStart == 0 || this.videoId.isEmpty()) {
             room.clearYoutubeVideo();
             room.sendComposer(new YouTubeRoomBroadcastComposer(
-                    "", "", Collections.emptyList(), 0, false, false, room.getYoutubeRevision(), room.getYoutubePositionMs()).compose());
+                            "",
+                            "",
+                            Collections.emptyList(),
+                            0,
+                            false,
+                            false,
+                            room.getYoutubeRevision(),
+                            room.getYoutubePositionMs())
+                    .compose());
             return;
         }
 
@@ -71,13 +78,15 @@ public class WiredEffectPlayYoutube extends InteractionWiredEffect {
         String senderName = room.getOwnerName() == null ? "" : room.getOwnerName();
         room.setYoutubeVideo(this.videoId, senderName, Collections.emptyList());
         room.sendComposer(new YouTubeRoomBroadcastComposer(
-                this.videoId,
-                senderName,
-                Collections.emptyList(),
-                0,
-                false,
-                false,
-                room.getYoutubeRevision(), room.getYoutubePositionMs()).compose());
+                        this.videoId,
+                        senderName,
+                        Collections.emptyList(),
+                        0,
+                        false,
+                        false,
+                        room.getYoutubeRevision(),
+                        room.getYoutubePositionMs())
+                .compose());
     }
 
     @Deprecated

@@ -3,7 +3,6 @@ package com.eu.habbo.messages.outgoing.rooms.youtube;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
-
 import java.util.List;
 
 public class YouTubeRoomBroadcastComposer extends MessageComposer {
@@ -26,23 +25,62 @@ public class YouTubeRoomBroadcastComposer extends MessageComposer {
         this(videoId, senderName, playlist, elapsedSeconds, false, false);
     }
 
-    public YouTubeRoomBroadcastComposer(String videoId, String senderName, List<String> playlist, int elapsedSeconds, boolean isAudioOnly) {
+    public YouTubeRoomBroadcastComposer(
+            String videoId, String senderName, List<String> playlist, int elapsedSeconds, boolean isAudioOnly) {
         this(videoId, senderName, playlist, elapsedSeconds, isAudioOnly, false);
     }
 
-    public YouTubeRoomBroadcastComposer(String videoId, String senderName, List<String> playlist, int elapsedSeconds, boolean isAudioOnly, boolean isPaused) {
+    public YouTubeRoomBroadcastComposer(
+            String videoId,
+            String senderName,
+            List<String> playlist,
+            int elapsedSeconds,
+            boolean isAudioOnly,
+            boolean isPaused) {
         this(videoId, senderName, playlist, elapsedSeconds, isAudioOnly, isPaused, 0);
     }
 
-    public YouTubeRoomBroadcastComposer(String videoId, String senderName, List<String> playlist, int elapsedSeconds, boolean isAudioOnly, boolean isPaused, int revision) {
-        this(videoId, senderName, playlist, elapsedSeconds, isAudioOnly, isPaused, revision, (long) Math.max(0, elapsedSeconds) * 1000L);
+    public YouTubeRoomBroadcastComposer(
+            String videoId,
+            String senderName,
+            List<String> playlist,
+            int elapsedSeconds,
+            boolean isAudioOnly,
+            boolean isPaused,
+            int revision) {
+        this(
+                videoId,
+                senderName,
+                playlist,
+                elapsedSeconds,
+                isAudioOnly,
+                isPaused,
+                revision,
+                (long) Math.max(0, elapsedSeconds) * 1000L);
     }
 
-    public YouTubeRoomBroadcastComposer(String videoId, String senderName, List<String> playlist, int elapsedSeconds, boolean isAudioOnly, boolean isPaused, int revision, long positionMs) {
+    public YouTubeRoomBroadcastComposer(
+            String videoId,
+            String senderName,
+            List<String> playlist,
+            int elapsedSeconds,
+            boolean isAudioOnly,
+            boolean isPaused,
+            int revision,
+            long positionMs) {
         this(videoId, senderName, playlist, elapsedSeconds, isAudioOnly, isPaused, revision, positionMs, false);
     }
 
-    public YouTubeRoomBroadcastComposer(String videoId, String senderName, List<String> playlist, int elapsedSeconds, boolean isAudioOnly, boolean isPaused, int revision, long positionMs, boolean musicParty) {
+    public YouTubeRoomBroadcastComposer(
+            String videoId,
+            String senderName,
+            List<String> playlist,
+            int elapsedSeconds,
+            boolean isAudioOnly,
+            boolean isPaused,
+            int revision,
+            long positionMs,
+            boolean musicParty) {
         this.videoId = videoId;
         this.senderName = senderName;
         this.playlist = playlist;

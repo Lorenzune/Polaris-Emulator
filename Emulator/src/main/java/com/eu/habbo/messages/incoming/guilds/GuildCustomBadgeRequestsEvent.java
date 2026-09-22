@@ -14,7 +14,9 @@ public class GuildCustomBadgeRequestsEvent extends MessageHandler {
     }
 
     static boolean isReviewer(Habbo habbo) {
-        return habbo != null && habbo.getHabboInfo().getRank() != null && habbo.getHabboInfo().getRank().getId() >= 7
+        return habbo != null
+                && habbo.getHabboInfo().getRank() != null
+                && habbo.getHabboInfo().getRank().getId() >= 7
                 && habbo.hasPermission(Permission.ACC_SUPPORTTOOL);
     }
 }

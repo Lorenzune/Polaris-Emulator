@@ -48,7 +48,8 @@ class WiredStackedItemDetectionTest {
     @Test
     void getItemUserIsOnReturnsChairOrWalkableItemNotUnderlyingTile() {
         Room room = mock(Room.class);
-        RoomTile tile = new RoomTile((short) 3, (short) 4, (short) 0, com.eu.habbo.habbohotel.rooms.RoomTileState.OPEN, true);
+        RoomTile tile =
+                new RoomTile((short) 3, (short) 4, (short) 0, com.eu.habbo.habbohotel.rooms.RoomTileState.OPEN, true);
 
         RoomUnit unit = mock(RoomUnit.class);
         when(unit.getCurrentLocation()).thenReturn(tile);

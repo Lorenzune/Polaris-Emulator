@@ -9,6 +9,10 @@ public class NavigatorCollapseCategoryEvent extends MessageHandler {
     public void handle() throws Exception {
         String category = this.packet.readString();
         String categoryKey = Emulator.getGameEnvironment().getNavigatorManager().getPersonalCategoryKey(category);
-        this.client.getHabbo().getHabboStats().navigatorWindowSettings.setDisplayMode(categoryKey, DisplayMode.COLLAPSED);
+        this.client
+                .getHabbo()
+                .getHabboStats()
+                .navigatorWindowSettings
+                .setDisplayMode(categoryKey, DisplayMode.COLLAPSED);
     }
 }

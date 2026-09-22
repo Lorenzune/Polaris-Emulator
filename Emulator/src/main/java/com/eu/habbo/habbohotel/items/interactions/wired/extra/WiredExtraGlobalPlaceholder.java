@@ -9,7 +9,6 @@ import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -25,7 +24,8 @@ public class WiredExtraGlobalPlaceholder extends InteractionWiredExtra {
         super(set, baseItem);
     }
 
-    public WiredExtraGlobalPlaceholder(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredExtraGlobalPlaceholder(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -57,7 +57,8 @@ public class WiredExtraGlobalPlaceholder extends InteractionWiredExtra {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(this.sourceType, this.targetRoomId, this.placeholderName, this.value));
+        return WiredManager.getGson()
+                .toJson(new JsonData(this.sourceType, this.targetRoomId, this.placeholderName, this.value));
     }
 
     @Override

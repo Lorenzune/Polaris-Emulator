@@ -72,15 +72,13 @@ public final class DefaultWiredServices implements WiredServices {
 
         // Show teleport effect
         room.sendComposer(new RoomUserEffectComposer(user, 4).compose());
-        Emulator.getThreading().run(
-                new SendRoomUnitEffectComposer(room, user), WiredTeleportTiming.NORMAL_EFFECT_DURATION_MS);
+        Emulator.getThreading()
+                .run(new SendRoomUnitEffectComposer(room, user), WiredTeleportTiming.NORMAL_EFFECT_DURATION_MS);
 
         // Execute teleport
         double height = tile.getStackHeight();
         Emulator.getThreading()
-                .run(
-                        () -> user.isWiredTeleporting = true,
-                        Math.max(0, WiredTeleportTiming.NORMAL_DELAY_MS - 500));
+                .run(() -> user.isWiredTeleporting = true, Math.max(0, WiredTeleportTiming.NORMAL_DELAY_MS - 500));
         Emulator.getThreading()
                 .run(
                         new RoomUnitTeleport(user, room, tile.x, tile.y, height, user.getEffectId()),

@@ -326,9 +326,8 @@ public final class WiredManager {
         }
 
         boolean handled = false;
-        WiredRoomUpdateScope visualUpdateScope = shouldBatchVisualUpdatesForRoot(event)
-                ? WiredRoomUpdateScope.batchVisualUpdates()
-                : null;
+        WiredRoomUpdateScope visualUpdateScope =
+                shouldBatchVisualUpdatesForRoot(event) ? WiredRoomUpdateScope.batchVisualUpdates() : null;
 
         try {
             handled = engine.handleEvent(event, negateConditions);

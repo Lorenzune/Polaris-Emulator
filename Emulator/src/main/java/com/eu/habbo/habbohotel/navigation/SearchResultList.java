@@ -4,7 +4,6 @@ import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomState;
 import com.eu.habbo.messages.ISerialize;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -22,7 +21,18 @@ public class SearchResultList implements ISerialize, Comparable<SearchResultList
     public final DisplayOrder displayOrder;
     public final int categoryOrder;
 
-    public SearchResultList(int order, String code, String query, SearchAction action, ListMode mode, DisplayMode hidden, List<Room> rooms, boolean filter, boolean showInvisible, DisplayOrder displayOrder, int categoryOrder) {
+    public SearchResultList(
+            int order,
+            String code,
+            String query,
+            SearchAction action,
+            ListMode mode,
+            DisplayMode hidden,
+            List<Room> rooms,
+            boolean filter,
+            boolean showInvisible,
+            DisplayOrder displayOrder,
+            int categoryOrder) {
         this.order = order;
         this.code = code;
         this.query = query;
@@ -38,11 +48,11 @@ public class SearchResultList implements ISerialize, Comparable<SearchResultList
 
     @Override
     public void serialize(ServerMessage message) {
-        message.appendString(this.code); //Search Code
-        message.appendString(this.query); //Text
-        message.appendInt(this.action.type); //Action Allowed (0 (Nothing), 1 (More Results), 2 (Go Back))
-        message.appendBoolean(this.hidden.equals(DisplayMode.COLLAPSED)); //Closed
-        message.appendInt(this.mode.type); //Display Mode (0 (List), 1 (Thumbnails), 2 (Thumbnail no choice))
+        message.appendString(this.code); // Search Code
+        message.appendString(this.query); // Text
+        message.appendInt(this.action.type); // Action Allowed (0 (Nothing), 1 (More Results), 2 (Go Back))
+        message.appendBoolean(this.hidden.equals(DisplayMode.COLLAPSED)); // Closed
+        message.appendInt(this.mode.type); // Display Mode (0 (List), 1 (Thumbnails), 2 (Thumbnail no choice))
 
         synchronized (this.rooms) {
             if (!this.showInvisible) {

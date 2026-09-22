@@ -32,28 +32,22 @@ public class YouTubeRoomWatchingEvent extends MessageHandler {
         }
 
         if (changed) {
-            room.sendComposer(
-                new YouTubeRoomWatchersComposer(room.getYoutubeWatchers()).compose()
-            );
+            room.sendComposer(new YouTubeRoomWatchersComposer(room.getYoutubeWatchers()).compose());
         } else if (watching) {
-            this.client.sendResponse(
-                new YouTubeRoomWatchersComposer(room.getYoutubeWatchers()).compose()
-            );
+            this.client.sendResponse(new YouTubeRoomWatchersComposer(room.getYoutubeWatchers()).compose());
         }
 
         if (watching && !room.getYoutubeCurrentVideo().isEmpty()) {
-            this.client.sendResponse(
-                new YouTubeRoomBroadcastComposer(
-                    room.getYoutubeCurrentVideo(),
-                    room.getYoutubeSenderName(),
-                    room.getYoutubePlaylist(),
-                    room.getYoutubeElapsedSeconds(),
-                    room.isYoutubeAudioOnly(),
-                    room.isYoutubePaused(),
-                    room.getYoutubeRevision(),
-                    room.getYoutubePositionMs()
-                ).compose()
-            );
+            this.client.sendResponse(new YouTubeRoomBroadcastComposer(
+                            room.getYoutubeCurrentVideo(),
+                            room.getYoutubeSenderName(),
+                            room.getYoutubePlaylist(),
+                            room.getYoutubeElapsedSeconds(),
+                            room.isYoutubeAudioOnly(),
+                            room.isYoutubePaused(),
+                            room.getYoutubeRevision(),
+                            room.getYoutubePositionMs())
+                    .compose());
         }
     }
 }

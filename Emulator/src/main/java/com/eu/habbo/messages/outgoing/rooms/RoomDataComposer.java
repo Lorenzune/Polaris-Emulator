@@ -45,7 +45,7 @@ public class RoomDataComposer extends MessageComposer {
         this.response.appendString(this.room.getDescription());
         this.response.appendInt(this.room.getTradeMode());
         this.response.appendInt(this.room.getScore());
-        this.response.appendInt(2);//Top rated room rank
+        this.response.appendInt(2); // Top rated room rank
         this.response.appendInt(this.room.getCategory());
 
         java.util.List<String> tagList = new java.util.ArrayList<>();
@@ -109,14 +109,20 @@ public class RoomDataComposer extends MessageComposer {
 
         this.response.appendBoolean(this.roomForward);
         this.response.appendBoolean(this.room.isStaffPromotedRoom()); // staffpicked
-        this.response.appendBoolean(this.room.hasGuild() && Emulator.getGameEnvironment().getGuildManager().getGuildMember(this.room.getGuildId(), this.habbo.getHabboInfo().getId()) != null); // is group member
+        this.response.appendBoolean(this.room.hasGuild()
+                && Emulator.getGameEnvironment()
+                                .getGuildManager()
+                                .getGuildMember(
+                                        this.room.getGuildId(),
+                                        this.habbo.getHabboInfo().getId())
+                        != null); // is group member
         this.response.appendBoolean(this.room.isMuted()); // isroommuted
 
         this.response.appendInt(this.room.getMuteOption());
         this.response.appendInt(this.room.getKickOption());
         this.response.appendInt(this.room.getBanOption());
 
-        this.response.appendBoolean(this.room.hasRights(this.habbo)); //mute all button
+        this.response.appendBoolean(this.room.hasRights(this.habbo)); // mute all button
 
         this.response.appendInt(this.room.getChatMode());
         this.response.appendInt(this.room.getChatWeight());
@@ -124,10 +130,10 @@ public class RoomDataComposer extends MessageComposer {
         this.response.appendInt(this.room.getChatDistance());
         this.response.appendInt(this.room.getChatProtection());
         this.response.appendString(HotelDateTimeUtil.getTimezoneId());
-        this.response.appendString(String.valueOf(HotelDateTimeUtil.now().toInstant().toEpochMilli()));
+        this.response.appendString(
+                String.valueOf(HotelDateTimeUtil.now().toInstant().toEpochMilli()));
         this.response.appendInt(Room.MAXIMUM_FURNI);
         this.response.appendBoolean(this.room.isVocalChatEnabled());
-
 
         return this.response;
     }

@@ -1,7 +1,6 @@
 package com.eu.habbo.habbohotel.rooms;
 
 import com.eu.habbo.habbohotel.users.Habbo;
-import com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomBroadcastComposer;
 import com.eu.habbo.messages.outgoing.rooms.youtube.YouTubeRoomWatchersComposer;
 import java.util.List;
 import java.util.Set;
@@ -106,11 +105,23 @@ final class RoomMediaSession {
         return this.revision;
     }
 
-    synchronized void setVideo(String videoId, String senderName, List<String> playlist, boolean audioOnly, int startOffset, boolean isPaused) {
+    synchronized void setVideo(
+            String videoId,
+            String senderName,
+            List<String> playlist,
+            boolean audioOnly,
+            int startOffset,
+            boolean isPaused) {
         this.setVideo(videoId, senderName, playlist, audioOnly, (long) Math.max(0, startOffset) * 1000L, isPaused);
     }
 
-    synchronized void setVideo(String videoId, String senderName, List<String> playlist, boolean audioOnly, long positionMs, boolean isPaused) {
+    synchronized void setVideo(
+            String videoId,
+            String senderName,
+            List<String> playlist,
+            boolean audioOnly,
+            long positionMs,
+            boolean isPaused) {
         this.currentVideo = videoId;
         this.senderName = senderName;
         this.audioOnly = audioOnly;

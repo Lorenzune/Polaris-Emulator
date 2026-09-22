@@ -107,7 +107,20 @@ public class WiredMovementsComposer extends MessageComposer {
             Integer overshootingDistance,
             Integer curveStrength) {
         return new FurniMovementData(
-                id, fromX, fromY, toX, toY, fromZ, toZ, rotation, duration, elapsed, anchorType, anchorId, overshootingDistance, curveStrength);
+                id,
+                fromX,
+                fromY,
+                toX,
+                toY,
+                fromZ,
+                toZ,
+                rotation,
+                duration,
+                elapsed,
+                anchorType,
+                anchorId,
+                overshootingDistance,
+                curveStrength);
     }
 
     public static MovementData userWalkMovement(
@@ -122,7 +135,18 @@ public class WiredMovementsComposer extends MessageComposer {
             int headDirection,
             int duration) {
         return new UserMovementData(
-                id, fromX, fromY, toX, toY, fromZ, toZ, USER_MOVEMENT_WALK, bodyDirection, headDirection, duration, null);
+                id,
+                fromX,
+                fromY,
+                toX,
+                toY,
+                fromZ,
+                toZ,
+                USER_MOVEMENT_WALK,
+                bodyDirection,
+                headDirection,
+                duration,
+                null);
     }
 
     public static MovementData userSlideMovement(
@@ -137,7 +161,18 @@ public class WiredMovementsComposer extends MessageComposer {
             int headDirection,
             int duration) {
         return new UserMovementData(
-                id, fromX, fromY, toX, toY, fromZ, toZ, USER_MOVEMENT_SLIDE, bodyDirection, headDirection, duration, null);
+                id,
+                fromX,
+                fromY,
+                toX,
+                toY,
+                fromZ,
+                toZ,
+                USER_MOVEMENT_SLIDE,
+                bodyDirection,
+                headDirection,
+                duration,
+                null);
     }
 
     public static MovementData userDirectionUpdate(int id, int headDirection, int bodyDirection) {

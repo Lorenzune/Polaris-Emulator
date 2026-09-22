@@ -9,7 +9,6 @@ import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -22,7 +21,8 @@ public class WiredExtraAchievementEnabler extends InteractionWiredExtra {
         super(set, baseItem);
     }
 
-    public WiredExtraAchievementEnabler(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredExtraAchievementEnabler(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 

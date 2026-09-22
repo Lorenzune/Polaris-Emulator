@@ -11,7 +11,6 @@ import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -28,7 +27,8 @@ public class WiredActionClickSettings extends InteractionWiredEffect {
         super(set, baseItem);
     }
 
-    public WiredActionClickSettings(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredActionClickSettings(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -44,7 +44,8 @@ public class WiredActionClickSettings extends InteractionWiredEffect {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(this.userClickSetting, this.furniClickSetting, this.furniIds));
+        return WiredManager.getGson()
+                .toJson(new JsonData(this.userClickSetting, this.furniClickSetting, this.furniIds));
     }
 
     @Override

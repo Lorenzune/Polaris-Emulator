@@ -18,10 +18,9 @@ public class WiredAccountPreferencesSaveEvent extends MessageHandler {
             return;
         }
 
-        habbo.getHabboStats().setWiredAccountPreferences(
-                this.packet.readBoolean(),
-                this.packet.readBoolean(),
-                this.packet.readBoolean());
+        habbo.getHabboStats()
+                .setWiredAccountPreferences(
+                        this.packet.readBoolean(), this.packet.readBoolean(), this.packet.readBoolean());
 
         this.client.sendResponse(new WiredAccountPreferencesDataComposer(habbo));
     }

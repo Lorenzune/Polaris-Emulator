@@ -4,7 +4,6 @@ import com.eu.habbo.habbohotel.commands.roleplay.RoleplayCommandData;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;

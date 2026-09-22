@@ -52,8 +52,10 @@ class LiveKitTokenServiceTest {
 
     @Test
     void rejectsInvalidMonitorSessionId() {
-        assertThrows(IllegalArgumentException.class, () -> LiveKitTokenService.createMonitorAccessToken(
-                "test-api-key", "test-api-secret", 42, 7, "arbitrary", "Moderatore Alice"));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> LiveKitTokenService.createMonitorAccessToken(
+                        "test-api-key", "test-api-secret", 42, 7, "arbitrary", "Moderatore Alice"));
     }
 
     @Test
@@ -61,9 +63,15 @@ class LiveKitTokenServiceTest {
         assertEquals("habbo-42", LiveKitTokenService.roomName(42));
         assertThrows(IllegalArgumentException.class, () -> LiveKitTokenService.roomName(0));
         assertEquals("wss://voice.example.test", LiveKitTokenService.validateServerUrl("wss://voice.example.test"));
-        assertThrows(IllegalArgumentException.class, () -> LiveKitTokenService.validateServerUrl("https://voice.example.test"));
-        assertThrows(IllegalArgumentException.class, () -> LiveKitTokenService.validateServerUrl("wss://user:pass@voice.example.test"));
-        assertThrows(IllegalArgumentException.class, () -> LiveKitTokenService.validateServerUrl("wss://voice.example.test/rtc"));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> LiveKitTokenService.validateServerUrl("https://voice.example.test"));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> LiveKitTokenService.validateServerUrl("wss://user:pass@voice.example.test"));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> LiveKitTokenService.validateServerUrl("wss://voice.example.test/rtc"));
     }
 
     private static boolean hasValidSignature(String[] parts, String secret) {

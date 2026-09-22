@@ -15,7 +15,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.habbohotel.wired.core.WiredTriggerSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
@@ -67,8 +66,10 @@ public class WiredTriggerCollision extends InteractionWiredTrigger {
             }
 
             if (room.getLayout() != null) {
-                HabboItem tallestChair = room.getTallestChair(room.getLayout().getTile(actorUnit.getX(), actorUnit.getY()));
-                if (tallestChair != null && WiredTriggerSourceUtil.containsItemOrTile(room, candidateItems, tallestChair)) {
+                HabboItem tallestChair =
+                        room.getTallestChair(room.getLayout().getTile(actorUnit.getX(), actorUnit.getY()));
+                if (tallestChair != null
+                        && WiredTriggerSourceUtil.containsItemOrTile(room, candidateItems, tallestChair)) {
                     return true;
                 }
             }
@@ -76,7 +77,8 @@ public class WiredTriggerCollision extends InteractionWiredTrigger {
             Set<HabboItem> itemsAtActor = room.getItemsAt(actorUnit.getX(), actorUnit.getY());
             if (itemsAtActor != null) {
                 for (HabboItem itemOnTile : itemsAtActor) {
-                    if (itemOnTile != null && WiredTriggerSourceUtil.containsItemOrTile(room, candidateItems, itemOnTile)) {
+                    if (itemOnTile != null
+                            && WiredTriggerSourceUtil.containsItemOrTile(room, candidateItems, itemOnTile)) {
                         return true;
                     }
                 }

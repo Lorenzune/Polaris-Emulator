@@ -2,20 +2,19 @@ package com.eu.habbo.habbohotel.commands.roleplay;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.commands.CommandHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RoleplayCommandManager {
 
@@ -31,15 +30,15 @@ public class RoleplayCommandManager {
         return INSTANCE;
     }
 
-    public RoleplayCommandManager() {
-    }
+    public RoleplayCommandManager() {}
 
     public synchronized int load() {
         int loaded = 0;
         Map<Integer, GenericRoleplayCommand> loadedCommands = new HashMap<>();
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT * FROM roleplay_commands WHERE enabled = 1")) {
+                PreparedStatement statement =
+                        connection.prepareStatement("SELECT * FROM roleplay_commands WHERE enabled = 1")) {
             try (ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
                     try {
@@ -85,8 +84,9 @@ public class RoleplayCommandManager {
                 list.add(cmd.getData());
             }
         }
-        list.sort(Comparator
-                .comparing((RoleplayCommandData data) -> data.getCategory() == null ? "" : data.getCategory(), String.CASE_INSENSITIVE_ORDER)
+        list.sort(Comparator.comparing(
+                        (RoleplayCommandData data) -> data.getCategory() == null ? "" : data.getCategory(),
+                        String.CASE_INSENSITIVE_ORDER)
                 .thenComparingInt(RoleplayCommandData::getSortOrder)
                 .thenComparing(RoleplayCommandData::getName, String.CASE_INSENSITIVE_ORDER)
                 .thenComparingInt(RoleplayCommandData::getId));
