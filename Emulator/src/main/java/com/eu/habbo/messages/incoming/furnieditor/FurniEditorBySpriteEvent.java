@@ -16,6 +16,7 @@ public class FurniEditorBySpriteEvent extends MessageHandler {
         }
 
         int spriteId = this.packet.readInt();
+        String itemName = this.packet.bytesAvailable() > 0 ? this.packet.readString() : "";
 
         if (spriteId <= 0) {
             this.client.sendResponse(new FurniEditorResultComposer(false, "Invalid sprite ID"));
@@ -23,7 +24,7 @@ public class FurniEditorBySpriteEvent extends MessageHandler {
         }
 
         int itemId = new FurniEditorRepository(Emulator.getDatabase().getDataSource())
-                .findItemIdBySprite(spriteId)
+                .findItemIdBySprite(spriteId, itemName)
                 .orElse(-1);
 
         if (itemId <= 0) {

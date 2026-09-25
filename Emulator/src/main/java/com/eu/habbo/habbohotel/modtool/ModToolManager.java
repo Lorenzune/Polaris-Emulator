@@ -134,7 +134,7 @@ public class ModToolManager {
 
     private void loadTickets(Connection connection) {
         synchronized (this.tickets) {
-            try (Statement statement = connection.createStatement(); ResultSet set = statement.executeQuery("SELECT S.username as sender_username, R.username AS reported_username, M.username as mod_username, support_tickets.* FROM support_tickets INNER JOIN users as S ON S.id = sender_id INNER JOIN users AS R ON R.id = reported_id INNER JOIN users AS M ON M.id = mod_id WHERE state != 0")) {
+            try (Statement statement = connection.createStatement(); ResultSet set = statement.executeQuery("SELECT S.username as sender_username, R.username AS reported_username, M.username as mod_username, support_tickets.* FROM support_tickets INNER JOIN users as S ON S.id = sender_id INNER JOIN users AS R ON R.id = reported_id LEFT JOIN users AS M ON M.id = mod_id WHERE state != 0")) {
                 while (set.next()) {
                     this.tickets.put(set.getInt("id"), new ModToolIssue(set));
                 }

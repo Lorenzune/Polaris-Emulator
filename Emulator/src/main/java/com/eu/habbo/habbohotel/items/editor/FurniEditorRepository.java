@@ -24,12 +24,41 @@ public final class FurniEditorRepository {
     }
 
     public OptionalInt findItemIdBySprite(int spriteId) throws SQLException {
+        return findItemIdBySprite(spriteId, null);
+    }
+
+    public OptionalInt findItemIdBySprite(int spriteId, String itemName) throws SQLException {
+        String normalizedItemName = itemName == null ? "" : itemName.trim();
+        String sql = normalizedItemName.isEmpty()
+                ? "SELECT id FROM items_base WHERE sprite_id = ? ORDER BY id DESC LIMIT 1"
+                : "SELECT id FROM items_base WHERE sprite_id = ? AND LOWER(item_name) = LOWER(?) ORDER BY id DESC LIMIT 1";
+
         try (Connection connection = this.dataSource.getConnection();
-                PreparedStatement statement =
-                        connection.prepareStatement("SELECT id FROM items_base WHERE sprite_id = ? LIMIT 1")) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, spriteId);
+            if (!normalizedItemName.isEmpty()) statement.setString(2, normalizedItemName);
             try (ResultSet set = statement.executeQuery()) {
                 return set.next() ? OptionalInt.of(set.getInt("id")) : OptionalInt.empty();
+            }
+        }
+    }
+
+    /**
+     * Reads the authoritative items_base row selected by sprite_id. The
+     * classname is only used to disambiguate variants that share a sprite.
+     */
+    public Optional<Map<String, Object>> findFullItemBySprite(int spriteId, String itemName) throws SQLException {
+        String normalizedItemName = itemName == null ? "" : itemName.trim();
+        String sql = normalizedItemName.isEmpty()
+                ? "SELECT * FROM items_base WHERE sprite_id = ? ORDER BY id DESC LIMIT 1"
+                : "SELECT * FROM items_base WHERE sprite_id = ? AND LOWER(item_name) = LOWER(?) ORDER BY id DESC LIMIT 1";
+
+        try (Connection connection = this.dataSource.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, spriteId);
+            if (!normalizedItemName.isEmpty()) statement.setString(2, normalizedItemName);
+            try (ResultSet set = statement.executeQuery()) {
+                return set.next() ? Optional.of(readFullItem(set)) : Optional.empty();
             }
         }
     }
@@ -113,42 +142,35 @@ public final class FurniEditorRepository {
         List<Object> parameters = new ArrayList<>();
         if (!request.query().isEmpty()) {
             String like = "%" + SqlLikeEscaper.escape(request.query()) + "%";
+            where.append(" AND (");
             try {
                 int number = Integer.parseInt(request.query());
-                where.append(" AND (id = ? OR sprite_id = ? OR item_name LIKE ? OR public_name LIKE ?)");
+                where.append("id = ? OR sprite_id = ? OR item_name LIKE ? OR public_name LIKE ?");
                 parameters.add(number);
                 parameters.add(number);
                 parameters.add(like);
                 parameters.add(like);
             } catch (NumberFormatException exception) {
-                where.append(" AND (item_name LIKE ? OR public_name LIKE ?)");
+                where.append("item_name LIKE ? OR public_name LIKE ?");
                 parameters.add(like);
                 parameters.add(like);
             }
+
+            if (!request.furnidataClassnames().isEmpty()) {
+                where.append(" OR LOWER(item_name) IN (");
+                for (int index = 0; index < request.furnidataClassnames().size(); index++) {
+                    if (index > 0) where.append(", ");
+                    where.append('?');
+                }
+                where.append(')');
+                parameters.addAll(request.furnidataClassnames());
+            }
+            where.append(')');
         }
         if (!request.type().isEmpty()) {
             where.append(" AND type = ?");
             parameters.add(request.type());
         }
-        if (!request.query().isEmpty() && !request.furnidataClassnames().isEmpty()) {
-            where.append(" OR (LOWER(item_name) IN (");
-            for (int index = 0; index < request.furnidataClassnames().size(); index++) {
-                if (index > 0) {
-                    where.append(", ");
-                }
-                where.append('?');
-            }
-            where.append(')');
-            if (!request.type().isEmpty()) {
-                where.append(" AND type = ?");
-            }
-            where.append(')');
-            parameters.addAll(request.furnidataClassnames());
-            if (!request.type().isEmpty()) {
-                parameters.add(request.type());
-            }
-        }
-
         String orderColumn =
                 switch (request.sortField()) {
                     case "spriteId" -> "sprite_id";
@@ -198,6 +220,24 @@ public final class FurniEditorRepository {
             int next = bind(statement, values);
             statement.setInt(next, itemId);
             return statement.executeUpdate() > 0;
+        }
+    }
+
+    /** Applies a validated update only to the reported items_base row. */
+    public int updateItemByIdAndSprite(int itemId, int spriteId, String itemName, String setClauses, List<Object> values)
+            throws SQLException {
+        String normalizedItemName = itemName == null ? "" : itemName.trim();
+        if (itemId <= 0 || spriteId <= 0 || normalizedItemName.isEmpty()) return 0;
+
+        String sql = "UPDATE items_base SET " + setClauses
+                + " WHERE id = ? AND sprite_id = ? AND LOWER(item_name) = LOWER(?)";
+        try (Connection connection = this.dataSource.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            int next = bind(statement, values);
+            statement.setInt(next++, itemId);
+            statement.setInt(next++, spriteId);
+            statement.setString(next, normalizedItemName);
+            return statement.executeUpdate();
         }
     }
 
@@ -307,9 +347,14 @@ public final class FurniEditorRepository {
         item.put("clothing_on_walk", set.getString("clothing_on_walk"));
         item.put("multiheight", set.getString("multiheight"));
         try {
-            item.put("description", set.getString("description"));
+        item.put("description", set.getString("description"));
         } catch (SQLException exception) {
             item.put("description", "");
+        }
+        try {
+            item.put("rotations", set.getInt("rotations"));
+        } catch (SQLException exception) {
+            item.put("rotations", 4);
         }
         return Collections.unmodifiableMap(item);
     }
@@ -364,7 +409,15 @@ public final class FurniEditorRepository {
             String sortDirection,
             int pageSize,
             int offset,
-            List<String> furnidataClassnames) {}
+            List<String> furnidataClassnames) {
+        public SearchRequest(String query, String type, String sortField, String sortDirection, int pageSize, int offset) {
+            this(query, type, sortField, sortDirection, pageSize, offset, List.of());
+        }
+
+        public SearchRequest {
+            furnidataClassnames = furnidataClassnames == null ? List.of() : List.copyOf(furnidataClassnames);
+        }
+    }
 
     public record SearchPage(List<Map<String, Object>> items, int total) {}
 

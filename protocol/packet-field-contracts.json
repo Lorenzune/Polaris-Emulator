@@ -8216,6 +8216,11 @@
           "kind": "scalar",
           "type": "int",
           "name": "spriteId"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "itemName"
         }
       ]
     },
@@ -16291,6 +16296,203 @@
           "kind": "scalar",
           "type": "string",
           "name": "catalogMode"
+        }
+      ]
+    },
+    {
+      "name": "FURNITURE_REPORT_DATA_REQUEST",
+      "direction": "client_to_server",
+      "header": 10080,
+      "java": {
+        "symbol": "FurnitureReportDataEvent",
+        "className": "FurnitureReportDataEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/furniturereport/FurnitureReportDataEvent.java"
+      },
+      "typescript": {
+        "symbol": "FURNITURE_REPORT_DATA",
+        "className": "FurnitureReportDataComposer",
+        "path": "packages/communication/src/messages/outgoing/furniturereport/FurnitureReportDataComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "roomId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "objectId"
+        }
+      ]
+    },
+    {
+      "name": "FURNITURE_REPORT_SUBMIT",
+      "direction": "client_to_server",
+      "header": 10081,
+      "java": {
+        "symbol": "FurnitureReportSubmitEvent",
+        "className": "FurnitureReportSubmitEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/furniturereport/FurnitureReportSubmitEvent.java"
+      },
+      "typescript": {
+        "symbol": "FURNITURE_REPORT_SUBMIT",
+        "className": "FurnitureReportSubmitComposer",
+        "path": "packages/communication/src/messages/outgoing/furniturereport/FurnitureReportSubmitComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "roomId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "objectId"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "changesJson"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "reason"
+        }
+      ]
+    },
+    {
+      "name": "FURNITURE_REPORT_UPDATE",
+      "direction": "client_to_server",
+      "header": 10082,
+      "java": {
+        "symbol": "FurnitureReportUpdateEvent",
+        "className": "FurnitureReportUpdateEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/furniturereport/FurnitureReportUpdateEvent.java"
+      },
+      "typescript": {
+        "symbol": "FURNITURE_REPORT_UPDATE",
+        "className": "FurnitureReportUpdateComposer",
+        "path": "packages/communication/src/messages/outgoing/furniturereport/FurnitureReportUpdateComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "issueId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "spriteId"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "fieldsJson"
+        }
+      ]
+    },
+    {
+      "name": "FURNITURE_REPORT_DATA",
+      "direction": "server_to_client",
+      "header": 10080,
+      "java": {
+        "symbol": "FurnitureReportDataComposer",
+        "className": "FurnitureReportDataComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/furniturereport/FurnitureReportDataComposer.java"
+      },
+      "typescript": {
+        "symbol": "FURNITURE_REPORT_DATA",
+        "className": "FurnitureReportDataParser",
+        "path": "packages/communication/src/messages/parser/furniturereport/FurnitureReportDataParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "success"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "error"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "dataJson"
+        }
+      ]
+    },
+    {
+      "name": "FURNITURE_REPORT_RESULT",
+      "direction": "server_to_client",
+      "header": 10081,
+      "java": {
+        "symbol": "FurnitureReportResultComposer",
+        "className": "FurnitureReportResultComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/furniturereport/FurnitureReportResultComposer.java"
+      },
+      "typescript": {
+        "symbol": "FURNITURE_REPORT_RESULT",
+        "className": "FurnitureReportResultParser",
+        "path": "packages/communication/src/messages/parser/furniturereport/FurnitureReportResultParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "success"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "issueId"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "message"
+        }
+      ]
+    },
+    {
+      "name": "FURNITURE_REPORT_UPDATE_RESULT",
+      "direction": "server_to_client",
+      "header": 10082,
+      "java": {
+        "symbol": "FurnitureReportUpdateResultComposer",
+        "className": "FurnitureReportUpdateResultComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/furniturereport/FurnitureReportUpdateResultComposer.java"
+      },
+      "typescript": {
+        "symbol": "FURNITURE_REPORT_UPDATE_RESULT",
+        "className": "FurnitureReportUpdateResultParser",
+        "path": "packages/communication/src/messages/parser/furniturereport/FurnitureReportUpdateResultParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "success"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "issueId"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "message"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "dataJson"
         }
       ]
     }

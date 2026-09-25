@@ -121,6 +121,9 @@ import com.eu.habbo.messages.incoming.furnieditor.FurniEditorRevertFurnidataEven
 import com.eu.habbo.messages.incoming.furnieditor.FurniEditorSearchEvent;
 import com.eu.habbo.messages.incoming.furnieditor.FurniEditorUpdateEvent;
 import com.eu.habbo.messages.incoming.furnieditor.FurniEditorUpdateFurnidataEvent;
+import com.eu.habbo.messages.incoming.furniturereport.FurnitureReportDataEvent;
+import com.eu.habbo.messages.incoming.furniturereport.FurnitureReportSubmitEvent;
+import com.eu.habbo.messages.incoming.furniturereport.FurnitureReportUpdateEvent;
 import com.eu.habbo.messages.incoming.gamecenter.GameCenterEvent;
 import com.eu.habbo.messages.incoming.gamecenter.GameCenterJoinGameEvent;
 import com.eu.habbo.messages.incoming.gamecenter.GameCenterLeaveGameEvent;
@@ -734,6 +737,9 @@ public class PacketManager {
         this.registerHandler(Incoming.FurniEditorBySpriteEvent, FurniEditorBySpriteEvent.class);
         this.registerHandler(Incoming.FurniEditorInteractionsEvent, FurniEditorInteractionsEvent.class);
         this.registerHandler(Incoming.FurniEditorUpdateEvent, FurniEditorUpdateEvent.class);
+        this.registerHandler(Incoming.FurnitureReportDataEvent, FurnitureReportDataEvent.class);
+        this.registerHandler(Incoming.FurnitureReportSubmitEvent, FurnitureReportSubmitEvent.class);
+        this.registerHandler(Incoming.FurnitureReportUpdateEvent, FurnitureReportUpdateEvent.class);
         this.registerHandler(Incoming.FurniEditorDeleteEvent, FurniEditorDeleteEvent.class);
         this.registerHandler(Incoming.FurniEditorUpdateFurnidataEvent, FurniEditorUpdateFurnidataEvent.class);
         this.registerHandler(Incoming.FurniEditorRevertFurnidataEvent, FurniEditorRevertFurnidataEvent.class);

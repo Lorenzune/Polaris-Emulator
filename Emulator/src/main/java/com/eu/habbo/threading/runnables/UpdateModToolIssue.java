@@ -21,12 +21,13 @@ public class UpdateModToolIssue implements Runnable {
     @Override
     public void run() {
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE support_tickets SET state = ?, type = ?, mod_id = ?, category = ? WHERE id = ?")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE support_tickets SET state = ?, type = ?, mod_id = ?, category = ?, issue = ? WHERE id = ?")) {
             statement.setInt(1, this.issue.state.getState());
             statement.setInt(2, this.issue.type.getType());
             statement.setInt(3, this.issue.modId);
             statement.setInt(4, this.issue.category);
-            statement.setInt(5, this.issue.id);
+            statement.setString(5, this.issue.message);
+            statement.setInt(6, this.issue.id);
             statement.execute();
         } catch (SQLException e) {
             LOGGER.error("Caught SQL exception", e);
