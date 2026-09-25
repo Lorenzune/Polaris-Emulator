@@ -30,6 +30,7 @@ import com.eu.habbo.habbohotel.pets.PetManager;
 import com.eu.habbo.habbohotel.polls.PollManager;
 import com.eu.habbo.habbohotel.rewardtrack.RewardTrackManager;
 import com.eu.habbo.habbohotel.rooms.RoomChatBubbleManager;
+import com.eu.habbo.habbohotel.rooms.RoomCycleService;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomItemLiveRefreshTask;
 import com.eu.habbo.habbohotel.rooms.RoomManager;
@@ -85,6 +86,7 @@ public class GameEnvironment {
     private volatile CatalogManager catalogManager;
     private HotelViewManager hotelViewManager;
     private RoomManager roomManager;
+    private RoomCycleService roomCycleService;
     private CommandHandler commandHandler;
     private PermissionsManager permissionsManager;
     private BotManager botManager;
@@ -145,6 +147,10 @@ public class GameEnvironment {
                         current.dispose();
                     }
                 });
+        this.roomCycleService = this.services.create(
+                "room cycle workers",
+                () -> RoomCycleService.fromConfig(Emulator.getConfig()),
+                RoomCycleService::dispose);
         this.roomManager = this.services.create(
                 "room manager", () -> new RoomManager(this.persistenceExecutor), RoomManager::dispose);
         this.services.beforeDispose("room cycles", () -> this.roomManager.quiesceRoomCycles());
@@ -623,6 +629,10 @@ public class GameEnvironment {
 
     public RoomManager getRoomManager() {
         return this.roomManager;
+    }
+
+    public RoomCycleService getRoomCycleService() {
+        return this.roomCycleService;
     }
 
     public CommandHandler getCommandHandler() {
