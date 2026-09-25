@@ -246,7 +246,7 @@ final class RoomItemMovementService {
         // Update furniture
         item.onMove(this.room, oldLocation, tile);
         item.needsUpdate(true);
-        Emulator.getThreading().run(item);
+        Emulator.getThreading().runHabboItemPersistence(item);
 
         if (sendUpdates) {
             this.room.sendComposer(new FloorItemUpdateComposer(item).compose());
@@ -431,7 +431,7 @@ final class RoomItemMovementService {
 
         item.onMove(this.room, oldLocation, tile);
         item.needsUpdate(true);
-        Emulator.getThreading().run(item);
+        Emulator.getThreading().runHabboItemPersistence(item);
 
         if (sendUpdates) {
             this.room.sendComposer(new FloorItemUpdateComposer(item).compose());
@@ -665,7 +665,7 @@ final class RoomItemMovementService {
         // Update Furniture
         item.onMove(this.room, oldLocation, tile);
         item.needsUpdate(true);
-        Emulator.getThreading().run(item);
+        Emulator.getThreading().runHabboItemPersistence(item);
 
         if (sendUpdates) {
             this.room.sendComposer(new FloorItemUpdateComposer(item).compose());
@@ -893,7 +893,7 @@ final class RoomItemMovementService {
 
         item.onMove(this.room, oldLocation, tile);
         item.needsUpdate(true);
-        Emulator.getThreading().run(item);
+        Emulator.getThreading().runHabboItemPersistence(item);
 
         if (sendUpdates) {
             this.room.sendComposer(new FloorItemUpdateComposer(item).compose());

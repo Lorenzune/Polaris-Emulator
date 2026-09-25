@@ -181,7 +181,7 @@ final class RoomItemOwnershipService {
             owner.getClient().sendResponse(new AddHabboItemComposer(item));
             owner.getClient().sendResponse(new InventoryRefreshComposer());
         }
-        Emulator.getThreading().run(item);
+        Emulator.getThreading().runHabboItemPersistence(item);
     }
 
     void ejectUserFurniture(int userId) {

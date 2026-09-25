@@ -2,7 +2,12 @@ package com.eu.habbo.threading;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.database.PersistenceExecutor;
+import com.eu.habbo.habbohotel.users.HabboItem;
 import io.netty.util.concurrent.DefaultThreadFactory;
+import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -17,6 +22,9 @@ public class ThreadPooling {
     public final int threads;
     private final ScheduledExecutorService scheduledPool;
     private final PersistenceExecutor persistenceExecutor;
+    private final Set<HabboItem> pendingHabboItemPersistence = ConcurrentHashMap.newKeySet();
+    private final ConcurrentLinkedQueue<HabboItem> deferredHabboItemPersistence = new ConcurrentLinkedQueue<>();
+    private final AtomicBoolean itemPersistenceDrainScheduled = new AtomicBoolean();
     private volatile boolean canAdd;
 
     public ThreadPooling(Integer threads) {
@@ -77,6 +85,125 @@ public class ThreadPooling {
         }
 
         this.persistenceExecutor.execute(task);
+    }
+
+    /**
+     * Tries to queue persistence work without running it on the submitting room worker when full.
+     * Returns false only while the bounded persistence queue is saturated; shutdown still drains
+     * the work synchronously so accepted room state is not lost.
+     */
+    public boolean tryRunPersistence(Runnable task) {
+        if (this.persistenceExecutor == null) {
+            return this.run(task) != null;
+        }
+
+        if (this.persistenceExecutor.tryExecute(task)) {
+            return true;
+        }
+
+        if (!this.persistenceExecutor.isAccepting()) {
+            this.persistenceExecutor.execute(task);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Persists a room furni without allowing repeated moves to enqueue duplicate saves.
+     * If it changes while a save is running, one follow-up save captures its latest state.
+     */
+    public void runHabboItemPersistence(HabboItem item) {
+        if (item == null || !this.pendingHabboItemPersistence.add(item)) {
+            return;
+        }
+
+        Runnable save = this.createHabboItemSave(item);
+
+        if (this.persistenceExecutor == null) {
+            this.runPersistence(save);
+        } else if (!this.persistenceExecutor.tryExecute(save)) {
+            if (!this.persistenceExecutor.isAccepting()) {
+                this.runPersistence(save);
+            } else {
+                this.deferredHabboItemPersistence.offer(item);
+                this.scheduleItemPersistenceDrain();
+            }
+        }
+    }
+
+    private Runnable createHabboItemSave(HabboItem item) {
+        return () -> {
+            long startingRevision = item.getPersistenceRevision();
+            try {
+                item.run();
+            } finally {
+                this.pendingHabboItemPersistence.remove(item);
+                if (item.needsUpdate() || item.getPersistenceRevision() != startingRevision) {
+                    this.runHabboItemPersistence(item);
+                }
+            }
+        };
+    }
+
+    private void scheduleItemPersistenceDrain() {
+        if (this.persistenceExecutor == null
+                || this.deferredHabboItemPersistence.isEmpty()
+                || !this.itemPersistenceDrainScheduled.compareAndSet(false, true)) {
+            return;
+        }
+
+        try {
+            this.scheduledPool.schedule(this::drainDeferredItemPersistence, 25, TimeUnit.MILLISECONDS);
+        } catch (RuntimeException exception) {
+            this.itemPersistenceDrainScheduled.set(false);
+            LOGGER.warn("Could not schedule deferred furni persistence drain", exception);
+        }
+    }
+
+    private void drainDeferredItemPersistence() {
+        try {
+            HabboItem item;
+            while ((item = this.deferredHabboItemPersistence.peek()) != null) {
+                if (!this.persistenceExecutor.tryExecute(this.createHabboItemSave(item))) {
+                    return;
+                }
+                this.deferredHabboItemPersistence.poll();
+            }
+        } finally {
+            this.itemPersistenceDrainScheduled.set(false);
+            this.scheduleItemPersistenceDrain();
+        }
+    }
+
+    public int getDeferredHabboItemPersistenceCount() {
+        return this.deferredHabboItemPersistence.size();
+    }
+
+    public int getScheduledActiveCount() {
+        return this.scheduledPool instanceof ScheduledThreadPoolExecutor executor
+                ? executor.getActiveCount()
+                : -1;
+    }
+
+    public int getScheduledPoolSize() {
+        return this.scheduledPool instanceof ScheduledThreadPoolExecutor executor
+                ? executor.getPoolSize()
+                : -1;
+    }
+
+    public int getScheduledQueueDepth() {
+        return this.scheduledPool instanceof ScheduledThreadPoolExecutor executor
+                ? executor.getQueue().size()
+                : -1;
+    }
+
+    public int getPersistenceActiveCount() {
+        return this.persistenceExecutor != null ? this.persistenceExecutor.getActiveCount() : -1;
+    }
+
+    public int getPersistenceQueueDepth() {
+        return this.persistenceExecutor != null ? this.persistenceExecutor.getQueueDepth() : -1;
     }
 
     public void shutDown() {

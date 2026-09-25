@@ -20,6 +20,7 @@ public final class PersistenceExecutor {
 
     private final ThreadPoolExecutor executor;
     private final AtomicBoolean accepting = new AtomicBoolean(true);
+    private final Object submissionLock = new Object();
 
     public PersistenceExecutor(int threads, int queueCapacity) {
         if (threads < 1) {
@@ -57,6 +58,17 @@ public final class PersistenceExecutor {
         this.executor.execute(guarded);
     }
 
+    /** Enqueues work without running it on the submitting room/Wired thread when full. */
+    public boolean tryExecute(Runnable task) {
+        Runnable guarded = guard(Objects.requireNonNull(task, "task"));
+        synchronized (this.submissionLock) {
+            if (!this.accepting.get() || this.executor.isShutdown()) {
+                return false;
+            }
+            return this.executor.getQueue().offer(guarded);
+        }
+    }
+
     public int getQueueDepth() {
         return this.executor.getQueue().size();
     }
@@ -65,13 +77,19 @@ public final class PersistenceExecutor {
         return this.executor.getActiveCount();
     }
 
+    public boolean isAccepting() {
+        return this.accepting.get() && !this.executor.isShutdown();
+    }
+
     public void shutDown() {
         this.shutDown(35, TimeUnit.SECONDS);
     }
 
     void shutDown(long timeout, TimeUnit unit) {
-        this.accepting.set(false);
-        this.executor.shutdown();
+        synchronized (this.submissionLock) {
+            this.accepting.set(false);
+            this.executor.shutdown();
+        }
 
         boolean interrupted = false;
         boolean terminated = false;

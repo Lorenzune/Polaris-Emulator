@@ -44,6 +44,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -129,6 +131,10 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     private final RoomLoader loader;
     private final RoomItemPersistence itemPersistence;
     private final RoomPersistence persistence;
+    private final Object roomPersistenceLock = new Object();
+    private final AtomicBoolean roomSavePending = new AtomicBoolean();
+    private final AtomicLong roomStateRevision = new AtomicLong();
+    private final AtomicLong persistedRoomStateRevision = new AtomicLong();
     private final RoomRepository repository;
     private final RoomWiredAccessService wiredAccess;
     private final RoomWiredVisibilityService wiredVisibility = new RoomWiredVisibilityService(this);
@@ -210,13 +216,14 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     private boolean hideWired;
     private boolean buildersClubTrialLocked;
     private RoomState buildersClubOriginalState;
-    private volatile boolean needsUpdate;
     private int rollerSpeed;
     private volatile Integer transientRollerSpeedOverride;
     private int lastTimerReset = Emulator.getIntUnixTimestamp();
     private volatile boolean muted;
     private volatile RoomSpecialTypes roomSpecialTypes;
     private TraxManager traxManager;
+
+    private record RoomSaveSnapshot(long revision, RoomPersistence.State state) {}
 
     public boolean isYoutubeEnabled() {
         return this.media.youtubeEnabled();
@@ -858,6 +865,9 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     }
 
     public synchronized void dispose() {
+        if (this.hasUnsavedRoomState()) {
+            this.save();
+        }
         this.lifecycle.dispose(
                 this.preventUnloading,
                 () -> Emulator.getPluginManager()
@@ -883,6 +893,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
 
     @Override
     public void run() {
+        boolean saveRoomState;
         synchronized (this) {
             boolean runCycle = this.lifecycle.isLoaded();
 
@@ -900,18 +911,89 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
                 }
             }
 
-            this.save();
+            saveRoomState = this.hasUnsavedRoomState();
+        }
+
+        if (saveRoomState) {
+            this.saveLater();
         }
     }
 
     public void save() {
-        if (this.needsUpdate) {
-            try {
-                this.persistence.save(RoomPersistentStateFactory.capture(this));
-                this.needsUpdate = false;
-            } catch (SQLException e) {
-                LOGGER.error("Caught SQL exception", e);
+        synchronized (this.roomPersistenceLock) {
+            RoomSaveSnapshot snapshot = this.captureRoomSaveSnapshot();
+            if (snapshot != null) {
+                this.persistRoomSaveSnapshot(snapshot);
             }
+        }
+    }
+
+    private boolean hasUnsavedRoomState() {
+        return this.roomStateRevision.get() > this.persistedRoomStateRevision.get();
+    }
+
+    private RoomSaveSnapshot captureRoomSaveSnapshot() {
+        synchronized (this) {
+            for (int attempt = 0; attempt < 3; attempt++) {
+                long revision = this.roomStateRevision.get();
+                if (revision <= this.persistedRoomStateRevision.get()) {
+                    return null;
+                }
+
+                RoomPersistence.State state = RoomPersistentStateFactory.capture(this);
+                if (revision == this.roomStateRevision.get()) {
+                    return new RoomSaveSnapshot(revision, state);
+                }
+            }
+        }
+
+        // A concurrent settings change kept changing the state while it was copied.
+        // Leave it dirty and try again on the next room cycle instead of saving a torn snapshot.
+        return null;
+    }
+
+    private void saveLater() {
+        if (!this.hasUnsavedRoomState() || !this.roomSavePending.compareAndSet(false, true)) {
+            return;
+        }
+
+        Runnable saveTask = () -> {
+            try {
+                synchronized (this.roomPersistenceLock) {
+                    RoomSaveSnapshot snapshot = this.captureRoomSaveSnapshot();
+                    if (snapshot != null) {
+                        this.persistRoomSaveSnapshot(snapshot);
+                    }
+                }
+            } finally {
+                this.roomSavePending.set(false);
+            }
+        };
+
+        ThreadPooling threading = this.threading();
+        if (threading == null) {
+            saveTask.run();
+            return;
+        }
+
+        try {
+            if (!threading.tryRunPersistence(saveTask)) {
+                // Keep the state dirty and retry on the next room cycle. In particular, do
+                // not fall back to a blocking save on a room worker when the DB queue is full.
+                this.roomSavePending.set(false);
+            }
+        } catch (RuntimeException rejected) {
+            this.roomSavePending.set(false);
+            LOGGER.error("Could not queue room {} save; it will retry on a later cycle", this.id, rejected);
+        }
+    }
+
+    private void persistRoomSaveSnapshot(RoomSaveSnapshot snapshot) {
+        try {
+            this.persistence.save(snapshot.state());
+            this.persistedRoomStateRevision.accumulateAndGet(snapshot.revision(), Math::max);
+        } catch (SQLException exception) {
+            LOGGER.error("Caught SQL exception saving room {}", this.id, exception);
         }
     }
 
@@ -1182,7 +1264,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     public void moveDiagonally(boolean moveDiagonally) {
         this.moveDiagonally = moveDiagonally;
         this.layout.moveDiagonally(this.moveDiagonally);
-        this.needsUpdate = true;
+        this.markRoomStateDirty();
     }
 
     public int getGuildId() {
@@ -1436,7 +1518,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
 
     public void setRollerSpeed(int rollerSpeed) {
         this.rollerSpeed = rollerSpeed;
-        this.needsUpdate = true;
+        this.markRoomStateDirty();
     }
 
     public Integer getTransientRollerSpeedOverride() {
@@ -1634,7 +1716,15 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     }
 
     public void setNeedsUpdate(boolean needsUpdate) {
-        this.needsUpdate = needsUpdate;
+        if (needsUpdate) {
+            this.markRoomStateDirty();
+        } else {
+            this.persistedRoomStateRevision.set(this.roomStateRevision.get());
+        }
+    }
+
+    private void markRoomStateDirty() {
+        this.roomStateRevision.incrementAndGet();
     }
 
     public IntList getRights() {
@@ -2273,7 +2363,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
 
     public void setJukeBoxActive(boolean jukeBoxActive) {
         this.jukeboxActive = jukeBoxActive;
-        this.needsUpdate = true;
+        this.markRoomStateDirty();
     }
 
     boolean isJukeboxActive() {

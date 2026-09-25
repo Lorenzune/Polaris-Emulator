@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.util.Pair;
 import org.slf4j.Logger;
@@ -71,6 +72,7 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
     private int limitedSells;
     private boolean needsUpdate = false;
     private boolean needsDelete = false;
+    private final AtomicLong persistenceRevision = new AtomicLong();
     private boolean isFromGift = false;
     private RoomTile previousLocation;
     private Set<RoomTile> previousOccupiedTiles;
@@ -301,6 +303,13 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
 
     public void needsUpdate(boolean value) {
         this.needsUpdate = value;
+        if (value) {
+            this.persistenceRevision.incrementAndGet();
+        }
+    }
+
+    public long getPersistenceRevision() {
+        return this.persistenceRevision.get();
     }
 
     public void needsDelete(boolean value) {

@@ -2,6 +2,7 @@ package com.eu.habbo.habbohotel.wired.tick;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.rooms.Room;
+import com.eu.habbo.threading.ThreadPooling;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -477,14 +478,21 @@ public final class WiredTickService {
 
                     long tickableDuration = System.currentTimeMillis() - tickableStart;
                     if (tickableDuration > SLOW_TICKABLE_THRESHOLD_MS) {
+                        ThreadPooling pool = Emulator.getThreading();
                         LOGGER.warn(
-                                "Slow wired tickable: shard={}, room={}, tick={}, tickableId={}, class={}, took={}ms",
+                                "Slow wired tickable: shard={}, room={}, tick={}, tickableId={}, class={}, took={}ms, runtimePoolActive={}, runtimePoolSize={}, runtimeQueue={}, persistenceActive={}, persistenceQueue={}, deferredItemSaves={}",
                                 shardIndex,
                                 roomId,
                                 currentTick,
                                 tickable.getId(),
                                 tickable.getClass().getName(),
-                                tickableDuration
+                                tickableDuration,
+                                pool != null ? pool.getScheduledActiveCount() : -1,
+                                pool != null ? pool.getScheduledPoolSize() : -1,
+                                pool != null ? pool.getScheduledQueueDepth() : -1,
+                                pool != null ? pool.getPersistenceActiveCount() : -1,
+                                pool != null ? pool.getPersistenceQueueDepth() : -1,
+                                pool != null ? pool.getDeferredHabboItemPersistenceCount() : -1
                         );
                     }
                 } catch (Throwable t) {
@@ -501,26 +509,40 @@ public final class WiredTickService {
 
             long roomDuration = System.currentTimeMillis() - roomStart;
             if (roomDuration > SLOW_ROOM_THRESHOLD_MS) {
+                ThreadPooling pool = Emulator.getThreading();
                 LOGGER.warn(
-                        "Slow wired room tick: shard={}, room={}, tick={}, tickables={}, took={}ms",
+                        "Slow wired room tick: shard={}, room={}, tick={}, tickables={}, took={}ms, runtimePoolActive={}, runtimePoolSize={}, runtimeQueue={}, persistenceActive={}, persistenceQueue={}, deferredItemSaves={}",
                         shardIndex,
                         roomId,
                         currentTick,
                         tickables.size(),
-                        roomDuration
+                        roomDuration,
+                        pool != null ? pool.getScheduledActiveCount() : -1,
+                        pool != null ? pool.getScheduledPoolSize() : -1,
+                        pool != null ? pool.getScheduledQueueDepth() : -1,
+                        pool != null ? pool.getPersistenceActiveCount() : -1,
+                        pool != null ? pool.getPersistenceQueueDepth() : -1,
+                        pool != null ? pool.getDeferredHabboItemPersistenceCount() : -1
                 );
             }
         }
 
         long shardDuration = System.currentTimeMillis() - shardStart;
         if (shardDuration > SLOW_SHARD_THRESHOLD_MS) {
+            ThreadPooling pool = Emulator.getThreading();
             LOGGER.warn(
-                    "Slow wired shard tick: shard={}, tick={}, rooms={}, tickables={}, took={}ms",
+                    "Slow wired shard tick: shard={}, tick={}, rooms={}, tickables={}, took={}ms, runtimePoolActive={}, runtimePoolSize={}, runtimeQueue={}, persistenceActive={}, persistenceQueue={}, deferredItemSaves={}",
                     shardIndex,
                     currentTick,
                     processedRooms,
                     processedTickables,
-                    shardDuration
+                    shardDuration,
+                    pool != null ? pool.getScheduledActiveCount() : -1,
+                    pool != null ? pool.getScheduledPoolSize() : -1,
+                    pool != null ? pool.getScheduledQueueDepth() : -1,
+                    pool != null ? pool.getPersistenceActiveCount() : -1,
+                    pool != null ? pool.getPersistenceQueueDepth() : -1,
+                    pool != null ? pool.getDeferredHabboItemPersistenceCount() : -1
             );
         }
 

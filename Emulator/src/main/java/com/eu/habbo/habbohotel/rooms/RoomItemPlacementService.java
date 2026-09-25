@@ -210,7 +210,7 @@ final class RoomItemPlacementService {
             this.room.updateHabbosAt(occupiedTile.x, occupiedTile.y);
             this.room.updateBotsAt(occupiedTile.x, occupiedTile.y);
         }
-        Emulator.getThreading().run(item);
+        Emulator.getThreading().runHabboItemPersistence(item);
         return FurnitureMovementError.NONE;
     }
 
@@ -242,7 +242,7 @@ final class RoomItemPlacementService {
         item.setRoomId(this.room.getId());
         item.onPlace(this.room);
         RoomAreaHideSupport.synchronizeClientVisibility(this.room);
-        Emulator.getThreading().run(item);
+        Emulator.getThreading().runHabboItemPersistence(item);
         return FurnitureMovementError.NONE;
     }
 

@@ -24,7 +24,14 @@ final class RoomPersistentStateFactory {
                 room.getWallSize(),
                 room.getWallHeight(),
                 room.getFloorSize(),
-                List.copyOf(room.getMoodlightData().values()),
+                room.getMoodlightData().values().stream()
+                        .map(data -> new RoomMoodlightData(
+                                data.getId(),
+                                data.isEnabled(),
+                                data.isBackgroundOnly(),
+                                data.getColor(),
+                                data.getIntensity()))
+                        .toList(),
                 room.getTags(),
                 room.isAllowPets(),
                 room.isAllowPetsEat(),
