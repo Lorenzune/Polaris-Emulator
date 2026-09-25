@@ -122,7 +122,7 @@ INSERT IGNORE INTO `emulator_settings` (`key`, `value`) VALUES
 ('camera.extradata', '{"t":"%timestamp%","u":"%id%","m":"","s":"%room_id%","w":"%url%"}');
 
 INSERT INTO emulator_settings (`key`, `value`) VALUES 
-('session.reconnect.grace.seconds', '5');
+('session.reconnect.grace.seconds', '30');
 
 INSERT INTO emulator_settings (`key`, `value`) VALUES 
 ('session.reconnect.effect.id', '188');
@@ -487,6 +487,10 @@ ALTER TABLE `users_settings`
 INSERT INTO `permission_definitions` (`permission_key`, `max_value`, `comment`)
 VALUES ( 'acc_staff_chat', 1, 'Grants access to the in-game Staff Chat group buddy: receives broadcasts from other staff and can broadcast to anyone holding this permission.' )
 ON DUPLICATE KEY UPDATE `max_value` = VALUES(`max_value`), `comment`   = VALUES(`comment`);
+
+INSERT IGNORE INTO `emulator_settings` (`key`, `value`) VALUES
+  ('room.cycle.workers', '0'),
+  ('room.cycle.slow_ms', '250');
 
 -- =============================================================================
 -- Done.
