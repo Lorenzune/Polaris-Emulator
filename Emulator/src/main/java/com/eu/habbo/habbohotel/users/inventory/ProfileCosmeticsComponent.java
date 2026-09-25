@@ -38,17 +38,24 @@ public class ProfileCosmeticsComponent {
             LOGGER.error("Caught SQL exception loading user profile cosmetics", e);
         }
 
-        // Also check legacy users_infostand_backgrounds if exists
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT background_id FROM users_infostand_backgrounds WHERE user_id = ?")) {
-            statement.setInt(1, this.habbo.getHabboInfo().getId());
-            try (ResultSet set = statement.executeQuery()) {
-                while (set.next()) {
-                    this.ownedCosmetics.add("background:" + set.getInt("background_id"));
+        // Preserve legacy ownership when the optional table exists.
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+            try (ResultSet tables = connection.getMetaData()
+                    .getTables(connection.getCatalog(), null, "users_infostand_backgrounds", new String[] {"TABLE"})) {
+                if (tables.next()) {
+                    try (PreparedStatement statement = connection.prepareStatement(
+                            "SELECT background_id FROM users_infostand_backgrounds WHERE user_id = ?")) {
+                        statement.setInt(1, this.habbo.getHabboInfo().getId());
+                        try (ResultSet set = statement.executeQuery()) {
+                            while (set.next()) {
+                                this.ownedCosmetics.add("background:" + set.getInt("background_id"));
+                            }
+                        }
+                    }
                 }
             }
-        } catch (SQLException ignored) {
-            // Table may not exist or not used
+        } catch (SQLException e) {
+            LOGGER.error("Caught SQL exception loading legacy profile backgrounds", e);
         }
     }
 
