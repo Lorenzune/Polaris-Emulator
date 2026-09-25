@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.eu.habbo.habbohotel.items.interactions.InteractionRoller;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredCondition;
+import com.eu.habbo.habbohotel.items.interactions.InteractionWiredDisableControl;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
@@ -64,5 +65,24 @@ class RoomItemRegistryBehaviorTest {
         verify(specialTypes).addRoller(roller);
         verify(specialTypes).removeRoller(roller);
         verify(furniVariables).removeAssignmentsForFurni(1001);
+    }
+
+    @Test
+    void wiredDisableControlRegistrationAndRemovalUseTheUndefinedRegistry() {
+        Room room = mock(Room.class);
+        RoomSpecialTypes specialTypes = mock(RoomSpecialTypes.class);
+        RoomFurniVariableManager furniVariables = mock(RoomFurniVariableManager.class);
+        InteractionWiredDisableControl control = mock(InteractionWiredDisableControl.class);
+        when(room.getRoomSpecialTypes()).thenReturn(specialTypes);
+        when(room.getFurniVariableManager()).thenReturn(furniVariables);
+        when(control.getId()).thenReturn(1002);
+        RoomItemRegistry registry = new RoomItemRegistry(room);
+
+        registry.register(control);
+        registry.unregister(control);
+
+        verify(specialTypes).addUndefined(control);
+        verify(specialTypes).removeUndefined(control);
+        verify(furniVariables).removeAssignmentsForFurni(1002);
     }
 }

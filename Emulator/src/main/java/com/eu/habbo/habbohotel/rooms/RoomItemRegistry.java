@@ -18,6 +18,7 @@ import com.eu.habbo.habbohotel.items.interactions.InteractionVoteCounter;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWater;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWaterItem;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredCondition;
+import com.eu.habbo.habbohotel.items.interactions.InteractionWiredDisableControl;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore;
@@ -275,7 +276,8 @@ final class RoomItemRegistry {
                 || item instanceof InteractionTent
                 || item instanceof InteractionSnowboardSlope
                 || item instanceof InteractionFireworks
-                || item instanceof InteractionVoteCounter;
+                || item instanceof InteractionVoteCounter
+                || item instanceof InteractionWiredDisableControl;
     }
 
     private static boolean isUndefinedSpecialTypeOnRemoval(HabboItem item) {
@@ -297,6 +299,7 @@ final class RoomItemRegistry {
                 || item instanceof WiredBlob
                 || item instanceof InteractionTent
                 || item instanceof InteractionSnowboardSlope
-                || item instanceof InteractionVoteCounter;
+                || item instanceof InteractionVoteCounter
+                || item instanceof InteractionWiredDisableControl;
     }
 }
