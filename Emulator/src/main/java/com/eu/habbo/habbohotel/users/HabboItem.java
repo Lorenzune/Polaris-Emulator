@@ -8,14 +8,12 @@ import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.FurnitureType;
 import com.eu.habbo.habbohotel.items.IEventTriggers;
 import com.eu.habbo.habbohotel.items.Item;
-import com.eu.habbo.habbohotel.items.interactions.InteractionCrackable;
 import com.eu.habbo.habbohotel.items.interactions.InteractionDice;
 import com.eu.habbo.habbohotel.items.interactions.InteractionGuildGate;
 import com.eu.habbo.habbohotel.items.interactions.InteractionMultiHeight;
 import com.eu.habbo.habbohotel.items.interactions.InteractionPostIt;
 import com.eu.habbo.habbohotel.items.interactions.InteractionTeleport;
 import com.eu.habbo.habbohotel.items.interactions.InteractionTeleportTile;
-import com.eu.habbo.habbohotel.items.interactions.InteractionTrophy;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWired;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore;
 import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameTimer;
@@ -128,17 +126,11 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
             serverMessage.appendInt(this.getRotation());
             serverMessage.appendString(Double.toString(this.z));
 
-            serverMessage.appendString(
-                    (this.getBaseItem().getInteractionType().getType() == InteractionTrophy.class
-                                    || this.getBaseItem().getInteractionType().getType() == InteractionCrackable.class
-                                    || this.getBaseItem().getName().equalsIgnoreCase("gnome_box"))
-                            ? "1.0"
-                            : ((this.getBaseItem().allowWalk()
-                                            || this.getBaseItem().allowSit() && this.roomId != 0)
-                                    ? Item.getCurrentHeight(this) + ""
-                                    : ""));
-            // serverMessage.appendString( ? "1.0" : ((this.getBaseItem().allowWalk() || this.getBaseItem().allowSit()
-            // && this.roomId != 0) ? Item.getCurrentHeight(this) : ""));
+            // The seventh floor-item field is the furni's physical height, not
+            // its current Z position. It must always be sent: omitting it for
+            // non-sit/non-walk items makes the client parse an empty string as
+            // zero, even when items_base.stack_height contains a value.
+            serverMessage.appendString(Double.toString(Item.getCurrentHeight(this)));
 
         } catch (Exception e) {
             LOGGER.error("Caught exception", e);
