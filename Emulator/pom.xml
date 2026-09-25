@@ -15,49 +15,50 @@
         <maven.compiler.release>25</maven.compiler.release>
         <maven.build.java.version>[25,27)</maven.build.java.version>
 
-        <netty.version>4.2.16.Final</netty.version>
+        <netty.version>4.2.18.Final</netty.version>
         <gson.version>2.14.0</gson.version>
-        <mariadb.version>3.5.9</mariadb.version>
+        <mariadb.version>3.5.10</mariadb.version>
         <hikaricp.version>7.1.0</hikaricp.version>
+        <dropwizard-metrics.version>4.2.40</dropwizard-metrics.version>
         <caffeine.version>3.2.4</caffeine.version>
         <resilience4j.version>2.4.0</resilience4j.version>
-        <hibernate-validator.version>9.1.2.Final</hibernate-validator.version>
+        <hibernate-validator.version>9.1.3.Final</hibernate-validator.version>
         <commons-lang3.version>3.20.0</commons-lang3.version>
         <commons-math3.version>3.6.1</commons-math3.version>
-        <jsoup.version>1.22.2</jsoup.version>
-        <slf4j.version>2.0.18</slf4j.version>
+        <jsoup.version>1.23.2</jsoup.version>
+        <slf4j.version>2.0.19</slf4j.version>
         <error-prone-annotations.version>2.50.0</error-prone-annotations.version>
-        <logback.version>1.5.38</logback.version>
+        <logback.version>1.6.3</logback.version>
         <jansi.version>2.4.3</jansi.version>
         <bcrypt.version>0.10.2</bcrypt.version>
         <jakarta-mail.version>2.0.5</jakarta-mail.version>
-        <junit.version>6.1.2</junit.version>
-        <javaparser.version>3.27.1</javaparser.version>
-        <flyway.version>13.0.0</flyway.version>
-        <testcontainers.version>1.21.4</testcontainers.version>
+        <junit.version>6.1.3</junit.version>
+        <javaparser.version>3.28.2</javaparser.version>
+        <flyway.version>13.6.0</flyway.version>
+        <testcontainers.version>2.0.5</testcontainers.version>
         <mockito.version>5.23.0</mockito.version>
         <trove4j.reference.version>3.0.3</trove4j.reference.version>
 
         <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
-        <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
-        <maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
+        <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
+        <maven-deploy-plugin.version>3.2.0</maven-deploy-plugin.version>
         <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
-        <maven-failsafe-plugin.version>3.5.6</maven-failsafe-plugin.version>
-        <maven-install-plugin.version>3.1.4</maven-install-plugin.version>
+        <maven-failsafe-plugin.version>3.6.0</maven-failsafe-plugin.version>
+        <maven-install-plugin.version>3.2.0</maven-install-plugin.version>
         <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
         <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
         <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
         <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
         <maven-site-plugin.version>3.22.0</maven-site-plugin.version>
-        <maven-surefire-plugin.version>3.5.6</maven-surefire-plugin.version>
-        <versions-maven-plugin.version>2.21.0</versions-maven-plugin.version>
-        <cyclonedx-maven-plugin.version>2.9.2</cyclonedx-maven-plugin.version>
+        <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
+        <versions-maven-plugin.version>2.22.0</versions-maven-plugin.version>
+        <cyclonedx-maven-plugin.version>2.9.3</cyclonedx-maven-plugin.version>
         <jacoco-plugin.version>0.8.15</jacoco-plugin.version>
         <jacoco.minimum.instruction.coveredratio>0.07</jacoco.minimum.instruction.coveredratio>
-        <japicmp.version>0.26.1</japicmp.version>
-        <spotless-maven-plugin.version>3.8.0</spotless-maven-plugin.version>
+        <japicmp.version>0.26.2</japicmp.version>
+        <spotless-maven-plugin.version>3.10.2</spotless-maven-plugin.version>
         <palantir-java-format.version>2.96.0</palantir-java-format.version>
-        <spotbugs-maven-plugin.version>4.10.3.0</spotbugs-maven-plugin.version>
+        <spotbugs-maven-plugin.version>4.10.4.1</spotbugs-maven-plugin.version>
         <spotless.ratchetFrom>HEAD^</spotless.ratchetFrom>
     </properties>
 
@@ -446,7 +447,27 @@
         <!-- Netty -->
         <dependency>
             <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
+            <artifactId>netty-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-buffer</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-handler</artifactId>
         </dependency>
 
         <!-- GSON -->
@@ -468,7 +489,7 @@
         <dependency>
             <groupId>it.unimi.dsi</groupId>
             <artifactId>fastutil</artifactId>
-            <version>8.5.18</version>
+            <version>8.5.19</version>
             <scope>compile</scope>
         </dependency>
 
@@ -478,6 +499,20 @@
             <artifactId>HikariCP</artifactId>
             <version>${hikaricp.version}</version>
             <scope>compile</scope>
+        </dependency>
+
+        <!-- HikariCP optional health-check API, needed by dependency analysis. -->
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-healthchecks</artifactId>
+            <version>${dropwizard-metrics.version}</version>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Caffeine cache - high-performance local caching for hot emulator lookups -->
@@ -625,17 +660,12 @@
         <!-- Testcontainers — throwaway MariaDB for integration (*IT) tests -->
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers</artifactId>
+            <artifactId>testcontainers-mariadb</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>mariadb</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
 
