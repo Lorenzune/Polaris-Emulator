@@ -22,10 +22,14 @@ public class GameClientMessageLogger extends MessageToMessageDecoder<ClientMessa
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ClientMessage message, List<Object> out) {
-        LOGGER.debug(String.format("[" + ANSI.GREEN + "CLIENT" + ANSI.DEFAULT + "][%-4d][%-41s] => %s",
-                message.getMessageId(),
-                this.names.getIncomingName(message.getMessageId()),
-                message.getMessageBody()));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(String.format("[%sCLIENT%s][%-4d][%-41s] => %s",
+                    ANSI.GREEN,
+                    ANSI.DEFAULT,
+                    message.getMessageId(),
+                    this.names.getIncomingName(message.getMessageId()),
+                    message.getMessageBody()));
+        }
 
         out.add(message);
     }

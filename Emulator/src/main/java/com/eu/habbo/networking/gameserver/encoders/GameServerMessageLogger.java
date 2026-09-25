@@ -22,10 +22,14 @@ public class GameServerMessageLogger extends MessageToMessageEncoder<ServerMessa
 
     @Override
     protected void encode(ChannelHandlerContext ctx, ServerMessage message, List<Object> out) {
-        LOGGER.debug(String.format("[" + ANSI.BLUE + "SERVER" + ANSI.DEFAULT + "][%-4d][%-41s] => %s",
-                message.getHeader(),
-                this.names.getOutgoingName(message.getHeader()),
-                message.getBodyString()));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(String.format("[%sSERVER%s][%-4d][%-41s] => %s",
+                    ANSI.BLUE,
+                    ANSI.DEFAULT,
+                    message.getHeader(),
+                    this.names.getOutgoingName(message.getHeader()),
+                    message.getBodyString()));
+        }
 
         out.add(message);
     }

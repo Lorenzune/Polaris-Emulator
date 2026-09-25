@@ -49,12 +49,12 @@ public class WiredEffectKickHabbo extends InteractionWiredEffect {
     public void execute(WiredContext ctx) {
         Room room = ctx.room();
 
-        LOGGER.debug("[KickHabbo] targets.users().size={} usersModifiedBySelector={}",
+        LOGGER.trace("[KickHabbo] targets.users().size={} usersModifiedBySelector={}",
                 ctx.targets().users().size(), ctx.targets().isUsersModifiedBySelector());
 
         for (RoomUnit unit : WiredSourceUtil.resolveUsers(ctx, this.userSource)) {
             Habbo habbo = room.getHabbo(unit);
-            LOGGER.debug("[KickHabbo] RoomUnit id={} type={} -> Habbo={}", unit.getId(), unit.getRoomUnitType(),
+            LOGGER.trace("[KickHabbo] RoomUnit id={} type={} -> Habbo={}", unit.getId(), unit.getRoomUnitType(),
                     habbo != null ? habbo.getHabboInfo().getUsername() : "null");
             if (habbo == null) continue;
 

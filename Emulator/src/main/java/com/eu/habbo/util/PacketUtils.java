@@ -7,13 +7,21 @@ import java.nio.charset.Charset;
 public class PacketUtils {
 
     public static String formatPacket(ByteBuf buffer) {
-        String result = buffer.toString(Charset.defaultCharset());
+        String packet = buffer.toString(Charset.defaultCharset());
+        StringBuilder result = new StringBuilder(packet.length());
 
-        for (int i = -1; i < 31; i++) {
-            result = result.replace(Character.toString((char) i), "[" + i + "]");
+        for (int index = 0; index < packet.length(); index++) {
+            char value = packet.charAt(index);
+            if (value <= 30) {
+                result.append('[').append((int) value).append(']');
+            } else if (value == Character.MAX_VALUE) {
+                result.append("[-1]");
+            } else {
+                result.append(value);
+            }
         }
 
-        return result;
+        return result.toString();
     }
 
 }
