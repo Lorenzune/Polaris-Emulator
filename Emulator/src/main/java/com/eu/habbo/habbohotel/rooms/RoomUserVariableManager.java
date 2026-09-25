@@ -2,6 +2,7 @@ package com.eu.habbo.habbohotel.rooms;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
+import com.eu.habbo.habbohotel.wired.core.WiredVariableBoxUpdateScope;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraUserVariable;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableEcho;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableReference;
@@ -226,7 +227,7 @@ public class RoomUserVariableManager {
 
         if (changed) {
             if (extra != null) {
-                extra.activateBox(this.room);
+                WiredVariableBoxUpdateScope.activate(extra, this.room);
             }
             this.broadcastSnapshot();
         }
@@ -263,7 +264,7 @@ public class RoomUserVariableManager {
 
             if (changed) {
                 if (extra != null) {
-                    extra.activateBox(this.room);
+                    WiredVariableBoxUpdateScope.activate(extra, this.room);
                 }
                 this.broadcastSnapshot();
             }
@@ -284,7 +285,7 @@ public class RoomUserVariableManager {
 
             if (changed) {
                 if (extra != null) {
-                    extra.activateBox(this.room);
+                    WiredVariableBoxUpdateScope.activate(extra, this.room);
                 }
                 this.broadcastSnapshot();
             }

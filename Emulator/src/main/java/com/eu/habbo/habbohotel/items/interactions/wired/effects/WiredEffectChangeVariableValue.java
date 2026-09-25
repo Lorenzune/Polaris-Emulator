@@ -29,6 +29,7 @@ import com.eu.habbo.habbohotel.wired.core.WiredInternalVariableSupport;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.habbohotel.wired.core.WiredUserMovementHelper;
+import com.eu.habbo.habbohotel.wired.core.WiredVariableBoxUpdateScope;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
 import java.sql.ResultSet;
@@ -93,21 +94,23 @@ public class WiredEffectChangeVariableValue extends InteractionWiredEffect {
         Room room = ctx.room();
         if (room == null) return;
 
-        switch (this.destinationTargetType) {
-            case TARGET_USER -> this.executeUsers(ctx, room);
-            case TARGET_FURNI -> this.executeFurni(ctx, room);
-            case TARGET_CONTEXT -> this.executeContext(ctx, room);
-            case TARGET_ROOM -> this.executeRoom(ctx, room);
-        }
+        try (WiredVariableBoxUpdateScope scope = WiredVariableBoxUpdateScope.begin()) {
+            switch (this.destinationTargetType) {
+                case TARGET_USER -> this.executeUsers(ctx, room);
+                case TARGET_FURNI -> this.executeFurni(ctx, room);
+                case TARGET_CONTEXT -> this.executeContext(ctx, room);
+                case TARGET_ROOM -> this.executeRoom(ctx, room);
+            }
 
-        this.activateVariableBox(room);
+            this.activateVariableBox(room);
+        }
     }
 
     private void activateVariableBox(Room room) {
         if (room == null || room.getRoomSpecialTypes() == null || this.destinationVariableItemId <= 0) return;
         InteractionWiredExtra extra = room.getRoomSpecialTypes().getExtra(this.destinationVariableItemId);
         if (extra != null) {
-            extra.activateBox(room);
+            WiredVariableBoxUpdateScope.activate(extra, room);
         }
     }
 

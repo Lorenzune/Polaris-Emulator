@@ -17,6 +17,7 @@ import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredContextVariableSupport;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
+import com.eu.habbo.habbohotel.wired.core.WiredVariableBoxUpdateScope;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
 import java.sql.ResultSet;
@@ -58,28 +59,30 @@ public class WiredEffectRemoveVariable extends InteractionWiredEffect {
             return;
         }
 
-        switch (this.targetType) {
-            case TARGET_USER:
-                this.executeUserVariables(ctx, room);
-                break;
-            case TARGET_FURNI:
-                this.executeFurniVariables(ctx, room);
-                break;
-            case TARGET_CONTEXT:
-                this.executeContextVariables(ctx, room);
-                break;
-            default:
-                return;
-        }
+        try (WiredVariableBoxUpdateScope scope = WiredVariableBoxUpdateScope.begin()) {
+            switch (this.targetType) {
+                case TARGET_USER:
+                    this.executeUserVariables(ctx, room);
+                    break;
+                case TARGET_FURNI:
+                    this.executeFurniVariables(ctx, room);
+                    break;
+                case TARGET_CONTEXT:
+                    this.executeContextVariables(ctx, room);
+                    break;
+                default:
+                    return;
+            }
 
-        this.activateVariableBox(room);
+            this.activateVariableBox(room);
+        }
     }
 
     private void activateVariableBox(Room room) {
         if (room == null || room.getRoomSpecialTypes() == null || this.variableItemId <= 0) return;
         InteractionWiredExtra extra = room.getRoomSpecialTypes().getExtra(this.variableItemId);
         if (extra != null) {
-            extra.activateBox(room);
+            WiredVariableBoxUpdateScope.activate(extra, room);
         }
     }
 
