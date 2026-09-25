@@ -1,5 +1,6 @@
 package com.eu.habbo.habbohotel.rooms;
 
+import com.eu.habbo.habbohotel.items.interactions.InteractionWired;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import java.util.Collection;
 import java.util.List;
@@ -53,8 +54,10 @@ public final class RoomWiredRuntime {
         this.gravity.markMoving(item, durationMs);
     }
 
-    void onFurnitureTopologyChanged() {
-        advanceCacheGeneration();
+    void onFurnitureTopologyChanged(HabboItem item, boolean moved) {
+        if (moved && item instanceof InteractionWired) {
+            advanceCacheGeneration();
+        }
         this.gravity.onTopologyChanged();
     }
 

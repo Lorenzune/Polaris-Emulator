@@ -108,6 +108,10 @@ public class WiredTriggerRepeaterShort extends WiredTriggerRepeater {
         }
     }
 
+    public int getRepeatTimeMs() {
+        return this.repeatTime;
+    }
+
     private int clampRepeatTime(int repeatTime) {
         if (repeatTime < MIN_DELAY) {
             return DEFAULT_DELAY;

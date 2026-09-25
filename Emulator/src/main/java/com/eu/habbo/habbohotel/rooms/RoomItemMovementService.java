@@ -278,7 +278,7 @@ final class RoomItemMovementService {
             }
         }
 
-        this.room.onFurnitureTopologyChanged();
+        this.room.onFurnitureTopologyChanged(item, true);
 
         return FurnitureMovementError.NONE;
     }
@@ -292,6 +292,20 @@ final class RoomItemMovementService {
             boolean sendUpdates,
             boolean checkForUnits,
             WiredMovementPhysics physics) {
+        return this.moveFurniToWithPhysics(
+                item, tile, rotation, z, actor, sendUpdates, checkForUnits, physics, false);
+    }
+
+    FurnitureMovementError moveFurniToWithPhysics(
+            HabboItem item,
+            RoomTile tile,
+            int rotation,
+            double z,
+            Habbo actor,
+            boolean sendUpdates,
+            boolean checkForUnits,
+            WiredMovementPhysics physics,
+            boolean physicsFitAlreadyChecked) {
         if (physics == null || !physics.isActive()) {
             return moveFurniTo(item, tile, rotation, z, actor, sendUpdates, checkForUnits);
         }
@@ -329,7 +343,8 @@ final class RoomItemMovementService {
                 item.getBaseItem().getLength(),
                 item.getRotation());
 
-        if (!pluginHelper) {
+        // WiredMoveCarryHelper performs this check first so it can dispatch collision triggers.
+        if (!pluginHelper && !physicsFitAlreadyChecked) {
             FurnitureMovementError fits = furnitureFitsAtWithPhysics(tile, item, rotation, checkForUnits, physics);
             if (fits != FurnitureMovementError.NONE) {
                 return fits;
@@ -445,7 +460,7 @@ final class RoomItemMovementService {
             }
         }
 
-        this.room.onFurnitureTopologyChanged();
+        this.room.onFurnitureTopologyChanged(item, true);
         return FurnitureMovementError.NONE;
     }
 
@@ -677,7 +692,7 @@ final class RoomItemMovementService {
                 }
             }
         }
-        this.room.onFurnitureTopologyChanged();
+        this.room.onFurnitureTopologyChanged(item, true);
         return FurnitureMovementError.NONE;
     }
 
@@ -902,7 +917,7 @@ final class RoomItemMovementService {
                 }
             }
         }
-        this.room.onFurnitureTopologyChanged();
+        this.room.onFurnitureTopologyChanged(item, true);
         return FurnitureMovementError.NONE;
     }
 
@@ -944,7 +959,7 @@ final class RoomItemMovementService {
             this.room.updateHabbosAt(t.x, t.y);
             this.room.updateBotsAt(t.x, t.y);
         }
-        this.room.onFurnitureTopologyChanged();
+        this.room.onFurnitureTopologyChanged(item, true);
         return FurnitureMovementError.NONE;
     }
 

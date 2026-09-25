@@ -35,7 +35,7 @@ public class WiredTriggerRepeater extends InteractionWiredTrigger implements Wir
     private static final int LEGACY_FALLBACK_DELAY = 20 * STEP_MS;
 
     /** The interval in milliseconds between triggers */
-    protected int repeatTime = DEFAULT_DELAY;
+    protected volatile int repeatTime = DEFAULT_DELAY;
 
     public WiredTriggerRepeater(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);

@@ -7,6 +7,7 @@ import com.eu.habbo.habbohotel.items.interactions.InteractionStackHelper;
 import com.eu.habbo.habbohotel.items.interactions.InteractionStackWalkHelper;
 import com.eu.habbo.habbohotel.items.interactions.InteractionTileWalkMagic;
 import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.habbohotel.wired.core.WiredMoveCarryHelper;
 import com.eu.habbo.plugin.events.furniture.FurnitureStackHeightEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +49,22 @@ public class RoomTileManager {
             tile.setState(this.calculateTileState(tile));
         }
 
-        this.room.sendComposer(new com.eu.habbo.messages.outgoing.rooms.UpdateStackHeightComposer(this.room, tiles).compose());
+        WiredMoveCarryHelper.sendOrCollectTileUpdates(this.room, tiles);
+    }
+
+    /** Recomputes state/height after a state toggle while keeping cached tile membership. */
+    public void refreshTiles(Collection<RoomTile> tiles) {
+        if (tiles == null || tiles.isEmpty()) {
+            return;
+        }
+
+        for (RoomTile tile : tiles) {
+            if (tile == null) continue;
+            tile.setStackHeight(this.getStackHeight(tile.x, tile.y, false));
+            tile.setState(this.calculateTileState(tile));
+        }
+
+        WiredMoveCarryHelper.sendOrCollectTileUpdates(this.room, tiles);
     }
 
     /**

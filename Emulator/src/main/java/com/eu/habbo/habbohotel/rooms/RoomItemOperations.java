@@ -39,7 +39,7 @@ final class RoomItemOperations {
             if (RoomAreaHideSupport.isControllerItem(item)) {
                 RoomAreaHideSupport.sendState(this.room, item);
             }
-            this.room.onFurnitureTopologyChanged();
+            this.room.onFurnitureTopologyChanged(item, true);
         } else if (item.getBaseItem().getType() == FurnitureType.WALL) {
             this.sendOrSchedule(new WallItemUpdateComposer(item).compose());
         }
@@ -70,7 +70,7 @@ final class RoomItemOperations {
                 return;
             }
 
-            this.room.updateTiles(this.room
+            this.room.getTileManager().refreshTiles(this.room
                     .getLayout()
                     .getTilesAt(
                             this.room.currentLayout().getTile(item.getX(), item.getY()),
@@ -93,7 +93,7 @@ final class RoomItemOperations {
         }
 
         if (item.getBaseItem().getType() == FurnitureType.FLOOR) {
-            this.room.onFurnitureTopologyChanged();
+            this.room.onFurnitureTopologyChanged(item, false);
         }
     }
 

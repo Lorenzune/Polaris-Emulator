@@ -717,6 +717,20 @@ public class RoomItemManager {
                 item, tile, rotation, z, actor, sendUpdates, checkForUnits, physics);
     }
 
+    FurnitureMovementError moveFurniToWithPhysics(
+            HabboItem item,
+            RoomTile tile,
+            int rotation,
+            double z,
+            Habbo actor,
+            boolean sendUpdates,
+            boolean checkForUnits,
+            WiredMovementPhysics physics,
+            boolean physicsFitAlreadyChecked) {
+        return this.movement.moveFurniToWithPhysics(
+                item, tile, rotation, z, actor, sendUpdates, checkForUnits, physics, physicsFitAlreadyChecked);
+    }
+
     /**
      * Moves furniture to a new position.
      */

@@ -1613,8 +1613,8 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         return this.rollbackState.restore();
     }
 
-    void onFurnitureTopologyChanged() {
-        this.wiredRuntime.onFurnitureTopologyChanged();
+    void onFurnitureTopologyChanged(HabboItem item, boolean moved) {
+        this.wiredRuntime.onFurnitureTopologyChanged(item, moved);
     }
 
     void forgetWiredGravity(HabboItem item) {
@@ -2374,6 +2374,20 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
             WiredMovementPhysics physics) {
         return this.itemManager.moveFurniToWithPhysics(
                 item, tile, rotation, z, actor, sendUpdates, checkForUnits, physics);
+    }
+
+    public FurnitureMovementError moveFurniToWithPhysics(
+            HabboItem item,
+            RoomTile tile,
+            int rotation,
+            double z,
+            Habbo actor,
+            boolean sendUpdates,
+            boolean checkForUnits,
+            WiredMovementPhysics physics,
+            boolean physicsFitAlreadyChecked) {
+        return this.itemManager.moveFurniToWithPhysics(
+                item, tile, rotation, z, actor, sendUpdates, checkForUnits, physics, physicsFitAlreadyChecked);
     }
 
     public FurnitureMovementError slideFurniTo(HabboItem item, RoomTile tile, int rotation) {

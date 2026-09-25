@@ -113,7 +113,7 @@ final class RoomItemRegistry {
         if (wiredItem) {
             WiredManager.invalidateRoom(this.room);
         }
-        this.room.onFurnitureTopologyChanged();
+        this.room.onFurnitureTopologyChanged(item, true);
     }
 
     void unregister(HabboItem item) {
@@ -180,7 +180,7 @@ final class RoomItemRegistry {
         }
         this.room.forgetWiredGravity(item);
         this.room.forgetWiredOpacity(item);
-        this.room.onFurnitureTopologyChanged();
+        this.room.onFurnitureTopologyChanged(item, true);
     }
 
     /** Removes malformed wired furniture from every executable index without deleting the room item. */
