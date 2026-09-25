@@ -47,6 +47,21 @@ class WiredGravityInternalVariableTest {
         assertFalse(WiredInternalVariableSupport.writeFurniValue(room, wall, "@gravity", 1));
     }
 
+    @Test
+    void furniReferenceReportsPhysicalHeightAndFloorOrWallType() {
+        Room room = mock(Room.class);
+        HabboItem floor = floorItem();
+        when(floor.getBaseItem().getHeight()).thenReturn(0.75D);
+        HabboItem wall = mock(HabboItem.class);
+        Item wallBase = mock(Item.class);
+        when(wall.getBaseItem()).thenReturn(wallBase);
+        when(wallBase.getType()).thenReturn(FurnitureType.WALL);
+
+        assertEquals(75, WiredInternalVariableSupport.readFurniValue(room, floor, "@height"));
+        assertEquals(1, WiredInternalVariableSupport.readFurniValue(room, floor, "@type"));
+        assertEquals(2, WiredInternalVariableSupport.readFurniValue(room, wall, "@type"));
+    }
+
     private static HabboItem floorItem() {
         HabboItem item = mock(HabboItem.class);
         Item baseItem = mock(Item.class);

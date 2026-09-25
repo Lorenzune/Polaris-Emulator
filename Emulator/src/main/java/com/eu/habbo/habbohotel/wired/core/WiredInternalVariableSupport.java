@@ -6,6 +6,7 @@ import com.eu.habbo.habbohotel.games.GamePlayer;
 import com.eu.habbo.habbohotel.games.GameTeam;
 import com.eu.habbo.habbohotel.games.GameTeamColors;
 import com.eu.habbo.habbohotel.items.FurnitureType;
+import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameUpCounter;
 import com.eu.habbo.habbohotel.pets.Pet;
 import com.eu.habbo.habbohotel.rooms.FurnitureMovementError;
@@ -308,7 +309,7 @@ public final class WiredInternalVariableSupport {
                 (item.getBaseItem() != null) ? item.getBaseItem().getId() : null;
             case "@height" ->
                 (item.getBaseItem() != null)
-                        ? (int) Math.round(item.getBaseItem().getHeight() * 100)
+                        ? (int) Math.round(Item.getCurrentHeight(item) * 100)
                         : null;
             case "@state" -> parseInteger(item.getExtradata());
             case "@position_x" -> (int) item.getX();
@@ -316,7 +317,8 @@ public final class WiredInternalVariableSupport {
             case "@rotation" -> item.getRotation();
             case "@altitude" -> (int) Math.round(item.getZ() * 100);
             case "@is_invisible" -> 0;
-            case "@type" -> 0;
+            case "@type" ->
+                (item.getBaseItem() != null && item.getBaseItem().getType() == FurnitureType.WALL) ? 2 : 1;
             case "@is_stackable" ->
                 (item.getBaseItem() != null && item.getBaseItem().allowStack()) ? 1 : 0;
             case "@can_stand_on" ->
