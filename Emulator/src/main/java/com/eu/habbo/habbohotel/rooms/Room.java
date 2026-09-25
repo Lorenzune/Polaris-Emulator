@@ -304,6 +304,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
             boolean isPaused) {
         this.media.setVideo(videoId, senderName, playlist, isAudioOnly, positionMs, isPaused);
         this.synchronizeYoutubeTelevisions();
+        SearchRoomsEvent.invalidateCachedResults();
     }
 
     public void setYoutubeVideo(
@@ -323,6 +324,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     public void clearYoutubeVideo() {
         this.media.clearVideo();
         this.synchronizeYoutubeTelevisions();
+        SearchRoomsEvent.invalidateCachedResults();
     }
 
     public String getMusicPartyCurrentVideo() {
@@ -356,10 +358,12 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     public void setMusicPartyVideo(
             String videoId, String senderName, java.util.List<String> playlist, long positionMs, boolean isPaused) {
         this.musicPartyMedia.setVideo(videoId, senderName, playlist, true, positionMs, isPaused);
+        SearchRoomsEvent.invalidateCachedResults();
     }
 
     public void clearMusicPartyVideo() {
         this.musicPartyMedia.clearVideo();
+        SearchRoomsEvent.invalidateCachedResults();
     }
 
     private void synchronizeYoutubeTelevisions() {
@@ -1799,6 +1803,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
             }
         }
         this.unitManager.removeHabbo(habbo);
+        this.deactivateTransientMediaWhenEmpty();
     }
 
     public void removeHabbo(Habbo habbo, boolean sendRemovePacket) {
@@ -1809,6 +1814,27 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
             }
         }
         this.unitManager.removeHabbo(habbo, sendRemovePacket);
+        this.deactivateTransientMediaWhenEmpty();
+    }
+
+    /**
+     * Playback belongs to the live room session. Do not keep a YouTube/Music
+     * Party state alive after the last user leaves, otherwise the navigator can
+     * keep advertising a room whose player is no longer visible.
+     */
+    private void deactivateTransientMediaWhenEmpty() {
+        if (this.getUserCount() > 0) return;
+
+        boolean hasYoutubeMedia = !this.getYoutubeCurrentVideo().isEmpty();
+        boolean hasMusicPartyMedia = !this.getMusicPartyCurrentVideo().isEmpty();
+        boolean hasYoutubeWatchers = !this.getYoutubeWatchers().isEmpty();
+
+        if (!hasYoutubeMedia && !hasMusicPartyMedia && !hasYoutubeWatchers) return;
+
+        if (hasYoutubeMedia) this.clearYoutubeVideo();
+        if (hasMusicPartyMedia) this.clearMusicPartyVideo();
+        this.getYoutubeWatchers().clear();
+        SearchRoomsEvent.invalidateCachedResults();
     }
 
     private void cleanupYoutubeWatcher(Habbo habbo) {
