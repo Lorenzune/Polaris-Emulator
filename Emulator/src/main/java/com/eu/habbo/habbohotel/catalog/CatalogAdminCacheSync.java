@@ -24,6 +24,14 @@ public final class CatalogAdminCacheSync {
     private CatalogAdminCacheSync() {
     }
 
+    public static CatalogManager currentCatalogManager() {
+        return Emulator.getGameEnvironment().getCatalogManager();
+    }
+
+    public static Connection openCatalogConnection() throws SQLException {
+        return Emulator.getDatabase().getDataSource().getConnection();
+    }
+
     public static void attachCreatedPage(CatalogPage page, int parentId, int orderNum, CatalogPageType pageType) {
         if (page == null) return;
         reparentPage(page, parentId, orderNum, pageType);
@@ -35,20 +43,19 @@ public final class CatalogAdminCacheSync {
         CatalogManager catalogManager = Emulator.getGameEnvironment().getCatalogManager();
         int oldParentId = page.getParentId();
 
-        if (oldParentId != newParentId) {
-            CatalogPage oldParent = catalogManager.getCatalogPage(oldParentId, pageType);
-            if (oldParent != null) {
-                oldParent.getChildPages().remove(page.getId());
-            }
-
-            CatalogPage newParent = catalogManager.getCatalogPage(newParentId, pageType);
-            if (newParent != null) {
-                newParent.addChildPage(page);
-            }
-
-            page.setParentId(newParentId);
+        CatalogPage oldParent = catalogManager.getCatalogPage(oldParentId, pageType);
+        if (oldParent != null && oldParent.getId() != newParentId) {
+            oldParent.getChildPages().remove(page.getId());
         }
 
+        CatalogPage newParent = catalogManager.getCatalogPage(newParentId, pageType);
+        if (newParent != null) {
+            // Also add pages whose parent_id did not change. Newly-created pages are
+            // already in the global map, but are not part of the parent's child map yet.
+            newParent.addChildPage(page);
+        }
+
+        page.setParentId(newParentId);
         page.setOrderNum(newOrderNum);
     }
 

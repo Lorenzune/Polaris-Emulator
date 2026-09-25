@@ -52,6 +52,10 @@ import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminSaveOffer
 import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminSavePageEvent;
 import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminSavePageIconEvent;
 import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminSavePageImagesEvent;
+import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminSetPageEnabledEvent;
+import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminSetPageVisibleEvent;
+import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminReorderOffersEvent;
+import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminMoveOfferToPageEvent;
 import com.eu.habbo.messages.incoming.catalog.marketplace.BuyItemEvent;
 import com.eu.habbo.messages.incoming.catalog.marketplace.RequestCreditsEvent;
 import com.eu.habbo.messages.incoming.catalog.marketplace.RequestItemInfoEvent;
@@ -749,6 +753,10 @@ public class PacketManager {
         this.registerHandler(Incoming.CatalogAdminSavePageIconEvent, CatalogAdminSavePageIconEvent.class);
         this.registerHandler(Incoming.CatalogAdminLoadOfferEvent, CatalogAdminLoadOfferEvent.class);
         this.registerHandler(Incoming.CatalogAdminLoadPageEvent, CatalogAdminLoadPageEvent.class);
+        this.registerHandler(Incoming.CatalogAdminSetPageEnabledEvent, CatalogAdminSetPageEnabledEvent.class);
+        this.registerHandler(Incoming.CatalogAdminSetPageVisibleEvent, CatalogAdminSetPageVisibleEvent.class);
+        this.registerHandler(Incoming.CatalogAdminReorderOffersEvent, CatalogAdminReorderOffersEvent.class);
+        this.registerHandler(Incoming.CatalogAdminMoveOfferToPageEvent, CatalogAdminMoveOfferToPageEvent.class);
         this.registerHandler(Incoming.RecyclerAdminRequestEvent, RecyclerAdminRequestEvent.class);
         this.registerHandler(Incoming.RecyclerAdminSaveEvent, RecyclerAdminSaveEvent.class);
     }

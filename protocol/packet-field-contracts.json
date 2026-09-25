@@ -16192,6 +16192,107 @@
           "name": "broadcasterId"
         }
       ]
+    },
+    {
+      "name": "CATALOG_ADMIN_SET_PAGE_ENABLED",
+      "direction": "client_to_server",
+      "header": 10067,
+      "java": {
+        "symbol": "CatalogAdminSetPageEnabledEvent",
+        "className": "CatalogAdminSetPageEnabledEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogAdminSetPageEnabledEvent.java"
+      },
+      "typescript": {
+        "symbol": "CATALOG_ADMIN_SET_PAGE_ENABLED",
+        "className": "CatalogAdminSetPageEnabledComposer",
+        "path": "packages/communication/src/messages/outgoing/catalog/CatalogAdminSetPageEnabledComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "pageId"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "enabled"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "catalogMode"
+        }
+      ]
+    },
+    {
+      "name": "CATALOG_ADMIN_SET_PAGE_VISIBLE",
+      "direction": "client_to_server",
+      "header": 10068,
+      "java": {
+        "symbol": "CatalogAdminSetPageVisibleEvent",
+        "className": "CatalogAdminSetPageVisibleEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogAdminSetPageVisibleEvent.java"
+      },
+      "typescript": {
+        "symbol": "CATALOG_ADMIN_SET_PAGE_VISIBLE",
+        "className": "CatalogAdminSetPageVisibleComposer",
+        "path": "packages/communication/src/messages/outgoing/catalog/CatalogAdminSetPageVisibleComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "pageId"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "visible"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "catalogMode"
+        }
+      ]
+    },
+    {
+      "name": "CATALOG_ADMIN_MOVE_OFFER_TO_PAGE",
+      "direction": "client_to_server",
+      "header": 10083,
+      "java": {
+        "symbol": "CatalogAdminMoveOfferToPageEvent",
+        "className": "CatalogAdminMoveOfferToPageEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogAdminMoveOfferToPageEvent.java"
+      },
+      "typescript": {
+        "symbol": "CATALOG_ADMIN_MOVE_OFFER_TO_PAGE",
+        "className": "CatalogAdminMoveOfferToPageComposer",
+        "path": "packages/communication/src/messages/outgoing/catalog/CatalogAdminMoveOfferToPageComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "offerId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "targetPageId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "orderNumber"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "catalogMode"
+        }
+      ]
     }
   ],
   "unpaired": [
@@ -23656,6 +23757,22 @@
           "name": "urlHint"
         }
       ]
+    },
+    {
+      "name": "CATALOG_ADMIN_REORDER_OFFERS",
+      "direction": "client_to_server",
+      "header": 10069,
+      "java": {
+        "symbol": "CatalogAdminReorderOffersEvent",
+        "className": "CatalogAdminReorderOffersEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogAdminReorderOffersEvent.java"
+      },
+      "typescript": {
+        "symbol": "CATALOG_ADMIN_REORDER_OFFERS",
+        "className": "CatalogAdminReorderOffersComposer",
+        "path": "packages/communication/src/messages/outgoing/catalog/CatalogAdminReorderOffersComposer.ts"
+      },
+      "reason": "The composer serializes each variable offer-id/order pair by appending values in a loop; the analyzer currently rejects this mutable-array pattern."
     }
   ]
 }
