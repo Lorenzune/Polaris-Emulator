@@ -1,5 +1,8 @@
 package com.eu.habbo.messages.incoming.modtool;
 
+import com.eu.habbo.habbohotel.modtool.ModToolIssue;
+import com.eu.habbo.habbohotel.modtool.ModToolTicketState;
+import com.eu.habbo.habbohotel.modtool.ModToolTicketType;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -18,5 +21,26 @@ class ModToolTicketGuardTest {
         assertFalse(ModToolTicketGuard.isValidReleaseBatch(0));
         assertTrue(ModToolTicketGuard.isValidReleaseBatch(ModToolTicketGuard.MAX_RELEASE_BATCH));
         assertFalse(ModToolTicketGuard.isValidReleaseBatch(ModToolTicketGuard.MAX_RELEASE_BATCH + 1));
+    }
+
+    @Test
+    void onlyUnclaimedOpenFurnitureReportsCanBeClaimedAndClosed() {
+        ModToolIssue furnitureReport = new ModToolIssue(1, "reporter", 0, "", 7, "furniture", ModToolTicketType.FURNITURE);
+
+        assertTrue(ModToolTicketGuard.canClaimAndCloseFurnitureReport(furnitureReport));
+
+        furnitureReport.modId = 42;
+        assertFalse(ModToolTicketGuard.canClaimAndCloseFurnitureReport(furnitureReport));
+
+        furnitureReport.modId = 0;
+        furnitureReport.state = ModToolTicketState.PICKED;
+        assertFalse(ModToolTicketGuard.canClaimAndCloseFurnitureReport(furnitureReport));
+
+        furnitureReport.state = ModToolTicketState.CLOSED;
+        assertFalse(ModToolTicketGuard.canClaimAndCloseFurnitureReport(furnitureReport));
+
+        furnitureReport.state = ModToolTicketState.OPEN;
+        furnitureReport.type = ModToolTicketType.NORMAL;
+        assertFalse(ModToolTicketGuard.canClaimAndCloseFurnitureReport(furnitureReport));
     }
 }

@@ -21,8 +21,15 @@ public class ModToolCloseTicketEvent extends MessageHandler {
 
             ModToolIssue issue = Emulator.getGameEnvironment().getModToolManager().getTicket(ticketId);
 
-            if (!ModToolTicketGuard.isOwnedBy(issue, this.client.getHabbo()))
-                return;
+            if (!ModToolTicketGuard.isOwnedBy(issue, this.client.getHabbo())) {
+                // Furniture reports are handled in their dedicated Mod Tools panel,
+                // where resolving an open report also claims it for the moderator.
+                if (!ModToolTicketGuard.canClaimAndCloseFurnitureReport(issue)) {
+                    return;
+                }
+
+                Emulator.getGameEnvironment().getModToolManager().pickTicket(issue, this.client.getHabbo());
+            }
 
             Habbo sender = Emulator.getGameEnvironment().getHabboManager().getHabbo(issue.senderId);
 
