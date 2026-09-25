@@ -3,6 +3,7 @@ package com.eu.habbo.habbohotel.rooms;
 import com.eu.habbo.habbohotel.items.FurnitureType;
 import com.eu.habbo.habbohotel.items.interactions.InteractionPostIt;
 import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.habbohotel.users.ItemFootprintListener;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMaps;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
@@ -12,7 +13,11 @@ import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -26,6 +31,18 @@ final class RoomItemIndex {
     private final Int2LongMap itemIncarnations = Int2LongMaps.synchronize(new Int2LongOpenHashMap(0));
     private final AtomicLong incarnationSequence = new AtomicLong();
     private final ConcurrentHashMap<RoomTile, Set<HabboItem>> tileCache = new ConcurrentHashMap<>();
+
+    private static final long[] NO_TILES = new long[0];
+    /** Floor furni by the tiles they cover, so a tile lookup no longer scans every furni. Guarded by items. */
+    private final Map<Long, List<HabboItem>> itemsByTile = new HashMap<>();
+    /** The tiles each furni was filed under, by item id (none for wall furni). Guarded by items. */
+    private final Int2ObjectMap<long[]> indexedFootprints = new Int2ObjectOpenHashMap<>();
+    /** Furni that moved, joined or left since the last lookup; refiled before the next one. */
+    private final Object movedItemsLock = new Object();
+    private Set<HabboItem> movedItems = new HashSet<>();
+
+    private final ItemFootprintListener footprintListener = this::markMoved;
+    private boolean tileIndexBuilt = false;
 
     RoomItemIndex(Room room) {
         this.room = room;
@@ -104,12 +121,12 @@ final class RoomItemIndex {
     }
 
     Set<HabboItem> itemsAt(RoomTile tile, boolean returnOnFirst) {
-        Set<HabboItem> result = new HashSet<>(0);
         if (tile == null) {
-            return result;
+            return new HashSet<>(0);
         }
 
-        if (this.room.isLoaded()) {
+        boolean loaded = this.room.isLoaded();
+        if (loaded && !this.hasMovedItems()) {
             Set<HabboItem> cachedItems = this.tileCache.get(tile);
             if (cachedItems != null) {
                 return cachedItems;
@@ -117,39 +134,178 @@ final class RoomItemIndex {
         }
 
         synchronized (this.items) {
-            for (HabboItem item : this.items.values()) {
-                if (item == null || item.getBaseItem().getType() != FurnitureType.FLOOR) {
-                    continue;
-                }
+            this.syncTileIndex();
 
-                int width;
-                int length;
-                if (item.getRotation() != 2 && item.getRotation() != 6) {
-                    width = Math.max(item.getBaseItem().getWidth(), 1);
-                    length = Math.max(item.getBaseItem().getLength(), 1);
-                } else {
-                    width = Math.max(item.getBaseItem().getLength(), 1);
-                    length = Math.max(item.getBaseItem().getWidth(), 1);
+            if (loaded) {
+                Set<HabboItem> cachedItems = this.tileCache.get(tile);
+                if (cachedItems != null) {
+                    return cachedItems;
                 }
+            }
 
-                if (tile.x < item.getX()
-                        || tile.x > item.getX() + width - 1
-                        || tile.y < item.getY()
-                        || tile.y > item.getY() + length - 1) {
-                    continue;
-                }
+            List<HabboItem> onTile = this.itemsByTile.get(tileKey(tile.x, tile.y));
+            Set<HabboItem> result;
+            if (onTile == null || onTile.isEmpty()) {
+                result = new HashSet<>(0);
+            } else if (returnOnFirst) {
+                result = new HashSet<>(1);
+                result.add(onTile.get(0));
+                return result;
+            } else {
+                result = new HashSet<>(onTile);
+            }
 
-                result.add(item);
-                if (returnOnFirst) {
-                    return result;
+            if (loaded) {
+                this.tileCache.put(tile, result);
+            }
+            return result;
+        }
+    }
+
+    /** Called when a furni joins the room: the tile index files it on the next lookup. */
+    void trackItem(HabboItem item) {
+        if (item != null) {
+            item.setFootprintListener(this.footprintListener);
+            this.markMoved(item);
+        }
+    }
+
+    /** Called when a furni leaves the room: the tile index drops it on the next lookup. */
+    void untrackItem(HabboItem item) {
+        if (item != null) {
+            item.clearFootprintListener(this.footprintListener);
+            this.markMoved(item);
+        }
+    }
+
+    /** Brings the tile index up to date: only the furni that moved are refiled. Holds the items lock. */
+    private void syncTileIndex() {
+        if (!this.tileIndexBuilt) {
+            this.rebuildTileIndex();
+            return;
+        }
+
+        for (HabboItem item : this.takeMovedItems()) {
+            this.refile(item);
+        }
+
+        // Furni put straight into the item map (plugins, tests) were never tracked: start over.
+        if (this.indexedFootprints.size() != this.items.size()) {
+            this.rebuildTileIndex();
+        }
+    }
+
+    private void markMoved(HabboItem item) {
+        synchronized (this.movedItemsLock) {
+            this.movedItems.add(item);
+        }
+    }
+
+    private boolean hasMovedItems() {
+        synchronized (this.movedItemsLock) {
+            return !this.movedItems.isEmpty();
+        }
+    }
+
+    private Set<HabboItem> takeMovedItems() {
+        synchronized (this.movedItemsLock) {
+            if (this.movedItems.isEmpty()) return Set.of();
+            Set<HabboItem> moved = this.movedItems;
+            // Do not retain a room-sized hash table for subsequent single-item updates.
+            // Notifications arriving during reindexing enter the next batch.
+            this.movedItems = new HashSet<>();
+            return moved;
+        }
+    }
+
+    private void rebuildTileIndex() {
+        this.itemsByTile.clear();
+        this.indexedFootprints.clear();
+        this.takeMovedItems();
+        this.tileCache.clear();
+
+        for (HabboItem item : this.items.values()) {
+            if (item == null) {
+                continue;
+            }
+            item.setFootprintListener(this.footprintListener);
+            this.file(item);
+        }
+        this.tileIndexBuilt = true;
+    }
+
+    private void refile(HabboItem item) {
+        long[] previous = this.indexedFootprints.remove(item.getId());
+        if (previous != null) {
+            int itemId = item.getId();
+            for (long key : previous) {
+                List<HabboItem> onTile = this.itemsByTile.get(key);
+                if (onTile != null) {
+                    onTile.removeIf(indexed -> indexed.getId() == itemId);
+                    if (onTile.isEmpty()) {
+                        this.itemsByTile.remove(key);
+                    }
                 }
+                this.evictCachedTile(key);
             }
         }
 
-        if (this.room.isLoaded()) {
-            this.tileCache.put(tile, result);
+        // An item with the same id may have replaced this instance while both were dirty.
+        // Always file the instance currently owned by the room, independent of batch order.
+        HabboItem current = this.items.get(item.getId());
+        if (current != null) {
+            for (long key : this.file(current)) {
+                this.evictCachedTile(key);
+            }
         }
-        return result;
+    }
+
+    private long[] file(HabboItem item) {
+        long[] footprint = footprint(item);
+        this.indexedFootprints.put(item.getId(), footprint);
+        for (long key : footprint) {
+            this.itemsByTile.computeIfAbsent(key, ignored -> new ArrayList<>(2)).add(item);
+        }
+        return footprint;
+    }
+
+    private void evictCachedTile(long key) {
+        short x = (short) (key >> 32);
+        short y = (short) key;
+        RoomLayout layout = this.room.getLayout();
+        RoomTile tile = (layout != null) ? layout.getTile(x, y) : null;
+        // Tiles are keyed by position, so any tile at the same spot finds the cached entry.
+        this.tileCache.remove((tile != null) ? tile : new RoomTile(x, y, (short) 0, RoomTileState.INVALID, false));
+    }
+
+    /** The tiles a floor furni covers, the same rule the old whole-room scan used. */
+    static long[] footprint(HabboItem item) {
+        if (item.getBaseItem() == null || item.getBaseItem().getType() != FurnitureType.FLOOR) {
+            return NO_TILES;
+        }
+
+        int width;
+        int length;
+        if (item.getRotation() != 2 && item.getRotation() != 6) {
+            width = Math.max(item.getBaseItem().getWidth(), 1);
+            length = Math.max(item.getBaseItem().getLength(), 1);
+        } else {
+            width = Math.max(item.getBaseItem().getLength(), 1);
+            length = Math.max(item.getBaseItem().getWidth(), 1);
+        }
+
+        long[] keys = new long[width * length];
+        int index = 0;
+        for (int dx = 0; dx < width; dx++) {
+            for (int dy = 0; dy < length; dy++) {
+                keys[index++] = tileKey(item.getX() + dx, item.getY() + dy);
+            }
+        }
+        return keys;
+    }
+
+    static long tileKey(int x, int y) {
+        return ((long) (short) x << 32) | ((short) y & 0xFFFFL);
     }
 
     private Set<HabboItem> itemsOfType(FurnitureType type) {
@@ -166,7 +322,16 @@ final class RoomItemIndex {
 
     void clear() {
         synchronized (this.items) {
+            for (HabboItem item : this.items.values()) {
+                if (item != null) {
+                    item.clearFootprintListener(this.footprintListener);
+                }
+            }
             this.items.clear();
+            this.itemsByTile.clear();
+            this.indexedFootprints.clear();
+            this.takeMovedItems();
+            this.tileIndexBuilt = false;
         }
         synchronized (this.ownerCounts) {
             this.ownerCounts.clear();

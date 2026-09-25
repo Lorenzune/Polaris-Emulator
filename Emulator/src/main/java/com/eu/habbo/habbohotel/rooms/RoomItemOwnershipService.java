@@ -46,6 +46,7 @@ final class RoomItemOwnershipService {
             try {
                 this.index.items().put(item.getId(), item);
                 this.index.registerIncarnation(item);
+                this.index.trackItem(item);
             } catch (Exception ignored) {
                 // Preserve the legacy best-effort registration behavior.
             }
@@ -87,6 +88,7 @@ final class RoomItemOwnershipService {
         }
 
         if (removed != null) {
+            this.index.untrackItem(removed);
             this.index.unregisterIncarnation(removed);
             this.removeOwnerIndex(removed);
             this.registry.unregister(item);

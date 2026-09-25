@@ -75,6 +75,7 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
     private RoomTile previousLocation;
     private Set<RoomTile> previousOccupiedTiles;
     private long lastMoveTimestamp;
+    private volatile ItemFootprintListener footprintListener;
 
     public HabboItem(ResultSet set, Item baseItem) throws SQLException {
         this.id = set.getInt("id");
@@ -235,6 +236,7 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
 
     public void setX(short x) {
         this.x = x;
+        this.notifyFootprintChanged();
     }
 
     public short getY() {
@@ -243,6 +245,7 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
 
     public void setY(short y) {
         this.y = y;
+        this.notifyFootprintChanged();
     }
 
     public double getZ() {
@@ -260,6 +263,24 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
 
     public void setRotation(int rotation) {
         this.rotation = (byte) (rotation % 8);
+        this.notifyFootprintChanged();
+    }
+
+    public void setFootprintListener(ItemFootprintListener listener) {
+        this.footprintListener = listener;
+    }
+
+    public void clearFootprintListener(ItemFootprintListener listener) {
+        if (this.footprintListener == listener) {
+            this.footprintListener = null;
+        }
+    }
+
+    private void notifyFootprintChanged() {
+        ItemFootprintListener listener = this.footprintListener;
+        if (listener != null) {
+            listener.onFootprintChanged(this);
+        }
     }
 
     public String getExtradata() {
