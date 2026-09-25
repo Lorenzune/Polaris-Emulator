@@ -62,9 +62,10 @@ public class SessionResumeManager {
             previousEffectEnd = unit.getEffectEndTimestamp();
         }
 
+        GhostSession ghost = new GhostSession(habbo, ssoTicket, previousEffectId, previousEffectEnd);
+        ghostSessions.put(userId, ghost);
         ScheduledFuture<?> future = Emulator.getThreading().run(() -> {
-            GhostSession ghost = ghostSessions.remove(userId);
-            if (ghost != null) {
+            if (ghostSessions.remove(userId, ghost)) {
                 LOGGER.info("[SessionResume] Grace period expired for {} (id={}) - performing full disconnect",
                         ghost.habbo.getHabboInfo().getUsername(), userId);
                 performFullDisconnect(ghost.habbo);
@@ -76,11 +77,14 @@ public class SessionResumeManager {
             // shutting down). Parking now would leave a GhostSession that nothing
             // can ever reap (the Habbo + room refs pinned for the JVM lifetime),
             // so disconnect immediately instead.
-            performFullDisconnect(habbo);
+            ghostSessions.remove(userId, ghost);
             return false;
         }
 
-        ghostSessions.put(userId, new GhostSession(habbo, ssoTicket, future, previousEffectId, previousEffectEnd));
+        ghost.disposeFuture = future;
+        if (ghostSessions.get(userId) != ghost) {
+            future.cancel(false);
+        }
 
         applyPausedEffect(habbo);
 
@@ -225,15 +229,13 @@ public class SessionResumeManager {
     private static class GhostSession {
         final Habbo habbo;
         final String ssoTicket;
-        final ScheduledFuture<?> disposeFuture;
+        volatile ScheduledFuture<?> disposeFuture;
         final int previousEffectId;
         final int previousEffectEnd;
 
-        GhostSession(Habbo habbo, String ssoTicket, ScheduledFuture<?> disposeFuture,
-                     int previousEffectId, int previousEffectEnd) {
+        GhostSession(Habbo habbo, String ssoTicket, int previousEffectId, int previousEffectEnd) {
             this.habbo = habbo;
             this.ssoTicket = ssoTicket;
-            this.disposeFuture = disposeFuture;
             this.previousEffectId = previousEffectId;
             this.previousEffectEnd = previousEffectEnd;
         }
