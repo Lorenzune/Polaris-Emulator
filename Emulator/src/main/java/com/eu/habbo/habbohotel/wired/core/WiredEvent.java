@@ -226,8 +226,10 @@ public final class WiredEvent {
         this.chatStyle = builder.chatStyle;
         this.signalUserCount = builder.signalUserCount;
         this.signalFurniCount = builder.signalFurniCount;
-        this.signalSourceUsers = List.copyOf(builder.signalSourceUsers);
-        this.signalSourceItems = List.copyOf(builder.signalSourceItems);
+        // Builder setters already take immutable snapshots. Reuse those snapshots so
+        // repeated signal events can share the same forwarded-source lists.
+        this.signalSourceUsers = builder.signalSourceUsers;
+        this.signalSourceItems = builder.signalSourceItems;
         this.signalPerUser = builder.signalPerUser;
         this.signalPerFurni = builder.signalPerFurni;
         this.variableTargetType = builder.variableTargetType;
@@ -625,17 +627,26 @@ public final class WiredEvent {
         }
 
         public Builder signalSourceUsers(List<RoomUnit> signalSourceUsers) {
-            this.signalSourceUsers = signalSourceUsers != null
-                    ? signalSourceUsers.stream().filter(unit -> unit != null).toList()
-                    : List.of();
+            this.signalSourceUsers = immutableNonNullSnapshot(signalSourceUsers);
             return this;
         }
 
         public Builder signalSourceItems(List<HabboItem> signalSourceItems) {
-            this.signalSourceItems = signalSourceItems != null
-                    ? signalSourceItems.stream().filter(item -> item != null).toList()
-                    : List.of();
+            this.signalSourceItems = immutableNonNullSnapshot(signalSourceItems);
             return this;
+        }
+
+        private static <T> List<T> immutableNonNullSnapshot(List<T> values) {
+            if (values == null || values.isEmpty()) {
+                return List.of();
+            }
+
+            try {
+                return List.copyOf(values);
+            } catch (NullPointerException ignored) {
+                // Preserve the builder's historical behavior of dropping nulls.
+                return values.stream().filter(java.util.Objects::nonNull).toList();
+            }
         }
 
         public Builder signalPerUser(boolean signalPerUser) {

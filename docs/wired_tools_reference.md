@@ -96,6 +96,8 @@ This allows safe rollout during migration.
 | `wired.abuse.max.events.per.window` | `100` | Maximum identical events allowed inside the abuse rate-limit window. |
 | `wired.abuse.rate.limit.window.ms` | `10000` | Time window in milliseconds used by the abuse limiter. |
 | `wired.abuse.ban.duration.ms` | `600000` | Room wired-ban duration in milliseconds after abuse detection. |
+| `wired.signal.max.events.per.chain` | `2048` | Maximum signal events admitted in one synchronous chain; `0` disables this limit. |
+| `wired.signal.max.chain.ms` | `250` | Maximum synchronous duration for one signal chain in milliseconds; `0` disables this limit. |
 | `wired.monitor.usage.window.ms` | `1000` | Rolling window size used to calculate monitor usage. |
 | `wired.monitor.usage.limit` | `1000` | Maximum usage budget allowed in one monitor window. |
 | `wired.monitor.delayed.events.limit` | `100` | Maximum delayed wired events that may be pending in one room. |

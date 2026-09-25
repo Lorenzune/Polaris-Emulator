@@ -14,7 +14,12 @@ public final class RoomWiredDisableSupport {
             return false;
         }
 
-        for (HabboItem item : room.getFloorItems()) {
+        RoomSpecialTypes specialTypes = room.getRoomSpecialTypes();
+        if (specialTypes == null) {
+            return false;
+        }
+
+        for (HabboItem item : specialTypes.getItemsOfType(InteractionWiredDisableControl.class)) {
             if (isActiveController(item)) {
                 return true;
             }
