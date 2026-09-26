@@ -138,7 +138,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     private final RoomRepository repository;
     private final RoomWiredAccessService wiredAccess;
     private final RoomWiredVisibilityService wiredVisibility = new RoomWiredVisibilityService(this);
-    private final RoomWiredRuntime wiredRuntime = new RoomWiredRuntime(this);
+    private final RoomWiredRuntime wiredRuntime;
     private final RoomRollbackState rollbackState = new RoomRollbackState(this);
     private final RoomUserCountPersistence userCountPersistence;
     public volatile double lastCycleCpuMs = 0.0;
@@ -397,6 +397,8 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         this.repository = new RoomRepository(this.dependencies.database());
         this.wiredAccess = new RoomWiredAccessService(this, this.repository);
         this.id = id;
+        this.wiredRuntime = new RoomWiredRuntime(
+                this, this.dependencies.database(), this.dependencies.persistence()::execute);
         this.ownerId = ownerId;
         this.userCountPersistence = this.createUserCountPersistence();
         this.bannedHabbos = new Int2ObjectOpenHashMap<>();
@@ -422,6 +424,8 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         this.wiredAccess = new RoomWiredAccessService(this, this.repository);
         RoomSnapshot.Initial initial = RoomSnapshot.readInitial(set);
         this.id = initial.id();
+        this.wiredRuntime = new RoomWiredRuntime(
+                this, this.dependencies.database(), this.dependencies.persistence()::execute);
         this.ownerId = initial.ownerId();
         try {
             this.navigatorOrder = set.getInt("navigator_order");
@@ -2445,6 +2449,19 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     public FurnitureMovementError moveFurniTo(
             HabboItem item, RoomTile tile, int rotation, Habbo actor, boolean sendUpdates, boolean checkForUnits) {
         return this.itemManager.moveFurniTo(item, tile, rotation, actor, sendUpdates, checkForUnits);
+    }
+
+    public FurnitureMovementError moveFurniTo(
+            HabboItem item,
+            RoomTile tile,
+            int rotation,
+            Habbo actor,
+            boolean sendUpdates,
+            boolean checkForUnits,
+            boolean moveThroughFurniture,
+            boolean maintainHeight) {
+        return this.itemManager.moveFurniTo(
+                item, tile, rotation, actor, sendUpdates, checkForUnits, moveThroughFurniture, maintainHeight);
     }
 
     public FurnitureMovementError moveFurniTo(HabboItem item, RoomTile tile, int rotation, double z, Habbo actor) {

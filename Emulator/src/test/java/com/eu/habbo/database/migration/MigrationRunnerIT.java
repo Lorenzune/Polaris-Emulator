@@ -113,6 +113,51 @@ class MigrationRunnerIT {
     }
 
     @Test
+    void furnitureVisualStateMovesFromOpacityTableToItems() throws Exception {
+        requireDocker();
+        try (HikariDataSource ds = TestDatabase.freshDatabase("mig_opacity_scaling")) {
+            Flyway.configure()
+                    .dataSource(ds)
+                    .locations(MigrationRunner.MIGRATION_LOCATION)
+                    .target("20260925120000")
+                    .placeholderReplacement(false)
+                    .load()
+                    .migrate();
+
+            // Simulate an older installation with the former per-room state table.
+            try (Connection c = ds.getConnection(); Statement s = c.createStatement()) {
+                s.execute("INSERT INTO `items` (`id`, `room_id`) VALUES (9001, 42)");
+                s.execute("""
+                        CREATE TABLE `room_furni_opacity` (
+                            `room_id` INT(11) NOT NULL,
+                            `furni_id` INT(11) NOT NULL,
+                            `opacity` TINYINT UNSIGNED NOT NULL DEFAULT 100,
+                            `click_through` TINYINT(1) NOT NULL DEFAULT 0,
+                            `scaling` SMALLINT UNSIGNED NOT NULL DEFAULT 100,
+                            PRIMARY KEY (`room_id`, `furni_id`)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                        """);
+                s.execute("""
+                        INSERT INTO `room_furni_opacity` (`room_id`, `furni_id`, `opacity`, `click_through`, `scaling`)
+                        VALUES (42, 9001, 67, 1, 185)
+                        """);
+            }
+
+            MigrationRunner.migrate(ds);
+
+            assertTrue(columnExists(ds, "items", "wired_opacity"));
+            assertTrue(columnExists(ds, "items", "wired_scaling"));
+            assertTrue(!tableExists(ds, "room_furni_opacity"));
+            assertEquals(
+                    67,
+                    intValue(ds, "SELECT wired_opacity FROM items WHERE id = 9001"));
+            assertEquals(
+                    200,
+                    intValue(ds, "SELECT wired_scaling FROM items WHERE id = 9001"));
+        }
+    }
+
+    @Test
     void realArcturusFixtureMigratesAndPreservesHotelData() throws Exception {
         requireDocker();
 

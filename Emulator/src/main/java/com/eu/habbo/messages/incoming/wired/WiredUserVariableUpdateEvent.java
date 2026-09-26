@@ -21,6 +21,7 @@ public class WiredUserVariableUpdateEvent extends MessageHandler {
     private static final int INTERNAL_FURNI_ALTITUDE = -1015;
     private static final int INTERNAL_FURNI_OPACITY = -1001;
     private static final int INTERNAL_FURNI_GRAVITY = -1002;
+    private static final int INTERNAL_FURNI_SCALING = -1007;
 
     @Override
     public void handle() throws Exception {
@@ -124,6 +125,7 @@ public class WiredUserVariableUpdateEvent extends MessageHandler {
                 case INTERNAL_FURNI_ALTITUDE -> "@altitude";
                 case INTERNAL_FURNI_OPACITY -> "@opacity";
                 case INTERNAL_FURNI_GRAVITY -> "@gravity";
+                case INTERNAL_FURNI_SCALING -> "@scaling";
                 default -> null;
             };
         }

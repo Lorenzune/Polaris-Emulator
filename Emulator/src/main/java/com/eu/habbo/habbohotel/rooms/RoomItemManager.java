@@ -754,6 +754,19 @@ public class RoomItemManager {
         return this.movement.moveFurniTo(item, tile, rotation, actor, sendUpdates, checkForUnits);
     }
 
+    public FurnitureMovementError moveFurniTo(
+            HabboItem item,
+            RoomTile tile,
+            int rotation,
+            Habbo actor,
+            boolean sendUpdates,
+            boolean checkForUnits,
+            boolean moveThroughFurniture,
+            boolean maintainHeight) {
+        return this.movement.moveFurniTo(
+                item, tile, rotation, actor, sendUpdates, checkForUnits, moveThroughFurniture, maintainHeight);
+    }
+
     public FurnitureMovementError moveFurniToWithPhysics(
             HabboItem item,
             RoomTile tile,

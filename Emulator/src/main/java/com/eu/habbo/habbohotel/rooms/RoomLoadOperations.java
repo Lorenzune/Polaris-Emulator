@@ -154,6 +154,7 @@ final class RoomLoadOperations implements RoomLoader.Operations {
     @Override
     public boolean finish(long generation) {
         this.room.getWiredRuntime().resetForRoomLoad();
+        this.room.getWiredRuntime().loadPersistentVisualState();
         TraxManager traxManager = new TraxManager(this.room, this.database);
         this.room.replaceTraxManager(traxManager);
 

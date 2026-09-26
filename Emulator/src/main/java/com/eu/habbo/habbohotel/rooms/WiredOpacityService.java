@@ -14,7 +14,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Room-owned bounded state for global and per-user furniture opacity. */
+/** Room-owned bounded state for global furniture visuals and per-user opacity. */
 final class WiredOpacityService {
     static final int DEFAULT_MAXIMUM_STATES = 5_000;
     static final int ABSOLUTE_MAXIMUM_STATES = 20_000;
@@ -26,6 +26,7 @@ final class WiredOpacityService {
     private final Map<Integer, VisualState> globalStates = new HashMap<>();
     private final Map<Integer, Map<Integer, VisualState>> userStates = new HashMap<>();
     private int stateCount;
+    private int customColorBytes;
     private boolean disposed;
 
     WiredOpacityService(Room room) {
@@ -38,14 +39,47 @@ final class WiredOpacityService {
     }
 
     synchronized List<WiredOpacityState> applyGlobal(Collection<HabboItem> items, int opacity, boolean clickThrough) {
+        return this.applyGlobal(items, opacity, clickThrough, null);
+    }
+
+    synchronized List<WiredOpacityState> applyGlobal(
+            Collection<HabboItem> items, int opacity, boolean clickThrough, Integer scaling) {
         if (this.disposed) {
             return List.of();
         }
 
-        VisualState next = new VisualState(opacity, clickThrough);
         ArrayList<WiredOpacityState> applied = new ArrayList<>();
         for (HabboItem item : validItems(items)) {
             VisualState previous = this.globalStates.get(item.getId());
+            VisualState next = new VisualState(
+                    opacity, clickThrough, scaling == null ? (previous == null ? 100 : previous.scaling()) : scaling,
+                    previous == null ? null : previous.customColor());
+            if (next.isDefault()) {
+                if (previous != null) {
+                    this.globalStates.remove(item.getId());
+                    this.stateCount--;
+                }
+                applied.add(state(item, next));
+            } else if (previous != null || reserveState(item.getId())) {
+                this.globalStates.put(item.getId(), next);
+                applied.add(state(item, next));
+            }
+        }
+        return List.copyOf(applied);
+    }
+
+    /** Sets room-wide opacity while retaining each furniture item's existing click-through setting. */
+    synchronized List<WiredOpacityState> applyGlobalOpacity(Collection<HabboItem> items, int opacity) {
+        if (this.disposed) {
+            return List.of();
+        }
+
+        ArrayList<WiredOpacityState> applied = new ArrayList<>();
+        for (HabboItem item : validItems(items)) {
+            VisualState previous = this.globalStates.get(item.getId());
+            boolean clickThrough = previous != null && previous.clickThrough();
+            VisualState next = new VisualState(opacity, clickThrough, previous == null ? 100 : previous.scaling(),
+                    previous == null ? null : previous.customColor());
             if (next.isDefault()) {
                 if (previous != null) {
                     this.globalStates.remove(item.getId());
@@ -66,7 +100,7 @@ final class WiredOpacityService {
             return List.of();
         }
 
-        VisualState next = new VisualState(opacity, clickThrough);
+        VisualState next = new VisualState(opacity, clickThrough, 100);
         Map<Integer, VisualState> states = this.userStates.computeIfAbsent(userId, ignored -> new HashMap<>());
         ArrayList<WiredOpacityState> applied = new ArrayList<>();
         for (HabboItem item : validItems(items)) {
@@ -97,11 +131,11 @@ final class WiredOpacityService {
             if (!isCurrentRoomItem(item)) {
                 continue;
             }
+            VisualState global = this.globalStates.getOrDefault(itemId, VisualState.DEFAULT);
             VisualState state = personal == null ? null : personal.get(itemId);
-            if (state == null) {
-                state = this.globalStates.getOrDefault(itemId, VisualState.DEFAULT);
-            }
-            result.add(state(item, state));
+            result.add(state(item, state == null
+                    ? global
+                    : new VisualState(state.opacity(), state.clickThrough(), global.scaling(), global.customColor())));
         }
         return List.copyOf(result);
     }
@@ -124,8 +158,12 @@ final class WiredOpacityService {
             return;
         }
         int itemId = item.getId();
-        if (this.globalStates.remove(itemId) != null) {
+        VisualState removedGlobal = this.globalStates.remove(itemId);
+        if (removedGlobal != null) {
             this.stateCount--;
+            if (removedGlobal.customColor() != null) {
+                this.customColorBytes -= removedGlobal.customColor().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+            }
         }
         for (Map<Integer, VisualState> states : this.userStates.values()) {
             if (states.remove(itemId) != null) {
@@ -147,6 +185,7 @@ final class WiredOpacityService {
         this.globalStates.clear();
         this.userStates.clear();
         this.stateCount = 0;
+        this.customColorBytes = 0;
     }
 
     synchronized void resetForRoomLoad() {
@@ -154,6 +193,7 @@ final class WiredOpacityService {
         this.globalStates.clear();
         this.userStates.clear();
         this.stateCount = 0;
+        this.customColorBytes = 0;
     }
 
     synchronized int stateCount() {
@@ -164,6 +204,117 @@ final class WiredOpacityService {
     synchronized int globalOpacity(int itemId) {
         VisualState state = this.globalStates.get(itemId);
         return state == null ? VisualState.DEFAULT.opacity() : state.opacity();
+    }
+
+    synchronized int globalScaling(int itemId) {
+        VisualState state = this.globalStates.get(itemId);
+        return state == null ? VisualState.DEFAULT.scaling() : state.scaling();
+    }
+
+    synchronized List<WiredOpacityState> applyGlobalScaling(Collection<HabboItem> items, int scaling) {
+        if (this.disposed) {
+            return List.of();
+        }
+
+        ArrayList<WiredOpacityState> applied = new ArrayList<>();
+        for (HabboItem item : validItems(items)) {
+            VisualState previous = this.globalStates.get(item.getId());
+            int opacity = previous == null ? 100 : previous.opacity();
+            boolean clickThrough = previous != null && previous.clickThrough();
+            VisualState next = new VisualState(opacity, clickThrough, scaling, previous == null ? null : previous.customColor());
+            if (next.isDefault()) {
+                if (previous != null) {
+                    this.globalStates.remove(item.getId());
+                    this.stateCount--;
+                }
+                applied.add(state(item, next));
+            } else if (previous != null || reserveState(item.getId())) {
+                this.globalStates.put(item.getId(), next);
+                applied.add(state(item, next));
+            }
+        }
+        return List.copyOf(applied);
+    }
+
+    synchronized List<WiredOpacityState> applyGlobalCustomColor(Collection<HabboItem> items, String customColor) {
+        if (this.disposed) {
+            return List.of();
+        }
+
+        int nextBytes = customColor == null ? 0 : customColor.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+        if (nextBytes > WiredFurnitureCustomColor.MAXIMUM_BYTES_PER_ITEM) {
+            return List.of();
+        }
+
+        ArrayList<WiredOpacityState> applied = new ArrayList<>();
+        for (HabboItem item : validItems(items)) {
+            VisualState previous = this.globalStates.get(item.getId());
+            int previousBytes = previous == null || previous.customColor() == null
+                    ? 0
+                    : previous.customColor().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+            if (nextBytes > previousBytes
+                    && this.customColorBytes > WiredFurnitureCustomColor.MAXIMUM_BYTES_PER_ROOM - (nextBytes - previousBytes)) {
+                LOGGER.warn("Furniture custom color memory limit reached: room={}, rejectedItem={}", this.room.getId(), item.getId());
+                continue;
+            }
+
+            int opacity = previous == null ? 100 : previous.opacity();
+            boolean clickThrough = previous != null && previous.clickThrough();
+            int scaling = previous == null ? 100 : previous.scaling();
+            VisualState next = new VisualState(opacity, clickThrough, scaling, customColor);
+            if (next.isDefault()) {
+                if (previous != null) {
+                    this.globalStates.remove(item.getId());
+                    this.stateCount--;
+                    this.customColorBytes -= previousBytes;
+                }
+                applied.add(state(item, next));
+            } else if (previous != null || reserveState(item.getId())) {
+                this.globalStates.put(item.getId(), next);
+                this.customColorBytes += nextBytes - previousBytes;
+                applied.add(state(item, next));
+            }
+        }
+        return List.copyOf(applied);
+    }
+
+    synchronized List<WiredOpacityState> customColorSnapshot() {
+        if (this.disposed || this.globalStates.isEmpty()) {
+            return List.of();
+        }
+
+        ArrayList<WiredOpacityState> result = new ArrayList<>();
+        for (Map.Entry<Integer, VisualState> entry : this.globalStates.entrySet()) {
+            if (entry.getValue().customColor() == null) {
+                continue;
+            }
+            HabboItem item = this.room.getHabboItem(entry.getKey());
+            if (isCurrentRoomItem(item)) {
+                result.add(state(item, entry.getValue()));
+            }
+        }
+        result.sort(java.util.Comparator.comparingInt(WiredOpacityState::itemId));
+        return List.copyOf(result);
+    }
+
+    synchronized List<WiredOpacityState> globalStates(Collection<Integer> itemIds) {
+        if (this.disposed || itemIds == null || itemIds.isEmpty()) {
+            return List.of();
+        }
+
+        ArrayList<WiredOpacityState> result = new ArrayList<>();
+        Set<Integer> seen = new HashSet<>();
+        for (Integer itemId : itemIds) {
+            if (itemId == null || !seen.add(itemId)) {
+                continue;
+            }
+            HabboItem item = this.room.getHabboItem(itemId);
+            if (!isCurrentRoomItem(item)) {
+                continue;
+            }
+            result.add(state(item, this.globalStates.getOrDefault(itemId, VisualState.DEFAULT)));
+        }
+        return List.copyOf(result);
     }
 
     synchronized Snapshot createSnapshot(Set<Integer> itemIds) {
@@ -254,6 +405,11 @@ final class WiredOpacityService {
 
     private void recalculateStateCount() {
         int total = this.globalStates.size();
+        this.customColorBytes = this.globalStates.values().stream()
+                .map(VisualState::customColor)
+                .filter(java.util.Objects::nonNull)
+                .mapToInt(value -> value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length)
+                .sum();
         for (Map<Integer, VisualState> states : this.userStates.values()) {
             total += states.size();
         }
@@ -265,7 +421,9 @@ final class WiredOpacityService {
                 item.getId(),
                 item.getBaseItem().getType() == FurnitureType.WALL,
                 state.opacity(),
-                state.clickThrough());
+                state.clickThrough(),
+                state.scaling(),
+                state.customColor());
     }
 
     private static int configuredMaximumStates() {
@@ -280,15 +438,20 @@ final class WiredOpacityService {
                         configuration.getInt("wired.opacity.max_states_per_room", DEFAULT_MAXIMUM_STATES)));
     }
 
-    private record VisualState(int opacity, boolean clickThrough) {
-        private static final VisualState DEFAULT = new VisualState(100, false);
+    private record VisualState(int opacity, boolean clickThrough, int scaling, String customColor) {
+        private static final VisualState DEFAULT = new VisualState(100, false, 100, null);
+
+        private VisualState(int opacity, boolean clickThrough, int scaling) {
+            this(opacity, clickThrough, scaling, null);
+        }
 
         private VisualState {
             opacity = Math.max(0, Math.min(100, opacity));
+            scaling = WiredFurnitureScaling.normalize(scaling);
         }
 
         private boolean isDefault() {
-            return this.opacity == 100 && !this.clickThrough;
+            return this.opacity == 100 && !this.clickThrough && this.scaling == 100 && this.customColor == null;
         }
     }
 

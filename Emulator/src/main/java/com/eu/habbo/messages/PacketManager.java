@@ -467,6 +467,8 @@ import com.eu.habbo.messages.incoming.wired.WiredConditionSaveDataEvent;
 import com.eu.habbo.messages.incoming.wired.WiredEffectSaveDataEvent;
 import com.eu.habbo.messages.incoming.wired.WiredFeatureCapabilitiesEvent;
 import com.eu.habbo.messages.incoming.wired.WiredFurniRuntimeStateRequestEvent;
+import com.eu.habbo.messages.incoming.wired.WiredFurniOpacityBatchEvent;
+import com.eu.habbo.messages.incoming.wired.WiredFurniCustomColorBatchEvent;
 import com.eu.habbo.messages.incoming.wired.WiredMonitorRequestEvent;
 import com.eu.habbo.messages.incoming.wired.WiredRoomRollbackEvent;
 import com.eu.habbo.messages.incoming.wired.WiredRoomSettingsRequestEvent;
@@ -1210,6 +1212,8 @@ public class PacketManager {
         this.registerHandler(Incoming.WiredUserVariableManageEvent, WiredUserVariableManageEvent.class);
         this.registerHandler(Incoming.WiredUserInspectMoveEvent, WiredUserInspectMoveEvent.class);
         this.registerHandler(Incoming.WiredFurniRuntimeStateRequestEvent, WiredFurniRuntimeStateRequestEvent.class);
+        this.registerHandler(Incoming.WiredFurniOpacityBatchEvent, WiredFurniOpacityBatchEvent.class);
+        this.registerHandler(Incoming.WiredFurniCustomColorBatchEvent, WiredFurniCustomColorBatchEvent.class);
         this.registerHandler(Incoming.WiredFeatureCapabilitiesEvent, WiredFeatureCapabilitiesEvent.class);
         this.registerHandler(Incoming.WiredRoomRollbackEvent, WiredRoomRollbackEvent.class);
     }
@@ -1444,6 +1448,9 @@ public class PacketManager {
         this.registerHandler(
                 Incoming.SoundboardSetEnabledEvent,
                 com.eu.habbo.messages.incoming.soundboard.SoundboardSetEnabledEvent.class);
+        this.registerHandler(
+                Incoming.BuildersToolsFreezeEvent,
+                com.eu.habbo.messages.incoming.rooms.users.BuildersToolsFreezeEvent.class);
 
         this.registerHandler(
                 Incoming.TraxEditorRequestSongsEvent,

@@ -127,6 +127,8 @@ final class WiredInternalVariableRegistry {
                 ALWAYS_ENABLED, EnumSet.of(Capability.FURNI_REFERENCE, Capability.FURNI_DESTINATION), "@gravity");
         builder.registerWhen(
                 ALWAYS_ENABLED, EnumSet.of(Capability.FURNI_REFERENCE, Capability.FURNI_DESTINATION), "@opacity");
+        builder.registerWhen(
+                ALWAYS_ENABLED, EnumSet.of(Capability.FURNI_REFERENCE, Capability.FURNI_DESTINATION), "@scaling");
         builder.register(
                 Capability.ROOM_REFERENCE,
                 "@furni_count",

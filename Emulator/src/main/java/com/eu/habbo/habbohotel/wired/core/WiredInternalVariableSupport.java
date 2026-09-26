@@ -143,7 +143,7 @@ public final class WiredInternalVariableSupport {
                 item instanceof InteractionGameUpCounter;
             case "@wallitem_offset" -> item.getBaseItem().getType() == FurnitureType.WALL;
             case "@gravity" -> item.getBaseItem().getType() == FurnitureType.FLOOR;
-            case "@opacity" -> true;
+            case "@opacity", "@scaling" -> true;
             case "@is_stackable" -> item.getBaseItem().allowStack();
             case "@can_stand_on" -> item.getBaseItem().allowWalk();
             case "@can_sit_on" -> item.getBaseItem().allowSit();
@@ -341,6 +341,7 @@ public final class WiredInternalVariableSupport {
             case "@owner_id" -> item.getUserId();
             case "@gravity" -> room.getWiredRuntime().isGravityEnabled(item) ? 1 : 0;
             case "@opacity" -> room.getWiredRuntime().globalOpacity(item);
+            case "@scaling" -> room.getWiredRuntime().globalScaling(item);
             default -> null;
         };
     }
@@ -361,6 +362,9 @@ public final class WiredInternalVariableSupport {
         // Opacity applies to wall items too, so it is handled before the floor-only guard.
         if ("@opacity".equals(normalized)) {
             return room.getWiredRuntime().setGlobalOpacity(room, item, value);
+        }
+        if ("@scaling".equals(normalized)) {
+            return room.getWiredRuntime().setGlobalScaling(room, item, value);
         }
 
         if (item.getBaseItem() == null || item.getBaseItem().getType() != FurnitureType.FLOOR) {

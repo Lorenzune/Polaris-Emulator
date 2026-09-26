@@ -475,6 +475,22 @@ final class RoomItemMovementService {
 
     public FurnitureMovementError moveFurniTo(
             HabboItem item, RoomTile tile, int rotation, Habbo actor, boolean sendUpdates, boolean checkForUnits) {
+        return moveFurniTo(item, tile, rotation, actor, sendUpdates, checkForUnits, false, false);
+    }
+
+    public FurnitureMovementError moveFurniTo(
+            HabboItem item,
+            RoomTile tile,
+            int rotation,
+            Habbo actor,
+            boolean sendUpdates,
+            boolean checkForUnits,
+            boolean moveThroughFurniture,
+            boolean maintainHeight) {
+        if (item == null || tile == null) {
+            return FurnitureMovementError.INVALID_MOVE;
+        }
+
         RoomLayout layout = this.room.getLayout();
         RoomTile oldLocation = layout.getTile(item.getX(), item.getY());
 
@@ -500,7 +516,12 @@ final class RoomItemMovementService {
 
         HabboItem topItem = this.facade.getTopItemAt(occupiedTiles, null);
 
-        if (stackHelper == null && !pluginHelper) {
+        if (moveThroughFurniture && !pluginHelper) {
+            FurnitureMovementError fits = this.placement.furnitureFitsAt(tile, item, rotation, checkForUnits, true);
+            if (fits != FurnitureMovementError.NONE) {
+                return fits;
+            }
+        } else if (stackHelper == null && !pluginHelper) {
             if (oldLocation != tile) {
                 for (RoomTile t : occupiedTiles) {
                     HabboItem tileTopItem = this.facade.getTopItemAt(t.x, t.y);
@@ -555,14 +576,14 @@ final class RoomItemMovementService {
                 }
             }
 
-            if ((stackHelper == null
+            if (!moveThroughFurniture && ((stackHelper == null
                             && topItem != null
                             && topItem != item
                             && !topItem.getBaseItem().allowStack())
                     || (topItem != null
                             && topItem != item
                             && topItem.getZ() + Item.getCurrentHeight(topItem) + Item.getCurrentHeight(item)
-                                    > Room.MAXIMUM_FURNI_HEIGHT)) {
+                                    > Room.MAXIMUM_FURNI_HEIGHT))) {
                 item.setRotation(oldRotation);
                 return FurnitureMovementError.CANT_STACK;
             }
@@ -571,7 +592,13 @@ final class RoomItemMovementService {
         // Place at new position
         double height;
 
-        if (stackHelper != null) {
+        if (maintainHeight) {
+            height = item.getZ();
+        } else if (moveThroughFurniture) {
+            // Passing through furniture must not stack the item on top of it.
+            // Keep its current elevation, raising it only when the destination floor itself is higher.
+            height = getFurniturePassThroughHeight(item.getZ(), layout, occupiedTiles);
+        } else if (stackHelper != null) {
             height = stackHelper.getZ();
         } else if (item instanceof InteractionStackWalkHelper) {
             height = this.placement.resolveStackWalkHelperHeight(item, tile, occupiedTiles);
@@ -694,6 +721,16 @@ final class RoomItemMovementService {
         }
         this.room.onFurnitureTopologyChanged(item, true);
         return FurnitureMovementError.NONE;
+    }
+
+    static double getFurniturePassThroughHeight(double currentHeight, RoomLayout layout, Set<RoomTile> occupiedTiles) {
+        double height = currentHeight;
+
+        for (RoomTile occupiedTile : occupiedTiles) {
+            height = Math.max(height, layout.getHeightAtSquare(occupiedTile.x, occupiedTile.y));
+        }
+
+        return height;
     }
 
     public FurnitureMovementError moveFurniToWithPhysics(

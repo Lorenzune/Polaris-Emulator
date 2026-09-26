@@ -13,6 +13,7 @@ import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboGender;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.WiredUserActionType;
+import com.eu.habbo.habbohotel.wired.core.BuildersToolsFreezeUtil;
 import com.eu.habbo.habbohotel.wired.core.WiredFreezeUtil;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredMoveCarryHelper;
@@ -59,6 +60,7 @@ public class RoomUnitManager {
     }
 
     public void clear() {
+        BuildersToolsFreezeUtil.clearRoom(this.room);
         synchronized (this.room.roomUnitLock) {
             for (Habbo habbo : this.currentHabbos.values()) {
                 if (habbo.getRoomUnit() != null) {
@@ -167,6 +169,7 @@ public class RoomUnitManager {
             this.index.incrementUnitId();
         }
         this.room.scheduleDatabaseUserCountUpdate();
+        BuildersToolsFreezeUtil.onHabboAdded(this.room, habbo.getRoomUnit());
     }
 
     public void removeHabbo(Habbo habbo) {
@@ -185,6 +188,7 @@ public class RoomUnitManager {
             if (WiredFreezeUtil.isFrozen(habbo.getRoomUnit())) {
                 WiredFreezeUtil.unfreeze(this.room, habbo.getRoomUnit());
             }
+            BuildersToolsFreezeUtil.onHabboRemoved(this.room, habbo);
         }
 
         if (habbo.getRoomUnit() != null && habbo.getRoomUnit().getCurrentLocation() != null) {

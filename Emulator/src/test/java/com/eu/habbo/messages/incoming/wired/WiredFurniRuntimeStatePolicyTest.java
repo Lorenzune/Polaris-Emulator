@@ -77,6 +77,36 @@ class WiredFurniRuntimeStatePolicyTest {
     }
 
     @Test
+    void scalingIsReadableAndWritableAsLevelsFromOneQuarterToThreeTimes() {
+        Room room = mock(Room.class);
+        RoomWiredRuntime runtime = mock(RoomWiredRuntime.class);
+        when(room.getWiredRuntime()).thenReturn(runtime);
+        HabboItem item = floorItem();
+        when(runtime.setGlobalScaling(room, item, 175)).thenReturn(true);
+        when(runtime.globalScaling(item)).thenReturn(200);
+
+        WiredFurniRuntimeStatePolicy.Result written = WiredFurniRuntimeStatePolicy.write(room, item, "@scaling", 175);
+        assertEquals(200, written.value());
+        assertTrue(written.supported());
+        assertTrue(written.success());
+        verify(runtime).setGlobalScaling(room, item, 175);
+
+        WiredFurniRuntimeStatePolicy.Result read = WiredFurniRuntimeStatePolicy.read(room, item, " @scaling ");
+        assertEquals(200, read.value());
+        assertTrue(read.supported());
+
+        when(runtime.setGlobalScaling(room, item, 25)).thenReturn(true);
+        when(runtime.globalScaling(item)).thenReturn(25);
+        WiredFurniRuntimeStatePolicy.Result reduced = WiredFurniRuntimeStatePolicy.write(room, item, "@scaling", 25);
+        assertEquals(25, reduced.value());
+        assertTrue(reduced.success());
+        verify(runtime).setGlobalScaling(room, item, 25);
+
+        assertFalse(WiredFurniRuntimeStatePolicy.write(room, item, "@scaling", 24).supported());
+        assertFalse(WiredFurniRuntimeStatePolicy.write(room, item, "@scaling", 301).supported());
+    }
+
+    @Test
     void opacityRejectsValuesOutsideZeroToHundredAndGravityStaysBoolean() {
         Room room = mock(Room.class);
         RoomWiredRuntime runtime = mock(RoomWiredRuntime.class);
@@ -103,8 +133,11 @@ class WiredFurniRuntimeStatePolicyTest {
         when(wallBase.getType()).thenReturn(FurnitureType.WALL);
         when(runtime.setGlobalOpacity(room, wall, 0)).thenReturn(true);
         when(runtime.globalOpacity(wall)).thenReturn(0);
+        when(runtime.setGlobalScaling(room, wall, 150)).thenReturn(true);
+        when(runtime.globalScaling(wall)).thenReturn(150);
 
         assertTrue(WiredFurniRuntimeStatePolicy.write(room, wall, "@opacity", 0).success());
+        assertTrue(WiredFurniRuntimeStatePolicy.write(room, wall, "@scaling", 150).success());
         assertFalse(WiredFurniRuntimeStatePolicy.read(room, wall, "@gravity").supported());
     }
 
