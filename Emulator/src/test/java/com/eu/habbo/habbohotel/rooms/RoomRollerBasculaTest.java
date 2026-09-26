@@ -75,25 +75,6 @@ class RoomRollerBasculaTest {
     }
 
     @Test
-    void midSlideClickInAnyDirectionInterruptsFromOriginUnlessClickingDestination() {
-        RoomTile origin = new RoomTile((short) 5, (short) 5, (short) 0, RoomTileState.OPEN, true);
-        RoomTile dest = new RoomTile((short) 5, (short) 6, (short) 0, RoomTileState.OPEN, true);
-
-        // Clicking backwards on (5, 4) is not dest -> interrupts from origin
-        assertFalse(5 == dest.x && 4 == dest.y);
-
-        // Clicking sideways on (4, 5) or (6, 5) is not dest -> interrupts from origin
-        assertFalse(4 == dest.x && 5 == dest.y);
-        assertFalse(6 == dest.x && 5 == dest.y);
-
-        // Clicking origin itself (5, 5) is not dest -> interrupts and stops at origin
-        assertFalse(5 == dest.x && 5 == dest.y);
-
-        // Clicking destination (5, 6) matches dest -> allows slide to complete
-        assertTrue(5 == dest.x && 6 == dest.y);
-    }
-
-    @Test
     void midSlideInterruptionDoesNotTriggerDestinationOnWalkOn() throws Exception {
         Room room = mock(Room.class);
         when(room.isLoaded()).thenReturn(true);

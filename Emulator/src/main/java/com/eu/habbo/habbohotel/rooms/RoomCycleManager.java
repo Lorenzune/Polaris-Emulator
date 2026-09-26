@@ -473,6 +473,9 @@ public class RoomCycleManager {
             this.room.getRollerManager().processRollerCycle(updatedUnit, this.cycleTimestamp);
         } else {
             this.rollerCycle++;
+            if (this.room.getRollerManager().hasPendingRollRequests()) {
+                this.room.getRollerManager().processPendingRollRequests(updatedUnit);
+            }
         }
     }
 

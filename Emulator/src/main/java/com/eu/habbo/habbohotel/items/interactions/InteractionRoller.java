@@ -69,15 +69,35 @@ public class InteractionRoller extends HabboItem {
         if (itemsAtLocation.isEmpty()) return false;
 
         for (Pair<RoomTile, Set<HabboItem>> set : itemsAtLocation) {
-            if (set.getValue() != null && !set.getValue().isEmpty()) {
-                if (set.getValue().size() > 1) {
-                    return false;
-                } else if (!set.getValue().contains(this)) {
+            if (set.getValue() == null || set.getValue().isEmpty()) {
+                continue;
+            }
+
+            HabboItem floorSurface = null;
+            for (HabboItem item : set.getValue()) {
+                if (item == this) {
+                    continue;
+                }
+
+                if (floorSurface != null || !canBePlacedOn(item)) {
                     return false;
                 }
+
+                floorSurface = item;
             }
         }
 
         return true;
+    }
+
+    /**
+     * Rollers may sit on one walkable, stackable floor furnishing. They must not be stacked on
+     * ordinary furniture or on another roller.
+     */
+    private static boolean canBePlacedOn(HabboItem item) {
+        return item != null
+                && !(item instanceof InteractionRoller)
+                && item.getBaseItem().allowStack()
+                && (item.isWalkable() || item.getBaseItem().allowWalk());
     }
 }

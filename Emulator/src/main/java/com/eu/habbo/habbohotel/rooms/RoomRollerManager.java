@@ -18,7 +18,9 @@ import com.eu.habbo.plugin.events.users.UserRolledEvent;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +32,7 @@ public class RoomRollerManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(RoomRollerManager.class);
 
     private final Room room;
+    private final ConcurrentHashMap<Integer, RollerRequest> pendingRollRequests = new ConcurrentHashMap<>();
 
     public RoomRollerManager(Room room) {
         this.room = room;
@@ -45,6 +48,7 @@ public class RoomRollerManager {
         // Note: cycle gating is handled by RoomCycleManager.processRollers().
         // Do not add a second gate here — it would cause rollers to fire at
         // speed^2 intervals instead of the intended speed.
+        this.pendingRollRequests.clear();
 
         List<MessageComposer> messages = new ArrayList<>();
         Set<Integer> rollerFurniIds = new HashSet<>();
@@ -68,10 +72,67 @@ public class RoomRollerManager {
         return true;
     }
 
+    public void requestRoll(RoomUnit unit, RoomTile tile) {
+        if (unit == null || tile == null) {
+            return;
+        }
+
+        this.pendingRollRequests.put(unit.getId(), new RollerRequest(unit, tile.x, tile.y));
+    }
+
+    boolean hasPendingRollRequests() {
+        return !this.pendingRollRequests.isEmpty();
+    }
+
+    void processPendingRollRequests(Set<RoomUnit> updatedUnit) {
+        if (this.pendingRollRequests.isEmpty() || this.room.getLayout() == null) {
+            return;
+        }
+
+        Set<Integer> requestedRollerIds = new HashSet<>();
+        RoomLayout layout = this.room.getLayout();
+        for (Map.Entry<Integer, RollerRequest> entry : this.pendingRollRequests.entrySet()) {
+            RollerRequest request = entry.getValue();
+            if (!this.pendingRollRequests.remove(entry.getKey(), request)) {
+                continue;
+            }
+
+            RoomUnit unit = request.unit;
+            RoomTile currentLocation = unit != null ? unit.getCurrentLocation() : null;
+            if (currentLocation == null || currentLocation.x != request.x || currentLocation.y != request.y) {
+                continue;
+            }
+
+            RoomTile tile = layout.getTile(request.x, request.y);
+            if (tile == null) {
+                continue;
+            }
+
+            for (HabboItem item : this.room.getItemsAt(tile)) {
+                if (item instanceof InteractionRoller) {
+                    requestedRollerIds.add(item.getId());
+                }
+            }
+        }
+
+        if (requestedRollerIds.isEmpty()) {
+            return;
+        }
+
+        List<MessageComposer> messages = new ArrayList<>();
+        Set<Integer> rollerFurniIds = new HashSet<>();
+        Set<Integer> rolledUnitIds = new HashSet<>();
+        for (InteractionRoller roller : this.room.getRoomSpecialTypes().rollerSnapshot().values()) {
+            if (requestedRollerIds.contains(roller.getId())) {
+                processRoller(roller, messages, rollerFurniIds, rolledUnitIds, updatedUnit);
+            }
+        }
+    }
+
     /**
      * Processes a single roller and its contents.
      */
-    private void processRoller(
+    void processRoller(
             InteractionRoller roller,
             List<MessageComposer> messages,
             Set<Integer> rollerFurniIds,
@@ -254,6 +315,18 @@ public class RoomRollerManager {
                 this.room.sendComposer(message.compose());
             }
             messages.clear();
+        }
+    }
+
+    private static final class RollerRequest {
+        private final RoomUnit unit;
+        private final short x;
+        private final short y;
+
+        private RollerRequest(RoomUnit unit, short x, short y) {
+            this.unit = unit;
+            this.x = x;
+            this.y = y;
         }
     }
 
