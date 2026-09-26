@@ -46,12 +46,16 @@ import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminDeletePag
 import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminLoadOfferEvent;
 import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminLoadPageEvent;
 import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminMoveOfferEvent;
+import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminMoveOfferToPageEvent;
 import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminMovePageEvent;
 import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminPublishEvent;
+import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminReorderOffersEvent;
 import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminSaveOfferEvent;
 import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminSavePageEvent;
 import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminSavePageIconEvent;
 import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminSavePageImagesEvent;
+import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminSetPageEnabledEvent;
+import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminSetPageVisibleEvent;
 import com.eu.habbo.messages.incoming.catalog.marketplace.BuyItemEvent;
 import com.eu.habbo.messages.incoming.catalog.marketplace.RequestCreditsEvent;
 import com.eu.habbo.messages.incoming.catalog.marketplace.RequestItemInfoEvent;
@@ -117,6 +121,9 @@ import com.eu.habbo.messages.incoming.furnieditor.FurniEditorRevertFurnidataEven
 import com.eu.habbo.messages.incoming.furnieditor.FurniEditorSearchEvent;
 import com.eu.habbo.messages.incoming.furnieditor.FurniEditorUpdateEvent;
 import com.eu.habbo.messages.incoming.furnieditor.FurniEditorUpdateFurnidataEvent;
+import com.eu.habbo.messages.incoming.furniturereport.FurnitureReportDataEvent;
+import com.eu.habbo.messages.incoming.furniturereport.FurnitureReportSubmitEvent;
+import com.eu.habbo.messages.incoming.furniturereport.FurnitureReportUpdateEvent;
 import com.eu.habbo.messages.incoming.gamecenter.GameCenterEvent;
 import com.eu.habbo.messages.incoming.gamecenter.GameCenterJoinGameEvent;
 import com.eu.habbo.messages.incoming.gamecenter.GameCenterLeaveGameEvent;
@@ -459,6 +466,8 @@ import com.eu.habbo.messages.incoming.wired.WiredApplySetConditionsEvent;
 import com.eu.habbo.messages.incoming.wired.WiredConditionSaveDataEvent;
 import com.eu.habbo.messages.incoming.wired.WiredEffectSaveDataEvent;
 import com.eu.habbo.messages.incoming.wired.WiredFeatureCapabilitiesEvent;
+import com.eu.habbo.messages.incoming.wired.WiredFurniCustomColorBatchEvent;
+import com.eu.habbo.messages.incoming.wired.WiredFurniOpacityBatchEvent;
 import com.eu.habbo.messages.incoming.wired.WiredFurniRuntimeStateRequestEvent;
 import com.eu.habbo.messages.incoming.wired.WiredMonitorRequestEvent;
 import com.eu.habbo.messages.incoming.wired.WiredRoomRollbackEvent;
@@ -730,6 +739,9 @@ public class PacketManager {
         this.registerHandler(Incoming.FurniEditorBySpriteEvent, FurniEditorBySpriteEvent.class);
         this.registerHandler(Incoming.FurniEditorInteractionsEvent, FurniEditorInteractionsEvent.class);
         this.registerHandler(Incoming.FurniEditorUpdateEvent, FurniEditorUpdateEvent.class);
+        this.registerHandler(Incoming.FurnitureReportDataEvent, FurnitureReportDataEvent.class);
+        this.registerHandler(Incoming.FurnitureReportSubmitEvent, FurnitureReportSubmitEvent.class);
+        this.registerHandler(Incoming.FurnitureReportUpdateEvent, FurnitureReportUpdateEvent.class);
         this.registerHandler(Incoming.FurniEditorDeleteEvent, FurniEditorDeleteEvent.class);
         this.registerHandler(Incoming.FurniEditorUpdateFurnidataEvent, FurniEditorUpdateFurnidataEvent.class);
         this.registerHandler(Incoming.FurniEditorRevertFurnidataEvent, FurniEditorRevertFurnidataEvent.class);
@@ -749,6 +761,10 @@ public class PacketManager {
         this.registerHandler(Incoming.CatalogAdminSavePageIconEvent, CatalogAdminSavePageIconEvent.class);
         this.registerHandler(Incoming.CatalogAdminLoadOfferEvent, CatalogAdminLoadOfferEvent.class);
         this.registerHandler(Incoming.CatalogAdminLoadPageEvent, CatalogAdminLoadPageEvent.class);
+        this.registerHandler(Incoming.CatalogAdminSetPageEnabledEvent, CatalogAdminSetPageEnabledEvent.class);
+        this.registerHandler(Incoming.CatalogAdminSetPageVisibleEvent, CatalogAdminSetPageVisibleEvent.class);
+        this.registerHandler(Incoming.CatalogAdminReorderOffersEvent, CatalogAdminReorderOffersEvent.class);
+        this.registerHandler(Incoming.CatalogAdminMoveOfferToPageEvent, CatalogAdminMoveOfferToPageEvent.class);
         this.registerHandler(Incoming.RecyclerAdminRequestEvent, RecyclerAdminRequestEvent.class);
         this.registerHandler(Incoming.RecyclerAdminSaveEvent, RecyclerAdminSaveEvent.class);
     }
@@ -1196,6 +1212,8 @@ public class PacketManager {
         this.registerHandler(Incoming.WiredUserVariableManageEvent, WiredUserVariableManageEvent.class);
         this.registerHandler(Incoming.WiredUserInspectMoveEvent, WiredUserInspectMoveEvent.class);
         this.registerHandler(Incoming.WiredFurniRuntimeStateRequestEvent, WiredFurniRuntimeStateRequestEvent.class);
+        this.registerHandler(Incoming.WiredFurniOpacityBatchEvent, WiredFurniOpacityBatchEvent.class);
+        this.registerHandler(Incoming.WiredFurniCustomColorBatchEvent, WiredFurniCustomColorBatchEvent.class);
         this.registerHandler(Incoming.WiredFeatureCapabilitiesEvent, WiredFeatureCapabilitiesEvent.class);
         this.registerHandler(Incoming.WiredRoomRollbackEvent, WiredRoomRollbackEvent.class);
     }
@@ -1430,6 +1448,9 @@ public class PacketManager {
         this.registerHandler(
                 Incoming.SoundboardSetEnabledEvent,
                 com.eu.habbo.messages.incoming.soundboard.SoundboardSetEnabledEvent.class);
+        this.registerHandler(
+                Incoming.BuildersToolsFreezeEvent,
+                com.eu.habbo.messages.incoming.rooms.users.BuildersToolsFreezeEvent.class);
 
         this.registerHandler(
                 Incoming.TraxEditorRequestSongsEvent,

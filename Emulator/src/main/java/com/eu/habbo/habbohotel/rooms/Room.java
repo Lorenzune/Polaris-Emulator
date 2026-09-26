@@ -128,11 +128,11 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     private final RoomPostureService posture = new RoomPostureService(this);
     private final RoomLoader loader;
     private final RoomItemPersistence itemPersistence;
-    private final RoomPersistence persistence;
+    private final RoomStatePersistenceCoordinator roomStatePersistence;
     private final RoomRepository repository;
     private final RoomWiredAccessService wiredAccess;
     private final RoomWiredVisibilityService wiredVisibility = new RoomWiredVisibilityService(this);
-    private final RoomWiredRuntime wiredRuntime = new RoomWiredRuntime(this);
+    private final RoomWiredRuntime wiredRuntime;
     private final RoomRollbackState rollbackState = new RoomRollbackState(this);
     private final RoomUserCountPersistence userCountPersistence;
     public volatile double lastCycleCpuMs = 0.0;
@@ -210,7 +210,6 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     private boolean hideWired;
     private boolean buildersClubTrialLocked;
     private RoomState buildersClubOriginalState;
-    private volatile boolean needsUpdate;
     private int rollerSpeed;
     private volatile Integer transientRollerSpeedOverride;
     private int lastTimerReset = Emulator.getIntUnixTimestamp();
@@ -297,6 +296,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
             boolean isPaused) {
         this.media.setVideo(videoId, senderName, playlist, isAudioOnly, positionMs, isPaused);
         this.synchronizeYoutubeTelevisions();
+        SearchRoomsEvent.invalidateCachedResults();
     }
 
     public void setYoutubeVideo(
@@ -316,6 +316,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     public void clearYoutubeVideo() {
         this.media.clearVideo();
         this.synchronizeYoutubeTelevisions();
+        SearchRoomsEvent.invalidateCachedResults();
     }
 
     public String getMusicPartyCurrentVideo() {
@@ -349,10 +350,12 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     public void setMusicPartyVideo(
             String videoId, String senderName, java.util.List<String> playlist, long positionMs, boolean isPaused) {
         this.musicPartyMedia.setVideo(videoId, senderName, playlist, true, positionMs, isPaused);
+        SearchRoomsEvent.invalidateCachedResults();
     }
 
     public void clearMusicPartyVideo() {
         this.musicPartyMedia.clearVideo();
+        SearchRoomsEvent.invalidateCachedResults();
     }
 
     private void synchronizeYoutubeTelevisions() {
@@ -382,10 +385,13 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         this.dependencies = Objects.requireNonNull(dependencies, "dependencies");
         this.lifecycle = new RoomLifecycle(new RoomCycleTaskSlot());
         this.itemPersistence = new RoomItemPersistence(this.dependencies.database());
-        this.persistence = new RoomPersistence(this.dependencies.database());
+        this.roomStatePersistence =
+                new RoomStatePersistenceCoordinator(this, new RoomPersistence(this.dependencies.database()));
         this.repository = new RoomRepository(this.dependencies.database());
         this.wiredAccess = new RoomWiredAccessService(this, this.repository);
         this.id = id;
+        this.wiredRuntime =
+                new RoomWiredRuntime(this, this.dependencies.database(), this.dependencies.persistence()::execute);
         this.ownerId = ownerId;
         this.userCountPersistence = this.createUserCountPersistence();
         this.bannedHabbos = new Int2ObjectOpenHashMap<>();
@@ -406,11 +412,14 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         this.dependencies = Objects.requireNonNull(dependencies, "dependencies");
         this.lifecycle = new RoomLifecycle(new RoomCycleTaskSlot());
         this.itemPersistence = new RoomItemPersistence(this.dependencies.database());
-        this.persistence = new RoomPersistence(this.dependencies.database());
+        this.roomStatePersistence =
+                new RoomStatePersistenceCoordinator(this, new RoomPersistence(this.dependencies.database()));
         this.repository = new RoomRepository(this.dependencies.database());
         this.wiredAccess = new RoomWiredAccessService(this, this.repository);
         RoomSnapshot.Initial initial = RoomSnapshot.readInitial(set);
         this.id = initial.id();
+        this.wiredRuntime =
+                new RoomWiredRuntime(this, this.dependencies.database(), this.dependencies.persistence()::execute);
         this.ownerId = initial.ownerId();
         try {
             this.navigatorOrder = set.getInt("navigator_order");
@@ -858,6 +867,9 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     }
 
     public synchronized void dispose() {
+        if (this.roomStatePersistence.hasUnsavedState()) {
+            this.save();
+        }
         this.lifecycle.dispose(
                 this.preventUnloading,
                 () -> Emulator.getPluginManager()
@@ -883,6 +895,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
 
     @Override
     public void run() {
+        boolean saveRoomState;
         synchronized (this) {
             boolean runCycle = this.lifecycle.isLoaded();
 
@@ -900,19 +913,16 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
                 }
             }
 
-            this.save();
+            saveRoomState = this.roomStatePersistence.hasUnsavedState();
+        }
+
+        if (saveRoomState) {
+            this.roomStatePersistence.scheduleSave();
         }
     }
 
     public void save() {
-        if (this.needsUpdate) {
-            try {
-                this.persistence.save(RoomPersistentStateFactory.capture(this));
-                this.needsUpdate = false;
-            } catch (SQLException e) {
-                LOGGER.error("Caught SQL exception", e);
-            }
-        }
+        this.roomStatePersistence.save();
     }
 
     void savePendingItems(List<HabboItem> items) {
@@ -1182,7 +1192,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     public void moveDiagonally(boolean moveDiagonally) {
         this.moveDiagonally = moveDiagonally;
         this.layout.moveDiagonally(this.moveDiagonally);
-        this.needsUpdate = true;
+        this.markRoomStateDirty();
     }
 
     public int getGuildId() {
@@ -1436,7 +1446,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
 
     public void setRollerSpeed(int rollerSpeed) {
         this.rollerSpeed = rollerSpeed;
-        this.needsUpdate = true;
+        this.markRoomStateDirty();
     }
 
     public Integer getTransientRollerSpeedOverride() {
@@ -1613,8 +1623,8 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         return this.rollbackState.restore();
     }
 
-    void onFurnitureTopologyChanged() {
-        this.wiredRuntime.onFurnitureTopologyChanged();
+    void onFurnitureTopologyChanged(HabboItem item, boolean moved) {
+        this.wiredRuntime.onFurnitureTopologyChanged(item, moved);
     }
 
     void forgetWiredGravity(HabboItem item) {
@@ -1634,7 +1644,15 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     }
 
     public void setNeedsUpdate(boolean needsUpdate) {
-        this.needsUpdate = needsUpdate;
+        if (needsUpdate) {
+            this.markRoomStateDirty();
+        } else {
+            this.roomStatePersistence.markPersisted();
+        }
+    }
+
+    private void markRoomStateDirty() {
+        this.roomStatePersistence.markDirty();
     }
 
     public IntList getRights() {
@@ -1709,6 +1727,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
             }
         }
         this.unitManager.removeHabbo(habbo);
+        this.deactivateTransientMediaWhenEmpty();
     }
 
     public void removeHabbo(Habbo habbo, boolean sendRemovePacket) {
@@ -1719,6 +1738,27 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
             }
         }
         this.unitManager.removeHabbo(habbo, sendRemovePacket);
+        this.deactivateTransientMediaWhenEmpty();
+    }
+
+    /**
+     * Playback belongs to the live room session. Do not keep a YouTube/Music
+     * Party state alive after the last user leaves, otherwise the navigator can
+     * keep advertising a room whose player is no longer visible.
+     */
+    private void deactivateTransientMediaWhenEmpty() {
+        if (this.getUserCount() > 0) return;
+
+        boolean hasYoutubeMedia = !this.getYoutubeCurrentVideo().isEmpty();
+        boolean hasMusicPartyMedia = !this.getMusicPartyCurrentVideo().isEmpty();
+        boolean hasYoutubeWatchers = !this.getYoutubeWatchers().isEmpty();
+
+        if (!hasYoutubeMedia && !hasMusicPartyMedia && !hasYoutubeWatchers) return;
+
+        if (hasYoutubeMedia) this.clearYoutubeVideo();
+        if (hasMusicPartyMedia) this.clearMusicPartyVideo();
+        this.getYoutubeWatchers().clear();
+        SearchRoomsEvent.invalidateCachedResults();
     }
 
     private void cleanupYoutubeWatcher(Habbo habbo) {
@@ -2273,7 +2313,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
 
     public void setJukeBoxActive(boolean jukeBoxActive) {
         this.jukeboxActive = jukeBoxActive;
-        this.needsUpdate = true;
+        this.markRoomStateDirty();
     }
 
     boolean isJukeboxActive() {
@@ -2331,6 +2371,19 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         return this.itemManager.moveFurniTo(item, tile, rotation, actor, sendUpdates, checkForUnits);
     }
 
+    public FurnitureMovementError moveFurniTo(
+            HabboItem item,
+            RoomTile tile,
+            int rotation,
+            Habbo actor,
+            boolean sendUpdates,
+            boolean checkForUnits,
+            boolean moveThroughFurniture,
+            boolean maintainHeight) {
+        return this.itemManager.moveFurniTo(
+                item, tile, rotation, actor, sendUpdates, checkForUnits, moveThroughFurniture, maintainHeight);
+    }
+
     public FurnitureMovementError moveFurniTo(HabboItem item, RoomTile tile, int rotation, double z, Habbo actor) {
         return this.itemManager.moveFurniTo(item, tile, rotation, z, actor, true, true);
     }
@@ -2374,6 +2427,20 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
             WiredMovementPhysics physics) {
         return this.itemManager.moveFurniToWithPhysics(
                 item, tile, rotation, z, actor, sendUpdates, checkForUnits, physics);
+    }
+
+    public FurnitureMovementError moveFurniToWithPhysics(
+            HabboItem item,
+            RoomTile tile,
+            int rotation,
+            double z,
+            Habbo actor,
+            boolean sendUpdates,
+            boolean checkForUnits,
+            WiredMovementPhysics physics,
+            boolean physicsFitAlreadyChecked) {
+        return this.itemManager.moveFurniToWithPhysics(
+                item, tile, rotation, z, actor, sendUpdates, checkForUnits, physics, physicsFitAlreadyChecked);
     }
 
     public FurnitureMovementError slideFurniTo(HabboItem item, RoomTile tile, int rotation) {

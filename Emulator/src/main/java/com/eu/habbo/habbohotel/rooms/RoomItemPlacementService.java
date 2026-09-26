@@ -92,6 +92,11 @@ final class RoomItemPlacementService {
     }
 
     FurnitureMovementError furnitureFitsAt(RoomTile tile, HabboItem item, int rotation, boolean checkForUnits) {
+        return furnitureFitsAt(tile, item, rotation, checkForUnits, false);
+    }
+
+    FurnitureMovementError furnitureFitsAt(
+            RoomTile tile, HabboItem item, int rotation, boolean checkForUnits, boolean moveThroughFurniture) {
         RoomLayout layout = this.room.getLayout();
         if (!layout.fitsOnMap(
                 tile, item.getBaseItem().getWidth(), item.getBaseItem().getLength(), rotation)) {
@@ -119,6 +124,10 @@ final class RoomItemPlacementService {
                     return FurnitureMovementError.TILE_HAS_PETS;
                 }
             }
+        }
+
+        if (moveThroughFurniture) {
+            return FurnitureMovementError.NONE;
         }
 
         List<Pair<RoomTile, Set<HabboItem>>> tileFurniture = new ArrayList<>();
@@ -210,7 +219,7 @@ final class RoomItemPlacementService {
             this.room.updateHabbosAt(occupiedTile.x, occupiedTile.y);
             this.room.updateBotsAt(occupiedTile.x, occupiedTile.y);
         }
-        Emulator.getThreading().run(item);
+        Emulator.getThreading().runHabboItemPersistence(item);
         return FurnitureMovementError.NONE;
     }
 
@@ -242,7 +251,7 @@ final class RoomItemPlacementService {
         item.setRoomId(this.room.getId());
         item.onPlace(this.room);
         RoomAreaHideSupport.synchronizeClientVisibility(this.room);
-        Emulator.getThreading().run(item);
+        Emulator.getThreading().runHabboItemPersistence(item);
         return FurnitureMovementError.NONE;
     }
 

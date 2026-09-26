@@ -12,9 +12,9 @@ import com.eu.habbo.habbohotel.catalog.CatalogManager;
 import com.eu.habbo.habbohotel.commands.CommandHandler;
 import com.eu.habbo.habbohotel.crafting.CraftingManager;
 import com.eu.habbo.habbohotel.dailytasks.DailyTaskManager;
-import com.eu.habbo.habbohotel.guides.GuideManager;
 import com.eu.habbo.habbohotel.gameclients.GameClientFlushBatch;
 import com.eu.habbo.habbohotel.gameclients.GameClientManager;
+import com.eu.habbo.habbohotel.guides.GuideManager;
 import com.eu.habbo.habbohotel.guilds.GuildManager;
 import com.eu.habbo.habbohotel.hotelview.HotelViewManager;
 import com.eu.habbo.habbohotel.items.FurnitureTextProvider;
@@ -29,15 +29,16 @@ import com.eu.habbo.habbohotel.permissions.Rank;
 import com.eu.habbo.habbohotel.pets.PetManager;
 import com.eu.habbo.habbohotel.polls.PollManager;
 import com.eu.habbo.habbohotel.rewardtrack.RewardTrackManager;
-import com.eu.habbo.habbohotel.rooms.RoomChatBubbleManager;
 import com.eu.habbo.habbohotel.rooms.Room;
+import com.eu.habbo.habbohotel.rooms.RoomChatBubbleManager;
+import com.eu.habbo.habbohotel.rooms.RoomCycleService;
 import com.eu.habbo.habbohotel.rooms.RoomItemLiveRefreshTask;
 import com.eu.habbo.habbohotel.rooms.RoomManager;
 import com.eu.habbo.habbohotel.soundboard.SoundboardManager;
 import com.eu.habbo.habbohotel.translations.GoogleTranslateManager;
 import com.eu.habbo.habbohotel.traxeditor.TraxEditorManager;
-import com.eu.habbo.habbohotel.users.HabboManager;
 import com.eu.habbo.habbohotel.users.Habbo;
+import com.eu.habbo.habbohotel.users.HabboManager;
 import com.eu.habbo.habbohotel.users.custombadge.CustomBadgeManager;
 import com.eu.habbo.habbohotel.users.infostand.InfostandBackgroundManager;
 import com.eu.habbo.habbohotel.users.subscriptions.SubscriptionManager;
@@ -52,8 +53,8 @@ import com.eu.habbo.messages.outgoing.catalog.marketplace.MarketplaceConfigCompo
 import com.eu.habbo.messages.outgoing.commands.AvailableCommandsComposer;
 import com.eu.habbo.messages.outgoing.rooms.RoomRelativeMapComposer;
 import com.eu.habbo.messages.outgoing.users.UserPermissionsComposer;
-import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executor;
@@ -85,6 +86,7 @@ public class GameEnvironment {
     private volatile CatalogManager catalogManager;
     private HotelViewManager hotelViewManager;
     private RoomManager roomManager;
+    private RoomCycleService roomCycleService;
     private CommandHandler commandHandler;
     private PermissionsManager permissionsManager;
     private BotManager botManager;
@@ -136,15 +138,16 @@ public class GameEnvironment {
         this.botManager = this.services.create("bot manager", BotManager::new, BotManager::dispose);
         this.petManager = this.services.create("pet manager", PetManager::new);
         this.guildManager = this.services.create("guild manager", GuildManager::new, GuildManager::dispose);
-        this.catalogManager = this.services.create(
-                "catalog manager",
-                CatalogManager::new,
-                ignored -> {
-                    CatalogManager current = this.getCatalogManager();
-                    if (current != null) {
-                        current.dispose();
-                    }
-                });
+        this.catalogManager = this.services.create("catalog manager", CatalogManager::new, ignored -> {
+            CatalogManager current = this.getCatalogManager();
+            if (current != null) {
+                current.dispose();
+            }
+        });
+        this.roomCycleService = this.services.create(
+                "room cycle workers",
+                () -> RoomCycleService.fromConfig(Emulator.getConfig()),
+                RoomCycleService::dispose);
         this.roomManager = this.services.create(
                 "room manager", () -> new RoomManager(this.persistenceExecutor), RoomManager::dispose);
         this.services.beforeDispose("room cycles", () -> this.roomManager.quiesceRoomCycles());
@@ -156,15 +159,12 @@ public class GameEnvironment {
         this.achievementManager.reload();
         this.guideManager = this.services.create("guide manager", GuideManager::new);
         this.wordFilter = this.services.create("word filter", WordFilter::new);
-        this.craftingManager = this.services.create(
-                "crafting manager",
-                CraftingManager::new,
-                ignored -> {
-                    CraftingManager current = this.getCraftingManager();
-                    if (current != null) {
-                        current.dispose();
-                    }
-                });
+        this.craftingManager = this.services.create("crafting manager", CraftingManager::new, ignored -> {
+            CraftingManager current = this.getCraftingManager();
+            if (current != null) {
+                current.dispose();
+            }
+        });
         this.catalogCraftingSnapshot = new CatalogCraftingSnapshot(this.catalogManager, this.craftingManager);
         this.pollManager = this.services.create("poll manager", PollManager::new);
         this.calendarManager = this.services.create("calendar manager", CalendarManager::new, CalendarManager::dispose);
@@ -345,7 +345,8 @@ public class GameEnvironment {
         }
 
         try {
-            ScheduledFuture<?> scheduled = Emulator.getThreading().run(() -> this.reloadCatalogAndCrafting(afterPublish));
+            ScheduledFuture<?> scheduled =
+                    Emulator.getThreading().run(() -> this.reloadCatalogAndCrafting(afterPublish));
             if (scheduled != null) {
                 return true;
             }
@@ -571,9 +572,11 @@ public class GameEnvironment {
 
                     habbo.getHabboInfo().setRank(freshRank);
                     habbo.getClient().sendResponse(new UserPermissionsComposer(habbo));
-                    habbo.getClient().sendResponse(new AvailableCommandsComposer(
-                            this.commandHandler.getCommandsForRank(freshRank == null ? currentRankId : freshRank.getId()),
-                            this.permissionsManager.getAllRanks()));
+                    habbo.getClient()
+                            .sendResponse(new AvailableCommandsComposer(
+                                    this.commandHandler.getCommandsForRank(
+                                            freshRank == null ? currentRankId : freshRank.getId()),
+                                    this.permissionsManager.getAllRanks()));
                     refreshed++;
                 }
             }
@@ -623,6 +626,10 @@ public class GameEnvironment {
 
     public RoomManager getRoomManager() {
         return this.roomManager;
+    }
+
+    public RoomCycleService getRoomCycleService() {
+        return this.roomCycleService;
     }
 
     public CommandHandler getCommandHandler() {

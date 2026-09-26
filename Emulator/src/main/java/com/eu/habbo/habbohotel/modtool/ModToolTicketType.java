@@ -15,7 +15,8 @@ public enum ModToolTicketType {
     SELFIE(12),
     POTATO(13),
     PHOTO(14),
-    AMBASSADOR(15);
+    AMBASSADOR(15),
+    FURNITURE(16);
 
     private final int type;
 

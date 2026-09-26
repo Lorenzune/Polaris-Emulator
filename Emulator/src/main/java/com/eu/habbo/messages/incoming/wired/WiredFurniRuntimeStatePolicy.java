@@ -11,15 +11,12 @@ final class WiredFurniRuntimeStatePolicy {
     static final int MAX_KEY_LENGTH = 64;
     static final String GRAVITY_KEY = "@gravity";
     static final String OPACITY_KEY = "@opacity";
+    static final String SCALING_KEY = "@scaling";
     private static final String GAME_AWARE_KEY = "~clock.is_game_aware";
     private static final String PULSE_COUNT_KEY = "~clock.pulse_count";
     private static final String CLOCK_STATE_KEY = "~clock.state";
-    private static final Set<String> ALLOWED_KEYS = Set.of(
-            GRAVITY_KEY,
-            OPACITY_KEY,
-            GAME_AWARE_KEY,
-            PULSE_COUNT_KEY,
-            CLOCK_STATE_KEY);
+    private static final Set<String> ALLOWED_KEYS =
+            Set.of(GRAVITY_KEY, OPACITY_KEY, SCALING_KEY, GAME_AWARE_KEY, PULSE_COUNT_KEY, CLOCK_STATE_KEY);
 
     private WiredFurniRuntimeStatePolicy() {}
 
@@ -62,10 +59,13 @@ final class WiredFurniRuntimeStatePolicy {
         return ALLOWED_KEYS.contains(normalized) ? normalized : "";
     }
 
-    /** Gravity is a flag; opacity is a percentage. Anything outside its own range is rejected. */
+    /** Gravity is a flag; opacity and scale percentages have bounded ranges. */
     private static boolean isValueInRange(String normalizedKey, int value) {
         if (OPACITY_KEY.equals(normalizedKey)) {
             return value >= 0 && value <= 100;
+        }
+        if (SCALING_KEY.equals(normalizedKey)) {
+            return value >= 25 && value <= 300;
         }
         return value == 0 || value == 1;
     }

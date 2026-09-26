@@ -25,12 +25,14 @@ public class GameClient {
 
     // Client-advertised WIRED extension protocol version. This negotiates packet
     // compatibility and is not a server-side feature flag.
-    public static final int WIRED_FEATURE_PROTOCOL_VERSION = 1;
+    public static final int WIRED_FEATURE_PROTOCOL_VERSION = 3;
 
-    // Bit 0 - the client understands per-furniture opacity updates.
+    // Bit 0 - the client understands room furniture visual-state updates.
     public static final int WIRED_FEATURE_OPACITY = 1;
     public static final int WIRED_FEATURE_MOVE_STYLE = 2;
-    private static final int WIRED_FEATURE_KNOWN_MASK = WIRED_FEATURE_OPACITY | WIRED_FEATURE_MOVE_STYLE;
+    public static final int WIRED_FEATURE_CUSTOM_COLOR = 4;
+    private static final int WIRED_FEATURE_KNOWN_MASK =
+            WIRED_FEATURE_OPACITY | WIRED_FEATURE_MOVE_STYLE | WIRED_FEATURE_CUSTOM_COLOR;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GameClient.class);
 

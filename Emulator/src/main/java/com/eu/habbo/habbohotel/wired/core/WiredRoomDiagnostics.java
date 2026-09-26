@@ -522,8 +522,7 @@ public final class WiredRoomDiagnostics {
                 && ((this.averageExecutionMs >= this.overloadAverageThresholdMs)
                         || (this.peakExecutionMs >= this.overloadPeakThresholdMs));
         boolean heavyWindow = (usagePercent >= this.heavyUsageThresholdPercent)
-                || (delayedPercent >= this.heavyDelayedThresholdPercent)
-                || overloadWindow;
+                || (delayedPercent >= this.heavyDelayedThresholdPercent);
 
         if (overloadWindow) {
             this.consecutiveOverloadWindows++;

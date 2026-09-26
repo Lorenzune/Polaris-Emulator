@@ -70,6 +70,31 @@ class RoomStateOwnershipTest {
     }
 
     @Test
+    void lastUserCleanupClearsTransientMediaAndWatchers() throws Exception {
+        Room room = new Room(41, 7);
+        room.setYoutubeVideo("youtube-video", "sender", java.util.List.of("youtube-video"));
+        room.setMusicPartyVideo("music-video", "sender", java.util.List.of("music-video"), 0, false);
+        room.getYoutubeWatchers().add(12);
+
+        invokeEmptyRoomMediaCleanup(room);
+
+        assertTrue(room.getYoutubeCurrentVideo().isEmpty());
+        assertTrue(room.getMusicPartyCurrentVideo().isEmpty());
+        assertTrue(room.getYoutubeWatchers().isEmpty());
+    }
+
+    @Test
+    void lastUserCleanupKeepsMediaWhileTheRoomIsOccupied() throws Exception {
+        Room room = new Room(41, 7);
+        room.setYoutubeVideo("youtube-video", "sender", java.util.List.of("youtube-video"));
+        room.getCurrentHabbos().put(12, mock(Habbo.class));
+
+        invokeEmptyRoomMediaCleanup(room);
+
+        assertTrue(room.getYoutubeCurrentVideo().equals("youtube-video"));
+    }
+
+    @Test
     void roomAndRightsManagerShareTheSameBanState() {
         Room room = new Room(41, 7);
         RoomBan ban = new RoomBan(41, 12, "banned", Emulator.getIntUnixTimestamp() + 60);
@@ -131,5 +156,11 @@ class RoomStateOwnershipTest {
         Field field = target.getClass().getDeclaredField(name);
         field.setAccessible(true);
         field.set(target, value);
+    }
+
+    private static void invokeEmptyRoomMediaCleanup(Room room) throws Exception {
+        var cleanup = Room.class.getDeclaredMethod("deactivateTransientMediaWhenEmpty");
+        cleanup.setAccessible(true);
+        cleanup.invoke(room);
     }
 }

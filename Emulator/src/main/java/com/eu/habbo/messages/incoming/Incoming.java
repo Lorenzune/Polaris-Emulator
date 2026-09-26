@@ -442,6 +442,8 @@ public class Incoming {
     public static final int WiredUserInspectMoveEvent = 10027;
     public static final int WiredFurniRuntimeStateRequestEvent = 10028;
     public static final int WiredFeatureCapabilitiesEvent = 10029;
+    public static final int WiredFurniOpacityBatchEvent = 10038;
+    public static final int WiredFurniCustomColorBatchEvent = 10039;
     public static final int WiredRoomRollbackEvent = 10034;
     public static final int WiredAccountPreferencesRequestEvent = 10035;
     public static final int WiredAccountPreferencesSaveEvent = 10036;
@@ -461,6 +463,9 @@ public class Incoming {
     public static final int FurniEditorUpdateFurnidataEvent = 10046;
     public static final int FurniEditorRevertFurnidataEvent = 10048;
     public static final int FurniEditorImportTextEvent = 10049;
+    public static final int FurnitureReportDataEvent = 10080;
+    public static final int FurnitureReportSubmitEvent = 10081;
+    public static final int FurnitureReportUpdateEvent = 10082;
 
     // Catalog Admin
     public static final int CatalogAdminSavePageEvent = 10050;
@@ -476,6 +481,10 @@ public class Incoming {
     public static final int CatalogAdminSavePageIconEvent = 10061;
     public static final int CatalogAdminLoadOfferEvent = 10062;
     public static final int CatalogAdminLoadPageEvent = 10063;
+    public static final int CatalogAdminSetPageEnabledEvent = 10067;
+    public static final int CatalogAdminSetPageVisibleEvent = 10068;
+    public static final int CatalogAdminReorderOffersEvent = 10069;
+    public static final int CatalogAdminMoveOfferToPageEvent = 10083;
     public static final int RecyclerAdminRequestEvent = 10064;
     public static final int RecyclerAdminSaveEvent = 10065;
 
@@ -553,6 +562,7 @@ public class Incoming {
     public static final int ClaimEarningsRewardEvent = 9309;
     public static final int ClaimAllEarningsRewardsEvent = 9310;
     public static final int PressKeybindEvent = 9311;
+    public static final int BuildersToolsFreezeEvent = 9312;
     public static final int CraftingEditorSaveEvent = 10070;
     public static final int CraftingEditorDeleteEvent = 10071;
     public static final int RequestCrackableEditorEvent = 10072;

@@ -199,6 +199,10 @@ SELECT 'wired.abuse.rate.limit.window.ms', COALESCE((SELECT `value` FROM `emulat
 UNION ALL
 SELECT 'wired.abuse.ban.duration.ms', COALESCE((SELECT `value` FROM `emulator_settings` WHERE `key` = 'wired.abuse.ban.duration.ms' LIMIT 1), '600000'), 'Duration in milliseconds of the temporary wired ban after abuse detection.'
 UNION ALL
+SELECT 'wired.signal.max.events.per.chain', COALESCE((SELECT `value` FROM `emulator_settings` WHERE `key` = 'wired.signal.max.events.per.chain' LIMIT 1), '2048'), 'Maximum signal events admitted in one synchronous WIRED chain; 0 disables this limit.'
+UNION ALL
+SELECT 'wired.signal.max.chain.ms', COALESCE((SELECT `value` FROM `emulator_settings` WHERE `key` = 'wired.signal.max.chain.ms' LIMIT 1), '250'), 'Maximum synchronous duration in milliseconds for one WIRED signal chain; 0 disables this limit.'
+UNION ALL
 SELECT 'wired.monitor.usage.window.ms', COALESCE((SELECT `value` FROM `emulator_settings` WHERE `key` = 'wired.monitor.usage.window.ms' LIMIT 1), '1000'), 'Rolling window size in milliseconds used to calculate wired usage in the :wired monitor.'
 UNION ALL
 SELECT 'wired.monitor.usage.limit', COALESCE((SELECT `value` FROM `emulator_settings` WHERE `key` = 'wired.monitor.usage.limit' LIMIT 1), '1000'), 'Maximum wired usage budget allowed in one monitor window before EXECUTION_CAP is raised.'
@@ -241,6 +245,8 @@ WHERE `key` IN (
   'wired.abuse.max.events.per.window',
   'wired.abuse.rate.limit.window.ms',
   'wired.abuse.ban.duration.ms',
+  'wired.signal.max.events.per.chain',
+  'wired.signal.max.chain.ms',
   'wired.monitor.usage.window.ms',
   'wired.monitor.usage.limit',
   'wired.monitor.delayed.events.limit',
@@ -437,6 +443,11 @@ ALTER TABLE `catalog_pages`
         'builders_club_addons',
         'builders_club_loyalty'
     ) NOT NULL DEFAULT 'default_3x3';
+
+INSERT INTO `emulator_settings` (`key`, `value`, `comment`) VALUES
+    ('room.cycle.workers', '0', 'Room-cycle workers; 0 selects 2 to 16 based on available processors; positive values are clamped to 1-64. Restart required.'),
+    ('room.cycle.slow_ms', '250', 'Log a warning when one room cycle exceeds this many milliseconds.')
+ON DUPLICATE KEY UPDATE `comment` = VALUES(`comment`);
 
 ALTER TABLE `catalog_pages`
 ADD COLUMN IF NOT EXISTS `catalog_mode` ENUM('NORMAL', 'BUILDER', 'BOTH') NOT NULL DEFAULT 'NORMAL' AFTER `club_only`;

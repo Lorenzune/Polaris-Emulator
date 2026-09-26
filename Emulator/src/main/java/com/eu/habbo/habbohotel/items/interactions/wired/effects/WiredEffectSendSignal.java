@@ -75,16 +75,20 @@ public class WiredEffectSendSignal extends InteractionWiredEffect {
         Room room = ctx.room();
         if (room == null) return;
 
-        LOGGER.debug(
-                "[SendSignal] execute() called, itemId={}, antennaSource={}, pickedItems={}, configuredDelay={}",
-                this.getId(),
-                antennaSource,
-                this.items.size(),
-                this.getDelay());
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace(
+                    "[SendSignal] execute() called, itemId={}, antennaSource={}, pickedItems={}, configuredDelay={}",
+                    this.getId(),
+                    antennaSource,
+                    this.items.size(),
+                    this.getDelay());
+        }
 
         int currentDepth = ctx.event().getCallStackDepth();
         if (hasReachedMaxSignalDepth(currentDepth)) {
-            LOGGER.debug("[SendSignal] Max signal depth reached ({}), aborting", currentDepth);
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("[SendSignal] Max signal depth reached ({}), aborting", currentDepth);
+            }
             return;
         }
 
@@ -109,14 +113,18 @@ public class WiredEffectSendSignal extends InteractionWiredEffect {
                 .collect(Collectors.toList());
 
         if (resolvedAntennas.isEmpty()) {
-            LOGGER.debug(
-                    "[SendSignal] No antennas resolved, aborting. antennaSource={}, selectorModified={}",
-                    antennaSource,
-                    ctx.targets().isItemsModifiedBySelector());
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace(
+                        "[SendSignal] No antennas resolved, aborting. antennaSource={}, selectorModified={}",
+                        antennaSource,
+                        ctx.targets().isItemsModifiedBySelector());
+            }
             return;
         }
 
-        LOGGER.debug("[SendSignal] Resolved {} antenna(s), firing signals", resolvedAntennas.size());
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("[SendSignal] Resolved {} antenna(s), firing signals", resolvedAntennas.size());
+        }
 
         RoomUnit triggeringUser =
                 ctx.event().getOriginActor().orElseGet(() -> ctx.actor().orElse(null));
@@ -131,18 +139,20 @@ public class WiredEffectSendSignal extends InteractionWiredEffect {
          * Se furniForward == SOURCE_SELECTOR, selectorTargets e forwardedFurni
          * dovrebbero contenere gli stessi furni selezionati dalla pila.
          */
-        LOGGER.debug(
-                "[SendSignal] furniForward={}, signalPerFurni={}, selectorTargets={}, forwardedFurni={}",
-                this.furniForward,
-                this.signalPerFurni,
-                ctx.targets().items().stream()
-                        .filter(Objects::nonNull)
-                        .map(HabboItem::getId)
-                        .collect(Collectors.toList()),
-                forwardedFurni.stream()
-                        .filter(Objects::nonNull)
-                        .map(HabboItem::getId)
-                        .collect(Collectors.toList()));
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace(
+                    "[SendSignal] furniForward={}, signalPerFurni={}, selectorTargets={}, forwardedFurni={}",
+                    this.furniForward,
+                    this.signalPerFurni,
+                    ctx.targets().items().stream()
+                            .filter(Objects::nonNull)
+                            .map(HabboItem::getId)
+                            .collect(Collectors.toList()),
+                    forwardedFurni.stream()
+                            .filter(Objects::nonNull)
+                            .map(HabboItem::getId)
+                            .collect(Collectors.toList()));
+        }
 
         List<RoomUnit> usersToSend;
 
@@ -194,6 +204,12 @@ public class WiredEffectSendSignal extends InteractionWiredEffect {
         List<HabboItem> signalSourceItems =
                 forwardedFurni.isEmpty() ? List.of() : new ArrayList<>(new LinkedHashSet<>(forwardedFurni));
 
+        // Keep one immutable snapshot for all events emitted by this effect. Each
+        // WiredEvent can then safely share these forwarded-source lists.
+        signalSourceUsers = List.copyOf(signalSourceUsers);
+        signalSourceItems =
+                List.copyOf(signalSourceItems.stream().filter(Objects::nonNull).toList());
+
         Collection<HabboItem> furniToSend;
 
         if (signalPerFurni) {
@@ -211,19 +227,22 @@ public class WiredEffectSendSignal extends InteractionWiredEffect {
                 ? (int) usersToSend.stream().filter(Objects::nonNull).count()
                 : (!forwardedUsers.isEmpty() ? forwardedUsers.size() : (triggeringUser != null ? 1 : 0));
 
+        signalEmissionLoop:
         try (WiredRoomUpdateScope ignored = WiredRoomUpdateScope.batchVisualUpdates()) {
             for (RoomUnit user : usersToSend) {
                 for (HabboItem sourceItem : furniToSend) {
                     for (HabboItem antenna : resolvedAntennas) {
 
-                        LOGGER.debug(
-                                "[SendSignal] sending event: antenna={}, sourceItem={}, user={}, depth={}",
-                                antenna != null ? antenna.getId() : null,
-                                sourceItem != null ? sourceItem.getId() : null,
-                                user != null ? user.getId() : null,
-                                nextDepth);
+                        if (LOGGER.isTraceEnabled()) {
+                            LOGGER.trace(
+                                    "[SendSignal] sending event: antenna={}, sourceItem={}, user={}, depth={}",
+                                    antenna != null ? antenna.getId() : null,
+                                    sourceItem != null ? sourceItem.getId() : null,
+                                    user != null ? user.getId() : null,
+                                    nextDepth);
+                        }
 
-                        fireSignalAtAntenna(
+                        boolean admitted = fireSignalAtAntenna(
                                 ctx,
                                 room,
                                 antenna,
@@ -237,6 +256,10 @@ public class WiredEffectSendSignal extends InteractionWiredEffect {
                                 signalUserCount,
                                 nextDepth,
                                 signalCreatedAtMs);
+
+                        if (!admitted) {
+                            break signalEmissionLoop;
+                        }
                     }
                 }
             }
@@ -250,7 +273,7 @@ public class WiredEffectSendSignal extends InteractionWiredEffect {
         }
     }
 
-    private void fireSignalAtAntenna(
+    private boolean fireSignalAtAntenna(
             WiredContext ctx,
             Room room,
             HabboItem antenna,
@@ -265,10 +288,10 @@ public class WiredEffectSendSignal extends InteractionWiredEffect {
             int depth,
             long createdAtMs) {
 
-        if (antenna == null) return;
+        if (antenna == null) return false;
 
         RoomTile tile = room.getLayout().getTile(antenna.getX(), antenna.getY());
-        if (tile == null) return;
+        if (tile == null) return false;
 
         pulseAntenna(room, antenna);
 
@@ -278,15 +301,17 @@ public class WiredEffectSendSignal extends InteractionWiredEffect {
          */
         int signalChannel = antenna.getId();
 
-        LOGGER.debug(
-                "[SendSignal] fireSignalAtAntenna: antennaId={} tile={},{} depth={} channel={} actor={} sourceItem={}",
-                signalChannel,
-                tile.x,
-                tile.y,
-                depth,
-                signalChannel,
-                actor != null ? actor.getId() : "null",
-                sourceItem != null ? sourceItem.getId() : "null");
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace(
+                    "[SendSignal] fireSignalAtAntenna: antennaId={} tile={},{} depth={} channel={} actor={} sourceItem={}",
+                    signalChannel,
+                    tile.x,
+                    tile.y,
+                    depth,
+                    signalChannel,
+                    actor != null ? actor.getId() : "null",
+                    sourceItem != null ? sourceItem.getId() : "null");
+        }
 
         WiredEvent.Builder builder = WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
                 .tile(tile)
@@ -316,11 +341,15 @@ public class WiredEffectSendSignal extends InteractionWiredEffect {
 
         boolean result = dispatchSignalEvent(builder.build());
 
-        LOGGER.debug(
-                "[SendSignal] handleEvent returned: {}, antenna={}, sourceItem={}",
-                result,
-                antenna.getId(),
-                sourceItem != null ? sourceItem.getId() : null);
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace(
+                    "[SendSignal] handleEvent returned: {}, antenna={}, sourceItem={}",
+                    result,
+                    antenna.getId(),
+                    sourceItem != null ? sourceItem.getId() : null);
+        }
+
+        return result;
     }
 
     private void pulseAntenna(Room room, HabboItem antenna) {

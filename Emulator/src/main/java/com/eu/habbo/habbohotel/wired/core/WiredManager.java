@@ -90,6 +90,8 @@ public final class WiredManager {
     private static final boolean DEFAULT_ENABLED = true;
     private static final boolean DEFAULT_EXCLUSIVE = true;
     private static final int DEFAULT_MAX_STEPS = 100;
+    private static final int DEFAULT_MAX_SIGNAL_EVENTS_PER_CHAIN = 2048;
+    private static final int DEFAULT_MAX_SIGNAL_CHAIN_DURATION_MS = 250;
 
     /** The singleton engine instance */
     private static volatile WiredEngine engine;
@@ -106,6 +108,7 @@ public final class WiredManager {
     private static final ThreadLocal<Integer> EVENT_HANDLING_DEPTH = new ThreadLocal<>();
     private static final ThreadLocal<ArrayDeque<DeferredEffectEvent>> DEFERRED_EFFECT_EVENTS = new ThreadLocal<>();
     private static final ThreadLocal<Boolean> DEFER_DEFERRED_VISUAL_UPDATES = new ThreadLocal<>();
+    private static final ThreadLocal<WiredSignalChainBudget> SIGNAL_CHAIN_BUDGET = new ThreadLocal<>();
 
     private WiredManager() {
         // Static utility class
@@ -234,6 +237,7 @@ public final class WiredManager {
         EVENT_HANDLING_DEPTH.remove();
         DEFERRED_EFFECT_EVENTS.remove();
         DEFER_DEFERRED_VISUAL_UPDATES.remove();
+        SIGNAL_CHAIN_BUDGET.remove();
         WiredInternalVariableSupport.clearThreadLocalsForCurrentThread();
         WiredMoveCarryHelper.clearThreadLocalsForCurrentThread();
         WiredUserMovementHelper.clearThreadLocalsForCurrentThread();
@@ -323,6 +327,10 @@ public final class WiredManager {
 
         if (previousDepth == null) {
             DEFERRED_EFFECT_EVENTS.set(new ArrayDeque<>());
+            if (event.getType() == WiredEvent.Type.SIGNAL_RECEIVED) {
+                SIGNAL_CHAIN_BUDGET.set(newSignalChainBudget());
+                tryAdmitSignalEvent(event.getRoom());
+            }
         }
 
         boolean handled = false;
@@ -333,6 +341,7 @@ public final class WiredManager {
             handled = engine.handleEvent(event, negateConditions);
 
             if (nextDepth == 1) {
+                enforceSignalChainDuration(event.getRoom());
                 ArrayDeque<DeferredEffectEvent> deferredEvents = DEFERRED_EFFECT_EVENTS.get();
 
                 while (deferredEvents != null && !deferredEvents.isEmpty()) {
@@ -349,6 +358,7 @@ public final class WiredManager {
                     }
 
                     handled = engine.handleEvent(deferredEvent.event, deferredEvent.negateConditions) || handled;
+                    enforceSignalChainDuration(event.getRoom());
                 }
             }
 
@@ -365,6 +375,7 @@ public final class WiredManager {
                 EVENT_HANDLING_DEPTH.remove();
                 DEFERRED_EFFECT_EVENTS.remove();
                 DEFER_DEFERRED_VISUAL_UPDATES.remove();
+                SIGNAL_CHAIN_BUDGET.remove();
             } else {
                 EVENT_HANDLING_DEPTH.set(previousDepth);
             }
@@ -390,7 +401,14 @@ public final class WiredManager {
         Integer currentDepth = EVENT_HANDLING_DEPTH.get();
 
         if (currentDepth == null || currentDepth <= 0) {
-            return handleEvent(event, negateConditions);
+            boolean handled = handleEvent(event, negateConditions);
+            // For signals the caller needs to know whether dispatch was accepted,
+            // not whether the room happened to contain a matching receiver.
+            return event.getType() == WiredEvent.Type.SIGNAL_RECEIVED || handled;
+        }
+
+        if (event.getType() == WiredEvent.Type.SIGNAL_RECEIVED && !tryAdmitSignalEvent(event.getRoom())) {
+            return false;
         }
 
         if (event.getType() == WiredEvent.Type.SIGNAL_RECEIVED) {
@@ -406,6 +424,55 @@ public final class WiredManager {
 
         deferredEvents.addLast(new DeferredEffectEvent(event, negateConditions));
         return true;
+    }
+
+    private static boolean tryAdmitSignalEvent(Room room) {
+        WiredSignalChainBudget budget = SIGNAL_CHAIN_BUDGET.get();
+        if (budget == null) {
+            budget = newSignalChainBudget();
+            SIGNAL_CHAIN_BUDGET.set(budget);
+        }
+
+        if (budget.tryAdmit()) {
+            return true;
+        }
+
+        discardPendingSignalEvents();
+        reportSignalChainLimit(room, budget);
+        return false;
+    }
+
+    private static WiredSignalChainBudget newSignalChainBudget() {
+        return new WiredSignalChainBudget(
+                Emulator.getConfig().getInt("wired.signal.max.events.per.chain", DEFAULT_MAX_SIGNAL_EVENTS_PER_CHAIN),
+                Emulator.getConfig().getInt("wired.signal.max.chain.ms", DEFAULT_MAX_SIGNAL_CHAIN_DURATION_MS));
+    }
+
+    private static void enforceSignalChainDuration(Room room) {
+        WiredSignalChainBudget budget = SIGNAL_CHAIN_BUDGET.get();
+        if (budget != null && budget.abortIfDurationExceeded()) {
+            discardPendingSignalEvents();
+            reportSignalChainLimit(room, budget);
+        }
+    }
+
+    private static void discardPendingSignalEvents() {
+        ArrayDeque<DeferredEffectEvent> deferredEvents = DEFERRED_EFFECT_EVENTS.get();
+        if (deferredEvents != null) {
+            deferredEvents.removeIf(deferredEvent -> deferredEvent != null
+                    && deferredEvent.event != null
+                    && deferredEvent.event.getType() == WiredEvent.Type.SIGNAL_RECEIVED);
+        }
+    }
+
+    private static void reportSignalChainLimit(Room room, WiredSignalChainBudget budget) {
+        if (budget.markLimitReported()) {
+            LOGGER.warn(
+                    "Stopped pending WIRED signal events in room {} after reaching the {} for one chain; "
+                            + "adjust wired.signal.max.events.per.chain or wired.signal.max.chain.ms to change the limits",
+                    room != null ? room.getId() : 0,
+                    budget.limitReason());
+        }
     }
 
     private static boolean shouldBatchVisualUpdatesForRoot(WiredEvent event) {

@@ -304,43 +304,6 @@
       "fields": []
     },
     {
-      "name": "FURNITURE_FLOOR_UPDATE",
-      "direction": "client_to_server",
-      "header": 248,
-      "java": {
-        "symbol": "RotateMoveItemEvent",
-        "className": "RotateMoveItemEvent",
-        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/rooms/items/RotateMoveItemEvent.java"
-      },
-      "typescript": {
-        "symbol": "FURNITURE_FLOOR_UPDATE",
-        "className": "FurnitureFloorUpdateComposer",
-        "path": "packages/communication/src/messages/outgoing/room/furniture/floor/FurnitureFloorUpdateComposer.ts"
-      },
-      "fields": [
-        {
-          "kind": "scalar",
-          "type": "int",
-          "name": "furniId"
-        },
-        {
-          "kind": "scalar",
-          "type": "int",
-          "name": "x"
-        },
-        {
-          "kind": "scalar",
-          "type": "int",
-          "name": "y"
-        },
-        {
-          "kind": "scalar",
-          "type": "int",
-          "name": "rotation"
-        }
-      ]
-    },
-    {
       "name": "NAVIGATOR_SEARCH",
       "direction": "client_to_server",
       "header": 249,
@@ -8216,6 +8179,11 @@
           "kind": "scalar",
           "type": "int",
           "name": "spriteId"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "itemName"
         }
       ]
     },
@@ -16192,6 +16160,326 @@
           "name": "broadcasterId"
         }
       ]
+    },
+    {
+      "name": "CATALOG_ADMIN_SET_PAGE_ENABLED",
+      "direction": "client_to_server",
+      "header": 10067,
+      "java": {
+        "symbol": "CatalogAdminSetPageEnabledEvent",
+        "className": "CatalogAdminSetPageEnabledEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogAdminSetPageEnabledEvent.java"
+      },
+      "typescript": {
+        "symbol": "CATALOG_ADMIN_SET_PAGE_ENABLED",
+        "className": "CatalogAdminSetPageEnabledComposer",
+        "path": "packages/communication/src/messages/outgoing/catalog/CatalogAdminSetPageEnabledComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "pageId"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "enabled"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "catalogMode"
+        }
+      ]
+    },
+    {
+      "name": "CATALOG_ADMIN_SET_PAGE_VISIBLE",
+      "direction": "client_to_server",
+      "header": 10068,
+      "java": {
+        "symbol": "CatalogAdminSetPageVisibleEvent",
+        "className": "CatalogAdminSetPageVisibleEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogAdminSetPageVisibleEvent.java"
+      },
+      "typescript": {
+        "symbol": "CATALOG_ADMIN_SET_PAGE_VISIBLE",
+        "className": "CatalogAdminSetPageVisibleComposer",
+        "path": "packages/communication/src/messages/outgoing/catalog/CatalogAdminSetPageVisibleComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "pageId"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "visible"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "catalogMode"
+        }
+      ]
+    },
+    {
+      "name": "CATALOG_ADMIN_MOVE_OFFER_TO_PAGE",
+      "direction": "client_to_server",
+      "header": 10083,
+      "java": {
+        "symbol": "CatalogAdminMoveOfferToPageEvent",
+        "className": "CatalogAdminMoveOfferToPageEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogAdminMoveOfferToPageEvent.java"
+      },
+      "typescript": {
+        "symbol": "CATALOG_ADMIN_MOVE_OFFER_TO_PAGE",
+        "className": "CatalogAdminMoveOfferToPageComposer",
+        "path": "packages/communication/src/messages/outgoing/catalog/CatalogAdminMoveOfferToPageComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "offerId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "targetPageId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "orderNumber"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "catalogMode"
+        }
+      ]
+    },
+    {
+      "name": "FURNITURE_REPORT_DATA_REQUEST",
+      "direction": "client_to_server",
+      "header": 10080,
+      "java": {
+        "symbol": "FurnitureReportDataEvent",
+        "className": "FurnitureReportDataEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/furniturereport/FurnitureReportDataEvent.java"
+      },
+      "typescript": {
+        "symbol": "FURNITURE_REPORT_DATA",
+        "className": "FurnitureReportDataComposer",
+        "path": "packages/communication/src/messages/outgoing/furniturereport/FurnitureReportDataComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "roomId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "objectId"
+        }
+      ]
+    },
+    {
+      "name": "FURNITURE_REPORT_SUBMIT",
+      "direction": "client_to_server",
+      "header": 10081,
+      "java": {
+        "symbol": "FurnitureReportSubmitEvent",
+        "className": "FurnitureReportSubmitEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/furniturereport/FurnitureReportSubmitEvent.java"
+      },
+      "typescript": {
+        "symbol": "FURNITURE_REPORT_SUBMIT",
+        "className": "FurnitureReportSubmitComposer",
+        "path": "packages/communication/src/messages/outgoing/furniturereport/FurnitureReportSubmitComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "roomId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "objectId"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "changesJson"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "reason"
+        }
+      ]
+    },
+    {
+      "name": "FURNITURE_REPORT_UPDATE",
+      "direction": "client_to_server",
+      "header": 10082,
+      "java": {
+        "symbol": "FurnitureReportUpdateEvent",
+        "className": "FurnitureReportUpdateEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/furniturereport/FurnitureReportUpdateEvent.java"
+      },
+      "typescript": {
+        "symbol": "FURNITURE_REPORT_UPDATE",
+        "className": "FurnitureReportUpdateComposer",
+        "path": "packages/communication/src/messages/outgoing/furniturereport/FurnitureReportUpdateComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "issueId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "spriteId"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "fieldsJson"
+        }
+      ]
+    },
+    {
+      "name": "FURNITURE_REPORT_DATA",
+      "direction": "server_to_client",
+      "header": 10080,
+      "java": {
+        "symbol": "FurnitureReportDataComposer",
+        "className": "FurnitureReportDataComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/furniturereport/FurnitureReportDataComposer.java"
+      },
+      "typescript": {
+        "symbol": "FURNITURE_REPORT_DATA",
+        "className": "FurnitureReportDataParser",
+        "path": "packages/communication/src/messages/parser/furniturereport/FurnitureReportDataParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "success"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "error"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "dataJson"
+        }
+      ]
+    },
+    {
+      "name": "FURNITURE_REPORT_RESULT",
+      "direction": "server_to_client",
+      "header": 10081,
+      "java": {
+        "symbol": "FurnitureReportResultComposer",
+        "className": "FurnitureReportResultComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/furniturereport/FurnitureReportResultComposer.java"
+      },
+      "typescript": {
+        "symbol": "FURNITURE_REPORT_RESULT",
+        "className": "FurnitureReportResultParser",
+        "path": "packages/communication/src/messages/parser/furniturereport/FurnitureReportResultParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "success"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "issueId"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "message"
+        }
+      ]
+    },
+    {
+      "name": "FURNITURE_REPORT_UPDATE_RESULT",
+      "direction": "server_to_client",
+      "header": 10082,
+      "java": {
+        "symbol": "FurnitureReportUpdateResultComposer",
+        "className": "FurnitureReportUpdateResultComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/furniturereport/FurnitureReportUpdateResultComposer.java"
+      },
+      "typescript": {
+        "symbol": "FURNITURE_REPORT_UPDATE_RESULT",
+        "className": "FurnitureReportUpdateResultParser",
+        "path": "packages/communication/src/messages/parser/furniturereport/FurnitureReportUpdateResultParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "success"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "issueId"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "message"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "dataJson"
+        }
+      ]
+    },
+    {
+      "name": "BUILDERS_TOOLS_FREEZE",
+      "direction": "client_to_server",
+      "header": 9312,
+      "java": {
+        "symbol": "BuildersToolsFreezeEvent",
+        "className": "BuildersToolsFreezeEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/rooms/users/BuildersToolsFreezeEvent.java"
+      },
+      "typescript": {
+        "symbol": "BUILDERS_TOOLS_FREEZE",
+        "className": "BuildersToolsFreezeComposer",
+        "path": "packages/communication/src/messages/outgoing/room/action/BuildersToolsFreezeComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "enabled"
+        }
+      ]
     }
   ],
   "unpaired": [
@@ -23656,6 +23944,86 @@
           "name": "urlHint"
         }
       ]
+    },
+    {
+      "name": "CATALOG_ADMIN_REORDER_OFFERS",
+      "direction": "client_to_server",
+      "header": 10069,
+      "java": {
+        "symbol": "CatalogAdminReorderOffersEvent",
+        "className": "CatalogAdminReorderOffersEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogAdminReorderOffersEvent.java"
+      },
+      "typescript": {
+        "symbol": "CATALOG_ADMIN_REORDER_OFFERS",
+        "className": "CatalogAdminReorderOffersComposer",
+        "path": "packages/communication/src/messages/outgoing/catalog/CatalogAdminReorderOffersComposer.ts"
+      },
+      "reason": "The composer serializes each variable offer-id/order pair by appending values in a loop; the analyzer currently rejects this mutable-array pattern."
+    },
+    {
+      "name": "FURNITURE_FLOOR_UPDATE",
+      "direction": "client_to_server",
+      "header": 248,
+      "java": {
+        "symbol": "RotateMoveItemEvent",
+        "className": "RotateMoveItemEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/rooms/items/RotateMoveItemEvent.java"
+      },
+      "typescript": {
+        "symbol": "FURNITURE_FLOOR_UPDATE",
+        "className": "FurnitureFloorUpdateComposer",
+        "path": "packages/communication/src/messages/outgoing/room/furniture/floor/FurnitureFloorUpdateComposer.ts"
+      },
+      "reason": "The Builders Tools extension conditionally appends movement flags and a variable-length selection batch, which the static packet analyzer cannot currently model."
+    },
+    {
+      "name": "WIRED_FURNI_OPACITY_BATCH",
+      "direction": "client_to_server",
+      "header": 10038,
+      "java": {
+        "symbol": "WiredFurniOpacityBatchEvent",
+        "className": "WiredFurniOpacityBatchEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/wired/WiredFurniOpacityBatchEvent.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_FURNI_OPACITY_BATCH",
+        "className": "WiredFurniOpacityBatchComposer",
+        "path": "packages/communication/src/messages/outgoing/roomevents/WiredFurniOpacityBatchComposer.ts"
+      },
+      "reason": "The packet contains a count-prefixed variable item-id list; the TypeScript analyzer does not yet resolve spread-array wire fields."
+    },
+    {
+      "name": "WIRED_FURNI_CUSTOM_COLOR_BATCH",
+      "direction": "client_to_server",
+      "header": 10039,
+      "java": {
+        "symbol": "WiredFurniCustomColorBatchEvent",
+        "className": "WiredFurniCustomColorBatchEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/wired/WiredFurniCustomColorBatchEvent.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_FURNI_CUSTOM_COLOR_BATCH",
+        "className": "WiredFurniCustomColorBatchComposer",
+        "path": "packages/communication/src/messages/outgoing/roomevents/WiredFurniCustomColorBatchComposer.ts"
+      },
+      "reason": "The packet contains a count-prefixed variable item-id list; the TypeScript analyzer does not yet resolve spread-array wire fields."
+    },
+    {
+      "name": "WIRED_FURNI_CUSTOM_COLOR",
+      "direction": "server_to_client",
+      "header": 5112,
+      "java": {
+        "symbol": "WiredFurniCustomColorComposer",
+        "className": "WiredFurniCustomColorComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/WiredFurniCustomColorComposer.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_FURNI_CUSTOM_COLOR",
+        "className": "WiredFurniCustomColorParser",
+        "path": "packages/communication/src/messages/parser/roomevents/WiredFurniCustomColorParser.ts"
+      },
+      "reason": "The packet dictionary-compresses repeated color values and indexes them from a variable update list, a dependent shape the static analyzer cannot currently model."
     }
   ]
 }

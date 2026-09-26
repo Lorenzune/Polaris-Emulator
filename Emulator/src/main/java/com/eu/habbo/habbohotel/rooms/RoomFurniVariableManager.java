@@ -8,6 +8,7 @@ import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.core.WiredEvent;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
+import com.eu.habbo.habbohotel.wired.core.WiredVariableBoxUpdateScope;
 import com.eu.habbo.habbohotel.wired.core.WiredVariableLevelSystemSupport;
 import com.eu.habbo.habbohotel.wired.core.WiredVariableTextConnectorSupport;
 import com.eu.habbo.messages.outgoing.wired.WiredUserVariablesDataComposer;
@@ -230,7 +231,7 @@ public class RoomFurniVariableManager {
 
             if (changed) {
                 if (extra != null) {
-                    extra.activateBox(this.room);
+                    WiredVariableBoxUpdateScope.activate(extra, this.room);
                 }
                 this.broadcastSnapshot();
             }
@@ -270,7 +271,7 @@ public class RoomFurniVariableManager {
         this.emitVariableChangedEvents(
                 furniId, extra, definitionInfo, hadBefore, previousValue, true, assignment.getValue());
         if (extra != null) {
-            extra.activateBox(this.room);
+            WiredVariableBoxUpdateScope.activate(extra, this.room);
         }
         this.broadcastSnapshot();
         return true;

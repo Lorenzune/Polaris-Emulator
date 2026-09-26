@@ -6,28 +6,31 @@ import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.util.ANSI;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageEncoder;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 public class GameServerMessageLogger extends MessageToMessageEncoder<ServerMessage> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GameServerMessageLogger.class);
     private final PacketNames names;
 
-    public GameServerMessageLogger()  {
+    public GameServerMessageLogger() {
         this.names = Emulator.getGameServer().getPacketManager().getNames();
     }
 
     @Override
     protected void encode(ChannelHandlerContext ctx, ServerMessage message, List<Object> out) {
-        LOGGER.debug(String.format("[" + ANSI.BLUE + "SERVER" + ANSI.DEFAULT + "][%-4d][%-41s] => %s",
-                message.getHeader(),
-                this.names.getOutgoingName(message.getHeader()),
-                message.getBodyString()));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(String.format(
+                    "[%sSERVER%s][%-4d][%-41s] => %s",
+                    ANSI.BLUE,
+                    ANSI.DEFAULT,
+                    message.getHeader(),
+                    this.names.getOutgoingName(message.getHeader()),
+                    message.getBodyString()));
+        }
 
         out.add(message);
     }
-
 }

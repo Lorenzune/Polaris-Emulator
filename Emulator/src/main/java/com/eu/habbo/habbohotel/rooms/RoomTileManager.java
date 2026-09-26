@@ -7,13 +7,13 @@ import com.eu.habbo.habbohotel.items.interactions.InteractionStackHelper;
 import com.eu.habbo.habbohotel.items.interactions.InteractionStackWalkHelper;
 import com.eu.habbo.habbohotel.items.interactions.InteractionTileWalkMagic;
 import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.habbohotel.wired.core.WiredMoveCarryHelper;
 import com.eu.habbo.plugin.events.furniture.FurnitureStackHeightEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Manages tile state calculations and heightmap operations for a room.
@@ -48,7 +48,22 @@ public class RoomTileManager {
             tile.setState(this.calculateTileState(tile));
         }
 
-        this.room.sendComposer(new com.eu.habbo.messages.outgoing.rooms.UpdateStackHeightComposer(this.room, tiles).compose());
+        WiredMoveCarryHelper.sendOrCollectTileUpdates(this.room, tiles);
+    }
+
+    /** Recomputes state/height after a state toggle while keeping cached tile membership. */
+    public void refreshTiles(Collection<RoomTile> tiles) {
+        if (tiles == null || tiles.isEmpty()) {
+            return;
+        }
+
+        for (RoomTile tile : tiles) {
+            if (tile == null) continue;
+            tile.setStackHeight(this.getStackHeight(tile.x, tile.y, false));
+            tile.setState(this.calculateTileState(tile));
+        }
+
+        WiredMoveCarryHelper.sendOrCollectTileUpdates(this.room, tiles);
     }
 
     /**
@@ -84,8 +99,9 @@ public class RoomTileManager {
                 return RoomTileState.LAY;
             }
 
-            if (tallestItem != null && tallestItem.getZ() + Item.getCurrentHeight(tallestItem)
-                > item.getZ() + Item.getCurrentHeight(item)) {
+            if (tallestItem != null
+                    && tallestItem.getZ() + Item.getCurrentHeight(tallestItem)
+                            > item.getZ() + Item.getCurrentHeight(item)) {
                 continue;
             }
 
@@ -116,7 +132,10 @@ public class RoomTileManager {
                 if (exclude != null && item == exclude) {
                     continue;
                 }
-                if (item.isWalkable() || item.getBaseItem().allowWalk() || item.getBaseItem().allowSit() || item.getBaseItem().allowLay()) {
+                if (item.isWalkable()
+                        || item.getBaseItem().allowWalk()
+                        || item.getBaseItem().allowSit()
+                        || item.getBaseItem().allowLay()) {
                     double itemTop = item.getZ() + Item.getCurrentHeight(item);
                     if (itemTop > walkHeight) {
                         walkHeight = itemTop;
@@ -151,7 +170,8 @@ public class RoomTileManager {
             result = overriddenState;
         }
 
-        if (this.room.getItemManager().getItemsAt(tile).stream().anyMatch(i -> i instanceof InteractionTileWalkMagic || i instanceof InteractionStackWalkHelper)) {
+        if (this.room.getItemManager().getItemsAt(tile).stream()
+                .anyMatch(i -> i instanceof InteractionTileWalkMagic || i instanceof InteractionStackWalkHelper)) {
             result = RoomTileState.OPEN;
         }
 
@@ -171,7 +191,7 @@ public class RoomTileManager {
     public boolean tileWalkable(short x, short y) {
         RoomLayout layout = this.room.getLayout();
         if (layout == null) return false;
-        
+
         boolean walkable = layout.tileWalkable(x, y);
         RoomTile tile = layout.getTile(x, y);
 
@@ -198,14 +218,14 @@ public class RoomTileManager {
      */
     public double getStackHeight(short x, short y, boolean calculateHeightmap, HabboItem exclude) {
         RoomLayout layout = this.room.getLayout();
-        
+
         if (x < 0 || y < 0 || layout == null) {
             return calculateHeightmap ? Short.MAX_VALUE : 0.0;
         }
 
         if (Emulator.getPluginManager().isRegistered(FurnitureStackHeightEvent.class, true)) {
-            FurnitureStackHeightEvent event = Emulator.getPluginManager()
-                .fireEvent(new FurnitureStackHeightEvent(x, y, this.room));
+            FurnitureStackHeightEvent event =
+                    Emulator.getPluginManager().fireEvent(new FurnitureStackHeightEvent(x, y, this.room));
             if (event.hasPluginHelper()) {
                 return calculateHeightmap ? event.getHeight() * 256.0D : event.getHeight();
             }
@@ -238,10 +258,15 @@ public class RoomTileManager {
             double itemTop = item.getZ() + (item.getBaseItem().allowSit() ? 0 : Item.getCurrentHeight(item));
 
             // Underpass: if the top item is blocking but high enough to walk under, use floor height
-            if (this.room.isAllowUnderpass() && !item.isWalkable() && !item.getBaseItem().allowWalk() && !item.getBaseItem().allowSit() && !item.getBaseItem().allowLay()) {
+            if (this.room.isAllowUnderpass()
+                    && !item.isWalkable()
+                    && !item.getBaseItem().allowWalk()
+                    && !item.getBaseItem().allowSit()
+                    && !item.getBaseItem().allowLay()) {
                 RoomLayout layout2 = this.room.getLayout();
                 RoomTile tile = layout2 != null ? layout2.getTile(x, y) : null;
-                Set<HabboItem> allItems = tile != null ? this.room.getItemManager().getItemsAt(tile) : null;
+                Set<HabboItem> allItems =
+                        tile != null ? this.room.getItemManager().getItemsAt(tile) : null;
                 double walkSurface = this.getUnderpassWalkHeight(tile, allItems, exclude);
                 if (item.getZ() - walkSurface >= RoomLayout.UNDERPASS_HEIGHT) {
                     height = walkSurface;
@@ -267,7 +292,9 @@ public class RoomTileManager {
         HabboItem item = this.room.getItemManager().getTopItemAt(x, y);
 
         if (item != null) {
-            return (item.getZ() + Item.getCurrentHeight(item) - (item.getBaseItem().allowSit() ? 1 : 0));
+            return (item.getZ()
+                    + Item.getCurrentHeight(item)
+                    - (item.getBaseItem().allowSit() ? 1 : 0));
         } else {
             RoomLayout layout = this.room.getLayout();
             return layout != null ? layout.getHeightAtSquare(x, y) : 0;
@@ -329,8 +356,9 @@ public class RoomTileManager {
                     continue;
                 }
 
-                if (tallestChair != null && tallestChair.getZ() + Item.getCurrentHeight(tallestChair)
-                    > item.getZ() + Item.getCurrentHeight(item)) {
+                if (tallestChair != null
+                        && tallestChair.getZ() + Item.getCurrentHeight(tallestChair)
+                                > item.getZ() + Item.getCurrentHeight(item)) {
                     continue;
                 }
 
@@ -378,8 +406,9 @@ public class RoomTileManager {
         HabboItem tallestItem = null;
 
         for (HabboItem item : items) {
-            if (tallestItem != null && tallestItem.getZ() + Item.getCurrentHeight(tallestItem)
-                > item.getZ() + Item.getCurrentHeight(item)) {
+            if (tallestItem != null
+                    && tallestItem.getZ() + Item.getCurrentHeight(tallestItem)
+                            > item.getZ() + Item.getCurrentHeight(item)) {
                 continue;
             }
 
@@ -435,7 +464,10 @@ public class RoomTileManager {
         HabboItem topItem = null;
         boolean canWalk = true;
         Set<HabboItem> items = this.room.getItemManager().getItemsAt(roomTile);
-        if (items != null && items.stream().anyMatch(item -> item instanceof InteractionTileWalkMagic || item instanceof InteractionStackWalkHelper)) {
+        if (items != null
+                && items.stream()
+                        .anyMatch(item -> item instanceof InteractionTileWalkMagic
+                                || item instanceof InteractionStackWalkHelper)) {
             return true;
         }
 
@@ -449,8 +481,8 @@ public class RoomTileManager {
                     topItem = item;
                     canWalk = topItem.isWalkable() || topItem.getBaseItem().allowWalk();
                 } else if (item.getZ() == topItem.getZ() && canWalk) {
-                    if ((!topItem.isWalkable() && !topItem.getBaseItem().allowWalk()) || (
-                        !item.getBaseItem().allowWalk() && !item.isWalkable())) {
+                    if ((!topItem.isWalkable() && !topItem.getBaseItem().allowWalk())
+                            || (!item.getBaseItem().allowWalk() && !item.isWalkable())) {
                         canWalk = false;
                     }
                 }
@@ -474,12 +506,11 @@ public class RoomTileManager {
     public RoomTile getRandomWalkableTile() {
         RoomLayout layout = this.room.getLayout();
         if (layout == null) return null;
-        
+
         for (int i = 0; i < 10; i++) {
-            RoomTile tile = layout.getTile((short) (Math.random() * layout.getMapSizeX()),
-                (short) (Math.random() * layout.getMapSizeY()));
-            if (tile != null && tile.getState() != RoomTileState.BLOCKED
-                && tile.getState() != RoomTileState.INVALID) {
+            RoomTile tile = layout.getTile(
+                    (short) (Math.random() * layout.getMapSizeX()), (short) (Math.random() * layout.getMapSizeY()));
+            if (tile != null && tile.getState() != RoomTileState.BLOCKED && tile.getState() != RoomTileState.INVALID) {
                 return tile;
             }
         }
@@ -493,7 +524,7 @@ public class RoomTileManager {
     public RoomTile getRandomWalkableTilesAround(RoomUnit roomUnit, RoomTile tile, int radius) {
         RoomLayout layout = this.room.getLayout();
         if (layout == null) return tile;
-        
+
         if (tile == null || !layout.tileExists(tile.x, tile.y)) {
             tile = layout.getTile(roomUnit.getX(), roomUnit.getY());
             roomUnit.setBotStartLocation(tile);
@@ -514,8 +545,9 @@ public class RoomTileManager {
             for (int y = minY; y <= maxY; y++) {
                 RoomTile candidateTile = layout.getTile((short) x, (short) y);
 
-                if (candidateTile != null && candidateTile.getState() != RoomTileState.BLOCKED
-                    && candidateTile.getState() != RoomTileState.INVALID) {
+                if (candidateTile != null
+                        && candidateTile.getState() != RoomTileState.BLOCKED
+                        && candidateTile.getState() != RoomTileState.INVALID) {
                     walkableTiles.add(candidateTile);
                 }
             }
@@ -553,10 +585,11 @@ public class RoomTileManager {
             for (HabboItem item : floorItems) {
                 RoomTile baseTile = layout.getTile(item.getX(), item.getY());
                 if (baseTile != null) {
-                    tilesToUpdate.addAll(layout.getTilesAt(baseTile,
-                        item.getBaseItem().getWidth(),
-                        item.getBaseItem().getLength(),
-                        item.getRotation()));
+                    tilesToUpdate.addAll(layout.getTilesAt(
+                            baseTile,
+                            item.getBaseItem().getWidth(),
+                            item.getBaseItem().getLength(),
+                            item.getRotation()));
                 }
             }
 

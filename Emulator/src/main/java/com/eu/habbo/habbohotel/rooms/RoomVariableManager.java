@@ -9,6 +9,7 @@ import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredVariableRefer
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.wired.core.WiredEvent;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
+import com.eu.habbo.habbohotel.wired.core.WiredVariableBoxUpdateScope;
 import com.eu.habbo.habbohotel.wired.core.WiredVariableLevelSystemSupport;
 import com.eu.habbo.habbohotel.wired.core.WiredVariableTextConnectorSupport;
 import com.eu.habbo.messages.outgoing.wired.WiredUserVariablesDataComposer;
@@ -209,7 +210,7 @@ public class RoomVariableManager {
 
             if (changed) {
                 if (extra != null) {
-                    extra.activateBox(this.room);
+                    WiredVariableBoxUpdateScope.activate(extra, this.room);
                 }
                 this.broadcastSnapshot();
             }
@@ -230,7 +231,7 @@ public class RoomVariableManager {
 
             if (changed) {
                 if (extra != null) {
-                    extra.activateBox(this.room);
+                    WiredVariableBoxUpdateScope.activate(extra, this.room);
                 }
                 this.broadcastSnapshot();
             }
@@ -265,7 +266,7 @@ public class RoomVariableManager {
 
         this.emitVariableChangedEvents(extra, definitionInfo, previousValue, assignment.getValue());
         if (extra != null) {
-            extra.activateBox(this.room);
+            WiredVariableBoxUpdateScope.activate(extra, this.room);
         }
         this.broadcastSnapshot();
         return true;

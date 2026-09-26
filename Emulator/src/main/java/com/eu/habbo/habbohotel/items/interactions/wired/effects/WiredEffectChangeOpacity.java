@@ -7,6 +7,7 @@ import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
+import com.eu.habbo.habbohotel.rooms.WiredOpacityBroadcaster;
 import com.eu.habbo.habbohotel.rooms.WiredOpacityState;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
@@ -88,7 +89,12 @@ public class WiredEffectChangeOpacity extends InteractionWiredEffect {
                         .effectiveOpacity(recipient.getHabboInfo().getId(), itemIds);
                 recipient
                         .getClient()
-                        .sendResponse(new WiredFurniOpacityComposer(room.getId(), effective, this.easing, durationMs));
+                        .sendResponse(new WiredFurniOpacityComposer(
+                                WiredOpacityBroadcaster.opacityProtocolVersion(recipient),
+                                room.getId(),
+                                effective,
+                                this.easing,
+                                durationMs));
             }
             return;
         }
@@ -99,9 +105,15 @@ public class WiredEffectChangeOpacity extends InteractionWiredEffect {
             List<WiredOpacityState> applied =
                     room.getWiredRuntime().applyUserOpacity(userId, targets, this.opacity, this.clickThrough);
             if (!applied.isEmpty() && supportsOpacity(recipient)) {
+                List<WiredOpacityState> effective = room.getWiredRuntime().effectiveOpacity(userId, itemIds);
                 recipient
                         .getClient()
-                        .sendResponse(new WiredFurniOpacityComposer(room.getId(), applied, this.easing, durationMs));
+                        .sendResponse(new WiredFurniOpacityComposer(
+                                WiredOpacityBroadcaster.opacityProtocolVersion(recipient),
+                                room.getId(),
+                                effective,
+                                this.easing,
+                                durationMs));
             }
         }
     }
@@ -264,11 +276,7 @@ public class WiredEffectChangeOpacity extends InteractionWiredEffect {
     }
 
     private static boolean supportsOpacity(Habbo habbo) {
-        return habbo != null
-                && habbo.getClient() != null
-                && habbo.getClient()
-                        .supportsWiredFeature(
-                                GameClient.WIRED_FEATURE_PROTOCOL_VERSION, GameClient.WIRED_FEATURE_OPACITY);
+        return WiredOpacityBroadcaster.supportsOpacity(habbo);
     }
 
     private void reset() {

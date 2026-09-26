@@ -580,6 +580,9 @@ public class Outgoing {
     public static final int FurniEditorResultComposer = 10044;
     public static final int FurnitureDataReloadComposer = 10047; // CUSTOM
     public static final int FurniEditorImportTextResultComposer = 10049; // CUSTOM
+    public static final int FurnitureReportDataComposer = 10080;
+    public static final int FurnitureReportResultComposer = 10081;
+    public static final int FurnitureReportUpdateResultComposer = 10082;
 
     // Catalog Admin
     public static final int CatalogAdminResultComposer = 10059;

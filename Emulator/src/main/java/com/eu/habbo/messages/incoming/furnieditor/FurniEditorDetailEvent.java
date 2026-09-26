@@ -42,11 +42,14 @@ public class FurniEditorDetailEvent extends MessageHandler {
             return;
         }
 
-        // Try to read furnidata.json entry
+        // Furnidata is optional diagnostic metadata only. Resolve it by the
+        // database sprite_id so a DB id and furnidata id can never be confused.
         try {
             Object classname = item.get("item_name");
+            Object spriteId = item.get("sprite_id");
+            int lookupId = spriteId instanceof Number number ? number.intValue() : itemId;
             FurniDataManager.LookupResult lookup =
-                    FurniDataManager.getItemLookup(itemId, classname != null ? classname.toString() : null);
+                    FurniDataManager.getItemLookup(lookupId, classname != null ? classname.toString() : null);
             furniDataJson = lookup.itemJson();
             furniDataDiagnosticJson = lookup.diagnosticJson();
         } catch (Exception e) {

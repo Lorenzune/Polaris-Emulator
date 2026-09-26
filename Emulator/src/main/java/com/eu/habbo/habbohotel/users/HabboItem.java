@@ -8,14 +8,12 @@ import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.FurnitureType;
 import com.eu.habbo.habbohotel.items.IEventTriggers;
 import com.eu.habbo.habbohotel.items.Item;
-import com.eu.habbo.habbohotel.items.interactions.InteractionCrackable;
 import com.eu.habbo.habbohotel.items.interactions.InteractionDice;
 import com.eu.habbo.habbohotel.items.interactions.InteractionGuildGate;
 import com.eu.habbo.habbohotel.items.interactions.InteractionMultiHeight;
 import com.eu.habbo.habbohotel.items.interactions.InteractionPostIt;
 import com.eu.habbo.habbohotel.items.interactions.InteractionTeleport;
 import com.eu.habbo.habbohotel.items.interactions.InteractionTeleportTile;
-import com.eu.habbo.habbohotel.items.interactions.InteractionTrophy;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWired;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore;
 import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameTimer;
@@ -40,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.util.Pair;
 import org.slf4j.Logger;
@@ -71,10 +70,12 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
     private int limitedSells;
     private boolean needsUpdate = false;
     private boolean needsDelete = false;
+    private final AtomicLong persistenceRevision = new AtomicLong();
     private boolean isFromGift = false;
     private RoomTile previousLocation;
     private Set<RoomTile> previousOccupiedTiles;
     private long lastMoveTimestamp;
+    private volatile ItemFootprintListener footprintListener;
 
     public HabboItem(ResultSet set, Item baseItem) throws SQLException {
         this.id = set.getInt("id");
@@ -125,17 +126,11 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
             serverMessage.appendInt(this.getRotation());
             serverMessage.appendString(Double.toString(this.z));
 
-            serverMessage.appendString(
-                    (this.getBaseItem().getInteractionType().getType() == InteractionTrophy.class
-                                    || this.getBaseItem().getInteractionType().getType() == InteractionCrackable.class
-                                    || this.getBaseItem().getName().equalsIgnoreCase("gnome_box"))
-                            ? "1.0"
-                            : ((this.getBaseItem().allowWalk()
-                                            || this.getBaseItem().allowSit() && this.roomId != 0)
-                                    ? Item.getCurrentHeight(this) + ""
-                                    : ""));
-            // serverMessage.appendString( ? "1.0" : ((this.getBaseItem().allowWalk() || this.getBaseItem().allowSit()
-            // && this.roomId != 0) ? Item.getCurrentHeight(this) : ""));
+            // The seventh floor-item field is the furni's physical height, not
+            // its current Z position. It must always be sent: omitting it for
+            // non-sit/non-walk items makes the client parse an empty string as
+            // zero, even when items_base.stack_height contains a value.
+            serverMessage.appendString(Double.toString(Item.getCurrentHeight(this)));
 
         } catch (Exception e) {
             LOGGER.error("Caught exception", e);
@@ -235,6 +230,7 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
 
     public void setX(short x) {
         this.x = x;
+        this.notifyFootprintChanged();
     }
 
     public short getY() {
@@ -243,6 +239,7 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
 
     public void setY(short y) {
         this.y = y;
+        this.notifyFootprintChanged();
     }
 
     public double getZ() {
@@ -260,6 +257,24 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
 
     public void setRotation(int rotation) {
         this.rotation = (byte) (rotation % 8);
+        this.notifyFootprintChanged();
+    }
+
+    public void setFootprintListener(ItemFootprintListener listener) {
+        this.footprintListener = listener;
+    }
+
+    public void clearFootprintListener(ItemFootprintListener listener) {
+        if (this.footprintListener == listener) {
+            this.footprintListener = null;
+        }
+    }
+
+    private void notifyFootprintChanged() {
+        ItemFootprintListener listener = this.footprintListener;
+        if (listener != null) {
+            listener.onFootprintChanged(this);
+        }
     }
 
     public String getExtradata() {
@@ -280,6 +295,13 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
 
     public void needsUpdate(boolean value) {
         this.needsUpdate = value;
+        if (value) {
+            this.persistenceRevision.incrementAndGet();
+        }
+    }
+
+    public long getPersistenceRevision() {
+        return this.persistenceRevision.get();
     }
 
     public void needsDelete(boolean value) {

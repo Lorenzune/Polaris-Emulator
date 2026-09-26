@@ -29,6 +29,12 @@ import org.junit.jupiter.api.Test;
  * baseline. Existing plugins can link to concrete wired boxes, packet classes and events as well as
  * the intended core interfaces, so internal extraction must leave these descriptors in place.
  *
+ * <p>Compatibility review on 2026-09-26: the retained four-argument {@code WiredOpacityState}
+ * constructor and existing composer constructor preserve their descriptors. This update adds the
+ * scaling/color state, batch packets, Builders Tools freeze helpers, and variable-box update scope.
+ * The only changed existing field descriptor adds {@code volatile} to the protected repeat-time
+ * field; its name, type, and visibility remain unchanged.
+ *
  * <p>Regeneration is an explicit review action:
  *
  * <pre>

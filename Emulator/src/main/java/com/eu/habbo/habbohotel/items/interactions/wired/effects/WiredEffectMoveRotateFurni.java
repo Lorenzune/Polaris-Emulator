@@ -63,6 +63,7 @@ public class WiredEffectMoveRotateFurni extends InteractionWiredEffect implement
     @Override
     public void execute(WiredContext ctx) {
         Room room = ctx.room();
+        boolean shortPeriod = ctx.eventType() == WiredEvent.Type.TIMER_REPEAT_SHORT;
 
         List<HabboItem> effectiveItems = WiredSourceUtil.resolveItems(ctx, this.furniSource, this.items);
         if (this.furniSource == WiredSourceUtil.SOURCE_SELECTED) {
@@ -75,7 +76,7 @@ public class WiredEffectMoveRotateFurni extends InteractionWiredEffect implement
 
         for (HabboItem item : effectiveItems) {
             String cooldownKey = movementCooldownKey(ctx, item);
-            if (this.itemCooldowns.contains(cooldownKey)) continue;
+            if (!shortPeriod && this.itemCooldowns.contains(cooldownKey)) continue;
 
             int newRotation = this.rotation > 0 ? this.getNewRotation(item) : item.getRotation();
             RoomTile newLocation = room.getLayout().getTile(item.getX(), item.getY());
@@ -123,7 +124,7 @@ public class WiredEffectMoveRotateFurni extends InteractionWiredEffect implement
                 if (WiredMoveCarryHelper.moveFurni(
                                 room, this, item, newLocation, newRotation, null, !slideAnimation, ctx)
                         == FurnitureMovementError.NONE) {
-                    this.itemCooldowns.add(cooldownKey);
+                    if (!shortPeriod) this.itemCooldowns.add(cooldownKey);
                 }
             }
         }

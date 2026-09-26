@@ -1,13 +1,12 @@
 package com.eu.habbo.habbohotel.catalog;
 
 import com.eu.habbo.Emulator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Keeps the in-memory catalog cache aligned with catalog admin DB mutations
@@ -21,7 +20,14 @@ public final class CatalogAdminCacheSync {
                     + "0 AS limited_stack, 0 AS limited_sells, extradata, '0' AS club_only, '1' AS have_offer, id AS offer_id, order_number "
                     + "FROM catalog_items_bc WHERE id = ? LIMIT 1";
 
-    private CatalogAdminCacheSync() {
+    private CatalogAdminCacheSync() {}
+
+    public static CatalogManager currentCatalogManager() {
+        return Emulator.getGameEnvironment().getCatalogManager();
+    }
+
+    public static Connection openCatalogConnection() throws SQLException {
+        return Emulator.getDatabase().getDataSource().getConnection();
     }
 
     public static void attachCreatedPage(CatalogPage page, int parentId, int orderNum, CatalogPageType pageType) {
@@ -35,20 +41,19 @@ public final class CatalogAdminCacheSync {
         CatalogManager catalogManager = Emulator.getGameEnvironment().getCatalogManager();
         int oldParentId = page.getParentId();
 
-        if (oldParentId != newParentId) {
-            CatalogPage oldParent = catalogManager.getCatalogPage(oldParentId, pageType);
-            if (oldParent != null) {
-                oldParent.getChildPages().remove(page.getId());
-            }
-
-            CatalogPage newParent = catalogManager.getCatalogPage(newParentId, pageType);
-            if (newParent != null) {
-                newParent.addChildPage(page);
-            }
-
-            page.setParentId(newParentId);
+        CatalogPage oldParent = catalogManager.getCatalogPage(oldParentId, pageType);
+        if (oldParent != null && oldParent.getId() != newParentId) {
+            oldParent.getChildPages().remove(page.getId());
         }
 
+        CatalogPage newParent = catalogManager.getCatalogPage(newParentId, pageType);
+        if (newParent != null) {
+            // Also add pages whose parent_id did not change. Newly-created pages are
+            // already in the global map, but are not part of the parent's child map yet.
+            newParent.addChildPage(page);
+        }
+
+        page.setParentId(newParentId);
         page.setOrderNum(newOrderNum);
     }
 
@@ -61,7 +66,7 @@ public final class CatalogAdminCacheSync {
         String sql = "SELECT visible, enabled FROM " + tableName + " WHERE id = ? LIMIT 1";
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, pageId);
 
             try (ResultSet set = statement.executeQuery()) {
@@ -91,8 +96,7 @@ public final class CatalogAdminCacheSync {
             String textDetails,
             String textOne,
             CatalogPageType catalogMode,
-            CatalogPageType pageType
-    ) {
+            CatalogPageType pageType) {
         if (page == null) return;
 
         if (page.getParentId() != parentId) {
@@ -141,7 +145,7 @@ public final class CatalogAdminCacheSync {
                 : "SELECT * FROM catalog_items WHERE id = ? LIMIT 1";
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, offerId);
 
             try (ResultSet set = statement.executeQuery()) {

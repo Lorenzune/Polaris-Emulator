@@ -246,7 +246,7 @@ final class RoomItemMovementService {
         // Update furniture
         item.onMove(this.room, oldLocation, tile);
         item.needsUpdate(true);
-        Emulator.getThreading().run(item);
+        Emulator.getThreading().runHabboItemPersistence(item);
 
         if (sendUpdates) {
             this.room.sendComposer(new FloorItemUpdateComposer(item).compose());
@@ -278,7 +278,7 @@ final class RoomItemMovementService {
             }
         }
 
-        this.room.onFurnitureTopologyChanged();
+        this.room.onFurnitureTopologyChanged(item, true);
 
         return FurnitureMovementError.NONE;
     }
@@ -292,6 +292,19 @@ final class RoomItemMovementService {
             boolean sendUpdates,
             boolean checkForUnits,
             WiredMovementPhysics physics) {
+        return this.moveFurniToWithPhysics(item, tile, rotation, z, actor, sendUpdates, checkForUnits, physics, false);
+    }
+
+    FurnitureMovementError moveFurniToWithPhysics(
+            HabboItem item,
+            RoomTile tile,
+            int rotation,
+            double z,
+            Habbo actor,
+            boolean sendUpdates,
+            boolean checkForUnits,
+            WiredMovementPhysics physics,
+            boolean physicsFitAlreadyChecked) {
         if (physics == null || !physics.isActive()) {
             return moveFurniTo(item, tile, rotation, z, actor, sendUpdates, checkForUnits);
         }
@@ -329,7 +342,8 @@ final class RoomItemMovementService {
                 item.getBaseItem().getLength(),
                 item.getRotation());
 
-        if (!pluginHelper) {
+        // WiredMoveCarryHelper performs this check first so it can dispatch collision triggers.
+        if (!pluginHelper && !physicsFitAlreadyChecked) {
             FurnitureMovementError fits = furnitureFitsAtWithPhysics(tile, item, rotation, checkForUnits, physics);
             if (fits != FurnitureMovementError.NONE) {
                 return fits;
@@ -416,7 +430,7 @@ final class RoomItemMovementService {
 
         item.onMove(this.room, oldLocation, tile);
         item.needsUpdate(true);
-        Emulator.getThreading().run(item);
+        Emulator.getThreading().runHabboItemPersistence(item);
 
         if (sendUpdates) {
             this.room.sendComposer(new FloorItemUpdateComposer(item).compose());
@@ -445,7 +459,7 @@ final class RoomItemMovementService {
             }
         }
 
-        this.room.onFurnitureTopologyChanged();
+        this.room.onFurnitureTopologyChanged(item, true);
         return FurnitureMovementError.NONE;
     }
 
@@ -460,6 +474,22 @@ final class RoomItemMovementService {
 
     public FurnitureMovementError moveFurniTo(
             HabboItem item, RoomTile tile, int rotation, Habbo actor, boolean sendUpdates, boolean checkForUnits) {
+        return moveFurniTo(item, tile, rotation, actor, sendUpdates, checkForUnits, false, false);
+    }
+
+    public FurnitureMovementError moveFurniTo(
+            HabboItem item,
+            RoomTile tile,
+            int rotation,
+            Habbo actor,
+            boolean sendUpdates,
+            boolean checkForUnits,
+            boolean moveThroughFurniture,
+            boolean maintainHeight) {
+        if (item == null || tile == null) {
+            return FurnitureMovementError.INVALID_MOVE;
+        }
+
         RoomLayout layout = this.room.getLayout();
         RoomTile oldLocation = layout.getTile(item.getX(), item.getY());
 
@@ -485,7 +515,12 @@ final class RoomItemMovementService {
 
         HabboItem topItem = this.facade.getTopItemAt(occupiedTiles, null);
 
-        if (stackHelper == null && !pluginHelper) {
+        if (moveThroughFurniture && !pluginHelper) {
+            FurnitureMovementError fits = this.placement.furnitureFitsAt(tile, item, rotation, checkForUnits, true);
+            if (fits != FurnitureMovementError.NONE) {
+                return fits;
+            }
+        } else if (stackHelper == null && !pluginHelper) {
             if (oldLocation != tile) {
                 for (RoomTile t : occupiedTiles) {
                     HabboItem tileTopItem = this.facade.getTopItemAt(t.x, t.y);
@@ -540,14 +575,15 @@ final class RoomItemMovementService {
                 }
             }
 
-            if ((stackHelper == null
-                            && topItem != null
-                            && topItem != item
-                            && !topItem.getBaseItem().allowStack())
-                    || (topItem != null
-                            && topItem != item
-                            && topItem.getZ() + Item.getCurrentHeight(topItem) + Item.getCurrentHeight(item)
-                                    > Room.MAXIMUM_FURNI_HEIGHT)) {
+            if (!moveThroughFurniture
+                    && ((stackHelper == null
+                                    && topItem != null
+                                    && topItem != item
+                                    && !topItem.getBaseItem().allowStack())
+                            || (topItem != null
+                                    && topItem != item
+                                    && topItem.getZ() + Item.getCurrentHeight(topItem) + Item.getCurrentHeight(item)
+                                            > Room.MAXIMUM_FURNI_HEIGHT))) {
                 item.setRotation(oldRotation);
                 return FurnitureMovementError.CANT_STACK;
             }
@@ -556,7 +592,13 @@ final class RoomItemMovementService {
         // Place at new position
         double height;
 
-        if (stackHelper != null) {
+        if (maintainHeight) {
+            height = item.getZ();
+        } else if (moveThroughFurniture) {
+            // Passing through furniture must not stack the item on top of it.
+            // Keep its current elevation, raising it only when the destination floor itself is higher.
+            height = getFurniturePassThroughHeight(item.getZ(), layout, occupiedTiles);
+        } else if (stackHelper != null) {
             height = stackHelper.getZ();
         } else if (item instanceof InteractionStackWalkHelper) {
             height = this.placement.resolveStackWalkHelperHeight(item, tile, occupiedTiles);
@@ -650,7 +692,7 @@ final class RoomItemMovementService {
         // Update Furniture
         item.onMove(this.room, oldLocation, tile);
         item.needsUpdate(true);
-        Emulator.getThreading().run(item);
+        Emulator.getThreading().runHabboItemPersistence(item);
 
         if (sendUpdates) {
             this.room.sendComposer(new FloorItemUpdateComposer(item).compose());
@@ -677,8 +719,18 @@ final class RoomItemMovementService {
                 }
             }
         }
-        this.room.onFurnitureTopologyChanged();
+        this.room.onFurnitureTopologyChanged(item, true);
         return FurnitureMovementError.NONE;
+    }
+
+    static double getFurniturePassThroughHeight(double currentHeight, RoomLayout layout, Set<RoomTile> occupiedTiles) {
+        double height = currentHeight;
+
+        for (RoomTile occupiedTile : occupiedTiles) {
+            height = Math.max(height, layout.getHeightAtSquare(occupiedTile.x, occupiedTile.y));
+        }
+
+        return height;
     }
 
     public FurnitureMovementError moveFurniToWithPhysics(
@@ -878,7 +930,7 @@ final class RoomItemMovementService {
 
         item.onMove(this.room, oldLocation, tile);
         item.needsUpdate(true);
-        Emulator.getThreading().run(item);
+        Emulator.getThreading().runHabboItemPersistence(item);
 
         if (sendUpdates) {
             this.room.sendComposer(new FloorItemUpdateComposer(item).compose());
@@ -902,7 +954,7 @@ final class RoomItemMovementService {
                 }
             }
         }
-        this.room.onFurnitureTopologyChanged();
+        this.room.onFurnitureTopologyChanged(item, true);
         return FurnitureMovementError.NONE;
     }
 
@@ -944,7 +996,7 @@ final class RoomItemMovementService {
             this.room.updateHabbosAt(t.x, t.y);
             this.room.updateBotsAt(t.x, t.y);
         }
-        this.room.onFurnitureTopologyChanged();
+        this.room.onFurnitureTopologyChanged(item, true);
         return FurnitureMovementError.NONE;
     }
 

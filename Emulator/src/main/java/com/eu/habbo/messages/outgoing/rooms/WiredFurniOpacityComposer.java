@@ -11,10 +11,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Capability-gated, bounded room-furniture opacity update. */
+/** Capability-gated, bounded room-furniture visual-state update. */
 public class WiredFurniOpacityComposer extends MessageComposer {
     private static final int HEADER = 5109;
-    public static final int PROTOCOL_VERSION = 1;
+    public static final int PROTOCOL_VERSION = 2;
+    public static final int LEGACY_PROTOCOL_VERSION = 1;
     static final int DEFAULT_MAXIMUM_UPDATES = 1_000;
     static final int ABSOLUTE_MAXIMUM_UPDATES = 5_000;
 
@@ -22,8 +23,15 @@ public class WiredFurniOpacityComposer extends MessageComposer {
     private final int easing;
     private final int durationMs;
     private final List<WiredOpacityState> updates;
+    private final int protocolVersion;
 
     public WiredFurniOpacityComposer(int roomId, Collection<WiredOpacityState> updates, int easing, int durationMs) {
+        this(PROTOCOL_VERSION, roomId, updates, easing, durationMs);
+    }
+
+    public WiredFurniOpacityComposer(
+            int protocolVersion, int roomId, Collection<WiredOpacityState> updates, int easing, int durationMs) {
+        this.protocolVersion = Math.max(LEGACY_PROTOCOL_VERSION, Math.min(PROTOCOL_VERSION, protocolVersion));
         this.roomId = Math.max(0, roomId);
         this.easing = Math.max(0, Math.min(4, easing));
         this.durationMs = Math.max(0, Math.min(10_000, durationMs));
@@ -42,7 +50,7 @@ public class WiredFurniOpacityComposer extends MessageComposer {
     @Override
     protected ServerMessage composeInternal() {
         this.response.init(HEADER);
-        this.response.appendInt(PROTOCOL_VERSION);
+        this.response.appendInt(this.protocolVersion);
         this.response.appendInt(this.roomId);
         this.response.appendInt(this.updates.size());
         for (WiredOpacityState update : this.updates) {
@@ -50,6 +58,9 @@ public class WiredFurniOpacityComposer extends MessageComposer {
             this.response.appendBoolean(update.wallItem());
             this.response.appendInt(update.opacity());
             this.response.appendBoolean(update.clickThrough());
+            if (this.protocolVersion >= PROTOCOL_VERSION) {
+                this.response.appendInt(update.scaling());
+            }
             this.response.appendInt(this.easing);
             this.response.appendInt(this.durationMs);
         }

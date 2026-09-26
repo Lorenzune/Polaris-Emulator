@@ -12,11 +12,13 @@ import static org.mockito.Mockito.when;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomWiredRuntime;
+import com.eu.habbo.habbohotel.rooms.WiredOpacityBroadcaster;
 import com.eu.habbo.habbohotel.rooms.WiredOpacityState;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboInfo;
 import com.eu.habbo.messages.ClientMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
+import com.eu.habbo.messages.outgoing.rooms.WiredFurniOpacityComposer;
 import io.netty.buffer.Unpooled;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -42,6 +44,20 @@ class WiredFeatureCapabilitiesEventTest {
         Fixture unsupported = fixture();
         event(unsupported, 0, Integer.MAX_VALUE).handle();
         verify(unsupported.client, never()).sendResponse(any(MessageComposer.class));
+    }
+
+    @Test
+    void legacyOpacityClientsKeepReceivingTheOriginalPacketShape() throws Exception {
+        Fixture fixture = fixture();
+
+        event(fixture, WiredFurniOpacityComposer.LEGACY_PROTOCOL_VERSION, GameClient.WIRED_FEATURE_OPACITY)
+                .handle();
+
+        assertEquals(
+                WiredFurniOpacityComposer.LEGACY_PROTOCOL_VERSION,
+                WiredOpacityBroadcaster.opacityProtocolVersion(fixture.client.getHabbo()));
+        verify(fixture.runtime).opacitySnapshot(77);
+        verify(fixture.client).sendResponse(any(MessageComposer.class));
     }
 
     @Test
@@ -73,6 +89,7 @@ class WiredFeatureCapabilitiesEventTest {
         Room room = mock(Room.class);
         RoomWiredRuntime runtime = mock(RoomWiredRuntime.class);
         when(client.getHabbo()).thenReturn(habbo);
+        when(habbo.getClient()).thenReturn(client);
         when(habbo.getHabboInfo()).thenReturn(info);
         when(info.getCurrentRoom()).thenReturn(room);
         when(info.getId()).thenReturn(77);

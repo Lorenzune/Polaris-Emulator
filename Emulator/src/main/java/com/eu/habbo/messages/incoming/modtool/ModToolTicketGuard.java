@@ -2,13 +2,13 @@ package com.eu.habbo.messages.incoming.modtool;
 
 import com.eu.habbo.habbohotel.modtool.ModToolIssue;
 import com.eu.habbo.habbohotel.modtool.ModToolTicketState;
+import com.eu.habbo.habbohotel.modtool.ModToolTicketType;
 import com.eu.habbo.habbohotel.users.Habbo;
 
 final class ModToolTicketGuard {
     static final int MAX_RELEASE_BATCH = 50;
 
-    private ModToolTicketGuard() {
-    }
+    private ModToolTicketGuard() {}
 
     static boolean isPositiveId(int id) {
         return id > 0;
@@ -19,10 +19,19 @@ final class ModToolTicketGuard {
     }
 
     static boolean isOwnedBy(ModToolIssue issue, Habbo moderator) {
-        return issue != null && moderator != null && issue.modId == moderator.getHabboInfo().getId();
+        return issue != null
+                && moderator != null
+                && issue.modId == moderator.getHabboInfo().getId();
     }
 
     static boolean canPick(ModToolIssue issue) {
         return issue != null && issue.state != ModToolTicketState.PICKED;
+    }
+
+    static boolean canClaimAndCloseFurnitureReport(ModToolIssue issue) {
+        return issue != null
+                && issue.type == ModToolTicketType.FURNITURE
+                && issue.state == ModToolTicketState.OPEN
+                && issue.modId <= 0;
     }
 }
