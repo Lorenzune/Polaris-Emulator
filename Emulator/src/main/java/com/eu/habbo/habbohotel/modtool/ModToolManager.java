@@ -19,6 +19,7 @@ import com.eu.habbo.plugin.events.support.SupportRoomActionEvent;
 import com.eu.habbo.plugin.events.support.SupportTicketEvent;
 import com.eu.habbo.plugin.events.support.SupportTicketStatusChangedEvent;
 import com.eu.habbo.plugin.events.support.SupportUserAlertedEvent;
+import com.eu.habbo.plugin.events.support.SupportUserAlertedReason;
 import com.eu.habbo.plugin.events.support.SupportUserBannedEvent;
 import com.eu.habbo.threading.runnables.InsertModToolIssue;
 import io.netty.channel.Channel;
