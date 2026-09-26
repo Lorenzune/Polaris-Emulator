@@ -19,14 +19,17 @@ public class WiredFurniCustomColorComposer extends MessageComposer {
 
     public WiredFurniCustomColorComposer(int roomId, Collection<WiredOpacityState> updates) {
         this.roomId = Math.max(0, roomId);
-        this.updates = updates == null ? List.of() : updates.stream()
-                .filter(update -> update != null && update.itemId() > 0)
-                .sorted(Comparator.comparingInt(WiredOpacityState::itemId))
-                .toList();
+        this.updates = updates == null
+                ? List.of()
+                : updates.stream()
+                        .filter(update -> update != null && update.itemId() > 0)
+                        .sorted(Comparator.comparingInt(WiredOpacityState::itemId))
+                        .toList();
 
         LinkedHashMap<String, Integer> dictionary = new LinkedHashMap<>();
         for (WiredOpacityState update : this.updates) {
-            dictionary.computeIfAbsent(update.customColor() == null ? "" : update.customColor(), ignored -> dictionary.size());
+            dictionary.computeIfAbsent(
+                    update.customColor() == null ? "" : update.customColor(), ignored -> dictionary.size());
         }
         this.colors = List.copyOf(dictionary.keySet());
         this.colorIndexes = Map.copyOf(dictionary);

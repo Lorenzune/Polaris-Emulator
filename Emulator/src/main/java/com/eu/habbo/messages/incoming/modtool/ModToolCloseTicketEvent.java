@@ -19,7 +19,8 @@ public class ModToolCloseTicketEvent extends MessageHandler {
                 return;
             }
 
-            ModToolIssue issue = Emulator.getGameEnvironment().getModToolManager().getTicket(ticketId);
+            ModToolIssue issue =
+                    Emulator.getGameEnvironment().getModToolManager().getTicket(ticketId);
 
             if (!ModToolTicketGuard.isOwnedBy(issue, this.client.getHabbo())) {
                 // Furniture reports are handled in their dedicated Mod Tools panel,
@@ -47,7 +48,13 @@ public class ModToolCloseTicketEvent extends MessageHandler {
                     break;
             }
         } else {
-            ScripterManager.scripterDetected(this.client, Emulator.getTexts().getValue("scripter.warning.modtools.ticket.close").replace("%username%", this.client.getHabbo().getHabboInfo().getUsername()));
+            ScripterManager.scripterDetected(
+                    this.client,
+                    Emulator.getTexts()
+                            .getValue("scripter.warning.modtools.ticket.close")
+                            .replace(
+                                    "%username%",
+                                    this.client.getHabbo().getHabboInfo().getUsername()));
         }
     }
 }

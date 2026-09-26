@@ -5,11 +5,10 @@ import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserEffectComposer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SessionResumeManager {
 
@@ -47,8 +46,11 @@ public class SessionResumeManager {
             existing.disposeFuture.cancel(false);
         }
 
-        LOGGER.info("[SessionResume] Parking {} (id={}) for {}s grace period",
-                habbo.getHabboInfo().getUsername(), userId, graceSeconds);
+        LOGGER.info(
+                "[SessionResume] Parking {} (id={}) for {}s grace period",
+                habbo.getHabboInfo().getUsername(),
+                userId,
+                graceSeconds);
 
         if (ssoTicket != null && !ssoTicket.isEmpty()) {
             restoreSsoTicket(userId, ssoTicket);
@@ -64,13 +66,18 @@ public class SessionResumeManager {
 
         GhostSession ghost = new GhostSession(habbo, ssoTicket, previousEffectId, previousEffectEnd);
         ghostSessions.put(userId, ghost);
-        ScheduledFuture<?> future = Emulator.getThreading().run(() -> {
-            if (ghostSessions.remove(userId, ghost)) {
-                LOGGER.info("[SessionResume] Grace period expired for {} (id={}) - performing full disconnect",
-                        ghost.habbo.getHabboInfo().getUsername(), userId);
-                performFullDisconnect(ghost.habbo);
-            }
-        }, graceSeconds * 1000);
+        ScheduledFuture<?> future = Emulator.getThreading()
+                .run(
+                        () -> {
+                            if (ghostSessions.remove(userId, ghost)) {
+                                LOGGER.info(
+                                        "[SessionResume] Grace period expired for {} (id={}) - performing full disconnect",
+                                        ghost.habbo.getHabboInfo().getUsername(),
+                                        userId);
+                                performFullDisconnect(ghost.habbo);
+                            }
+                        },
+                        graceSeconds * 1000);
 
         if (future == null) {
             // The scheduler refused the grace-expiry task (pool saturated or
@@ -101,8 +108,10 @@ public class SessionResumeManager {
             ghost.disposeFuture.cancel(false);
         }
 
-        LOGGER.info("[SessionResume] Resuming session for {} (id={})",
-                ghost.habbo.getHabboInfo().getUsername(), userId);
+        LOGGER.info(
+                "[SessionResume] Resuming session for {} (id={})",
+                ghost.habbo.getHabboInfo().getUsername(),
+                userId);
 
         restorePausedEffect(ghost);
 
@@ -169,14 +178,17 @@ public class SessionResumeManager {
         // normal reconnect (ticket cleared to '' after login) -> restore; hard-refresh
         // (CMS already wrote a new ticket) -> leave the new ticket untouched.
         try (var connection = Emulator.getDatabase().getDataSource().getConnection();
-             var statement = connection.prepareStatement("UPDATE users SET auth_ticket = ? WHERE id = ? AND (auth_ticket = '' OR auth_ticket IS NULL) LIMIT 1")) {
+                var statement = connection.prepareStatement(
+                        "UPDATE users SET auth_ticket = ? WHERE id = ? AND (auth_ticket = '' OR auth_ticket IS NULL) LIMIT 1")) {
             statement.setString(1, ssoTicket);
             statement.setInt(2, userId);
             int updated = statement.executeUpdate();
             if (updated > 0) {
                 LOGGER.info("[SessionResume] Restored SSO ticket for user {} during grace period", userId);
             } else {
-                LOGGER.info("[SessionResume] Skipped SSO restore for user {} — a newer ticket is already present (likely a fresh login/hard-refresh)", userId);
+                LOGGER.info(
+                        "[SessionResume] Skipped SSO restore for user {} — a newer ticket is already present (likely a fresh login/hard-refresh)",
+                        userId);
             }
         } catch (Exception e) {
             LOGGER.error("[SessionResume] Failed to restore SSO ticket for user " + userId, e);
@@ -188,7 +200,8 @@ public class SessionResumeManager {
         if (effectId <= 0) return;
         try {
             RoomUnit unit = habbo.getRoomUnit();
-            Room room = habbo.getHabboInfo() == null ? null : habbo.getHabboInfo().getCurrentRoom();
+            Room room =
+                    habbo.getHabboInfo() == null ? null : habbo.getHabboInfo().getCurrentRoom();
             if (unit == null || room == null) return;
             int endTimestamp = Emulator.getIntUnixTimestamp() + getGracePeriodSeconds() + 10;
             unit.setEffectId(effectId, endTimestamp);
@@ -202,7 +215,8 @@ public class SessionResumeManager {
         try {
             Habbo habbo = ghost.habbo;
             RoomUnit unit = habbo.getRoomUnit();
-            Room room = habbo.getHabboInfo() == null ? null : habbo.getHabboInfo().getCurrentRoom();
+            Room room =
+                    habbo.getHabboInfo() == null ? null : habbo.getHabboInfo().getCurrentRoom();
             if (unit == null || room == null) return;
 
             int pausedEffectId = getPausedEffectId();
@@ -217,7 +231,7 @@ public class SessionResumeManager {
 
     private void clearSsoTicket(int userId) {
         try (var connection = Emulator.getDatabase().getDataSource().getConnection();
-             var statement = connection.prepareStatement("UPDATE users SET auth_ticket = ? WHERE id = ? LIMIT 1")) {
+                var statement = connection.prepareStatement("UPDATE users SET auth_ticket = ? WHERE id = ? LIMIT 1")) {
             statement.setString(1, "");
             statement.setInt(2, userId);
             statement.execute();

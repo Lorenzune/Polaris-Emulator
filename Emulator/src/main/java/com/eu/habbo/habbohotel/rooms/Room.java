@@ -385,13 +385,13 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         this.dependencies = Objects.requireNonNull(dependencies, "dependencies");
         this.lifecycle = new RoomLifecycle(new RoomCycleTaskSlot());
         this.itemPersistence = new RoomItemPersistence(this.dependencies.database());
-        this.roomStatePersistence = new RoomStatePersistenceCoordinator(
-                this, new RoomPersistence(this.dependencies.database()));
+        this.roomStatePersistence =
+                new RoomStatePersistenceCoordinator(this, new RoomPersistence(this.dependencies.database()));
         this.repository = new RoomRepository(this.dependencies.database());
         this.wiredAccess = new RoomWiredAccessService(this, this.repository);
         this.id = id;
-        this.wiredRuntime = new RoomWiredRuntime(
-                this, this.dependencies.database(), this.dependencies.persistence()::execute);
+        this.wiredRuntime =
+                new RoomWiredRuntime(this, this.dependencies.database(), this.dependencies.persistence()::execute);
         this.ownerId = ownerId;
         this.userCountPersistence = this.createUserCountPersistence();
         this.bannedHabbos = new Int2ObjectOpenHashMap<>();
@@ -412,14 +412,14 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         this.dependencies = Objects.requireNonNull(dependencies, "dependencies");
         this.lifecycle = new RoomLifecycle(new RoomCycleTaskSlot());
         this.itemPersistence = new RoomItemPersistence(this.dependencies.database());
-        this.roomStatePersistence = new RoomStatePersistenceCoordinator(
-                this, new RoomPersistence(this.dependencies.database()));
+        this.roomStatePersistence =
+                new RoomStatePersistenceCoordinator(this, new RoomPersistence(this.dependencies.database()));
         this.repository = new RoomRepository(this.dependencies.database());
         this.wiredAccess = new RoomWiredAccessService(this, this.repository);
         RoomSnapshot.Initial initial = RoomSnapshot.readInitial(set);
         this.id = initial.id();
-        this.wiredRuntime = new RoomWiredRuntime(
-                this, this.dependencies.database(), this.dependencies.persistence()::execute);
+        this.wiredRuntime =
+                new RoomWiredRuntime(this, this.dependencies.database(), this.dependencies.persistence()::execute);
         this.ownerId = initial.ownerId();
         try {
             this.navigatorOrder = set.getInt("navigator_order");

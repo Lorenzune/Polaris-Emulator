@@ -50,7 +50,8 @@ class WiredFeatureCapabilitiesEventTest {
     void legacyOpacityClientsKeepReceivingTheOriginalPacketShape() throws Exception {
         Fixture fixture = fixture();
 
-        event(fixture, WiredFurniOpacityComposer.LEGACY_PROTOCOL_VERSION, GameClient.WIRED_FEATURE_OPACITY).handle();
+        event(fixture, WiredFurniOpacityComposer.LEGACY_PROTOCOL_VERSION, GameClient.WIRED_FEATURE_OPACITY)
+                .handle();
 
         assertEquals(
                 WiredFurniOpacityComposer.LEGACY_PROTOCOL_VERSION,

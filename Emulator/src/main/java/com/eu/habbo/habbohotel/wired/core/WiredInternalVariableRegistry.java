@@ -95,8 +95,7 @@ final class WiredInternalVariableRegistry {
                 "@bot_id",
                 "@pet_id",
                 "@pet_owner_id");
-        builder.register(
-                Capability.USER_DESTINATION, "@handitem_id", "@position_x", "@position_y", "@direction");
+        builder.register(Capability.USER_DESTINATION, "@handitem_id", "@position_x", "@position_y", "@direction");
         builder.register(
                 Capability.FURNI_REFERENCE,
                 "~teleport.target_id",

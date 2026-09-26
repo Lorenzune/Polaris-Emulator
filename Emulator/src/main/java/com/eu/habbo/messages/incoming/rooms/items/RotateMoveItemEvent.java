@@ -5,8 +5,8 @@ import com.eu.habbo.habbohotel.rooms.FurnitureMovementError;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomTile;
 import com.eu.habbo.habbohotel.users.HabboItem;
-import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.ServerMessage;
+import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.generic.alerts.BubbleAlertComposer;
 import com.eu.habbo.messages.outgoing.generic.alerts.BubbleAlertKeys;
 import com.eu.habbo.messages.outgoing.rooms.items.FloorItemUpdateComposer;
@@ -83,13 +83,7 @@ public class RotateMoveItemEvent extends MessageHandler {
 
         for (MoveRequest move : moves) {
             FurnitureMovementError error = moveItem(
-                    room,
-                    move,
-                    moveThroughFurniture,
-                    moveThroughUsers,
-                    maintainHeight,
-                    !groupedMove,
-                    batchUpdates);
+                    room, move, moveThroughFurniture, moveThroughUsers, maintainHeight, !groupedMove, batchUpdates);
 
             if (groupedMove && error != null && error != FurnitureMovementError.NONE && firstBatchError == null) {
                 firstBatchError = error;
@@ -101,8 +95,8 @@ public class RotateMoveItemEvent extends MessageHandler {
         }
 
         if (firstBatchError != null) {
-            this.client.sendResponse(new BubbleAlertComposer(
-                    BubbleAlertKeys.FURNITURE_PLACEMENT_ERROR.key, firstBatchError.errorCode));
+            this.client.sendResponse(
+                    new BubbleAlertComposer(BubbleAlertKeys.FURNITURE_PLACEMENT_ERROR.key, firstBatchError.errorCode));
         }
     }
 
@@ -138,8 +132,8 @@ public class RotateMoveItemEvent extends MessageHandler {
 
         if (error != FurnitureMovementError.NONE) {
             if (sendIndividualError) {
-                this.client.sendResponse(new BubbleAlertComposer(
-                        BubbleAlertKeys.FURNITURE_PLACEMENT_ERROR.key, error.errorCode));
+                this.client.sendResponse(
+                        new BubbleAlertComposer(BubbleAlertKeys.FURNITURE_PLACEMENT_ERROR.key, error.errorCode));
                 this.client.sendResponse(new FloorItemUpdateComposer(item));
             }
             return error;

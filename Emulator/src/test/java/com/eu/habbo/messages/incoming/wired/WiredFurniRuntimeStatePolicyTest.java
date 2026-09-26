@@ -102,8 +102,10 @@ class WiredFurniRuntimeStatePolicyTest {
         assertTrue(reduced.success());
         verify(runtime).setGlobalScaling(room, item, 25);
 
-        assertFalse(WiredFurniRuntimeStatePolicy.write(room, item, "@scaling", 24).supported());
-        assertFalse(WiredFurniRuntimeStatePolicy.write(room, item, "@scaling", 301).supported());
+        assertFalse(
+                WiredFurniRuntimeStatePolicy.write(room, item, "@scaling", 24).supported());
+        assertFalse(
+                WiredFurniRuntimeStatePolicy.write(room, item, "@scaling", 301).supported());
     }
 
     @Test
@@ -137,7 +139,8 @@ class WiredFurniRuntimeStatePolicyTest {
         when(runtime.globalScaling(wall)).thenReturn(150);
 
         assertTrue(WiredFurniRuntimeStatePolicy.write(room, wall, "@opacity", 0).success());
-        assertTrue(WiredFurniRuntimeStatePolicy.write(room, wall, "@scaling", 150).success());
+        assertTrue(
+                WiredFurniRuntimeStatePolicy.write(room, wall, "@scaling", 150).success());
         assertFalse(WiredFurniRuntimeStatePolicy.read(room, wall, "@gravity").supported());
     }
 

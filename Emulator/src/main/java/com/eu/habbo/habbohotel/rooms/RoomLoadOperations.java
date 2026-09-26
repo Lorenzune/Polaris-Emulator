@@ -193,8 +193,11 @@ final class RoomLoadOperations implements RoomLoader.Operations {
         if (cycles != null) {
             return cycles.schedule(this.room);
         }
-        return this.room.threading().getService().scheduleAtFixedRate(
-                this.room, RoomCycleService.CYCLE_MS, RoomCycleService.CYCLE_MS, TimeUnit.MILLISECONDS);
+        return this.room
+                .threading()
+                .getService()
+                .scheduleAtFixedRate(
+                        this.room, RoomCycleService.CYCLE_MS, RoomCycleService.CYCLE_MS, TimeUnit.MILLISECONDS);
     }
 
     @Override

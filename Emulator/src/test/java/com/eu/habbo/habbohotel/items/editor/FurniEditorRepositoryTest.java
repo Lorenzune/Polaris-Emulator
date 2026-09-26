@@ -43,7 +43,8 @@ class FurniEditorRepositoryTest {
         Connection connection = mock(Connection.class);
         PreparedStatement statement = mock(PreparedStatement.class);
         when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement("UPDATE items_base SET width = ? WHERE id = ? AND sprite_id = ? AND LOWER(item_name) = LOWER(?)"))
+        when(connection.prepareStatement(
+                        "UPDATE items_base SET width = ? WHERE id = ? AND sprite_id = ? AND LOWER(item_name) = LOWER(?)"))
                 .thenReturn(statement);
         when(statement.executeUpdate()).thenReturn(1);
 
@@ -85,11 +86,12 @@ class FurniEditorRepositoryTest {
         when(countResult.getInt(1)).thenReturn(1);
         when(pageResult.next()).thenReturn(false);
 
-        var result = new FurniEditorRepository(dataSource).search(new FurniEditorRepository.SearchRequest(
-                "rare", "s", "", "", 20, 0, List.of("chair_rare")));
+        var result = new FurniEditorRepository(dataSource)
+                .search(new FurniEditorRepository.SearchRequest("rare", "s", "", "", 20, 0, List.of("chair_rare")));
 
-        verify(connection).prepareStatement(
-                "SELECT COUNT(*) FROM items_base WHERE 1=1 AND (item_name LIKE ? OR public_name LIKE ? OR LOWER(item_name) IN (?)) AND type = ?");
+        verify(connection)
+                .prepareStatement(
+                        "SELECT COUNT(*) FROM items_base WHERE 1=1 AND (item_name LIKE ? OR public_name LIKE ? OR LOWER(item_name) IN (?)) AND type = ?");
         verify(count).setString(1, "%rare%");
         verify(count).setString(2, "%rare%");
         verify(count).setString(3, "chair_rare");

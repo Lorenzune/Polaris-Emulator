@@ -18,7 +18,8 @@ public final class WiredFurniCustomColorBroadcaster {
     private WiredFurniCustomColorBroadcaster() {}
 
     public static boolean supportsCustomColor(Habbo habbo) {
-        return habbo != null && habbo.getClient() != null
+        return habbo != null
+                && habbo.getClient() != null
                 && habbo.getClient().supportsWiredFeature(3, GameClient.WIRED_FEATURE_CUSTOM_COLOR);
     }
 
@@ -58,7 +59,8 @@ public final class WiredFurniCustomColorBroadcaster {
             }
             String color = update.customColor() == null ? "" : update.customColor();
             int addedBytes = 8 + (colors.contains(color) ? 0 : 2 + color.getBytes(StandardCharsets.UTF_8).length);
-            if (!current.isEmpty() && (current.size() >= MAXIMUM_UPDATES || bytes + addedBytes > MAXIMUM_PACKET_BYTES)) {
+            if (!current.isEmpty()
+                    && (current.size() >= MAXIMUM_UPDATES || bytes + addedBytes > MAXIMUM_PACKET_BYTES)) {
                 batches.add(List.copyOf(current));
                 current.clear();
                 colors.clear();

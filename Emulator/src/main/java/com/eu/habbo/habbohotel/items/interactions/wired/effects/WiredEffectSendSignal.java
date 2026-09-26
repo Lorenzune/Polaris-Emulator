@@ -207,7 +207,8 @@ public class WiredEffectSendSignal extends InteractionWiredEffect {
         // Keep one immutable snapshot for all events emitted by this effect. Each
         // WiredEvent can then safely share these forwarded-source lists.
         signalSourceUsers = List.copyOf(signalSourceUsers);
-        signalSourceItems = List.copyOf(signalSourceItems.stream().filter(Objects::nonNull).toList());
+        signalSourceItems =
+                List.copyOf(signalSourceItems.stream().filter(Objects::nonNull).toList());
 
         Collection<HabboItem> furniToSend;
 

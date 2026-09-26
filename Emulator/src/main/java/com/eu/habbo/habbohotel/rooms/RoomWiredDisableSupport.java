@@ -6,8 +6,7 @@ import com.eu.habbo.habbohotel.users.HabboItem;
 public final class RoomWiredDisableSupport {
     private static final String CONTROLLER_INTERACTION = "wf_conf_wired_disable";
 
-    private RoomWiredDisableSupport() {
-    }
+    private RoomWiredDisableSupport() {}
 
     public static boolean isWiredDisabled(Room room) {
         if (room == null) {

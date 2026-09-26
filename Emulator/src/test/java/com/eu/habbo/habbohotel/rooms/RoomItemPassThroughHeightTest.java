@@ -15,8 +15,8 @@ class RoomItemPassThroughHeightTest {
         RoomTile platformTile = new RoomTile((short) 4, (short) 7, (short) 0, RoomTileState.OPEN, true);
         when(layout.getHeightAtSquare(4, 7)).thenReturn((short) 0);
 
-        double resultingHeight = RoomItemMovementService.getFurniturePassThroughHeight(
-                0, layout, Collections.singleton(platformTile));
+        double resultingHeight =
+                RoomItemMovementService.getFurniturePassThroughHeight(0, layout, Collections.singleton(platformTile));
 
         assertEquals(0, resultingHeight);
     }

@@ -10,8 +10,7 @@ public final class WiredFreezeUtil {
     private static final String CACHE_CANCEL_ON_TELEPORT = "wired.freeze.cancel_on_teleport";
     private static final String CACHE_PREVIOUS_CAN_WALK = "wired.freeze.previous_can_walk";
 
-    private WiredFreezeUtil() {
-    }
+    private WiredFreezeUtil() {}
 
     public static boolean isFrozen(RoomUnit roomUnit) {
         return roomUnit != null && Boolean.TRUE.equals(roomUnit.getCacheable().get(CACHE_ACTIVE));

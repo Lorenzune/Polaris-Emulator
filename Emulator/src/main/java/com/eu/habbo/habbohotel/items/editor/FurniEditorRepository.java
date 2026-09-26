@@ -224,8 +224,8 @@ public final class FurniEditorRepository {
     }
 
     /** Applies a validated update only to the reported items_base row. */
-    public int updateItemByIdAndSprite(int itemId, int spriteId, String itemName, String setClauses, List<Object> values)
-            throws SQLException {
+    public int updateItemByIdAndSprite(
+            int itemId, int spriteId, String itemName, String setClauses, List<Object> values) throws SQLException {
         String normalizedItemName = itemName == null ? "" : itemName.trim();
         if (itemId <= 0 || spriteId <= 0 || normalizedItemName.isEmpty()) return 0;
 
@@ -347,7 +347,7 @@ public final class FurniEditorRepository {
         item.put("clothing_on_walk", set.getString("clothing_on_walk"));
         item.put("multiheight", set.getString("multiheight"));
         try {
-        item.put("description", set.getString("description"));
+            item.put("description", set.getString("description"));
         } catch (SQLException exception) {
             item.put("description", "");
         }
@@ -410,7 +410,8 @@ public final class FurniEditorRepository {
             int pageSize,
             int offset,
             List<String> furnidataClassnames) {
-        public SearchRequest(String query, String type, String sortField, String sortDirection, int pageSize, int offset) {
+        public SearchRequest(
+                String query, String type, String sortField, String sortDirection, int pageSize, int offset) {
             this(query, type, sortField, sortDirection, pageSize, offset, List.of());
         }
 

@@ -27,7 +27,8 @@ public class FurnitureReportUpdateEvent extends MessageHandler {
 
         ModToolIssue issue = Emulator.getGameEnvironment().getModToolManager().getTicket(issueId);
         if (issue == null || issue.type != ModToolTicketType.FURNITURE || issue.state == ModToolTicketState.CLOSED) {
-            this.client.sendResponse(new FurnitureReportUpdateResultComposer(false, issueId, "Segnalazione non disponibile", "{}"));
+            this.client.sendResponse(
+                    new FurnitureReportUpdateResultComposer(false, issueId, "Segnalazione non disponibile", "{}"));
             return;
         }
 
@@ -42,11 +43,17 @@ public class FurnitureReportUpdateEvent extends MessageHandler {
 
         JsonObject report = FurnitureReportSupport.parseMessage(issue.message);
         JsonObject current = report == null ? null : report.getAsJsonObject("currentValues");
-        int reportItemId = current == null || !current.has("id") ? 0 : current.get("id").getAsInt();
-        int reportSpriteId = current == null || !current.has("sprite_id") ? 0 : current.get("sprite_id").getAsInt();
-        String itemName = current == null || !current.has("item_name") ? "" : current.get("item_name").getAsString();
+        int reportItemId =
+                current == null || !current.has("id") ? 0 : current.get("id").getAsInt();
+        int reportSpriteId = current == null || !current.has("sprite_id")
+                ? 0
+                : current.get("sprite_id").getAsInt();
+        String itemName = current == null || !current.has("item_name")
+                ? ""
+                : current.get("item_name").getAsString();
         if (report == null || reportItemId <= 0 || reportSpriteId != spriteId || itemName.isBlank()) {
-            this.client.sendResponse(new FurnitureReportUpdateResultComposer(false, issueId, "Sprite ID non corrispondente", "{}"));
+            this.client.sendResponse(
+                    new FurnitureReportUpdateResultComposer(false, issueId, "Sprite ID non corrispondente", "{}"));
             return;
         }
 
@@ -56,28 +63,35 @@ public class FurnitureReportUpdateEvent extends MessageHandler {
             return;
         }
 
-        FurniEditorRepository repository = new FurniEditorRepository(Emulator.getDatabase().getDataSource());
+        FurniEditorRepository repository =
+                new FurniEditorRepository(Emulator.getDatabase().getDataSource());
         int updatedRows = repository.updateItemByIdAndSprite(
                 reportItemId, spriteId, itemName, payload.setClauses, payload.values);
         if (updatedRows <= 0) {
-            this.client.sendResponse(new FurnitureReportUpdateResultComposer(false, issueId, "Nessun items_base trovato", "{}"));
+            this.client.sendResponse(
+                    new FurnitureReportUpdateResultComposer(false, issueId, "Nessun items_base trovato", "{}"));
             return;
         }
 
         Emulator.getGameEnvironment().getItemManager().loadItems();
 
-        JsonObject updated = repository.findFullItemBySprite(spriteId, itemName)
+        JsonObject updated = repository
+                .findFullItemBySprite(spriteId, itemName)
                 .map(FurnitureReportSupport.GSON::toJsonTree)
                 .map(element -> element.getAsJsonObject())
                 .orElse(current);
         report.add("currentValues", updated);
         report.add("proposedValues", fields);
-        report.addProperty("lastUpdatedBy", this.client.getHabbo().getHabboInfo().getUsername());
+        report.addProperty(
+                "lastUpdatedBy", this.client.getHabbo().getHabboInfo().getUsername());
         issue.message = FurnitureReportSupport.PREFIX + FurnitureReportSupport.GSON.toJson(report);
         issue.updateInDatabase();
         Emulator.getGameEnvironment().getModToolManager().updateTicketToMods(issue);
 
-        this.client.sendResponse(new FurnitureReportUpdateResultComposer(true, issueId,
-                "Aggiornate " + updatedRows + " righe items_base", FurnitureReportSupport.GSON.toJson(updated)));
+        this.client.sendResponse(new FurnitureReportUpdateResultComposer(
+                true,
+                issueId,
+                "Aggiornate " + updatedRows + " righe items_base",
+                FurnitureReportSupport.GSON.toJson(updated)));
     }
 }

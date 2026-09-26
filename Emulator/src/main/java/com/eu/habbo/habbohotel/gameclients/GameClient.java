@@ -31,7 +31,8 @@ public class GameClient {
     public static final int WIRED_FEATURE_OPACITY = 1;
     public static final int WIRED_FEATURE_MOVE_STYLE = 2;
     public static final int WIRED_FEATURE_CUSTOM_COLOR = 4;
-    private static final int WIRED_FEATURE_KNOWN_MASK = WIRED_FEATURE_OPACITY | WIRED_FEATURE_MOVE_STYLE | WIRED_FEATURE_CUSTOM_COLOR;
+    private static final int WIRED_FEATURE_KNOWN_MASK =
+            WIRED_FEATURE_OPACITY | WIRED_FEATURE_MOVE_STYLE | WIRED_FEATURE_CUSTOM_COLOR;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GameClient.class);
 

@@ -583,7 +583,8 @@ public final class WiredMoveCarryHelper {
         // The existing height-update protocol carries at most 127 tiles per packet.
         for (int from = 0; from < ordered.size(); from += 127) {
             messages.add(new UpdateStackHeightComposer(
-                    room, ordered.subList(from, Math.min(from + 127, ordered.size()))).compose());
+                            room, ordered.subList(from, Math.min(from + 127, ordered.size())))
+                    .compose());
         }
         if (!messages.isEmpty()) room.sendComposers(messages);
     }
@@ -1466,8 +1467,7 @@ public final class WiredMoveCarryHelper {
 
     private record CachedMovementPhysics(WeakReference<WiredContext> context, WiredMovementPhysics physics) {}
 
-    private static WiredMovementPhysics buildMovementPhysics(
-            Room room, WiredExtraMovePhysics extra, WiredContext ctx) {
+    private static WiredMovementPhysics buildMovementPhysics(Room room, WiredExtraMovePhysics extra, WiredContext ctx) {
 
         HashSet<Integer> passThroughFurniIds = new HashSet<>();
         HashSet<Integer> passThroughUserIds = new HashSet<>();

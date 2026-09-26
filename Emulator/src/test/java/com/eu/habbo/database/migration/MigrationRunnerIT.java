@@ -125,7 +125,8 @@ class MigrationRunnerIT {
                     .migrate();
 
             // Simulate an older installation with the former per-room state table.
-            try (Connection c = ds.getConnection(); Statement s = c.createStatement()) {
+            try (Connection c = ds.getConnection();
+                    Statement s = c.createStatement()) {
                 s.execute("INSERT INTO `items` (`id`, `room_id`) VALUES (9001, 42)");
                 s.execute("""
                         CREATE TABLE `room_furni_opacity` (
@@ -148,12 +149,8 @@ class MigrationRunnerIT {
             assertTrue(columnExists(ds, "items", "wired_opacity"));
             assertTrue(columnExists(ds, "items", "wired_scaling"));
             assertTrue(!tableExists(ds, "room_furni_opacity"));
-            assertEquals(
-                    67,
-                    intValue(ds, "SELECT wired_opacity FROM items WHERE id = 9001"));
-            assertEquals(
-                    200,
-                    intValue(ds, "SELECT wired_scaling FROM items WHERE id = 9001"));
+            assertEquals(67, intValue(ds, "SELECT wired_opacity FROM items WHERE id = 9001"));
+            assertEquals(200, intValue(ds, "SELECT wired_scaling FROM items WHERE id = 9001"));
         }
     }
 

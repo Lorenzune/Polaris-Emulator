@@ -42,9 +42,13 @@ public final class WiredFurnitureCustomColor {
         }
 
         JsonObject root = parsed.getAsJsonObject();
-        if (root.size() != 2 || !root.has("v") || !root.get("v").isJsonPrimitive()
-                || !root.get("v").getAsJsonPrimitive().isNumber() || root.get("v").getAsDouble() != 1.0
-                || !root.has("layers") || !root.get("layers").isJsonObject()) {
+        if (root.size() != 2
+                || !root.has("v")
+                || !root.get("v").isJsonPrimitive()
+                || !root.get("v").getAsJsonPrimitive().isNumber()
+                || root.get("v").getAsDouble() != 1.0
+                || !root.has("layers")
+                || !root.get("layers").isJsonObject()) {
             throw new IllegalArgumentException("Unsupported furniture color config");
         }
 
@@ -126,7 +130,9 @@ public final class WiredFurnitureCustomColor {
 
     private static String string(JsonObject object, String key) {
         JsonElement value = object.get(key);
-        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) {
+        if (value == null
+                || !value.isJsonPrimitive()
+                || !value.getAsJsonPrimitive().isString()) {
             throw new IllegalArgumentException("Missing furniture color field: " + key);
         }
         return value.getAsString();
@@ -142,7 +148,9 @@ public final class WiredFurnitureCustomColor {
 
     private static int integer(JsonObject object, String key) {
         JsonElement value = object.get(key);
-        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()
+        if (value == null
+                || !value.isJsonPrimitive()
+                || !value.getAsJsonPrimitive().isNumber()
                 || value.getAsDouble() != Math.rint(value.getAsDouble())) {
             throw new IllegalArgumentException("Invalid furniture gradient angle");
         }
@@ -151,7 +159,9 @@ public final class WiredFurnitureCustomColor {
 
     private static boolean bool(JsonObject object, String key) {
         JsonElement value = object.get(key);
-        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isBoolean()) {
+        if (value == null
+                || !value.isJsonPrimitive()
+                || !value.getAsJsonPrimitive().isBoolean()) {
             throw new IllegalArgumentException("Invalid furniture color fill option");
         }
         return value.getAsBoolean();

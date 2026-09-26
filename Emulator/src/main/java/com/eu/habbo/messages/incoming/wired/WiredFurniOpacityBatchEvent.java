@@ -17,7 +17,8 @@ public class WiredFurniOpacityBatchEvent extends MessageHandler {
     @Override
     public void handle() throws Exception {
         Room room = currentRoom();
-        if (room == null || !room.canModifyWired(this.client.getHabbo())
+        if (room == null
+                || !room.canModifyWired(this.client.getHabbo())
                 || this.packet.bytesAvailable() < FIXED_PACKET_BYTES) {
             return;
         }
@@ -47,8 +48,7 @@ public class WiredFurniOpacityBatchEvent extends MessageHandler {
         List<HabboItem> items = new ArrayList<>(itemIds.size());
         for (int itemId : itemIds) {
             HabboItem item = room.getHabboItem(itemId);
-            if (item != null && item.getBaseItem() != null
-                    && item.getBaseItem().getType() == FurnitureType.FLOOR) {
+            if (item != null && item.getBaseItem() != null && item.getBaseItem().getType() == FurnitureType.FLOOR) {
                 items.add(item);
             }
         }

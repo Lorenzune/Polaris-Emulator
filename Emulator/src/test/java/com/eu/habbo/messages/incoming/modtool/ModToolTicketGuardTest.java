@@ -1,12 +1,12 @@
 package com.eu.habbo.messages.incoming.modtool;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.eu.habbo.habbohotel.modtool.ModToolIssue;
 import com.eu.habbo.habbohotel.modtool.ModToolTicketState;
 import com.eu.habbo.habbohotel.modtool.ModToolTicketType;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ModToolTicketGuardTest {
     @Test
@@ -25,7 +25,8 @@ class ModToolTicketGuardTest {
 
     @Test
     void onlyUnclaimedOpenFurnitureReportsCanBeClaimedAndClosed() {
-        ModToolIssue furnitureReport = new ModToolIssue(1, "reporter", 0, "", 7, "furniture", ModToolTicketType.FURNITURE);
+        ModToolIssue furnitureReport =
+                new ModToolIssue(1, "reporter", 0, "", 7, "furniture", ModToolTicketType.FURNITURE);
 
         assertTrue(ModToolTicketGuard.canClaimAndCloseFurnitureReport(furnitureReport));
 

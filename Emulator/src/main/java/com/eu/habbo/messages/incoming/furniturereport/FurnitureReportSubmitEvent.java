@@ -18,7 +18,8 @@ public class FurnitureReportSubmitEvent extends MessageHandler {
         String reason = FurnitureReportSupport.limit(this.packet.readString(), 500);
 
         Room room = this.client.getHabbo().getHabboInfo().getCurrentRoom();
-        JsonObject current = FurnitureReportSupport.readRoomFurniture(room, roomId, objectId).orElse(null);
+        JsonObject current =
+                FurnitureReportSupport.readRoomFurniture(room, roomId, objectId).orElse(null);
         if (current == null) {
             this.client.sendResponse(new FurnitureReportResultComposer(false, 0, "Furni non trovato nella stanza"));
             return;
@@ -26,7 +27,8 @@ public class FurnitureReportSubmitEvent extends MessageHandler {
 
         JsonObject proposed;
         try {
-            proposed = JsonParser.parseString(changesJson == null || changesJson.isBlank() ? "{}" : changesJson).getAsJsonObject();
+            proposed = JsonParser.parseString(changesJson == null || changesJson.isBlank() ? "{}" : changesJson)
+                    .getAsJsonObject();
         } catch (Exception exception) {
             this.client.sendResponse(new FurnitureReportResultComposer(false, 0, "Dati della segnalazione non validi"));
             return;
@@ -39,20 +41,16 @@ public class FurnitureReportSubmitEvent extends MessageHandler {
         int senderId = this.client.getHabbo().getHabboInfo().getId();
         String senderName = this.client.getHabbo().getHabboInfo().getUsername();
         int reportedId = room.getOwnerId() > 0 ? room.getOwnerId() : senderId;
-        String reportedName = room.getOwnerName() == null || room.getOwnerName().isBlank() ? senderName : room.getOwnerName();
+        String reportedName =
+                room.getOwnerName() == null || room.getOwnerName().isBlank() ? senderName : room.getOwnerName();
         String message = FurnitureReportSupport.buildMessage(current, proposed, reason);
 
         ModToolIssue issue = new ModToolIssue(
-                senderId,
-                senderName,
-                reportedId,
-                reportedName,
-                roomId,
-                message,
-                ModToolTicketType.FURNITURE);
+                senderId, senderName, reportedId, reportedName, roomId, message, ModToolTicketType.FURNITURE);
 
         Emulator.getGameEnvironment().getModToolManager().addTicket(issue);
         Emulator.getGameEnvironment().getModToolManager().updateTicketToMods(issue);
-        this.client.sendResponse(new FurnitureReportResultComposer(true, issue.id, "Segnalazione inviata ai moderatori"));
+        this.client.sendResponse(
+                new FurnitureReportResultComposer(true, issue.id, "Segnalazione inviata ai moderatori"));
     }
 }

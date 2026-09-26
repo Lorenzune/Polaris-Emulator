@@ -5,13 +5,13 @@ import com.eu.habbo.database.PersistenceExecutor;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -181,15 +181,11 @@ public class ThreadPooling {
     }
 
     public int getScheduledActiveCount() {
-        return this.scheduledPool instanceof ScheduledThreadPoolExecutor executor
-                ? executor.getActiveCount()
-                : -1;
+        return this.scheduledPool instanceof ScheduledThreadPoolExecutor executor ? executor.getActiveCount() : -1;
     }
 
     public int getScheduledPoolSize() {
-        return this.scheduledPool instanceof ScheduledThreadPoolExecutor executor
-                ? executor.getPoolSize()
-                : -1;
+        return this.scheduledPool instanceof ScheduledThreadPoolExecutor executor ? executor.getPoolSize() : -1;
     }
 
     public int getScheduledQueueDepth() {

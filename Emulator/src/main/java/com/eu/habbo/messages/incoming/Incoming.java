@@ -442,8 +442,8 @@ public class Incoming {
     public static final int WiredUserInspectMoveEvent = 10027;
     public static final int WiredFurniRuntimeStateRequestEvent = 10028;
     public static final int WiredFeatureCapabilitiesEvent = 10029;
-      public static final int WiredFurniOpacityBatchEvent = 10038;
-      public static final int WiredFurniCustomColorBatchEvent = 10039;
+    public static final int WiredFurniOpacityBatchEvent = 10038;
+    public static final int WiredFurniCustomColorBatchEvent = 10039;
     public static final int WiredRoomRollbackEvent = 10034;
     public static final int WiredAccountPreferencesRequestEvent = 10035;
     public static final int WiredAccountPreferencesSaveEvent = 10036;

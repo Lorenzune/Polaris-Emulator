@@ -39,6 +39,7 @@ final class RoomItemIndex {
     private final Int2ObjectMap<long[]> indexedFootprints = new Int2ObjectOpenHashMap<>();
     /** Furni that moved, joined or left since the last lookup; refiled before the next one. */
     private final Object movedItemsLock = new Object();
+
     private Set<HabboItem> movedItems = new HashSet<>();
 
     private final ItemFootprintListener footprintListener = this::markMoved;

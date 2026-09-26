@@ -6,7 +6,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executor;
@@ -44,7 +43,10 @@ final class RoomOpacityPersistence {
                 while (resultSet.next()) {
                     states.put(
                             resultSet.getInt("furni_id"),
-                            new PersistedState(resultSet.getInt("opacity"), resultSet.getInt("scaling"), resultSet.getString("custom_color")));
+                            new PersistedState(
+                                    resultSet.getInt("opacity"),
+                                    resultSet.getInt("scaling"),
+                                    resultSet.getString("custom_color")));
                 }
             }
         }
@@ -87,7 +89,7 @@ final class RoomOpacityPersistence {
         if (startFlush) {
             try {
                 java.util.concurrent.CompletableFuture.delayedExecutor(
-                        WRITE_COALESCE_MILLIS, java.util.concurrent.TimeUnit.MILLISECONDS, this.executor)
+                                WRITE_COALESCE_MILLIS, java.util.concurrent.TimeUnit.MILLISECONDS, this.executor)
                         .execute(this::flush);
             } catch (RuntimeException exception) {
                 synchronized (this.lock) {

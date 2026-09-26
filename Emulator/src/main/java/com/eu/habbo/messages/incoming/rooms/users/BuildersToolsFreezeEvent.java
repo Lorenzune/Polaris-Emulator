@@ -12,13 +12,12 @@ public class BuildersToolsFreezeEvent extends MessageHandler {
             return;
         }
 
-        if (room.getOwnerId() != this.client.getHabbo().getHabboInfo().getId() && !room.hasRights(this.client.getHabbo())) {
+        if (room.getOwnerId() != this.client.getHabbo().getHabboInfo().getId()
+                && !room.hasRights(this.client.getHabbo())) {
             return;
         }
 
         BuildersToolsFreezeUtil.setRoomFrozen(
-                room,
-                this.client.getHabbo().getHabboInfo().getId(),
-                this.packet.readBoolean());
+                room, this.client.getHabbo().getHabboInfo().getId(), this.packet.readBoolean());
     }
 }

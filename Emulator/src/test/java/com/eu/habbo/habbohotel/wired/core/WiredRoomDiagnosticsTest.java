@@ -56,8 +56,8 @@ class WiredRoomDiagnosticsTest {
 
     private static Map<WiredRoomDiagnostics.Type, WiredRoomDiagnostics.LogEntry> logsByType(
             WiredRoomDiagnostics.Snapshot snapshot) {
-        return snapshot.getLogs().stream().collect(java.util.stream.Collectors.toMap(
-                WiredRoomDiagnostics.LogEntry::getType, entry -> entry));
+        return snapshot.getLogs().stream()
+                .collect(java.util.stream.Collectors.toMap(WiredRoomDiagnostics.LogEntry::getType, entry -> entry));
     }
 
     private static int pending(WiredRoomDiagnostics diagnostics, long now) {

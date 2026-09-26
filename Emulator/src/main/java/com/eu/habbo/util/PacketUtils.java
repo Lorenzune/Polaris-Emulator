@@ -1,7 +1,6 @@
 package com.eu.habbo.util;
 
 import io.netty.buffer.ByteBuf;
-
 import java.nio.charset.Charset;
 
 public class PacketUtils {
@@ -23,5 +22,4 @@ public class PacketUtils {
 
         return result.toString();
     }
-
 }

@@ -105,8 +105,7 @@ public class WiredEffectChangeOpacity extends InteractionWiredEffect {
             List<WiredOpacityState> applied =
                     room.getWiredRuntime().applyUserOpacity(userId, targets, this.opacity, this.clickThrough);
             if (!applied.isEmpty() && supportsOpacity(recipient)) {
-                List<WiredOpacityState> effective = room.getWiredRuntime()
-                        .effectiveOpacity(userId, itemIds);
+                List<WiredOpacityState> effective = room.getWiredRuntime().effectiveOpacity(userId, itemIds);
                 recipient
                         .getClient()
                         .sendResponse(new WiredFurniOpacityComposer(

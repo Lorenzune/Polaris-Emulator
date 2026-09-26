@@ -24,7 +24,8 @@ final class FurnitureReportSupport {
         HabboItem item = room.getHabboItem(objectId);
         if (item == null || item.getBaseItem() == null) return Optional.empty();
 
-        FurniEditorRepository repository = new FurniEditorRepository(Emulator.getDatabase().getDataSource());
+        FurniEditorRepository repository =
+                new FurniEditorRepository(Emulator.getDatabase().getDataSource());
         Optional<Map<String, Object>> fullItem = repository.findFullItemBySprite(
                 item.getBaseItem().getSpriteId(), item.getBaseItem().getName());
         if (fullItem.isEmpty()) {

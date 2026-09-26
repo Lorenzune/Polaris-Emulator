@@ -1,8 +1,8 @@
 package com.eu.habbo.messages.incoming.furniturereport;
 
+import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.furniturereport.FurnitureReportDataComposer;
-import com.eu.habbo.habbohotel.rooms.Room;
 
 public class FurnitureReportDataEvent extends MessageHandler {
     @Override
@@ -17,6 +17,7 @@ public class FurnitureReportDataEvent extends MessageHandler {
             return;
         }
 
-        this.client.sendResponse(new FurnitureReportDataComposer(true, "", FurnitureReportSupport.GSON.toJson(data.get())));
+        this.client.sendResponse(
+                new FurnitureReportDataComposer(true, "", FurnitureReportSupport.GSON.toJson(data.get())));
     }
 }

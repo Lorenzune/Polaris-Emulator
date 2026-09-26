@@ -23,8 +23,7 @@ public final class RoomWiredRuntime {
     private final WiredOpacityService opacity;
     private final RoomOpacityPersistence visualStatePersistence;
 
-    RoomWiredRuntime(
-            Room room, RoomDependencies.ConnectionProvider database, Executor persistenceExecutor) {
+    RoomWiredRuntime(Room room, RoomDependencies.ConnectionProvider database, Executor persistenceExecutor) {
         this.room = room;
         this.gravity = new WiredGravityService(room);
         this.opacity = new WiredOpacityService(room);
@@ -113,7 +112,9 @@ public final class RoomWiredRuntime {
      * is.
      */
     public boolean setGlobalOpacity(Room room, HabboItem item, int opacity) {
-        return room != null && item != null && !this.setGlobalOpacityForItems(room, List.of(item), opacity).isEmpty();
+        return room != null
+                && item != null
+                && !this.setGlobalOpacityForItems(room, List.of(item), opacity).isEmpty();
     }
 
     /** Sets and persists a room-wide furniture visual scale percentage. */
@@ -131,8 +132,7 @@ public final class RoomWiredRuntime {
     }
 
     /** Sets and persists one visual scale level for every item in a builder selection. */
-    public List<WiredOpacityState> setGlobalScalingForItems(
-            Room room, Collection<HabboItem> items, int scaling) {
+    public List<WiredOpacityState> setGlobalScalingForItems(Room room, Collection<HabboItem> items, int scaling) {
         if (room != this.room || items == null || items.isEmpty() || scaling < 25 || scaling > 300) {
             return List.of();
         }
@@ -185,7 +185,8 @@ public final class RoomWiredRuntime {
         this.persistOpacityChanges(previous, applied);
         // Echo the accepted effective value for every requested item. This corrects an optimistic
         // local preview if the room's bounded visual-state budget rejects part of a large selection.
-        WiredFurniCustomColorBroadcaster.broadcast(room, this.opacitySnapshot(items).values());
+        WiredFurniCustomColorBroadcaster.broadcast(
+                room, this.opacitySnapshot(items).values());
         return applied;
     }
 
@@ -203,8 +204,7 @@ public final class RoomWiredRuntime {
                 .collect(java.util.stream.Collectors.toMap(WiredOpacityState::itemId, state -> state));
     }
 
-    private void persistOpacityChanges(
-            Map<Integer, WiredOpacityState> previous, List<WiredOpacityState> applied) {
+    private void persistOpacityChanges(Map<Integer, WiredOpacityState> previous, List<WiredOpacityState> applied) {
         if (applied == null || applied.isEmpty()) {
             return;
         }
@@ -230,7 +230,8 @@ public final class RoomWiredRuntime {
             if (item == null || item.getRoomId() != this.room.getId()) {
                 continue;
             }
-            grouped.computeIfAbsent(entry.getValue(), ignored -> new java.util.ArrayList<>()).add(item);
+            grouped.computeIfAbsent(entry.getValue(), ignored -> new java.util.ArrayList<>())
+                    .add(item);
         }
 
         for (Map.Entry<RoomOpacityPersistence.PersistedState, java.util.ArrayList<HabboItem>> entry :

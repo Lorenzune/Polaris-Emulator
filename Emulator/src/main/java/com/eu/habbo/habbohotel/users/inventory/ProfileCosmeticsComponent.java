@@ -2,15 +2,14 @@ package com.eu.habbo.habbohotel.users.inventory;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.users.Habbo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ProfileCosmeticsComponent {
     private static final Logger LOGGER = LoggerFactory.getLogger(ProfileCosmeticsComponent.class);
@@ -25,7 +24,8 @@ public class ProfileCosmeticsComponent {
 
     private void loadCosmetics() {
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT item_id, category FROM users_profile_cosmetics WHERE user_id = ?")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "SELECT item_id, category FROM users_profile_cosmetics WHERE user_id = ?")) {
             statement.setInt(1, this.habbo.getHabboInfo().getId());
             try (ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
@@ -40,7 +40,8 @@ public class ProfileCosmeticsComponent {
 
         // Preserve legacy ownership when the optional table exists.
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
-            try (ResultSet tables = connection.getMetaData()
+            try (ResultSet tables = connection
+                    .getMetaData()
                     .getTables(connection.getCatalog(), null, "users_infostand_backgrounds", new String[] {"TABLE"})) {
                 if (tables.next()) {
                     try (PreparedStatement statement = connection.prepareStatement(
@@ -80,9 +81,10 @@ public class ProfileCosmeticsComponent {
         String key = category.toLowerCase() + ":" + itemId;
         synchronized (this.ownedCosmetics) {
             if (this.ownedCosmetics.add(key)) {
-                try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-                     PreparedStatement statement = connection.prepareStatement(
-                             "INSERT IGNORE INTO users_profile_cosmetics (user_id, item_id, category) VALUES (?, ?, ?)")) {
+                try (Connection connection =
+                                Emulator.getDatabase().getDataSource().getConnection();
+                        PreparedStatement statement = connection.prepareStatement(
+                                "INSERT IGNORE INTO users_profile_cosmetics (user_id, item_id, category) VALUES (?, ?, ?)")) {
                     statement.setInt(1, this.habbo.getHabboInfo().getId());
                     statement.setInt(2, itemId);
                     statement.setString(3, category.toLowerCase());

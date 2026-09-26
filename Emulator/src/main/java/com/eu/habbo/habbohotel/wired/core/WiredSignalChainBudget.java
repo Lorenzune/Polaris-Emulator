@@ -77,7 +77,6 @@ final class WiredSignalChainBudget {
     }
 
     private boolean isDurationExceeded() {
-        return this.maximumDurationNanos > 0
-                && System.nanoTime() - this.startedAtNanos >= this.maximumDurationNanos;
+        return this.maximumDurationNanos > 0 && System.nanoTime() - this.startedAtNanos >= this.maximumDurationNanos;
     }
 }

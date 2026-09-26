@@ -292,8 +292,7 @@ final class RoomItemMovementService {
             boolean sendUpdates,
             boolean checkForUnits,
             WiredMovementPhysics physics) {
-        return this.moveFurniToWithPhysics(
-                item, tile, rotation, z, actor, sendUpdates, checkForUnits, physics, false);
+        return this.moveFurniToWithPhysics(item, tile, rotation, z, actor, sendUpdates, checkForUnits, physics, false);
     }
 
     FurnitureMovementError moveFurniToWithPhysics(
@@ -576,14 +575,15 @@ final class RoomItemMovementService {
                 }
             }
 
-            if (!moveThroughFurniture && ((stackHelper == null
-                            && topItem != null
-                            && topItem != item
-                            && !topItem.getBaseItem().allowStack())
-                    || (topItem != null
-                            && topItem != item
-                            && topItem.getZ() + Item.getCurrentHeight(topItem) + Item.getCurrentHeight(item)
-                                    > Room.MAXIMUM_FURNI_HEIGHT))) {
+            if (!moveThroughFurniture
+                    && ((stackHelper == null
+                                    && topItem != null
+                                    && topItem != item
+                                    && !topItem.getBaseItem().allowStack())
+                            || (topItem != null
+                                    && topItem != item
+                                    && topItem.getZ() + Item.getCurrentHeight(topItem) + Item.getCurrentHeight(item)
+                                            > Room.MAXIMUM_FURNI_HEIGHT))) {
                 item.setRotation(oldRotation);
                 return FurnitureMovementError.CANT_STACK;
             }

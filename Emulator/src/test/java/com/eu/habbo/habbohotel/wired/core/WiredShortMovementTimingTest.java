@@ -2,7 +2,11 @@ package com.eu.habbo.habbohotel.wired.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraAnimationTime;
@@ -61,13 +65,11 @@ class WiredShortMovementTimingTest {
         Fixture fixture = fixture(WiredEvent.Type.TIMER_REPEAT_SHORT, timer);
         WiredExtraAnimationTime extra = mock(WiredExtraAnimationTime.class);
         when(extra.getDurationMs()).thenReturn(750);
-        when(fixture.room.getRoomSpecialTypes().getExtras((short) 0, (short) 0))
-                .thenReturn(Set.of(extra));
-        when(fixture.room.furnitureFitsAtWithPhysics(
-                fixture.target, fixture.item, 0, false, WiredMovementPhysics.NONE))
+        when(fixture.room.getRoomSpecialTypes().getExtras((short) 0, (short) 0)).thenReturn(Set.of(extra));
+        when(fixture.room.furnitureFitsAtWithPhysics(fixture.target, fixture.item, 0, false, WiredMovementPhysics.NONE))
                 .thenReturn(FurnitureMovementError.NONE);
         when(fixture.room.moveFurniToWithPhysics(
-                fixture.item, fixture.target, 0, null, false, false, WiredMovementPhysics.NONE))
+                        fixture.item, fixture.target, 0, null, false, false, WiredMovementPhysics.NONE))
                 .thenReturn(FurnitureMovementError.NONE);
         WiredMoveCarryHelper.beginMovementCollection();
         try {

@@ -17,7 +17,15 @@ class WiredInternalVariableRegistryCompatibilityTest {
                 Set.of("@handitem_id", "@position_x", "@position_y", "@direction"),
                 keys(WiredInternalVariableRegistry.Capability.USER_DESTINATION));
         assertEquals(
-                Set.of("@state", "@position_x", "@position_y", "@rotation", "@altitude", "@gravity", "@opacity", "@scaling"),
+                Set.of(
+                        "@state",
+                        "@position_x",
+                        "@position_y",
+                        "@rotation",
+                        "@altitude",
+                        "@gravity",
+                        "@opacity",
+                        "@scaling"),
                 keys(WiredInternalVariableRegistry.Capability.FURNI_DESTINATION));
         assertEquals(
                 Set.of(

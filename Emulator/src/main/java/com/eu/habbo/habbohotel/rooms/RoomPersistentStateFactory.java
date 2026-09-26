@@ -1,7 +1,5 @@
 package com.eu.habbo.habbohotel.rooms;
 
-import java.util.List;
-
 final class RoomPersistentStateFactory {
 
     private RoomPersistentStateFactory() {}

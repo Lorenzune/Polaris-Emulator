@@ -4,7 +4,6 @@ import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserStatusComposer;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -13,8 +12,7 @@ public final class BuildersToolsFreezeUtil {
     private static final String CACHE_PREVIOUS_CAN_WALK = "builders-tools.freeze.previous-can-walk";
     private static final Map<Integer, Integer> ACTIVE_ROOM_FREEZES = new ConcurrentHashMap<>();
 
-    private BuildersToolsFreezeUtil() {
-    }
+    private BuildersToolsFreezeUtil() {}
 
     public static void setRoomFrozen(Room room, int actorId, boolean frozen) {
         if (room == null) {
@@ -83,9 +81,8 @@ public final class BuildersToolsFreezeUtil {
             return;
         }
 
-        boolean previousCanWalk = WiredFreezeUtil.isFrozen(roomUnit)
-                ? WiredFreezeUtil.getPreviousCanWalk(roomUnit)
-                : roomUnit.canWalk();
+        boolean previousCanWalk =
+                WiredFreezeUtil.isFrozen(roomUnit) ? WiredFreezeUtil.getPreviousCanWalk(roomUnit) : roomUnit.canWalk();
         roomUnit.getCacheable().put(CACHE_PREVIOUS_CAN_WALK, previousCanWalk);
         roomUnit.getCacheable().put(CACHE_ACTIVE, true);
         roomUnit.stopWalking();

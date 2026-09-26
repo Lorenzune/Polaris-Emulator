@@ -307,18 +307,14 @@ public final class WiredInternalVariableSupport {
             case "@id" -> item.getId();
             case "@class_id" ->
                 (item.getBaseItem() != null) ? item.getBaseItem().getId() : null;
-            case "@height" ->
-                (item.getBaseItem() != null)
-                        ? (int) Math.round(Item.getCurrentHeight(item) * 100)
-                        : null;
+            case "@height" -> (item.getBaseItem() != null) ? (int) Math.round(Item.getCurrentHeight(item) * 100) : null;
             case "@state" -> parseInteger(item.getExtradata());
             case "@position_x" -> (int) item.getX();
             case "@position_y" -> (int) item.getY();
             case "@rotation" -> item.getRotation();
             case "@altitude" -> (int) Math.round(item.getZ() * 100);
             case "@is_invisible" -> 0;
-            case "@type" ->
-                (item.getBaseItem() != null && item.getBaseItem().getType() == FurnitureType.WALL) ? 2 : 1;
+            case "@type" -> (item.getBaseItem() != null && item.getBaseItem().getType() == FurnitureType.WALL) ? 2 : 1;
             case "@is_stackable" ->
                 (item.getBaseItem() != null && item.getBaseItem().allowStack()) ? 1 : 0;
             case "@can_stand_on" ->

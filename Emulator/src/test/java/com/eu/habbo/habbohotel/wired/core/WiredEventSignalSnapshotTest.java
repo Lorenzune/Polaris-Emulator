@@ -33,8 +33,8 @@ class WiredEventSignalSnapshotTest {
         forwardedUsers.add(forwardedUser);
         forwardedUsers.add(null);
 
-        WiredEvent.Builder builder = WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
-                .signalSourceUsers(forwardedUsers);
+        WiredEvent.Builder builder =
+                WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room).signalSourceUsers(forwardedUsers);
         forwardedUsers.clear();
 
         assertEquals(List.of(forwardedUser), builder.build().getSignalSourceUsers());

@@ -25,8 +25,9 @@ public final class WiredOpacityBroadcaster {
             if (protocolVersion == 0) {
                 continue;
             }
-            habbo.getClient().sendResponse(
-                    new WiredFurniOpacityComposer(protocolVersion, room.getId(), payload, easing, durationMs));
+            habbo.getClient()
+                    .sendResponse(
+                            new WiredFurniOpacityComposer(protocolVersion, room.getId(), payload, easing, durationMs));
         }
     }
 
@@ -43,13 +44,14 @@ public final class WiredOpacityBroadcaster {
             return 0;
         }
 
-        if (habbo.getClient().supportsWiredFeature(
-                WiredFurniOpacityComposer.PROTOCOL_VERSION, GameClient.WIRED_FEATURE_OPACITY)) {
+        if (habbo.getClient()
+                .supportsWiredFeature(WiredFurniOpacityComposer.PROTOCOL_VERSION, GameClient.WIRED_FEATURE_OPACITY)) {
             return WiredFurniOpacityComposer.PROTOCOL_VERSION;
         }
 
-        if (habbo.getClient().supportsWiredFeature(
-                WiredFurniOpacityComposer.LEGACY_PROTOCOL_VERSION, GameClient.WIRED_FEATURE_OPACITY)) {
+        if (habbo.getClient()
+                .supportsWiredFeature(
+                        WiredFurniOpacityComposer.LEGACY_PROTOCOL_VERSION, GameClient.WIRED_FEATURE_OPACITY)) {
             return WiredFurniOpacityComposer.LEGACY_PROTOCOL_VERSION;
         }
 
@@ -62,7 +64,8 @@ public final class WiredOpacityBroadcaster {
             return;
         }
 
-        List<Integer> payload = itemIds.stream().filter(id -> id != null && id > 0).sorted().toList();
+        List<Integer> payload =
+                itemIds.stream().filter(id -> id != null && id > 0).sorted().toList();
         if (payload.isEmpty()) {
             return;
         }
@@ -73,10 +76,11 @@ public final class WiredOpacityBroadcaster {
                 continue;
             }
 
-            List<WiredOpacityState> effective = room.getWiredRuntime()
-                    .effectiveOpacity(habbo.getHabboInfo().getId(), payload);
-            habbo.getClient().sendResponse(
-                    new WiredFurniOpacityComposer(protocolVersion, room.getId(), effective, easing, durationMs));
+            List<WiredOpacityState> effective =
+                    room.getWiredRuntime().effectiveOpacity(habbo.getHabboInfo().getId(), payload);
+            habbo.getClient()
+                    .sendResponse(new WiredFurniOpacityComposer(
+                            protocolVersion, room.getId(), effective, easing, durationMs));
         }
     }
 }

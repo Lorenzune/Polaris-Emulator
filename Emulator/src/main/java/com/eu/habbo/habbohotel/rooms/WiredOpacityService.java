@@ -52,7 +52,9 @@ final class WiredOpacityService {
         for (HabboItem item : validItems(items)) {
             VisualState previous = this.globalStates.get(item.getId());
             VisualState next = new VisualState(
-                    opacity, clickThrough, scaling == null ? (previous == null ? 100 : previous.scaling()) : scaling,
+                    opacity,
+                    clickThrough,
+                    scaling == null ? (previous == null ? 100 : previous.scaling()) : scaling,
                     previous == null ? null : previous.customColor());
             if (next.isDefault()) {
                 if (previous != null) {
@@ -78,7 +80,10 @@ final class WiredOpacityService {
         for (HabboItem item : validItems(items)) {
             VisualState previous = this.globalStates.get(item.getId());
             boolean clickThrough = previous != null && previous.clickThrough();
-            VisualState next = new VisualState(opacity, clickThrough, previous == null ? 100 : previous.scaling(),
+            VisualState next = new VisualState(
+                    opacity,
+                    clickThrough,
+                    previous == null ? 100 : previous.scaling(),
                     previous == null ? null : previous.customColor());
             if (next.isDefault()) {
                 if (previous != null) {
@@ -133,9 +138,12 @@ final class WiredOpacityService {
             }
             VisualState global = this.globalStates.getOrDefault(itemId, VisualState.DEFAULT);
             VisualState state = personal == null ? null : personal.get(itemId);
-            result.add(state(item, state == null
-                    ? global
-                    : new VisualState(state.opacity(), state.clickThrough(), global.scaling(), global.customColor())));
+            result.add(state(
+                    item,
+                    state == null
+                            ? global
+                            : new VisualState(
+                                    state.opacity(), state.clickThrough(), global.scaling(), global.customColor())));
         }
         return List.copyOf(result);
     }
@@ -162,7 +170,8 @@ final class WiredOpacityService {
         if (removedGlobal != null) {
             this.stateCount--;
             if (removedGlobal.customColor() != null) {
-                this.customColorBytes -= removedGlobal.customColor().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+                this.customColorBytes -=
+                        removedGlobal.customColor().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
             }
         }
         for (Map<Integer, VisualState> states : this.userStates.values()) {
@@ -221,7 +230,8 @@ final class WiredOpacityService {
             VisualState previous = this.globalStates.get(item.getId());
             int opacity = previous == null ? 100 : previous.opacity();
             boolean clickThrough = previous != null && previous.clickThrough();
-            VisualState next = new VisualState(opacity, clickThrough, scaling, previous == null ? null : previous.customColor());
+            VisualState next =
+                    new VisualState(opacity, clickThrough, scaling, previous == null ? null : previous.customColor());
             if (next.isDefault()) {
                 if (previous != null) {
                     this.globalStates.remove(item.getId());
@@ -253,8 +263,12 @@ final class WiredOpacityService {
                     ? 0
                     : previous.customColor().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
             if (nextBytes > previousBytes
-                    && this.customColorBytes > WiredFurnitureCustomColor.MAXIMUM_BYTES_PER_ROOM - (nextBytes - previousBytes)) {
-                LOGGER.warn("Furniture custom color memory limit reached: room={}, rejectedItem={}", this.room.getId(), item.getId());
+                    && this.customColorBytes
+                            > WiredFurnitureCustomColor.MAXIMUM_BYTES_PER_ROOM - (nextBytes - previousBytes)) {
+                LOGGER.warn(
+                        "Furniture custom color memory limit reached: room={}, rejectedItem={}",
+                        this.room.getId(),
+                        item.getId());
                 continue;
             }
 

@@ -67,9 +67,7 @@ class WiredOpacityServiceTest {
         service.applyGlobal(List.of(opaque), 70, false);
 
         assertEquals(
-                List.of(
-                        new WiredOpacityState(4501, false, 35, true),
-                        new WiredOpacityState(4502, false, 35, false)),
+                List.of(new WiredOpacityState(4501, false, 35, true), new WiredOpacityState(4502, false, 35, false)),
                 service.applyGlobalOpacity(List.of(clickable, opaque), 35));
     }
 
@@ -81,7 +79,8 @@ class WiredOpacityServiceTest {
         WiredOpacityService service = new WiredOpacityService(room, 10);
 
         service.applyGlobal(List.of(item), 35, true);
-        assertEquals(List.of(new WiredOpacityState(4901, false, 35, true, 200)),
+        assertEquals(
+                List.of(new WiredOpacityState(4901, false, 35, true, 200)),
                 service.applyGlobalScaling(List.of(item), 175));
         service.applyUser(7, List.of(item), 70, false);
 
@@ -97,19 +96,24 @@ class WiredOpacityServiceTest {
         HabboItem item = item(5001, 50, FurnitureType.FLOOR);
         when(room.getHabboItem(5001)).thenReturn(item);
         WiredOpacityService service = new WiredOpacityService(room, 10);
-        String customColor = "{\"v\":1,\"layers\":{\"0\":{\"mode\":\"gradient\",\"start\":\"#ff0000\",\"end\":\"#00ff00\",\"angle\":90}}}";
+        String customColor =
+                "{\"v\":1,\"layers\":{\"0\":{\"mode\":\"gradient\",\"start\":\"#ff0000\",\"end\":\"#00ff00\",\"angle\":90}}}";
 
-        assertEquals(List.of(new WiredOpacityState(5001, false, 100, false, 100, customColor)),
+        assertEquals(
+                List.of(new WiredOpacityState(5001, false, 100, false, 100, customColor)),
                 service.applyGlobalCustomColor(List.of(item), customColor));
-        assertEquals(List.of(new WiredOpacityState(5001, false, 35, false, 100, customColor)),
+        assertEquals(
+                List.of(new WiredOpacityState(5001, false, 35, false, 100, customColor)),
                 service.applyGlobalOpacity(List.of(item), 35));
-        assertEquals(List.of(new WiredOpacityState(5001, false, 35, false, 200, customColor)),
+        assertEquals(
+                List.of(new WiredOpacityState(5001, false, 35, false, 200, customColor)),
                 service.applyGlobalScaling(List.of(item), 200));
 
         assertEquals(customColor, service.customColorSnapshot().get(0).customColor());
         assertEquals(customColor, service.effective(42, List.of(5001)).get(0).customColor());
         assertEquals(1, service.stateCount());
-        assertEquals(List.of(new WiredOpacityState(5001, false, 35, false, 200)),
+        assertEquals(
+                List.of(new WiredOpacityState(5001, false, 35, false, 200)),
                 service.applyGlobalCustomColor(List.of(item), null));
         assertEquals(0, service.customColorSnapshot().size());
     }

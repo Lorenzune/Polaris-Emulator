@@ -70,13 +70,15 @@ final class RoomItemOperations {
                 return;
             }
 
-            this.room.getTileManager().refreshTiles(this.room
-                    .getLayout()
-                    .getTilesAt(
-                            this.room.currentLayout().getTile(item.getX(), item.getY()),
-                            item.getBaseItem().getWidth(),
-                            item.getBaseItem().getLength(),
-                            item.getRotation()));
+            this.room
+                    .getTileManager()
+                    .refreshTiles(this.room
+                            .getLayout()
+                            .getTilesAt(
+                                    this.room.currentLayout().getTile(item.getX(), item.getY()),
+                                    item.getBaseItem().getWidth(),
+                                    item.getBaseItem().getLength(),
+                                    item.getRotation()));
 
             if (item instanceof InteractionMultiHeight multiHeight) {
                 multiHeight.updateUnitsOnItem(this.room);
