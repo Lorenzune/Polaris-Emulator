@@ -56,7 +56,8 @@ class RoomOpacityPersistenceTest {
         verify(update, timeout(2_000)).executeBatch();
         verify(update).setInt(1, 37);
         verify(update).setInt(2, 50);
-        verify(update).setString(3, customColor);
+        verify(update).setString(3,
+                "{\"v\":1,\"layers\":{\"0\":{\"mode\":\"solid\",\"color\":\"#abcdef\",\"intensity\":100,\"fill\":false}}}");
         verify(update).setInt(4, 6101);
         verify(update).setString(3, null);
         verify(update).setInt(4, 6102);

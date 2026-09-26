@@ -80,7 +80,7 @@ class RoomPickupOwnershipContractTest {
         verify(items).addItem(item);
         verify(client).sendResponse(any(com.eu.habbo.messages.outgoing.inventory.AddHabboItemComposer.class));
         verify(client).sendResponse(any(com.eu.habbo.messages.outgoing.inventory.InventoryRefreshComposer.class));
-        verify(threading).run(item);
+        verify(threading).runHabboItemPersistence(item);
     }
 
     private static void setField(Room room, String name, Object value) throws ReflectiveOperationException {

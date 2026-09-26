@@ -1,5 +1,9 @@
 # Frozen Polaris architecture violations.
 # U=direct Emulator usage, M=mutable static, P=source outside owned packages, D=incoming handler JDBC acquisition.
+# Reviewed on 2026-09-26: current additions cover room-cycle startup config, catalog admin sync,
+# Wired config/slow-path diagnostics, furniture report and moderation handlers, and Builders Tools
+# height persistence. These are accepted service lookups for the reviewed features; future increases
+# remain blocked by FrozenArchitectureBaselineTest.
 U|com/eu/habbo/Emulator.java|CALL|dispose|1
 U|com/eu/habbo/Emulator.java|CALL|getConfig|6
 U|com/eu/habbo/Emulator.java|CALL|getPluginManager|1
@@ -66,6 +70,7 @@ U|com/eu/habbo/database/compat/LegacySqlBridge.java|CALL|getConfig|2
 U|com/eu/habbo/database/compat/LegacySqlBridge.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/database/compat/LegacyTableRenameTranslator.java|CALL|getConfig|1
 U|com/eu/habbo/gui/EmulatorDashboard.java|FIELD|version|1
+U|com/eu/habbo/habbohotel/GameEnvironment.java|CALL|getConfig|1
 U|com/eu/habbo/habbohotel/GameEnvironment.java|CALL|getGameServer|1
 U|com/eu/habbo/habbohotel/GameEnvironment.java|CALL|getThreading|8
 U|com/eu/habbo/habbohotel/GameEnvironment.java|FIELD|isShuttingDown|3
@@ -106,8 +111,8 @@ U|com/eu/habbo/habbohotel/campaign/calendar/CalendarManager.java|CALL|getIntUnix
 U|com/eu/habbo/habbohotel/campaign/calendar/CalendarManager.java|CALL|getPluginManager|1
 U|com/eu/habbo/habbohotel/campaign/calendar/CalendarManager.java|CALL|getRandom|1
 U|com/eu/habbo/habbohotel/campaign/calendar/CalendarRewardObject.java|CALL|getGameEnvironment|2
-U|com/eu/habbo/habbohotel/catalog/CatalogAdminCacheSync.java|CALL|getDatabase|2
-U|com/eu/habbo/habbohotel/catalog/CatalogAdminCacheSync.java|CALL|getGameEnvironment|8
+U|com/eu/habbo/habbohotel/catalog/CatalogAdminCacheSync.java|CALL|getDatabase|3
+U|com/eu/habbo/habbohotel/catalog/CatalogAdminCacheSync.java|CALL|getGameEnvironment|9
 U|com/eu/habbo/habbohotel/catalog/CatalogFeaturedPage.java|CALL|getIntUnixTimestamp|1
 U|com/eu/habbo/habbohotel/catalog/CatalogItem.java|CALL|getConfig|1
 U|com/eu/habbo/habbohotel/catalog/CatalogItem.java|CALL|getDatabase|1
@@ -1090,7 +1095,7 @@ U|com/eu/habbo/habbohotel/wired/WiredHandler.java|CALL|getConfig|1
 U|com/eu/habbo/habbohotel/wired/core/DefaultWiredServices.java|CALL|getThreading|3
 U|com/eu/habbo/habbohotel/wired/core/WiredContextVariableScope.java|CALL|getIntUnixTimestamp|2
 U|com/eu/habbo/habbohotel/wired/core/WiredEngine.java|CALL|getTexts|4
-U|com/eu/habbo/habbohotel/wired/core/WiredManager.java|CALL|getConfig|5
+U|com/eu/habbo/habbohotel/wired/core/WiredManager.java|CALL|getConfig|7
 U|com/eu/habbo/habbohotel/wired/core/WiredManager.java|CALL|getDatabase|3
 U|com/eu/habbo/habbohotel/wired/core/WiredManager.java|CALL|getGameEnvironment|4
 U|com/eu/habbo/habbohotel/wired/core/WiredManager.java|CALL|getIntUnixTimestamp|5
@@ -1108,6 +1113,7 @@ U|com/eu/habbo/habbohotel/wired/highscores/WiredHighscoreMidnightUpdater.java|CA
 U|com/eu/habbo/habbohotel/wired/highscores/WiredHighscoreMidnightUpdater.java|CALL|getThreading|1
 U|com/eu/habbo/habbohotel/wired/tick/WiredTickService.java|CALL|getConfig|4
 U|com/eu/habbo/habbohotel/wired/tick/WiredTickService.java|CALL|getGameEnvironment|2
+U|com/eu/habbo/habbohotel/wired/tick/WiredTickService.java|CALL|getThreading|3
 U|com/eu/habbo/habbohotel/wired/tick/WiredTickService.java|FIELD|isShuttingDown|2
 U|com/eu/habbo/messages/PacketManager.java|CALL|getConfig|1
 U|com/eu/habbo/messages/PacketManager.java|FIELD|isShuttingDown|1
@@ -1256,6 +1262,10 @@ U|com/eu/habbo/messages/incoming/furnieditor/FurniEditorUpdateFurnidataEvent.jav
 U|com/eu/habbo/messages/incoming/furnieditor/FurniEditorUpdateFurnidataEvent.java|CALL|getGameEnvironment|4
 U|com/eu/habbo/messages/incoming/furnieditor/FurnidataAuditLog.java|CALL|getDatabase|1
 U|com/eu/habbo/messages/incoming/furnieditor/FurnidataAuditLog.java|CALL|getIntUnixTimestamp|1
+U|com/eu/habbo/messages/incoming/furniturereport/FurnitureReportSubmitEvent.java|CALL|getGameEnvironment|2
+U|com/eu/habbo/messages/incoming/furniturereport/FurnitureReportSupport.java|CALL|getDatabase|1
+U|com/eu/habbo/messages/incoming/furniturereport/FurnitureReportUpdateEvent.java|CALL|getDatabase|1
+U|com/eu/habbo/messages/incoming/furniturereport/FurnitureReportUpdateEvent.java|CALL|getGameEnvironment|3
 U|com/eu/habbo/messages/incoming/gamecenter/GameCenterJoinGameEvent.java|CALL|getConfig|1
 U|com/eu/habbo/messages/incoming/guardians/GuardianAcceptRequestEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/guardians/GuardianVoteEvent.java|CALL|getGameEnvironment|1
@@ -1430,7 +1440,7 @@ U|com/eu/habbo/messages/incoming/modtool/ModToolAlertEvent.java|CALL|getGameEnvi
 U|com/eu/habbo/messages/incoming/modtool/ModToolAlertEvent.java|CALL|getTexts|1
 U|com/eu/habbo/messages/incoming/modtool/ModToolChangeRoomSettingsEvent.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/messages/incoming/modtool/ModToolChangeRoomSettingsEvent.java|CALL|getTexts|1
-U|com/eu/habbo/messages/incoming/modtool/ModToolCloseTicketEvent.java|CALL|getGameEnvironment|5
+U|com/eu/habbo/messages/incoming/modtool/ModToolCloseTicketEvent.java|CALL|getGameEnvironment|6
 U|com/eu/habbo/messages/incoming/modtool/ModToolCloseTicketEvent.java|CALL|getTexts|1
 U|com/eu/habbo/messages/incoming/modtool/ModToolIssueChangeTopicEvent.java|CALL|getGameEnvironment|3
 U|com/eu/habbo/messages/incoming/modtool/ModToolIssueDefaultSanctionEvent.java|CALL|getGameEnvironment|5
@@ -1583,6 +1593,7 @@ U|com/eu/habbo/messages/incoming/rooms/items/RoomPlaceItemEvent.java|CALL|getGam
 U|com/eu/habbo/messages/incoming/rooms/items/SavePostItStickyPoleEvent.java|CALL|getConfig|1
 U|com/eu/habbo/messages/incoming/rooms/items/SavePostItStickyPoleEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/rooms/items/SavePostItStickyPoleEvent.java|CALL|getThreading|1
+U|com/eu/habbo/messages/incoming/rooms/items/SetStackHelperHeightEvent.java|CALL|getThreading|1
 U|com/eu/habbo/messages/incoming/rooms/items/ToggleFloorItemEvent.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/messages/incoming/rooms/items/ToggleFloorItemEvent.java|CALL|getPluginManager|1
 U|com/eu/habbo/messages/incoming/rooms/items/ToggleFloorItemEvent.java|CALL|getThreading|1
@@ -2084,19 +2095,14 @@ M|com.eu.habbo.habbohotel.modtool.WordFilter#DEFAULT_REPLACEMENT
 M|com.eu.habbo.habbohotel.modtool.WordFilter#ENABLED_FRIENDCHAT
 M|com.eu.habbo.habbohotel.navigation.NavigatorManager#CATEGORY_SORT_USING_ORDER_NUM
 M|com.eu.habbo.habbohotel.navigation.NavigatorManager#MAXIMUM_RESULTS_PER_PAGE
-M|com.eu.habbo.habbohotel.permissions.Permission#ACC_ACHIEVEMENT_EDITOR
 M|com.eu.habbo.habbohotel.permissions.Permission#ACC_AMBASSADOR
 M|com.eu.habbo.habbohotel.permissions.Permission#ACC_ANYCHATCOLOR
 M|com.eu.habbo.habbohotel.permissions.Permission#ACC_ANYROOMOWNER
-M|com.eu.habbo.habbohotel.permissions.Permission#ACC_CALENDAR_EDITOR
-M|com.eu.habbo.habbohotel.permissions.Permission#ACC_CALENDAR_FORCE
 M|com.eu.habbo.habbohotel.permissions.Permission#ACC_CATALOGFURNI
 M|com.eu.habbo.habbohotel.permissions.Permission#ACC_CATALOG_IDS
 M|com.eu.habbo.habbohotel.permissions.Permission#ACC_CHAT_NO_FILTER
 M|com.eu.habbo.habbohotel.permissions.Permission#ACC_CHAT_NO_FLOOD
 M|com.eu.habbo.habbohotel.permissions.Permission#ACC_CHAT_NO_LIMIT
-M|com.eu.habbo.habbohotel.permissions.Permission#ACC_CRACKABLE_EDITOR
-M|com.eu.habbo.habbohotel.permissions.Permission#ACC_CRAFTING_EDITOR
 M|com.eu.habbo.habbohotel.permissions.Permission#ACC_EMPTY_OTHERS
 M|com.eu.habbo.habbohotel.permissions.Permission#ACC_ENABLE_OTHERS
 M|com.eu.habbo.habbohotel.permissions.Permission#ACC_ENTERANYROOM
