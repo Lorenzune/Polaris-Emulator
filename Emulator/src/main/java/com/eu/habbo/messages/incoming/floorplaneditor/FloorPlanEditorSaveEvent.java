@@ -70,7 +70,7 @@ public class FloorPlanEditorSaveEvent extends MessageHandler {
         StringJoiner errors = new StringJoiner("<br />");
         String map = this.packet.readString();
 
-        if (map == null || map.length() > MAXIMUM_FLOORPLAN_SIZE) {
+        if (map == null || !isSerializedMapLengthWithinLimit(map.length(), MAXIMUM_FLOORPLAN_WIDTH_LENGTH)) {
             LOGGER.warn(
                     "Floorplan save rejected (oversize): user={} room={} mapLen={}",
                     this.client.getHabbo().getHabboInfo().getId(),
@@ -105,6 +105,17 @@ public class FloorPlanEditorSaveEvent extends MessageHandler {
             if (row.length() != firstRowSize) {
                 return;
             }
+        }
+
+        if (!isFloorplanAreaWithinLimits(
+                firstRowSize,
+                mapRows.length,
+                MAXIMUM_FLOORPLAN_WIDTH_LENGTH,
+                MAXIMUM_FLOORPLAN_SIZE)) {
+            this.client.sendResponse(new BubbleAlertComposer(
+                    BubbleAlertKeys.FLOORPLAN_EDITOR_ERROR.key,
+                    "Floorplan exceeds the maximum area of " + MAXIMUM_FLOORPLAN_SIZE + " tiles."));
+            return;
         }
 
         if (Emulator.getConfig().getBoolean("hotel.room.floorplan.check.enabled")) {
@@ -324,5 +335,25 @@ public class FloorPlanEditorSaveEvent extends MessageHandler {
                 habbo.getClient().sendResponse(message);
             }
         }
+    }
+
+    static boolean isSerializedMapLengthWithinLimit(int mapLength, int maximumWidth) {
+        if (mapLength < 0 || maximumWidth <= 0) {
+            return false;
+        }
+
+        long maxWidth = maximumWidth;
+        long maximumLength = maxWidth * maxWidth + maxWidth - 1;
+        return mapLength <= maximumLength;
+    }
+
+    static boolean isFloorplanAreaWithinLimits(int width, int rows, int maximumWidth, int maximumArea) {
+        return width > 0
+                && rows > 0
+                && maximumWidth > 0
+                && maximumArea > 0
+                && width <= maximumWidth
+                && rows <= maximumWidth
+                && (long) width * rows <= maximumArea;
     }
 }
