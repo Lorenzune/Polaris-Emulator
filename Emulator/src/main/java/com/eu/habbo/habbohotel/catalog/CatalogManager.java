@@ -1693,9 +1693,9 @@ public class CatalogManager {
                                     }
 
                                     if (extradata.length()
-                                            > Emulator.getConfig().getInt("hotel.trophies.length.max", 300)) {
+                                            > Emulator.getConfig().getInt("hotel.trophies.length.max", 1000)) {
                                         extradata = extradata.substring(
-                                                0, Emulator.getConfig().getInt("hotel.trophies.length.max", 300));
+                                                0, Emulator.getConfig().getInt("hotel.trophies.length.max", 1000));
                                     }
 
                                     extradata = habbo.getClient()
@@ -2475,7 +2475,7 @@ public class CatalogManager {
                             .replace("%badge%", value));
             value = "UMAD";
         }
-        int maximum = Emulator.getConfig().getInt("hotel.trophies.length.max", 300);
+        int maximum = Emulator.getConfig().getInt("hotel.trophies.length.max", 1000);
         if (value.length() > maximum) value = value.substring(0, maximum);
         return habbo.getHabboInfo().getUsername() + (char) 9
                 + Calendar.getInstance().get(Calendar.DAY_OF_MONTH) + "-"

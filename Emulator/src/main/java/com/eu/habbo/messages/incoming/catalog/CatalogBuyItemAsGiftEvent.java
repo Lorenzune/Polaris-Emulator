@@ -62,7 +62,7 @@ public class CatalogBuyItemAsGiftEvent extends MessageHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogBuyItemAsGiftEvent.class);
 
     private static final int USERNAME_MAX = 32;
-    private static final int EXTRADATA_MAX = 256;
+    private static final int EXTRADATA_MAX = 1024;
 
     @Override
     public int getRatelimit() {

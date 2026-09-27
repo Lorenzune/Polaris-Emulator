@@ -1567,7 +1567,7 @@ public class ItemManager {
         if (userId <= 0 || item == null) return null;
 
         if (extraData != null && extraData.length() > ItemDataGuard.MAX_EXTRA_DATA_LENGTH) {
-            LOGGER.error("Extradata exceeds maximum length of 1000 characters: {}", extraData);
+            LOGGER.error("Extradata exceeds maximum length of {} characters: {}", ItemDataGuard.MAX_EXTRA_DATA_LENGTH, extraData);
         }
         extraData = ItemDataGuard.normalizeExtraData(extraData);
 
