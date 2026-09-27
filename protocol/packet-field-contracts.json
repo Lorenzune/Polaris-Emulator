@@ -18324,6 +18324,46 @@
       "reason": "Custom guild badge review result has no paired public Nitro protocol source."
     },
     {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9353,
+      "symbol": "CatalogPageMediaLoadEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogPageMediaLoadEvent.java",
+      "reason": "Custom catalog page editor packet is implemented by the companion Ducket client, outside the public Nitro protocol."
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 9354,
+      "symbol": "CatalogPageMediaDetailsComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/catalog/catalogadmin/CatalogPageMediaDetailsComposer.java",
+      "reason": "Custom catalog page editor packet is implemented by the companion Ducket client, outside the public Nitro protocol."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9355,
+      "symbol": "CatalogPageContentSaveEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogPageContentSaveEvent.java",
+      "reason": "Custom catalog page editor packet is implemented by the companion Ducket client, outside the public Nitro protocol."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9357,
+      "symbol": "CatalogPageAssetUploadEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogPageAssetUploadEvent.java",
+      "reason": "Custom catalog page editor packet is implemented by the companion Ducket client, outside the public Nitro protocol."
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 9358,
+      "symbol": "CatalogPageAssetUploadResultComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/catalog/catalogadmin/CatalogPageAssetUploadResultComposer.java",
+      "reason": "Custom catalog page editor packet is implemented by the companion Ducket client, outside the public Nitro protocol."
+    },
+    {
       "direction": "server_to_client",
       "side": "java",
       "header": 9450,

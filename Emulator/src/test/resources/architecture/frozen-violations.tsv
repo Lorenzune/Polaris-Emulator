@@ -4,6 +4,8 @@
 # Wired config/slow-path diagnostics, furniture report and moderation handlers, and Builders Tools
 # height persistence. These are accepted service lookups for the reviewed features; future increases
 # remain blocked by FrozenArchitectureBaselineTest.
+# Reviewed on 2026-09-28: catalog page text/media editor handlers use the established emulator
+# services and JDBC connection pattern for this feature.
 U|com/eu/habbo/Emulator.java|CALL|dispose|1
 U|com/eu/habbo/Emulator.java|CALL|getConfig|6
 U|com/eu/habbo/Emulator.java|CALL|getPluginManager|1
@@ -1998,6 +2000,13 @@ U|com/eu/habbo/threading/runnables/teleport/TeleportActionTwo.java|CALL|getThrea
 U|com/eu/habbo/util/HotelDateTimeUtil.java|CALL|getConfig|2
 U|com/eu/habbo/util/imager/badges/BadgeImager.java|CALL|getConfig|6
 U|com/eu/habbo/util/imager/badges/BadgeImager.java|CALL|getGameEnvironment|4
+U|com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogPageAssetUploadEvent.java|CALL|getConfig|1
+U|com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogPageAssetUploadEvent.java|CALL|getGameEnvironment|1
+U|com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogPageContentSaveEvent.java|CALL|getDatabase|1
+U|com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogPageContentSaveEvent.java|CALL|getGameEnvironment|1
+U|com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogPageMediaLoadEvent.java|CALL|getConfig|1
+U|com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogPageMediaLoadEvent.java|CALL|getDatabase|1
+U|com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogPageMediaLoadEvent.java|CALL|getGameEnvironment|1
 M|com.eu.habbo.Emulator#badgeImager
 M|com.eu.habbo.Emulator#build
 M|com.eu.habbo.Emulator#buildTimestamp
@@ -2360,3 +2369,5 @@ D|com/eu/habbo/messages/incoming/users/ChangeChatBubbleEvent.java|1
 D|com/eu/habbo/messages/incoming/users/ConfirmChangeNameEvent.java|1
 D|com/eu/habbo/messages/incoming/users/GetBlockedUsersEvent.java|1
 D|com/eu/habbo/messages/incoming/users/GetIgnoredUsersEvent.java|1
+D|com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogPageContentSaveEvent.java|1
+D|com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogPageMediaLoadEvent.java|1

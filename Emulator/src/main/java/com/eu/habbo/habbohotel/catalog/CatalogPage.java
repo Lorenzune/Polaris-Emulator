@@ -153,8 +153,16 @@ public abstract class CatalogPage implements Comparable<CatalogPage>, ISerialize
         this.textOne = textOne;
     }
 
+    public void setTextTwo(String textTwo) {
+        this.textTwo = textTwo;
+    }
+
     public void setTextDetails(String textDetails) {
         this.textDetails = textDetails;
+    }
+
+    public void setTextTeaser(String textTeaser) {
+        this.textTeaser = textTeaser;
     }
 
     public String getCaption() {

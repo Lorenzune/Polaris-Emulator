@@ -7,9 +7,13 @@ import static org.mockito.Mockito.when;
 
 import com.eu.habbo.habbohotel.items.FurnitureType;
 import com.eu.habbo.habbohotel.items.Item;
+import com.eu.habbo.habbohotel.items.ItemInteraction;
 import com.eu.habbo.habbohotel.items.interactions.InteractionAreaHideControl;
+import com.eu.habbo.habbohotel.items.interactions.InteractionConfInvisControl;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import org.junit.jupiter.api.Test;
+
+import java.util.Set;
 
 class RoomAreaHideSupportTest {
 
@@ -32,6 +36,21 @@ class RoomAreaHideSupportTest {
 
         assertFalse(RoomAreaHideSupport.shouldHideFloorItem(inside, controller));
         assertTrue(RoomAreaHideSupport.shouldHideFloorItem(outside, controller));
+    }
+
+    @Test
+    void hiddenAreaTilesAreExcludedFromWalkableRoutes() {
+        InteractionAreaHideControl controller = controller(5, 5, 2, 2, false, false);
+        Room room = mock(Room.class);
+        when(room.getFloorItems()).thenReturn(Set.of(controller));
+
+        assertTrue(RoomAreaHideSupport.isTileHidden(room, 5, 5));
+        assertTrue(RoomAreaHideSupport.isTileHidden(room, 6, 6));
+        assertFalse(RoomAreaHideSupport.isTileHidden(room, 7, 6));
+
+        controller.values.put("invert", "1");
+        assertFalse(RoomAreaHideSupport.isTileHidden(room, 5, 5));
+        assertTrue(RoomAreaHideSupport.isTileHidden(room, 7, 6));
     }
 
     @Test
@@ -63,6 +82,27 @@ class RoomAreaHideSupportTest {
         assertTrue(RoomAreaHideSupport.shouldHideController(controller, true));
     }
 
+    @Test
+    void visibilityControllersRemainAvailableToTheRoomFurniChooser() {
+        InteractionAreaHideControl areaHide = controller(0, 0, 2, 2, false, false);
+        HabboItem invisControl = visibilityController(2, "wf_conf_invis_control");
+
+        assertTrue(RoomAreaHideSupport.isRoomVisibilityController(areaHide));
+        assertTrue(RoomAreaHideSupport.isRoomVisibilityController(invisControl));
+        assertFalse(RoomAreaHideSupport.shouldHideFloorItem(invisControl, areaHide));
+    }
+
+    @Test
+    void invisibleAreaHideControllerIsIncludedInConfInvisState() {
+        InteractionAreaHideControl areaHide = controller(0, 0, 2, 2, false, false);
+        HabboItem invisControl = new InteractionConfInvisControl(
+            3, 1, baseItem(FurnitureType.FLOOR, 1, 1), "1", 0, 0);
+        Room room = mock(Room.class);
+        when(room.getFloorItems()).thenReturn(Set.of(areaHide, invisControl));
+
+        assertTrue(RoomConfInvisSupport.collectHiddenFloorItemIds(room).contains(areaHide.getId()));
+    }
+
     private static InteractionAreaHideControl controller(
             int rootX, int rootY, int width, int length, boolean inverted, boolean wallItems) {
         Item baseItem = baseItem(FurnitureType.FLOOR, 1, 1);
@@ -87,6 +127,14 @@ class RoomAreaHideSupportTest {
         when(item.getX()).thenReturn((short) x);
         when(item.getY()).thenReturn((short) y);
         when(item.getRotation()).thenReturn(0);
+        return item;
+    }
+
+    private static HabboItem visibilityController(int itemId, String interactionName) {
+        HabboItem item = item(itemId, FurnitureType.FLOOR, 0, 0, 1, 1);
+        Item baseItem = baseItem(FurnitureType.FLOOR, 1, 1);
+        when(baseItem.getInteractionType()).thenReturn(new ItemInteraction(interactionName, InteractionConfInvisControl.class));
+        when(item.getBaseItem()).thenReturn(baseItem);
         return item;
     }
 

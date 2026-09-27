@@ -42,7 +42,9 @@ public final class RoomConfInvisSupport {
         }
 
         for (HabboItem item : room.getFloorItems()) {
-            if (isTarget(item)) {
+            if (isTarget(item)
+                    || (RoomAreaHideSupport.isControllerItem(item)
+                    && RoomAreaHideSupport.isInvisibilityEnabled(item))) {
                 hiddenItemIds.add(item.getId());
             }
         }

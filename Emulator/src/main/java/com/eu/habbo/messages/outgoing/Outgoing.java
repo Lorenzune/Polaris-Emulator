@@ -14,6 +14,8 @@ public class Outgoing {
     public static final int RoomVoiceSignalComposer = 9346;
     public static final int GuildCustomBadgeSavedComposer = 9348;
     public static final int GuildCustomBadgeRequestsComposer = 9350;
+    public static final int CatalogPageMediaDetailsComposer = 9354;
+    public static final int CatalogPageAssetUploadResultComposer = 9358;
     public static final int GuildCustomBadgeReviewResultComposer = 9352;
     public static final int FavoriteRoomsCountComposer = 151;
     public static final int UserCurrencyComposer = 2018;

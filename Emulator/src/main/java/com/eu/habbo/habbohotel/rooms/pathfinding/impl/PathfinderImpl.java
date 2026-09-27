@@ -6,6 +6,7 @@ import static com.eu.habbo.habbohotel.rooms.pathfinding.impl.PathfinderConstants
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.rooms.Room;
+import com.eu.habbo.habbohotel.rooms.RoomAreaHideSupport;
 import com.eu.habbo.habbohotel.rooms.RoomLayout;
 import com.eu.habbo.habbohotel.rooms.RoomTile;
 import com.eu.habbo.habbohotel.rooms.RoomTileState;
@@ -84,6 +85,11 @@ public class PathfinderImpl implements Pathfinder {
       return;
     }
 
+    if (context.isTileHidden(currentAdj)) {
+      TileValidator.swapList(currentAdj, closedList, openList);
+      return;
+    }
+
     if (context.getRoomUnit().canOverrideTile(currentAdj)) {
       AdjacentTileFinder.updateAdj(context, currentAdj, current, openList);
       return;
@@ -108,7 +114,8 @@ public class PathfinderImpl implements Pathfinder {
   public Deque<RoomTile> findPath(RoomTile oldTile, RoomTile newTile, RoomTile goalLocation,
       RoomUnit roomUnit, boolean isWalkthroughRetry) {
     if (this.room == null || !this.room.isLoaded() || oldTile == null || newTile == null
-        || oldTile.equals(newTile) || newTile.getState() == RoomTileState.INVALID) {
+        || oldTile.equals(newTile) || newTile.getState() == RoomTileState.INVALID
+        || RoomAreaHideSupport.isTileHidden(this.room, newTile.getX(), newTile.getY())) {
       return new LinkedList<>();
     }
     long startTime = CACHED_TIMEOUT_ENABLED ? System.nanoTime() : 0;

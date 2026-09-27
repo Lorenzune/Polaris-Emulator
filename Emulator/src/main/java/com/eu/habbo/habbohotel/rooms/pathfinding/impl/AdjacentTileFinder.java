@@ -118,6 +118,9 @@ public class AdjacentTileFinder {
     }
 
     tile = tile.copy();
+    if (context.isTileHidden(tile)) {
+      tile.setState(RoomTileState.INVALID);
+    }
     tileCache.put(key, tile);
     return tile;
   }

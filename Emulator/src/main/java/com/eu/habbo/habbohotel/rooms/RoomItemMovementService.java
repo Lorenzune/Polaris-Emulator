@@ -658,7 +658,7 @@ final class RoomItemMovementService {
         item.setX(tile.x);
         item.setY(tile.y);
         item.setZ(height);
-        if (this.placement.shouldPinStackHelperToFloor(item)) {
+        if (this.placement.shouldPinStackHelperToFloor(item) && !maintainHeight) {
             item.setZ(tile.z);
             item.setExtradata("" + item.getZ() * 100);
         }

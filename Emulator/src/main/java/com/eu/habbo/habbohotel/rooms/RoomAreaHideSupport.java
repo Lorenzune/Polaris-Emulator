@@ -28,8 +28,35 @@ public final class RoomAreaHideSupport {
             || hasInteractionName(item, "conf_area_hide");
     }
 
+    static boolean isRoomVisibilityController(HabboItem item) {
+        return isControllerItem(item) || RoomConfInvisSupport.isControllerItem(item);
+    }
+
     public static boolean isControllerActive(HabboItem item) {
         return isControllerItem(item) && getState(item) == 1;
+    }
+
+    public static boolean isTileHidden(Room room, int x, int y) {
+        if (room == null) {
+            return false;
+        }
+
+        for (HabboItem controller : room.getFloorItems()) {
+            if (!isControllerActive(controller) || getWidth(controller) <= 0 || getLength(controller) <= 0) {
+                continue;
+            }
+
+            boolean insideArea = x >= getRootX(controller)
+                && x < getRootX(controller) + getWidth(controller)
+                && y >= getRootY(controller)
+                && y < getRootY(controller) + getLength(controller);
+
+            if (isInverted(controller) ? !insideArea : insideArea) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static int getState(HabboItem item) {
@@ -162,7 +189,7 @@ public final class RoomAreaHideSupport {
         if (!isFloorItem(item)
                 || controller == null
                 || item == controller
-                || isControllerItem(item)
+                || isRoomVisibilityController(item)
                 || !isControllerActive(controller)
                 || getWidth(controller) <= 0
                 || getLength(controller) <= 0) {
@@ -224,13 +251,15 @@ public final class RoomAreaHideSupport {
 
         for (HabboItem item : room.getFloorItems()) {
             if (shouldHideController(item, confInvisControlActive)) {
-                hiddenFloorItemIds.add(item.getId());
+                // Keep hidden controllers in the room object collection so :furni can still list them.
                 continue;
             }
 
             for (HabboItem controller : controllers) {
                 if (shouldHideFloorItem(item, controller)) {
-                    hiddenFloorItemIds.add(item.getId());
+                    if (!isRoomVisibilityController(item)) {
+                        hiddenFloorItemIds.add(item.getId());
+                    }
                     break;
                 }
             }

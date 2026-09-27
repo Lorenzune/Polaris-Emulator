@@ -19,6 +19,7 @@ public class RoomUserStatusComposer extends MessageComposer {
     private Collection<Habbo> habbos;
     private Collection<RoomUnit> roomUnits;
     private double overrideZ = -1;
+    private boolean currentStateSnapshot;
 
     public RoomUserStatusComposer(RoomUnit roomUnit) {
         this.roomUnits = Collections.singletonList(roomUnit);
@@ -27,6 +28,12 @@ public class RoomUserStatusComposer extends MessageComposer {
     public RoomUserStatusComposer(RoomUnit roomUnit, double overrideZ) {
         this(roomUnit);
         this.overrideZ = overrideZ;
+    }
+
+    public static RoomUserStatusComposer currentStateSnapshot(RoomUnit roomUnit) {
+        RoomUserStatusComposer composer = new RoomUserStatusComposer(roomUnit);
+        composer.currentStateSnapshot = true;
+        return composer;
     }
 
     public RoomUserStatusComposer(Collection<RoomUnit> roomUnits, boolean value) {
@@ -45,8 +52,9 @@ public class RoomUserStatusComposer extends MessageComposer {
 
             for (RoomUnit roomUnit : this.roomUnits) {
                 if (roomUnit == null
-                        || WiredMoveCarryHelper.shouldSuppressStatusComposer(roomUnit)
-                        || WiredUserMovementHelper.shouldSuppressStatusComposer(roomUnit)) {
+                        || (!this.currentStateSnapshot
+                                && (WiredMoveCarryHelper.shouldSuppressStatusComposer(roomUnit)
+                                        || WiredUserMovementHelper.shouldSuppressStatusComposer(roomUnit)))) {
                     continue;
                 }
 
@@ -56,9 +64,12 @@ public class RoomUserStatusComposer extends MessageComposer {
             this.response.appendInt(roomUnits.size());
             for (RoomUnit roomUnit : roomUnits) {
                 this.response.appendInt(roomUnit.getId());
-                this.response.appendInt(roomUnit.getPreviousLocation().x);
-                this.response.appendInt(roomUnit.getPreviousLocation().y);
-                this.response.appendString((this.overrideZ != -1 ? this.overrideZ : roomUnit.getPreviousLocationZ()) + "");
+                var location = this.currentStateSnapshot ? roomUnit.getCurrentLocation() : roomUnit.getPreviousLocation();
+                this.response.appendInt(location.x);
+                this.response.appendInt(location.y);
+                this.response.appendString((this.overrideZ != -1
+                        ? this.overrideZ
+                        : (this.currentStateSnapshot ? roomUnit.getZ() : roomUnit.getPreviousLocationZ())) + "");
 
 
                 this.response.appendInt(roomUnit.getHeadRotation().getValue());
@@ -66,11 +77,17 @@ public class RoomUserStatusComposer extends MessageComposer {
 
                 StringBuilder status = new StringBuilder("/");
                 for (Map.Entry<RoomUnitStatus, String> entry : roomUnit.getStatusMap().entrySet()) {
+                    if (this.currentStateSnapshot && entry.getKey() == RoomUnitStatus.MOVE) {
+                        continue;
+                    }
+
                     status.append(entry.getKey()).append(" ").append(entry.getValue()).append("/");
                 }
 
                 this.response.appendString(status.toString());
-                roomUnit.setPreviousLocation(roomUnit.getCurrentLocation());
+                if (!this.currentStateSnapshot) {
+                    roomUnit.setPreviousLocation(roomUnit.getCurrentLocation());
+                }
             }
         } else {
             synchronized (this.habbos) {

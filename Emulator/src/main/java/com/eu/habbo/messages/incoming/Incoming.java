@@ -22,6 +22,9 @@ public class Incoming {
     public static final int GuildUploadCustomBadgeEvent = 9347;
     public static final int GuildCustomBadgeRequestsEvent = 9349;
     public static final int GuildCustomBadgeReviewEvent = 9351;
+    public static final int CatalogPageMediaLoadEvent = 9353;
+    public static final int CatalogPageContentSaveEvent = 9355;
+    public static final int CatalogPageAssetUploadEvent = 9357;
     public static final int ChangeNameCheckUsernameEvent = 3950;
     public static final int ConfirmChangeNameEvent = 2977;
     public static final int ActivateEffectEvent = 2959;

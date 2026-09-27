@@ -1,6 +1,7 @@
 package com.eu.habbo.habbohotel.rooms.pathfinding.impl;
 
 import com.eu.habbo.habbohotel.rooms.Room;
+import com.eu.habbo.habbohotel.rooms.RoomAreaHideSupport;
 import com.eu.habbo.habbohotel.rooms.RoomTile;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import java.util.HashMap;
@@ -17,6 +18,7 @@ public class PathfinderContext {
   private final RoomTile doorTile;
   private final boolean allowWalkthrough;
   private final Map<Long, RoomTile> tileCache;
+  private final Map<Long, Boolean> hiddenAreaCache = new HashMap<>();
 
   public PathfinderContext(Room room, RoomTile newTile, RoomTile goalLocation, RoomUnit roomUnit,
       boolean isWalkthroughRetry, boolean canMoveDiagonally, RoomTile doorTile,
@@ -69,6 +71,16 @@ public class PathfinderContext {
 
   public Map<Long, RoomTile> getTileCache() {
     return this.tileCache;
+  }
+
+  public boolean isTileHidden(RoomTile tile) {
+    if (tile == null) {
+      return false;
+    }
+
+    long key = ((long) tile.getX() << 32) | (tile.getY() & 0xFFFFFFFFL);
+    return this.hiddenAreaCache.computeIfAbsent(key,
+        ignored -> RoomAreaHideSupport.isTileHidden(this.room, tile.getX(), tile.getY()));
   }
 
   public void setGoalLocation(RoomTile goalLocation) {
