@@ -965,6 +965,9 @@ public class PacketManager {
 
     void registerRooms() throws Exception {
         this.registerHandler(Incoming.RequestMentionsEvent, RequestMentionsEvent.class);
+        this.registerHandler(4806, com.eu.habbo.messages.incoming.mentions.MentionSettingsEvent.class);
+        this.registerHandler(4807, com.eu.habbo.messages.incoming.mentions.FollowMentionEvent.class);
+        this.registerHandler(4808, com.eu.habbo.messages.incoming.rooms.InformationPageEvent.class);
         this.registerHandler(Incoming.MarkMentionsReadEvent, MarkMentionsReadEvent.class);
         this.registerHandler(Incoming.DeleteMentionEvent, DeleteMentionEvent.class);
         this.registerHandler(Incoming.RequestRoomLoadEvent, RequestRoomLoadEvent.class);
@@ -990,6 +993,9 @@ public class PacketManager {
         this.registerHandler(Incoming.ChestWithdrawFurniEvent, ChestWithdrawFurniEvent.class);
         this.registerHandler(Incoming.ChestDepositFurniEvent, ChestDepositFurniEvent.class);
         this.registerHandler(Incoming.ChestStartDepositEvent, ChestStartDepositEvent.class);
+        this.registerHandler(Incoming.WiredQuestRequestEvent, com.eu.habbo.messages.incoming.quests.WiredQuestRequestEvent.class);
+        this.registerHandler(Incoming.WiredContractTransactionEvent, com.eu.habbo.messages.incoming.rooms.items.WiredContractTransactionEvent.class);
+        this.registerHandler(Incoming.ChestCommitDepositEvent, com.eu.habbo.messages.incoming.rooms.items.ChestCommitDepositEvent.class);
         this.registerHandler(Incoming.ChestDepositInventoryItemEvent, ChestDepositInventoryItemEvent.class);
         this.registerHandler(Incoming.ChestWithdrawAllFurniEvent, ChestWithdrawAllFurniEvent.class);
         this.registerHandler(Incoming.ChestOpenEvent, ChestOpenEvent.class);

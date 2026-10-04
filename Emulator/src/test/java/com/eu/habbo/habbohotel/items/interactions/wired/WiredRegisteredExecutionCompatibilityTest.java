@@ -31,6 +31,14 @@ import org.mockito.Answers;
  * compatibility tripwire for refactoring, not proof of meaningful configured behavior or final room
  * state; family-specific tests own those assertions.
  *
+ * <p>Review 2026-10-02: wf_act_click_conf is corrected from the click-user trigger to
+ * the click-settings action (2054), with a new room-scoped outgoing packet (5113).
+ * Existing interaction keys, layout codes and headers remain unchanged.
+ *
+ * <p>Review 2026-10-02: click settings gains an additive requiresTriggeringUser override;
+ * its default source requires an actor, while selector/signal sources do not. Legacy JSON
+ * defaults are preserved and only this action execution probe changes actor eligibility.
+ *
  * <p>Regeneration is an explicit review action:
  *
  * <pre>
@@ -66,7 +74,7 @@ class WiredRegisteredExecutionCompatibilityTest {
     @Test
     void executionMatrixCoversEveryRegisteredWiredClass() throws Exception {
         assertEquals(
-                252,
+                253,
                 WiredInteractionRegistryFixture.wiredTypes().size(),
                 "Review every added or removed registered wired execution type");
     }

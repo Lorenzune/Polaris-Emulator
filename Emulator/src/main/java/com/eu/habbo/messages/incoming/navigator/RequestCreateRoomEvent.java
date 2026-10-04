@@ -27,6 +27,7 @@ public class RequestCreateRoomEvent extends MessageHandler {
         int categoryId = this.packet.readInt();
         int maxUsers = this.packet.readInt();
         int tradeType = this.packet.readInt();
+        boolean vocalChatEnabled = this.packet.bytesAvailable() > 0 ? this.packet.readBoolean() : true;
 
         if (!Emulator.getGameEnvironment().getRoomManager().layoutExists(modelName)) {
             LOGGER.error("[SCRIPTER] Incorrect layout name \"{}\". {}", modelName, this.client.getHabbo().getHabboInfo().getUsername());
@@ -63,6 +64,8 @@ public class RequestCreateRoomEvent extends MessageHandler {
         final Room room = Emulator.getGameEnvironment().getRoomManager().createRoomForHabbo(this.client.getHabbo(), name, description, modelName, maxUsers, categoryId, tradeType);
 
         if (room != null) {
+            room.setVocalChatEnabled(vocalChatEnabled);
+            room.setNeedsUpdate(true);
             this.client.sendResponse(new RoomCreatedComposer(room));
         }
     }

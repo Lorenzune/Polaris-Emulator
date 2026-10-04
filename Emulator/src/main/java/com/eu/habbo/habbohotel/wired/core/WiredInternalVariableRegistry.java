@@ -158,6 +158,7 @@ final class WiredInternalVariableRegistry {
                 "@current_time.year");
         builder.register(
                 Capability.CONTEXT_REFERENCE,
+                "@event.transaction_failed.reason",
                 "@selector_furni_count",
                 "@selector_user_count",
                 "@signal_furni_count",

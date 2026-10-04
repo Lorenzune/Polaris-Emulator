@@ -1,6 +1,8 @@
 package com.eu.habbo.messages.incoming;
 
 public class Incoming {
+    public static final int WiredQuestRequestEvent = 9372;
+    public static final int WiredContractTransactionEvent = 9370;
     public static final int PongEvent = 2596;
     // Player-facing wired chest (Scrigno)
     public static final int ChestDepositEvent = 9313;
@@ -17,6 +19,7 @@ public class Incoming {
     public static final int ChestOpenEvent = 9327; // Open wired chest (official Nod)
     public static final int ChestBatchLockEvent = 9328;
     public static final int ChestRequestRoomLogsEvent = 9329;
+    public static final int ChestCommitDepositEvent = 9342;
     public static final int ChestCloseEvent = 9341;
     public static final int RoomVoiceSignalEvent = 9345;
     public static final int GuildUploadCustomBadgeEvent = 9347;

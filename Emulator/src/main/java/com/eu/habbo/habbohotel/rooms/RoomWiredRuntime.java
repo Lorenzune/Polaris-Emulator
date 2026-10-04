@@ -61,11 +61,20 @@ public final class RoomWiredRuntime {
         return this.gravity.isEnabled(item);
     }
 
+    /** Schedule a projectile sample through the room-owned runtime. */
+    public void scheduleProjectileUpdate(Runnable sample, int delayMs) {
+        this.room.threading().run(sample, Math.max(1, delayMs));
+    }
+
     public void markFurnitureMoving(HabboItem item, int durationMs) {
         this.gravity.markMoving(item, durationMs);
     }
 
     void onFurnitureTopologyChanged(HabboItem item, boolean moved) {
+        if (moved) {
+            com.eu.habbo.habbohotel.wired.core.WiredProjectileSupport.cancelItem(this.room, item);
+            if (item instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraProjectile projectile) com.eu.habbo.habbohotel.wired.core.WiredProjectileSupport.cancelExtra(projectile);
+        }
         if (moved && item instanceof InteractionWired) {
             advanceCacheGeneration();
         }

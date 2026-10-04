@@ -126,7 +126,8 @@ class WiredInternalVariableRegistryCompatibilityTest {
                         "@signal_user_count",
                         "@antenna_id",
                         "@chat_type",
-                        "@chat_style"),
+                        "@chat_style",
+                        "@event.transaction_failed.reason"),
                 keys(WiredInternalVariableRegistry.Capability.CONTEXT_REFERENCE));
     }
 

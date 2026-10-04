@@ -31,7 +31,7 @@ public class ChestRequestLogEvent extends MessageHandler {
 
         // The log carries other players' usernames and amounts, so gate it the same way the chest
         // itself opens — public chests anyone may view, private ones only for users with rights.
-        if (!chest.getContents().isAccessOpen() && !room.hasRights(habbo)) return;
+        if (!chest.canRead(habbo, room)) return;
 
         this.client.sendResponse(new ChestLogComposer(chest));
     }

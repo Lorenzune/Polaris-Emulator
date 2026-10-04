@@ -85,7 +85,8 @@ public class WiredEffectMoveRotateUser extends InteractionWiredEffect {
                         targetHeadRotation,
                         animationDuration,
                         noAnimation,
-                        movementPhysics)) {
+                        movementPhysics,
+                        WiredMoveCarryHelper.resolveUserMovementCurve(room, this, ctx))) {
                     if (hasRotation) {
                         WiredUserMovementHelper.updateUserDirection(
                                 room, roomUnit, targetBodyRotation, targetHeadRotation);

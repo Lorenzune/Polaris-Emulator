@@ -7,16 +7,18 @@ import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
+import com.eu.habbo.habbohotel.wired.core.WiredContext;
+import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
+import com.eu.habbo.habbohotel.wired.core.WiredInternalVariableSupport;
+import com.eu.habbo.habbohotel.wired.core.WiredContextVariableSupport;
+import com.eu.habbo.habbohotel.users.HabboItem;
+import java.util.ArrayList;
 import com.eu.habbo.messages.ServerMessage;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-/**
- * Movement-curve add-on (furni classname {@code wf_xtra_mov_curve}). A configuration-holder
- * add-on in the same family as {@link WiredExtraAnimationTime} / {@link WiredExtraMovePhysics}:
- * it stores the easing curve applied to wired furni/user movement and exposes it via
- * {@link #getCurveType()} for the movement subsystem to read. Without a class it loaded as
- * InteractionDefault (inert); this makes the furni open + persist its dialog.
+/** Native Habbo signed movement parabola, configured by a literal or variable.
+ * The former easing constants/getters and JSON fields remain readable for compatibility.
  */
 public class WiredExtraMovementCurve extends InteractionWiredExtra {
     public static final int CODE = 97;
@@ -36,6 +38,7 @@ public class WiredExtraMovementCurve extends InteractionWiredExtra {
 
     private int curveType = CURVE_LINEAR;
     private int intensity = INTENSITY_DEFAULT;
+    private CurveConfig config;
 
     public WiredExtraMovementCurve(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -53,6 +56,16 @@ public class WiredExtraMovementCurve extends InteractionWiredExtra {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
+        if (settings.getIntParams().length >= 3) {
+            int[] params = settings.getIntParams();
+            int[] variableIds = settings.getVariableIds();
+            String token = settings.getStringParam();
+            if ((token == null || token.isBlank()) && variableIds != null && variableIds.length > 0) token = String.valueOf(variableIds[0]);
+            this.config = new CurveConfig(params[0] == 1 ? 1 : 0, clampStrength(params[1]), params[2],
+                params.length > 3 ? params[3] : 0, token == null ? "" : token, settings.getFurniIds());
+            return true;
+        }
+        this.config = null;
         int value = (settings.getIntParams().length > 0) ? settings.getIntParams()[0] : this.curveType;
 
         if (value == this.curveType
@@ -74,24 +87,30 @@ public class WiredExtraMovementCurve extends InteractionWiredExtra {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(this.curveType, this.intensity));
+        return WiredManager.getGson().toJson(new JsonData(this.curveType, this.intensity, this.config));
     }
 
     @Override
     public void serializeWiredData(ServerMessage message, Room room) {
         message.appendBoolean(false);
-        message.appendInt(0);
-        message.appendInt(0);
+        int[] selected = this.config == null || this.config.furniIds == null ? new int[0] : this.config.furniIds;
+        message.appendInt(5);
+        message.appendInt(selected.length);
+        for (int id : selected) message.appendInt(id);
         message.appendInt(this.getBaseItem().getSpriteId());
         message.appendInt(this.getId());
-        message.appendString("");
-        message.appendInt(2);
-        message.appendInt(this.curveType);
-        message.appendInt(this.intensity);
+        message.appendString(this.config == null ? "" : this.config.token);
+        message.appendInt(4);
+        message.appendInt(this.config == null ? 0 : this.config.mode);
+        message.appendInt(this.config == null ? legacyStrength() : clampStrength(this.config.strength));
+        message.appendInt(this.config == null ? 0 : this.config.target);
+        message.appendInt(this.config == null ? 0 : this.config.source);
         message.appendInt(0);
         message.appendInt(CODE);
         message.appendInt(0);
         message.appendInt(0);
+        message.appendInt(this.config != null && this.config.mode == 1 ? 1 : 0);
+        if (this.config != null && this.config.mode == 1) message.appendString(this.config.token);
     }
 
     @Override
@@ -105,6 +124,7 @@ public class WiredExtraMovementCurve extends InteractionWiredExtra {
 
         if (wiredData.startsWith("{")) {
             JsonData data = WiredExtraPayloadGuard.fromJson(wiredData, JsonData.class);
+            this.config = data != null ? data.config : null;
             this.curveType = normalizeCurve((data != null) ? data.curveType : CURVE_LINEAR);
             this.intensity =
                     normalizeIntensity((data != null && data.intensity != null) ? data.intensity : INTENSITY_DEFAULT);
@@ -122,6 +142,7 @@ public class WiredExtraMovementCurve extends InteractionWiredExtra {
     public void onPickUp() {
         this.curveType = CURVE_LINEAR;
         this.intensity = INTENSITY_DEFAULT;
+        this.config = null;
     }
 
     @Override
@@ -140,6 +161,61 @@ public class WiredExtraMovementCurve extends InteractionWiredExtra {
         return this.intensity;
     }
 
+    /** Native Habbo movement parabola strength; absent variables leave movement linear. */
+    public Integer resolveCurveStrength(WiredContext ctx, HabboItem movingItem) {
+        if (this.config == null) return legacyStrength();
+        if (this.config.mode != 1) return clampStrength(this.config.strength);
+        if (ctx == null || ctx.room() == null || this.config.token == null) return null;
+        Room room = ctx.room();
+        String token = this.config.token;
+        boolean internal = token.startsWith("internal:");
+        String key = internal ? token.substring(9) : "";
+        int variableId = 0;
+        if (!internal) {
+            try { variableId = Integer.parseInt(token.replace("custom:", "")); }
+            catch (NumberFormatException ignored) { return null; }
+        }
+        Integer value = null;
+        switch (this.config.target) {
+            case -10 -> value = internal ? WiredInternalVariableSupport.readRoomValue(room, key) : (room.getRoomVariableManager().hasVariable(variableId) ? room.getRoomVariableManager().getCurrentValue(variableId) : null);
+            case -20 -> value = internal ? WiredInternalVariableSupport.readContextValue(ctx, key) : WiredContextVariableSupport.getCurrentValue(ctx, variableId);
+            case 1 -> {
+                for (RoomUnit unit : WiredSourceUtil.resolveUsers(ctx, this.config.source)) {
+                    var habbo = room.getHabbo(unit);
+                    value = internal ? WiredInternalVariableSupport.readUserValue(room, unit, key)
+                        : habbo == null || !room.getUserVariableManager().hasVariable(habbo.getHabboInfo().getId(), variableId) ? null : room.getUserVariableManager().getCurrentValue(habbo.getHabboInfo().getId(), variableId);
+                    if (value != null) break;
+                }
+            }
+            case 0 -> {
+                var selected = new ArrayList<HabboItem>();
+                if (this.config.furniIds != null) for (int id : this.config.furniIds) {
+                    HabboItem item = room.getHabboItem(id);
+                    if (item != null) selected.add(item);
+                }
+                for (HabboItem item : WiredSourceUtil.resolveItems(ctx, this.config.source, selected)) {
+                    value = internal ? WiredInternalVariableSupport.readFurniValue(room, item, key) : (room.getFurniVariableManager().hasVariable(item.getId(), variableId) ? room.getFurniVariableManager().getCurrentValue(item.getId(), variableId) : null);
+                    if (value != null) break;
+                }
+            }
+            default -> { return null; }
+        }
+        return value == null ? null : clampStrength(value);
+    }
+
+    private int legacyStrength() { return this.curveType == CURVE_LINEAR ? 0 : this.intensity; }
+    private static int clampStrength(int value) { return Math.max(-1000, Math.min(1000, value)); }
+
+    private static class CurveConfig {
+        int mode, strength, target, source;
+        String token;
+        int[] furniIds;
+        CurveConfig(int mode, int strength, int target, int source, String token, int[] furniIds) {
+            this.mode = mode; this.strength = strength; this.target = target; this.source = source;
+            this.token = token; this.furniIds = furniIds == null ? new int[0] : furniIds.clone();
+        }
+    }
+
     private static int normalizeCurve(int value) {
         return Math.max(CURVE_MIN, Math.min(CURVE_MAX, value));
     }
@@ -152,8 +228,10 @@ public class WiredExtraMovementCurve extends InteractionWiredExtra {
         int curveType;
         // Wrapper so payloads saved before the intensity field existed load as "default", not 0.
         Integer intensity;
+        CurveConfig config;
 
-        JsonData(int curveType, int intensity) {
+        JsonData(int curveType, int intensity, CurveConfig config) {
+            this.config = config;
             this.curveType = curveType;
             this.intensity = intensity;
         }

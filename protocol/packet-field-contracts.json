@@ -4174,6 +4174,28 @@
           "kind": "scalar",
           "type": "int",
           "name": "effectId"
+        },
+        {
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "boolean",
+              "name": "keepOnRoomChange"
+            }
+          ]
+        },
+        {
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "int",
+              "name": "selectionType"
+            }
+          ]
         }
       ]
     },
@@ -7640,6 +7662,23 @@
           "kind": "scalar",
           "type": "int",
           "name": "amount"
+        },
+        {
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "list",
+              "countType": "int",
+              "item": [
+                {
+                  "kind": "scalar",
+                  "type": "int",
+                  "name": "itemId"
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -7738,9 +7777,21 @@
         "path": "packages/communication/src/messages/outgoing/user/settings/WiredAccountPreferencesSaveComposer.ts"
       },
       "fields": [
-        { "kind": "scalar", "type": "boolean", "name": "showToolbarButton" },
-        { "kind": "scalar", "type": "boolean", "name": "showInspectButton" },
-        { "kind": "scalar", "type": "boolean", "name": "showSystemNotifications" }
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "showToolbarButton"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "showInspectButton"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "showSystemNotifications"
+        }
       ]
     },
     {
@@ -8181,9 +8232,15 @@
           "name": "spriteId"
         },
         {
-          "kind": "scalar",
-          "type": "string",
-          "name": "itemName"
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "string",
+              "name": "itemName"
+            }
+          ]
         }
       ]
     },
@@ -8414,9 +8471,15 @@
           "name": "catalogMode"
         },
         {
-          "kind": "scalar",
-          "type": "string",
-          "name": "text1"
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "string",
+              "name": "text1"
+            }
+          ]
         }
       ]
     },
@@ -15448,9 +15511,21 @@
         "path": "packages/communication/src/messages/parser/user/data/WiredAccountPreferencesParser.ts"
       },
       "fields": [
-        { "kind": "scalar", "type": "boolean", "name": "showToolbarButton" },
-        { "kind": "scalar", "type": "boolean", "name": "showInspectButton" },
-        { "kind": "scalar", "type": "boolean", "name": "showSystemNotifications" }
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "showToolbarButton"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "showInspectButton"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "showSystemNotifications"
+        }
       ]
     },
     {
@@ -16478,6 +16553,43 @@
           "kind": "scalar",
           "type": "boolean",
           "name": "enabled"
+        }
+      ]
+    },
+    {
+      "name": "WIRED_CLICK_SETTINGS",
+      "direction": "server_to_client",
+      "header": 5113,
+      "java": {
+        "symbol": "WiredClickSettingsComposer",
+        "className": "WiredClickSettingsComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/wired/WiredClickSettingsComposer.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_CLICK_SETTINGS",
+        "className": "WiredClickSettingsParser",
+        "path": "packages/communication/src/messages/parser/roomevents/WiredClickSettingsParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": ""
         }
       ]
     }

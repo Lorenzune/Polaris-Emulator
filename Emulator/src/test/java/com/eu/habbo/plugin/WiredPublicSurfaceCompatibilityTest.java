@@ -35,6 +35,25 @@ import org.junit.jupiter.api.Test;
  * The only changed existing field descriptor adds {@code volatile} to the protected repeat-time
  * field; its name, type, and visibility remain unchanged.
  *
+ * <p>Compatibility review on 2026-10-02: time utilities now implement the existing
+ * WiredDerivedVariableBox interface and add date/time accessors. The metadata-aware
+ * getDerivedValue overload retains the original overload; all previous constructors,
+ * constants and method descriptors remain intact. Legacy one-unit payloads and JSON
+ * retain their original serialization, checked by the persistence compatibility matrix.
+ *
+ * <p>Review 2026-10-02: adds the standalone WiredClickSettingsComposer packet. No existing
+ * public constructor, field or method descriptor is removed or changed.
+ *
+ * <p>Review 2026-10-02: click settings gains an additive requiresTriggeringUser override;
+ * its default source requires an actor, while selector/signal sources do not. Legacy JSON
+ * defaults are preserved and only this action execution probe changes actor eligibility.
+ *
+ * <p>Review 2026-10-02: movement curve adds native signed-strength resolution and
+ * overloads for user movement/composition. All existing descriptors remain available.
+ *
+ * <p>Review 2026-10-02: projectile support adds a runtime helper, native animation plan,
+ * and a selected-furni getter. All pre-existing descriptors remain unchanged.
+ *
  * <p>Regeneration is an explicit review action:
  *
  * <pre>

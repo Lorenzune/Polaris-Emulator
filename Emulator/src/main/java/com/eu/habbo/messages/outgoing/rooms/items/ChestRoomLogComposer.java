@@ -14,6 +14,9 @@ public class ChestRoomLogComposer extends MessageComposer {
         public int withdrawn;
         public int deposited;
         public int chestId;
+        public int[] furniTypeIds;
+        public Integer currencyType;
+        public java.util.Map<Integer, Integer> furniQuantities;
 
         public RoomLogItem(String type, long timestamp, String userName, int withdrawn, int deposited, int chestId) {
             this.type = type;
@@ -54,6 +57,13 @@ public class ChestRoomLogComposer extends MessageComposer {
             this.response.appendInt(e.chestId);
         }
 
+        this.response.appendInt(this.rows.size());
+        for (RoomLogItem e : this.rows) {
+            this.response.appendInt(e.furniTypeIds == null ? 0 : e.furniTypeIds.length);
+            if (e.furniTypeIds != null) for (int id : e.furniTypeIds) this.response.appendInt(id);
+        }
+        this.response.appendInt(this.rows.size());
+        for (RoomLogItem e : this.rows) ChestLogComposer.appendDetails(this.response, e.currencyType, e.furniQuantities);
         return this.response;
     }
 }

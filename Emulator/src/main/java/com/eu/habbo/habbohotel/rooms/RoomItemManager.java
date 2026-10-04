@@ -48,6 +48,21 @@ public class RoomItemManager {
         this.tileCache = this.index.tileCache();
     }
 
+    public void closeLeavingChestViews(Habbo habbo) {
+        if (habbo == null || habbo.getHabboInfo() == null) return;
+        int userId = habbo.getHabboInfo().getId();
+        com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestDepositSession.clear(userId);
+        for (HabboItem item : getFloorItems()) {
+            if (item instanceof com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest chest) {
+                chest.removeViewer(userId, this.room);
+                if (chest.getUserId() == userId && chest.getContents().isAutoLock()) {
+                    chest.getContents().setLocked(true);
+                    chest.persistContents(this.room);
+                }
+            }
+        }
+    }
+
     // ==================== LOADING ====================
 
     /**

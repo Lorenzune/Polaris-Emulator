@@ -1,6 +1,7 @@
 package com.eu.habbo.habbohotel.rooms;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.wired.core.WiredProjectileSupport;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraFurniVariable;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableEcho;
@@ -126,6 +127,8 @@ public class RoomFurniVariableManager {
         boolean hadBefore = this.hasVariable(furni.getId(), definitionItemId);
         Integer previousValue =
                 (definitionInfo.hasValue() && hadBefore) ? this.getCurrentValue(furni.getId(), definitionItemId) : null;
+        int previousCreatedAt = this.getCreatedAt(furni.getId(), definitionItemId);
+        int previousUpdatedAt = this.getUpdatedAt(furni.getId(), definitionItemId);
 
         if (extra instanceof WiredExtraVariableEcho) {
             boolean changed = ((WiredExtraVariableEcho) extra)
@@ -142,7 +145,7 @@ public class RoomFurniVariableManager {
                         ? this.getCurrentValue(furni.getId(), definitionItemId)
                         : null;
                 this.emitVariableChangedEvents(
-                        furni.getId(), extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
+                        furni.getId(), extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue, previousCreatedAt, previousUpdatedAt);
             }
 
             if (changed) {
@@ -196,7 +199,7 @@ public class RoomFurniVariableManager {
             Integer currentValue =
                     (definitionInfo.hasValue() && hasAfter) ? this.getCurrentValue(furniId, definitionItemId) : null;
             this.emitVariableChangedEvents(
-                    furniId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
+                    furniId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue, previousCreatedAt, previousUpdatedAt);
         }
 
         if (changed) {
@@ -216,6 +219,8 @@ public class RoomFurniVariableManager {
 
         boolean hadBefore = this.hasVariable(furniId, definitionItemId);
         Integer previousValue = hadBefore ? this.getCurrentValue(furniId, definitionItemId) : null;
+        int previousCreatedAt = this.getCreatedAt(furniId, definitionItemId);
+        int previousUpdatedAt = this.getUpdatedAt(furniId, definitionItemId);
 
         InteractionWiredExtra extra = this.getDefinitionExtra(definitionItemId);
         if (extra instanceof WiredExtraVariableEcho) {
@@ -226,7 +231,7 @@ public class RoomFurniVariableManager {
                 boolean hasAfter = this.hasVariable(furniId, definitionItemId);
                 Integer currentValue = hasAfter ? this.getCurrentValue(furniId, definitionItemId) : null;
                 this.emitVariableChangedEvents(
-                        furniId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
+                        furniId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue, previousCreatedAt, previousUpdatedAt);
             }
 
             if (changed) {
@@ -258,7 +263,7 @@ public class RoomFurniVariableManager {
 
         if (Objects.equals(assignment.getValue(), value)) {
             this.emitVariableChangedEvents(
-                    furniId, extra, definitionInfo, true, previousValue, true, assignment.getValue());
+                    furniId, extra, definitionInfo, true, previousValue, true, assignment.getValue(), previousCreatedAt, previousUpdatedAt);
             return false;
         }
 
@@ -269,7 +274,7 @@ public class RoomFurniVariableManager {
         }
 
         this.emitVariableChangedEvents(
-                furniId, extra, definitionInfo, hadBefore, previousValue, true, assignment.getValue());
+                furniId, extra, definitionInfo, hadBefore, previousValue, true, assignment.getValue(), previousCreatedAt, previousUpdatedAt);
         if (extra != null) {
             WiredVariableBoxUpdateScope.activate(extra, this.room);
         }
@@ -278,6 +283,8 @@ public class RoomFurniVariableManager {
     }
 
     public int getCurrentValue(int furniId, int definitionItemId) {
+        Integer projectileValue = WiredProjectileSupport.read(this.room, furniId, definitionItemId);
+        if (projectileValue != null) return projectileValue;
         this.ensurePermanentAssignmentsLoaded();
 
         if (furniId <= 0 || definitionItemId <= 0) {
@@ -290,7 +297,7 @@ public class RoomFurniVariableManager {
         if (derivedDefinition != null) {
             Integer baseValue = this.getRawValue(furniId, derivedDefinition.getBaseDefinitionItemId());
             Integer derivedValue = WiredVariableLevelSystemSupport.getDerivedValue(
-                    derivedDefinition.getLevelSystem(), derivedDefinition.getSubvariableType(), baseValue);
+                    derivedDefinition.getLevelSystem(), derivedDefinition.getSubvariableType(), baseValue, this.getCreatedAt(furniId, derivedDefinition.getBaseDefinitionItemId()), this.getUpdatedAt(furniId, derivedDefinition.getBaseDefinitionItemId()));
             return (derivedValue != null) ? derivedValue : 0;
         }
 
@@ -375,6 +382,7 @@ public class RoomFurniVariableManager {
     }
 
     public boolean hasVariable(int furniId, int definitionItemId) {
+        if (WiredProjectileSupport.definition(this.room, definitionItemId) != null) return WiredProjectileSupport.read(this.room, furniId, definitionItemId) != null;
         this.ensurePermanentAssignmentsLoaded();
 
         if (furniId <= 0 || definitionItemId <= 0) {
@@ -413,6 +421,8 @@ public class RoomFurniVariableManager {
         boolean hadBefore = this.hasVariable(furniId, definitionItemId);
         Integer previousValue =
                 (definitionInfo.hasValue() && hadBefore) ? this.getCurrentValue(furniId, definitionItemId) : null;
+        int previousCreatedAt = this.getCreatedAt(furniId, definitionItemId);
+        int previousUpdatedAt = this.getUpdatedAt(furniId, definitionItemId);
 
         InteractionWiredExtra extra = this.getDefinitionExtra(definitionItemId);
         if (extra instanceof WiredExtraVariableEcho) {
@@ -424,7 +434,7 @@ public class RoomFurniVariableManager {
                         ? this.getCurrentValue(furniId, definitionItemId)
                         : null;
                 this.emitVariableChangedEvents(
-                        furniId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
+                        furniId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue, previousCreatedAt, previousUpdatedAt);
             }
 
             if (changed) {
@@ -449,7 +459,7 @@ public class RoomFurniVariableManager {
         }
 
         this.deletePersistentAssignment(furniId, definitionItemId);
-        this.emitVariableChangedEvents(furniId, extra, definitionInfo, hadBefore, previousValue, false, null);
+        this.emitVariableChangedEvents(furniId, extra, definitionInfo, hadBefore, previousValue, false, null, previousCreatedAt, previousUpdatedAt);
         this.broadcastSnapshot();
 
         return true;
@@ -575,6 +585,8 @@ public class RoomFurniVariableManager {
         List<FurniAssignmentsEntry> furnis = new ArrayList<>();
         Set<Integer> furniIds = new HashSet<>();
         furniIds.addAll(this.activeAssignmentsByFurniId.keySet());
+
+        for (var definition : WiredProjectileSupport.definitions(this.room)) derivedDefinitionIds.add(definition.getItemId());
 
         for (HabboItem item : this.room.getFloorItems()) {
             if (item != null) furniIds.add(item.getId());
@@ -827,6 +839,7 @@ public class RoomFurniVariableManager {
         }
 
         result.addAll(baseDefinitions);
+        result.addAll(WiredProjectileSupport.definitions(this.room));
 
         for (WiredVariableDefinitionInfo definition : baseDefinitions) {
             result.addAll(WiredVariableLevelSystemSupport.getDerivedDefinitions(
@@ -846,6 +859,8 @@ public class RoomFurniVariableManager {
     }
 
     public WiredVariableDefinitionInfo getDefinitionInfo(int definitionItemId) {
+        var projectileDefinition = WiredProjectileSupport.definition(this.room, definitionItemId);
+        if (projectileDefinition != null) return projectileDefinition;
         InteractionWiredExtra extra = this.getDefinitionExtra(definitionItemId);
 
         if (extra instanceof WiredExtraFurniVariable) {
@@ -953,7 +968,7 @@ public class RoomFurniVariableManager {
             boolean existedBefore,
             Integer previousValue,
             boolean existsAfter,
-            Integer currentValue) {
+            Integer currentValue, int previousCreatedAt, int previousUpdatedAt) {
         if (definitionInfo == null) {
             return;
         }
@@ -979,11 +994,11 @@ public class RoomFurniVariableManager {
 
             Integer derivedPreviousValue = existedBefore
                     ? WiredVariableLevelSystemSupport.getDerivedValue(
-                            resolvedDefinition.getLevelSystem(), resolvedDefinition.getSubvariableType(), previousValue)
+                            resolvedDefinition.getLevelSystem(), resolvedDefinition.getSubvariableType(), previousValue, previousCreatedAt, previousUpdatedAt)
                     : null;
             Integer derivedCurrentValue = existsAfter
                     ? WiredVariableLevelSystemSupport.getDerivedValue(
-                            resolvedDefinition.getLevelSystem(), resolvedDefinition.getSubvariableType(), currentValue)
+                            resolvedDefinition.getLevelSystem(), resolvedDefinition.getSubvariableType(), currentValue, this.getCreatedAt(furniId, definitionInfo.getItemId()), this.getUpdatedAt(furniId, definitionInfo.getItemId()))
                     : null;
 
             this.emitVariableChangedEvent(

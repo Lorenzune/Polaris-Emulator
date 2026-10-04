@@ -26,19 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Initiate Transaction (furni classname {@code wf_act_init_transaction}). Selects one or more wired
- * CONTRACT furni ({@link InteractionWiredContract}) and executes their terms against the triggering
- * user as ONE atomic unit: it pre-checks EVERY term (user balance for PAY, chest stock for chest-sourced
- * RECEIVE) and only then mutates — so a transaction either fully happens or nothing changes. On success
- * it raises {@link WiredEvent.Type#TRANSACTION_COMPLETE} (the success branch); on any unsatisfiable
- * precondition it raises {@link WiredEvent.Type#TRANSACTION_FAIL} and commits nothing.
- *
- * <p>Atomicity is achieved synchronously on the room's single-threaded wired tick (compute all
- * preconditions first, mutate last). With NO contracts selected it degrades to the v1 signal model
- * (fires COMPLETE) for backward compatibility. Currency-only v1 (credits/points); the asset source/sink
- * is the existing config-based wired chest ({@link InteractionWiredChest}).</p>
- */
+/** Opens the selected contract with chest-backed terms. Payments commit only after acceptance and confirmation. */
 public class WiredEffectInitTransaction extends InteractionWiredEffect {
     public static final WiredEffectType type = WiredEffectType.INIT_TRANSACTION;
 
@@ -52,140 +40,11 @@ public class WiredEffectInitTransaction extends InteractionWiredEffect {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
+    private int[] transactionParams = new int[] {0, 1, 0, -20, 0, 300};
+    private String transactionConfig = "";
     @Override
     public void execute(WiredContext ctx) {
-        Room room = ctx.room();
-        if (room == null || room.getLayout() == null) return;
-
-        List<InteractionWiredContract> contracts = new ArrayList<>();
-        for (Integer id : this.contractIds) {
-            HabboItem item = room.getHabboItem(id);
-            if (item instanceof InteractionWiredContract contract) contracts.add(contract);
-        }
-
-        // No contracts → v1 signal behaviour (fire COMPLETE unconditionally).
-        if (contracts.isEmpty()) {
-            this.fire(ctx, room, WiredEvent.Type.TRANSACTION_COMPLETE);
-            return;
-        }
-
-        // Contracts require a triggering user to charge/reward.
-        Habbo actor = ctx.actor().map(room::getHabbo).orElse(null);
-        if (actor == null) {
-            this.fire(ctx, room, WiredEvent.Type.TRANSACTION_FAIL);
-            return;
-        }
-
-        // --- Aggregate (cumulative, so multiple terms of the same currency can't bypass the check) ---
-        Map<Integer, Long> payTotal = new HashMap<>();                  // currencyType -> total to debit
-        Map<Integer, InteractionWiredChest> chestById = new HashMap<>();
-        Map<Integer, Map<Integer, Long>> chestTakeTotal = new HashMap<>(); // chestId -> (currencyType -> total to take)
-
-        for (InteractionWiredContract contract : contracts) {
-            InteractionWiredChest chest = this.resolveChest(room, contract.getChestIds());
-            if (chest != null) chestById.put(chest.getId(), chest);
-
-            for (InteractionWiredContract.Term term : contract.getTerms()) {
-                if (term.amount <= 0) continue;
-
-                if (term.direction == InteractionWiredContract.DIR_PAY) {
-                    payTotal.merge(term.currencyType, (long) term.amount, Long::sum);
-                } else if (chest != null) {
-                    chestTakeTotal
-                            .computeIfAbsent(chest.getId(), k -> new HashMap<>())
-                            .merge(term.currencyType, (long) term.amount, Long::sum);
-                }
-                // RECEIVE without a linked chest = direct mint (no precondition needed).
-            }
-        }
-
-        // --- Pre-check: nothing is mutated yet ---
-        for (Map.Entry<Integer, Long> entry : payTotal.entrySet()) {
-            if (balance(actor, entry.getKey()) < entry.getValue()) {
-                this.fire(ctx, room, WiredEvent.Type.TRANSACTION_FAIL);
-                return;
-            }
-        }
-        for (Map.Entry<Integer, Map<Integer, Long>> chestEntry : chestTakeTotal.entrySet()) {
-            InteractionWiredChest chest = chestById.get(chestEntry.getKey());
-            if (chest == null) {
-                this.fire(ctx, room, WiredEvent.Type.TRANSACTION_FAIL);
-                return;
-            }
-            for (Map.Entry<Integer, Long> typeEntry : chestEntry.getValue().entrySet()) {
-                if (chest.getContents().count(ChestStorage.KIND_CURRENCY, typeEntry.getKey()) < typeEntry.getValue()) {
-                    this.fire(ctx, room, WiredEvent.Type.TRANSACTION_FAIL);
-                    return;
-                }
-            }
-        }
-
-        // --- Commit: all preconditions passed ---
-        for (InteractionWiredContract contract : contracts) {
-            InteractionWiredChest chest = this.resolveChest(room, contract.getChestIds());
-            boolean chestDirty = false;
-
-            for (InteractionWiredContract.Term term : contract.getTerms()) {
-                if (term.amount <= 0) continue;
-
-                if (term.direction == InteractionWiredContract.DIR_PAY) {
-                    debit(actor, term.currencyType, term.amount);
-                    if (chest != null) {
-                        chest.getContents().add(ChestStorage.KIND_CURRENCY, term.currencyType, term.amount);
-                        chestDirty = true;
-                    }
-                } else {
-                    if (chest != null) {
-                        chest.getContents().take(ChestStorage.KIND_CURRENCY, term.currencyType, term.amount);
-                        chestDirty = true;
-                    }
-                    credit(actor, term.currencyType, term.amount);
-                }
-            }
-
-            if (chestDirty && chest != null) chest.persistContents();
-        }
-
-        this.fire(ctx, room, WiredEvent.Type.TRANSACTION_COMPLETE);
-    }
-
-    private InteractionWiredChest resolveChest(Room room, List<Integer> ids) {
-        if (ids == null) return null;
-        for (Integer id : ids) {
-            HabboItem item = room.getHabboItem(id);
-            if (item instanceof InteractionWiredChest chest) return chest;
-        }
-        return null;
-    }
-
-    private static int balance(Habbo habbo, int currencyType) {
-        return (currencyType < 0)
-                ? habbo.getHabboInfo().getCredits()
-                : habbo.getHabboInfo().getCurrencyAmount(currencyType);
-    }
-
-    private static void debit(Habbo habbo, int currencyType, int amount) {
-        if (currencyType < 0) {
-            habbo.giveCredits(-amount);
-        } else {
-            habbo.givePoints(currencyType, -amount);
-        }
-    }
-
-    private static void credit(Habbo habbo, int currencyType, int amount) {
-        if (currencyType < 0) {
-            habbo.giveCredits(amount, "wired.reward");
-        } else {
-            habbo.givePoints(currencyType, amount, "wired.reward");
-        }
-    }
-
-    private void fire(WiredContext ctx, Room room, WiredEvent.Type eventType) {
-        RoomTile tile = (room.getLayout() != null) ? room.getLayout().getTile(this.getX(), this.getY()) : null;
-        WiredEvent.Builder builder = WiredEvent.builder(eventType, room).sourceItem(this);
-        if (tile != null) builder.tile(tile);
-        ctx.actor().ifPresent(builder::actor);
-        WiredManager.dispatchEffectTriggeredEvent(builder.build());
+        com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredContractTransactions.start(ctx, this, contractIds, transactionParams, transactionConfig);
     }
 
     @Deprecated
@@ -201,6 +60,12 @@ public class WiredEffectInitTransaction extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
+        int[] p = settings.getIntParams();
+        this.transactionParams = p.length >= 6 ? java.util.Arrays.copyOf(p, 6) : new int[] {0, 1, 0, -20, 0, 300};
+        if (transactionParams[0] < 0 || transactionParams[0] > 2) return false;
+        transactionParams[1] = Math.max(1, Math.min(500, transactionParams[1]));
+        transactionParams[5] = Math.max(30, Math.min(3600, transactionParams[5]));
+        this.transactionConfig = settings.getStringParam() == null ? "" : settings.getStringParam();
         this.contractIds.clear();
         if (settings.getFurniIds() != null) {
             for (int id : settings.getFurniIds()) this.contractIds.add(id);
@@ -211,7 +76,7 @@ public class WiredEffectInitTransaction extends InteractionWiredEffect {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(this.getDelay(), this.contractIds));
+        return WiredManager.getGson().toJson(new JsonData(this.getDelay(), this.contractIds, transactionParams, transactionConfig));
     }
 
     @Override
@@ -225,6 +90,8 @@ public class WiredEffectInitTransaction extends InteractionWiredEffect {
         if (data == null) return;
 
         this.setDelay(data.delay);
+        if (data.params != null && data.params.length == 6) transactionParams = data.params;
+        transactionConfig = data.config == null ? "" : data.config;
         if (data.contractIds != null) this.contractIds.addAll(data.contractIds);
     }
 
@@ -236,8 +103,9 @@ public class WiredEffectInitTransaction extends InteractionWiredEffect {
         for (Integer id : this.contractIds) message.appendInt(id);
         message.appendInt(this.getBaseItem().getSpriteId());
         message.appendInt(this.getId());
-        message.appendString("");
-        message.appendInt(0);
+        message.appendString(transactionConfig);
+        message.appendInt(transactionParams.length);
+        for (int value : transactionParams) message.appendInt(value);
         message.appendInt(0);
         message.appendInt(this.getType().code);
         message.appendInt(this.getDelay());
@@ -247,16 +115,20 @@ public class WiredEffectInitTransaction extends InteractionWiredEffect {
     @Override
     public void onPickUp() {
         this.contractIds.clear();
+        transactionParams = new int[] {0, 1, 0, -20, 0, 300};
+        transactionConfig = "";
         this.setDelay(0);
     }
 
     static class JsonData {
         int delay;
         List<Integer> contractIds;
+        int[] params; String config;
 
-        public JsonData(int delay, List<Integer> contractIds) {
+        public JsonData(int delay, List<Integer> contractIds, int[] params, String config) {
             this.delay = delay;
             this.contractIds = contractIds;
+            this.params = params; this.config = config;
         }
     }
 }

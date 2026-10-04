@@ -59,7 +59,7 @@ public class WiredEffectUserToFurni extends WiredEffectUserFurniBase {
         }
 
         for (Habbo habbo : this.resolveHabbos(room, ctx)) {
-            this.moveHabboSmooth(room, habbo, item, targetTile, movementPhysics);
+            this.moveHabboSmooth(room, habbo, item, targetTile, movementPhysics, ctx);
         }
     }
 
@@ -228,7 +228,7 @@ public class WiredEffectUserToFurni extends WiredEffectUserFurniBase {
         return true;
     }
 
-    private void moveHabboSmooth(Room room, Habbo habbo, HabboItem item, RoomTile targetTile, WiredMovementPhysics movementPhysics) {
+    private void moveHabboSmooth(Room room, Habbo habbo, HabboItem item, RoomTile targetTile, WiredMovementPhysics movementPhysics, WiredContext ctx) {
         if (room == null || habbo == null || item == null || targetTile == null || habbo.getRoomUnit() == null) {
             return;
         }
@@ -246,7 +246,7 @@ public class WiredEffectUserToFurni extends WiredEffectUserFurniBase {
         double newZ = item.getZ() + Item.getCurrentHeight(item);
         int animationDuration = noAnimation ? 0 : WiredMoveCarryHelper.getAnimationDuration(room, this, WiredUserMovementHelper.DEFAULT_ANIMATION_DURATION);
         if (!WiredUserMovementHelper.moveUser(room, roomUnit, targetTile, newZ,
-                roomUnit.getBodyRotation(), roomUnit.getHeadRotation(), animationDuration, noAnimation, movementPhysics)) {
+                roomUnit.getBodyRotation(), roomUnit.getHeadRotation(), animationDuration, noAnimation, movementPhysics, WiredMoveCarryHelper.resolveUserMovementCurve(room, this, ctx))) {
             return;
         }
 

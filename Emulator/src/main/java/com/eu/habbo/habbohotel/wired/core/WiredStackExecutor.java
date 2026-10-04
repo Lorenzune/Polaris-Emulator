@@ -134,6 +134,12 @@ final class WiredStackExecutor {
             return false;
         }
 
+        if (stack.triggerItem() != null && room.getRoomSpecialTypes() != null) {
+            for (var extra : room.getRoomSpecialTypes().getExtras(stack.triggerItem().getX(), stack.triggerItem().getY())) {
+                if (extra instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraScanChestFurniByType scanner) scanner.scan(context);
+            }
+        }
+
         WiredConditionEvaluator.EvaluationResult conditionResult =
                 this.conditionEvaluator.evaluateForExecution(stack, context, negateConditions);
         boolean conditionsPassed = conditionResult.passed();

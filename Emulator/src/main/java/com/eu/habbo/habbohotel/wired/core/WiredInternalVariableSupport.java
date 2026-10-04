@@ -426,6 +426,7 @@ public final class WiredInternalVariableSupport {
         String normalized = normalizeKey(key);
 
         return switch (normalized) {
+            case "@event.transaction_failed.reason" -> ctx.event().getType() == WiredEvent.Type.TRANSACTION_FAIL ? ctx.event().getActionParameter() : null;
             case "@selector_furni_count" ->
                 countIterable(ctx.targets() != null ? ctx.targets().items() : null);
             case "@selector_user_count" ->

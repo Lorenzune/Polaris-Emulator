@@ -113,11 +113,21 @@ final class JavaPacketSignatureExtractor {
                                     .thenComparingInt(position -> position.column)))
                     .toList();
             List<WireSchema> fields = new ArrayList<>();
+            Set<IfStmt> emittedOptionalLists = new java.util.HashSet<>();
             for (MethodCallExpr call : calls) {
                 if (tryCatch.callsToSkip().contains(call)) continue;
                 String wireType = wireType(call, side);
+                IfStmt optionalList = side == JavaPacketSide.INCOMING ? optionalListAncestor(call, method) : null;
+                if (optionalList != null && wireType != null) {
+                    if (emittedOptionalLists.add(optionalList)) fields.add(optionalIntegerList(optionalList, method));
+                    continue;
+                }
                 if (wireType != null) {
-                    fields.add(new ScalarSchema(wireType, inferredName(call)));
+                    WireSchema field = new ScalarSchema(wireType, inferredName(call));
+                    if (side == JavaPacketSide.INCOMING && isOptionalRead(call)) {
+                        field = new OptionalSchema("bytesAvailable", List.of(field));
+                    }
+                    fields.add(field);
                     continue;
                 }
                 if (isLocalCall(call) && methods.containsKey(call.getNameAsString())) {
@@ -210,6 +220,8 @@ final class JavaPacketSignatureExtractor {
         controls.addAll(method.findAll(WhileStmt.class));
         controls.addAll(method.findAll(DoStmt.class));
         for (Node control : controls) {
+            if (side == JavaPacketSide.INCOMING && (control instanceof IfStmt branch && optionalIntegerList(branch, method) != null
+                    || optionalListAncestor(control, method) != null)) continue;
             if (control.findAll(MethodCallExpr.class).stream().anyMatch(call -> wireType(call, side) != null)) {
                 return Optional.of(
                         "Data-dependent packet operations in " + control.getClass().getSimpleName()
@@ -217,6 +229,57 @@ final class JavaPacketSignatureExtractor {
             }
         }
         return Optional.empty();
+    }
+
+    private static IfStmt optionalListAncestor(Node node, MethodDeclaration method) {
+        while (node.getParentNode().isPresent()) {
+            node = node.getParentNode().orElseThrow();
+            if (node instanceof IfStmt branch && optionalIntegerList(branch, method) != null) return branch;
+            if (node == method) break;
+        }
+        return null;
+    }
+
+    private static OptionalSchema optionalIntegerList(IfStmt branch, MethodDeclaration method) {
+        var condition = branch.getCondition();
+        if (condition.isNameExpr()) {
+            String name = condition.asNameExpr().getNameAsString();
+            var variable = method.findAll(com.github.javaparser.ast.body.VariableDeclarator.class).stream()
+                    .filter(value -> value.getNameAsString().equals(name)).findFirst();
+            if (variable.isEmpty() || variable.get().getInitializer().isEmpty()) return null;
+            condition = variable.get().getInitializer().orElseThrow();
+        }
+        if (condition.findAll(MethodCallExpr.class).stream().noneMatch(call -> call.getNameAsString().equals("bytesAvailable")
+                && call.getScope().map(scope -> scope.toString().equals("this.packet") || scope.toString().equals("packet")).orElse(false))) return null;
+        var reads = branch.getThenStmt().findAll(MethodCallExpr.class).stream()
+                .filter(call -> wireType(call, JavaPacketSide.INCOMING) != null).toList();
+        if (reads.size() != 2 || !"int".equals(wireType(reads.get(0), JavaPacketSide.INCOMING))
+                || !"int".equals(wireType(reads.get(1), JavaPacketSide.INCOMING))) return null;
+        String count = inferredName(reads.get(0));
+        if (count.isEmpty() || reads.get(0).findAncestor(ForStmt.class).isPresent()) return null;
+        var loop = reads.get(1).findAncestor(ForStmt.class);
+        if (loop.isEmpty() || loop.get().getCompare().isEmpty()) return null;
+        var compare = loop.get().getCompare().get();
+        if (!compare.isBinaryExpr() || compare.asBinaryExpr().getOperator() != com.github.javaparser.ast.expr.BinaryExpr.Operator.LESS
+                || !compare.asBinaryExpr().getRight().toString().equals(count)) return null;
+        return new OptionalSchema("bytesAvailable", List.of(new ListSchema("int", List.of(new ScalarSchema("int", "itemId")))));
+    }
+
+    private static boolean isOptionalRead(MethodCallExpr call) {
+        Node node = call;
+        while (node.getParentNode().isPresent()) {
+            node = node.getParentNode().orElseThrow();
+            com.github.javaparser.ast.expr.Expression condition = null;
+            if (node instanceof com.github.javaparser.ast.expr.ConditionalExpr conditional) condition = conditional.getCondition();
+            if (node instanceof com.github.javaparser.ast.expr.BinaryExpr binary
+                    && binary.getOperator() == com.github.javaparser.ast.expr.BinaryExpr.Operator.AND
+                    && binary.getRight().findAll(MethodCallExpr.class).contains(call)) condition = binary.getLeft();
+            if (condition != null && condition.findAll(MethodCallExpr.class).stream().anyMatch(method ->
+                    method.getNameAsString().equals("bytesAvailable")
+                    && method.getScope().map(scope -> scope.toString().equals("this.packet") || scope.toString().equals("packet")).orElse(false))) return true;
+            if (node instanceof com.github.javaparser.ast.stmt.Statement) break;
+        }
+        return false;
     }
 
     private static String wireType(MethodCallExpr call, JavaPacketSide side) {

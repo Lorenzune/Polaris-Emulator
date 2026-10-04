@@ -14,6 +14,7 @@ public class EnableEffectEvent extends MessageHandler {
                 DailyTaskActionMatcher.addEffectProgress(this.client.getHabbo(), effectId);
             }
         } else {
+            this.client.getHabbo().setRetainedAvatarEffect(0);
             this.client.getHabbo().getInventory().getEffectsComponent().activatedEffect = 0;
 
             if (this.client.getHabbo().getHabboInfo().getCurrentRoom() != null) {

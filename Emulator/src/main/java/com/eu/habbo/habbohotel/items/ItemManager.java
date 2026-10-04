@@ -1,7 +1,9 @@
 package com.eu.habbo.habbohotel.items;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionClickSettings;
 import com.eu.habbo.habbohotel.items.interactions.InteractionAntenna;
+import com.eu.habbo.habbohotel.items.interactions.InteractionRoomLinker;
 import com.eu.habbo.habbohotel.items.interactions.InteractionAreaHideControl;
 import com.eu.habbo.habbohotel.items.interactions.InteractionBackgroundToner;
 import com.eu.habbo.habbohotel.items.interactions.InteractionBadgeDisplay;
@@ -817,7 +819,7 @@ public class ItemManager {
         this.interactionsList.add(
                 new ItemInteraction("wf_cnd_chest_has_item_type", WiredConditionChestHasItemType.class));
         this.interactionsList.add(
-                new ItemInteraction("wf_xtra_scan_chest_furni_by_type", WiredEffectScanChestFurniByType.class));
+                new ItemInteraction("wf_xtra_scan_chest_furni_by_type", com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraScanChestFurniByType.class));
         this.interactionsList.add(new ItemInteraction("wf_act_init_transaction", WiredEffectInitTransaction.class));
         this.interactionsList.add(new ItemInteraction("wf_act_cancel_transaction", WiredEffectCancelTransaction.class));
         this.interactionsList.add(
@@ -885,9 +887,9 @@ public class ItemManager {
                 new ItemInteraction("wf_act_progress_achievement", WiredActionProgressAchievement.class));
         this.interactionsList.add(new ItemInteraction("wf_act_reset_reward_track", WiredActionResetRewardTrack.class));
         this.interactionsList.add(new ItemInteraction("wf_act_override_height", WiredActionOverrideHeight.class));
-        // Click options are trigger configuration in the SWF, not a separate action.
-        this.interactionsList.add(new ItemInteraction("wf_act_click_settings", WiredTriggerHabboClicksUser.class));
-        this.interactionsList.add(new ItemInteraction("wf_act_click_conf", WiredTriggerHabboClicksUser.class));
+        // Click configuration uses the original action UI; both persisted interaction aliases are supported.
+        this.interactionsList.add(new ItemInteraction("wf_act_click_settings", WiredActionClickSettings.class));
+        this.interactionsList.add(new ItemInteraction("wf_act_click_conf", WiredActionClickSettings.class));
         this.interactionsList.add(new ItemInteraction("wf_act_write_to_logs", WiredEffectWriteToLogs.class));
         this.interactionsList.add(
                 new ItemInteraction("wf_act_neg_write_to_logs", WiredEffectNegativeWriteToLogs.class));
@@ -938,6 +940,7 @@ public class ItemManager {
         // Official teleport-to-room wired furni (exist in furnidata) -> same effect (reuses the SHOW_MESSAGE dialog;
         // text field = target room id).
         this.interactionsList.add(new ItemInteraction("wf_act_teleport_to_room", WiredEffectForwardUserToRoom.class));
+        this.interactionsList.add(new ItemInteraction("wf_room_linker", InteractionRoomLinker.class));
         this.interactionsList.add(new ItemInteraction("wf_act_tele_room", WiredEffectForwardUserToRoom.class));
         this.interactionsList.add(new ItemInteraction("wf_cnd_user_in_range", WiredConditionUserInRange.class));
         this.interactionsList.add(new ItemInteraction("wf_cnd_user_not_in_range", WiredConditionUserNotInRange.class));
@@ -1088,6 +1091,8 @@ public class ItemManager {
         this.interactionsList.add(new ItemInteraction("totem_leg", InteractionTotemLegs.class));
         this.interactionsList.add(new ItemInteraction("totem_head", InteractionTotemHead.class));
         this.interactionsList.add(new ItemInteraction("totem_planet", InteractionTotemPlanet.class));
+
+        this.interactionsList.add(new ItemInteraction("wf_xtra_rotate_to_dir", WiredExtraProjectile.class));
     }
 
     public void addItemInteraction(ItemInteraction itemInteraction) {
@@ -1114,7 +1119,7 @@ public class ItemManager {
     }
 
     public void loadItems() {
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = database().getDataSource().getConnection();
                 Statement statement = connection.createStatement();
                 ResultSet set = statement.executeQuery(BASE_ITEMS_SQL)) {
             while (set.next()) {
@@ -1135,7 +1140,7 @@ public class ItemManager {
 
     public void loadCrackable() {
         this.crackableRewards.clear();
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = database().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement("SELECT * FROM items_crackable");
                 ResultSet set = statement.executeQuery()) {
             while (set.next()) {
@@ -1181,7 +1186,7 @@ public class ItemManager {
     public void loadSoundTracks() {
         this.soundTracks.clear();
 
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = database().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement("SELECT * FROM soundtracks");
                 ResultSet set = statement.executeQuery()) {
             while (set.next()) {
@@ -1227,7 +1232,7 @@ public class ItemManager {
             return null;
         }
 
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+        try (Connection connection = database().getDataSource().getConnection()) {
             return this.createItem(connection, habboId, item, limitedStack, limitedSells, extraData);
         } catch (SQLException e) {
             LOGGER.error("Caught SQL exception", e);
@@ -1279,7 +1284,7 @@ public class ItemManager {
     public void loadNewUserGifts() {
         this.newuserGifts.clear();
 
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = database().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement("SELECT * FROM nux_gifts")) {
             try (ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
@@ -1308,7 +1313,7 @@ public class ItemManager {
     }
 
     public void deleteItem(HabboItem item) {
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+        try (Connection connection = database().getDataSource().getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(
                     "DELETE FROM items_teleports WHERE teleport_one_id = ? OR teleport_two_id = ?")) {
                 statement.setInt(1, item.getId());
@@ -1343,7 +1348,7 @@ public class ItemManager {
                 + Calendar.getInstance().get(Calendar.YEAR);
 
         HabboItem item = null;
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = database().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement(
                         "INSERT INTO items (user_id, item_id, extra_data) VALUES (?, ?, ?)",
                         Statement.RETURN_GENERATED_KEYS)) {
@@ -1386,7 +1391,7 @@ public class ItemManager {
     public HabboItem handleOpenRecycleBox(Habbo habbo, HabboItem box) {
         Emulator.getThreading().runPersistence(new QueryDeleteHabboItem(box.getId()));
         HabboItem item = null;
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = database().getDataSource().getConnection();
                 PreparedStatement statement =
                         connection.prepareStatement("SELECT * FROM items_presents WHERE item_id = ? LIMIT 1")) {
             statement.setInt(1, box.getId());
@@ -1431,7 +1436,7 @@ public class ItemManager {
     }
 
     public void insertTeleportPair(int itemOneId, int itemTwoId) {
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+        try (Connection connection = database().getDataSource().getConnection()) {
             this.insertTeleportPair(connection, itemOneId, itemTwoId);
         } catch (SQLException e) {
             LOGGER.error("Caught SQL exception", e);
@@ -1448,7 +1453,7 @@ public class ItemManager {
     }
 
     public void insertHopper(HabboItem hopper) {
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+        try (Connection connection = database().getDataSource().getConnection()) {
             this.insertHopper(connection, hopper);
         } catch (SQLException e) {
             LOGGER.error("Caught SQL exception", e);
@@ -1466,7 +1471,7 @@ public class ItemManager {
     public int[] getTargetTeleportRoomId(HabboItem item) {
         int[] target = new int[] {};
 
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = database().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement(
                         "SELECT items_teleports.*, A.room_id as a_room_id, A.id as a_id, B.room_id as b_room_id, B.id as b_id FROM items_teleports INNER JOIN items AS A ON items_teleports.teleport_one_id = A.id INNER JOIN items AS B ON items_teleports.teleport_two_id = B.id WHERE (teleport_one_id = ? OR teleport_two_id = ?) LIMIT 1")) {
             statement.setInt(1, item.getId());
@@ -1492,7 +1497,7 @@ public class ItemManager {
 
     public HabboItem loadHabboItem(int itemId) {
         HabboItem item = null;
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = database().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement("SELECT * FROM items WHERE id = ? LIMIT 1")) {
             statement.setInt(1, itemId);
             try (ResultSet set = statement.executeQuery()) {
@@ -1542,7 +1547,7 @@ public class ItemManager {
         if (habbo != null) {
             userId = habbo.getHabboInfo().getId();
         } else {
-            try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+            try (Connection connection = database().getDataSource().getConnection();
                     PreparedStatement statement =
                             connection.prepareStatement("SELECT id FROM users WHERE username = ?")) {
                 statement.setString(1, username);
@@ -1640,5 +1645,11 @@ public class ItemManager {
 
     public List<String> getInteractionList() {
         return this.interactionsList.sortedNames();
+    }
+
+    private static com.eu.habbo.database.Database database() { return Emulator.getDatabase(); }
+
+    public static InformationPageRepository informationPages() {
+        return new InformationPageRepository(database().getDataSource());
     }
 }

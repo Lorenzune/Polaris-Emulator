@@ -35,6 +35,7 @@ public class ChestDepositInventoryItemEvent extends MessageHandler {
         HabboItem inventoryItem = habbo.getInventory().getItemsComponent().getHabboItem(inventoryItemId);
         if (inventoryItem == null) return;
 
-        ChestFurniDepositHelper.depositInventoryItem(habbo, chest, inventoryItem);
+        if (ChestFurniDepositHelper.depositInventoryItem(habbo, chest, inventoryItem))
+            com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestTransactionEvents.deposited(room, habbo, chest);
     }
 }

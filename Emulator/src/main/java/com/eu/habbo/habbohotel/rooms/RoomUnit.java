@@ -68,6 +68,10 @@ public class RoomUnit {
     private double z;
     private int tilesWalked;
     private boolean inRoom;
+    private volatile boolean entrySnapshotReady;
+    public boolean isEntrySnapshotReady() { return entrySnapshotReady; }
+    public void setEntrySnapshotReady(boolean ready) { entrySnapshotReady = ready; }
+
     private boolean canWalk;
     private boolean fastWalk = false;
     private boolean statusUpdate = false;

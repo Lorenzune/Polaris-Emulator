@@ -136,6 +136,15 @@ public class Habbo implements Runnable {
         return this.roomUnit;
     }
 
+    private int retainedAvatarEffect;
+    private int retainedHandItem;
+    public int getRetainedHandItem() { return this.retainedHandItem; }
+    public void setRetainedHandItem(int itemId) { this.retainedHandItem = Math.max(0, itemId); }
+
+    public int getRetainedAvatarEffect() { return this.retainedAvatarEffect; }
+
+    public void setRetainedAvatarEffect(int effectId) { this.retainedAvatarEffect = Math.max(0, effectId); }
+
     public void setRoomUnit(RoomUnit roomUnit) {
         this.roomUnit = roomUnit;
     }

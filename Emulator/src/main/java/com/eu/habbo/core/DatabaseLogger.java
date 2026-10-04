@@ -23,7 +23,7 @@ public class DatabaseLogger {
         this.loggables.add(loggable);
     }
 
-    public void save() {
+    public synchronized void save() {
         if (Emulator.getDatabase() == null || Emulator.getDatabase().getDataSource() == null) {
             return;
         }

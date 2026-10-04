@@ -58,7 +58,8 @@ public class HabboInfo implements Runnable {
     private int profileDirection = 2;
     private int profileHeadDirection = 2;
     private String profileAction = "std";
-    private int loadingRoom;
+    private volatile int loadingRoom;
+    private volatile long loadingRoomStartedAt;
     private Room currentRoom;
     private String roomEntryMethod = "door";
     private int roomEntryTeleportId = 0;
@@ -716,7 +717,10 @@ public class HabboInfo implements Runnable {
         return this.loadingRoom;
     }
 
+    public long getLoadingRoomStartedAt() { return this.loadingRoomStartedAt; }
+
     public void setLoadingRoom(int loadingRoom) {
+        this.loadingRoomStartedAt = loadingRoom > 0 ? System.currentTimeMillis() : 0;
         this.loadingRoom = loadingRoom;
     }
 

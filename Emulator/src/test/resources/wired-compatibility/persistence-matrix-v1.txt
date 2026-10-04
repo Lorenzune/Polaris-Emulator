@@ -520,6 +520,13 @@ CASE json-malformed ERROR java.io.EOFException
 CASE legacy-zero OUT eyJ0ZXJtcyI6W10sImNoZXN0SWRzIjpbXX0=
 CASE legacy-tab OUT eyJ0ZXJtcyI6W10sImNoZXN0SWRzIjpbXX0=
 
+TYPE com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionClickSettings
+CASE blank OUT eyJ1c2VyQ2xpY2tTZXR0aW5nIjowLCJmdXJuaUNsaWNrU2V0dGluZyI6MCwiZnVybmlJZHMiOltdfQ==
+CASE json-empty OUT eyJ1c2VyQ2xpY2tTZXR0aW5nIjowLCJmdXJuaUNsaWNrU2V0dGluZyI6MCwiZnVybmlJZHMiOltdfQ==
+CASE json-malformed OUT eyJ1c2VyQ2xpY2tTZXR0aW5nIjowLCJmdXJuaUNsaWNrU2V0dGluZyI6MCwiZnVybmlJZHMiOltdfQ==
+CASE legacy-zero OUT eyJ1c2VyQ2xpY2tTZXR0aW5nIjowLCJmdXJuaUNsaWNrU2V0dGluZyI6MCwiZnVybmlJZHMiOltdfQ==
+CASE legacy-tab OUT eyJ1c2VyQ2xpY2tTZXR0aW5nIjowLCJmdXJuaUNsaWNrU2V0dGluZyI6MCwiZnVybmlJZHMiOltdfQ==
+
 TYPE com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionOverrideHeight
 CASE blank OUT eyJoZWlnaHQiOjAsIm92ZXJyaWRlVHlwZSI6MH0=
 CASE json-empty OUT eyJoZWlnaHQiOjAsIm92ZXJyaWRlVHlwZSI6MH0=

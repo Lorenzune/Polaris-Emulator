@@ -14,12 +14,12 @@ public final class ChestOpenHelper {
 
     public static void open(GameClient client, InteractionWiredChest chest, Room room) {
         if (client == null || chest == null || room == null) return;
-        if (!chest.getContents().isAccessOpen() && !room.hasRights(client.getHabbo())) return;
+        if (!chest.getContents().isAccessOpen() && !chest.canEdit(client.getHabbo(), room)) return;
 
         chest.addViewer(client.getHabbo().getHabboInfo().getId(), room);
 
         client.sendResponse(new ChestOpenComposer(chest.getId()));
-        client.sendResponse(new ChestDataComposer(chest));
+        client.sendResponse(new ChestDataComposer(chest, client.getHabbo()));
 
         if (chest instanceof InteractionWiredChestFurni) {
             ChestFurniPackets.sendFullChunks(client, chest.getId(), chest.getContents());

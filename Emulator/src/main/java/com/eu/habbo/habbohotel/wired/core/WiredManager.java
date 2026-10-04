@@ -102,6 +102,12 @@ public final class WiredManager {
     /** Whether the engine is initialized */
     private static volatile boolean initialized = false;
 
+    private static volatile WiredLogRepository logRepository;
+
+    static WiredLogRepository logRepository() {
+        return logRepository;
+    }
+
     /** Explicit owner for the wired engine, index, and tick lifecycle. */
     private static final AtomicReference<WiredRuntime> RUNTIME = new AtomicReference<>();
 
@@ -154,8 +160,12 @@ public final class WiredManager {
         WiredRuntime runtime = new WiredRuntime(newEngine, newStackIndex, WiredTickService.getInstance());
 
         try {
+            if (Emulator.getDatabase() != null) {
+                logRepository = new WiredLogRepository(Emulator.getDatabase().getDataSource());
+            }
             runtime.start();
         } catch (RuntimeException exception) {
+            logRepository = null;
             cleanupRuntimeState(newEngine, newStackIndex);
             setDebugEnabled(false);
             throw exception;
@@ -212,6 +222,7 @@ public final class WiredManager {
                 cleanupRuntimeState(currentEngine, currentStackIndex);
             }
         } finally {
+            logRepository = null;
             clearCurrentThreadRuntimeState();
             setDebugEnabled(false);
         }
@@ -299,6 +310,10 @@ public final class WiredManager {
         }
 
         engine.clearRoomDiagnosticsLogs(roomId);
+    }
+
+    public static void recordWiredLog(int roomId, int itemId, String message, WiredRoomDiagnostics.Severity severity) {
+        if (engine != null) engine.getDiagnostics(roomId).recordWiredLog(message, itemId, severity);
     }
 
     // ========== Event Triggering Methods ==========

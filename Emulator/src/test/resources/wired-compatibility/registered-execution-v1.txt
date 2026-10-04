@@ -76,6 +76,7 @@ com.eu.habbo.habbohotel.items.interactions.wired.contract.InteractionWiredContra
 com.eu.habbo.habbohotel.items.interactions.wired.contract.InteractionWiredContractReward | EXTRA | configured=true | execute=false
 com.eu.habbo.habbohotel.items.interactions.wired.contract.InteractionWiredContractTrade | EXTRA | configured=true | execute=false
 com.eu.habbo.habbohotel.items.interactions.wired.contract.InteractionWiredCustomContract | EXTRA | configured=true | execute=false
+com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionClickSettings | EFFECT | type=CLICK_SETTINGS | actor=true | execute=OK
 com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionOverrideHeight | EFFECT | type=OVERRIDE_HEIGHT | actor=false | execute=OK
 com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionProgressAchievement | EFFECT | type=PROGRESS_ACHIEVEMENT | actor=false | execute=OK
 com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionProgressRewardTrack | EFFECT | type=PROGRESS_REWARD_TRACK | actor=false | execute=OK

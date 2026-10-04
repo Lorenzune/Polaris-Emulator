@@ -177,6 +177,23 @@ class JavaPacketSignatureExtractorTest {
                 new PacketContractContext("OPTIONAL_FIXTURE", "server_to_client", "Fixture.java"));
     }
 
+    @Test
+    void preservesOptionalTailReadsGuardedByAvailableBytes() throws Exception {
+        ExtractionResult result = extractor.extract(fixture("OptionalEffectIncomingFixture.java"), JavaPacketSide.INCOMING, "handle");
+        assertFalse(result.unsupportedReason().isPresent());
+        assertEquals(List.of(new ScalarSchema("int", "effectId"),
+                new OptionalSchema("bytesAvailable", List.of(new ScalarSchema("boolean", "keep"))),
+                new OptionalSchema("bytesAvailable", List.of(new ScalarSchema("int", "selection")))), result.fields());
+    }
+
+    @Test
+    void extractsOptionalCountedInventoryIdsWithoutMakingTheTailRequired() throws Exception {
+        ExtractionResult result = extractor.extract(fixture("OptionalListIncomingFixture.java"), JavaPacketSide.INCOMING, "handle");
+        assertFalse(result.unsupportedReason().isPresent());
+        assertEquals(List.of(new ScalarSchema("int", "itemId"), new ScalarSchema("int", "amount"),
+                new OptionalSchema("bytesAvailable", List.of(new ListSchema("int", List.of(new ScalarSchema("int", "itemId")))))), result.fields());
+    }
+
     private static Path fixture(String name) {
         return Path.of("src", "test", "resources", "packet-contracts", "java", name);
     }

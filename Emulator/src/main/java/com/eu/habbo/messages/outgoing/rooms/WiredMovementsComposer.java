@@ -175,6 +175,13 @@ public class WiredMovementsComposer extends MessageComposer {
                 null);
     }
 
+    public static MovementData userSlideMovement(
+            int id, int fromX, int fromY, int toX, int toY, double fromZ, double toZ,
+            int bodyDirection, int headDirection, int duration, Integer jumpPower) {
+        return new UserMovementData(id, fromX, fromY, toX, toY, fromZ, toZ,
+                USER_MOVEMENT_SLIDE, bodyDirection, headDirection, duration, jumpPower);
+    }
+
     public static MovementData userDirectionUpdate(int id, int headDirection, int bodyDirection) {
         return new UserDirectionData(id, headDirection, bodyDirection);
     }

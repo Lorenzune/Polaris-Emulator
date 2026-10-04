@@ -7,9 +7,36 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 class RoomSearchServiceCacheTest {
+
+    @Test
+    void occupiedSearchRefreshesWhenUsersEnterAndLeavePublicRooms() {
+        AtomicLong time = new AtomicLong();
+        AtomicInteger users = new AtomicInteger();
+        Room publicRoom = new Room(42, 7) {
+            @Override
+            public int getUserCount() {
+                return users.get();
+            }
+        };
+        publicRoom.setPublicRoom(true);
+        RoomSearchService service = new RoomSearchService(() -> List.of(publicRoom), Duration.ofSeconds(1), time::get);
+        assertEquals(List.of(), service.occupiedRooms());
+
+        users.set(1);
+        time.addAndGet(Duration.ofSeconds(1).toNanos());
+        assertEquals(List.of(publicRoom), service.occupiedRooms());
+
+        service.occupiedRooms().clear();
+        assertEquals(List.of(publicRoom), service.occupiedRooms());
+
+        users.set(0);
+        time.addAndGet(Duration.ofSeconds(1).toNanos());
+        assertEquals(List.of(), service.occupiedRooms());
+    }
 
     @Test
     void popularSearchRefreshesAfterTheShortTtl() {

@@ -62,6 +62,40 @@ public final class ChestWiredCurrencyUtil {
         return true;
     }
 
+    /** Debit and credit all currencies in one database transaction, without partial wallet changes. */
+    public static boolean exchange(Habbo habbo, java.util.Map<Integer, Long> payment, java.util.Map<Integer, Long> reward) {
+        if (payment.isEmpty() && reward.isEmpty()) return true;
+        var operations = new java.util.ArrayList<EconomyOperation>();
+        String operationId = EconomyOperationId.create("wired-contract:" + habbo.getHabboInfo().getId());
+        try {
+            for (int direction = 0; direction < 2; direction++) {
+                var amounts = direction == 0 ? payment : reward;
+                for (var entry : amounts.entrySet()) {
+                    int amount = Math.toIntExact(entry.getValue()); int delta = direction == 0 ? -amount : amount;
+                    int type = entry.getKey();
+                    if (type == -1) {
+                        var event = new com.eu.habbo.plugin.events.users.UserCreditsEvent(habbo, delta);
+                        if (com.eu.habbo.Emulator.getPluginManager().fireEvent(event).isCancelled() || event.credits != delta) return false;
+                    } else {
+                        var event = new com.eu.habbo.plugin.events.users.UserPointsEvent(habbo, delta, type);
+                        if (com.eu.habbo.Emulator.getPluginManager().fireEvent(event).isCancelled() || event.points != delta || event.type != type) return false;
+                    }
+                    operations.add(new EconomyOperation(operationId + ":" + direction + ":" + type, habbo.getHabboInfo().getId(), habbo.getHabboInfo().getId(), direction == 0 ? "wired_contract_debit" : "wired_contract_reward", "wired.contract.currency", type, delta, null, ""));
+                }
+            }
+            LedgerWalletMutation.executeBatch(habbo, operations);
+        } catch (Exception failure) {
+            LOGGER.error("Unable to commit wired contract wallet exchange for user {}", habbo.getHabboInfo().getId(), failure);
+            return false;
+        }
+        if (habbo.getClient() != null) {
+            if (payment.containsKey(-1) || reward.containsKey(-1)) habbo.getClient().sendResponse(new com.eu.habbo.messages.outgoing.users.UserCreditsComposer(habbo));
+            if (payment.containsKey(0) || reward.containsKey(0)) habbo.getClient().sendResponse(new com.eu.habbo.messages.outgoing.users.UserCurrencyComposer(habbo));
+            if (payment.containsKey(5) || reward.containsKey(5)) habbo.getClient().sendResponse(new com.eu.habbo.messages.outgoing.users.UserPointsComposer(habbo.getHabboInfo().getCurrencyAmount(5), Math.toIntExact(reward.getOrDefault(5, 0L) - payment.getOrDefault(5, 0L)), 5));
+        }
+        return true;
+    }
+
     public static void give(Habbo habbo, int currencyType, int amount) {
         if (habbo == null || amount <= 0) {
             return;

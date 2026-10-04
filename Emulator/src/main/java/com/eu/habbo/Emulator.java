@@ -614,6 +614,11 @@ public final class Emulator {
      * Public compatibility getters still prefer the runtime-owned instances.
      */
     static void synchronizeLegacyFacade(PolarisRuntime services) {
+        if (services.gameEnvironment() != null && services.databaseLogger() != null
+                && services.gameEnvironment().getModToolManager() != null) {
+            services.gameEnvironment().getModToolManager().setChatlogFlusher(services.databaseLogger()::save);
+        }
+
         if (services.configuration() != null) {
             Emulator.config = services.configuration();
         }

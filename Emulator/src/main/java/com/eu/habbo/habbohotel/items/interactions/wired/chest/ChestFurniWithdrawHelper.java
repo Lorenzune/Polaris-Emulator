@@ -21,17 +21,20 @@ public final class ChestFurniWithdrawHelper {
             return 0;
         }
 
-        int delivered = ChestWiredFurniUtil.giveStoredItemsToInventory(habbo, removedItems);
+        int delivered = ChestWiredFurniUtil.giveStoredItemsToInventory(habbo, removedItems, chest);
         client.sendResponse(new InventoryRefreshComposer());
-        int withdrawn = removedItems.size();
-        chest.getContents().addLog(new ChestStorage.LogEntry(
-                "withdraw", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), withdrawn, 0));
+        int withdrawn = delivered;
+        if (withdrawn > 0) {
+            ChestStorage.LogEntry log = new ChestStorage.LogEntry("withdraw", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), withdrawn, 0);
+            log.setFurniItems(removedItems.stream().filter(item -> !chest.getContents().furniItems().contains(item)));
+            chest.getContents().addLog(log);
+        }
         chest.persistContents(habbo.getHabboInfo().getCurrentRoom());
 
-        client.sendResponse(new ChestDataComposer(chest));
-        ChestFurniPackets.sendDelta(client, chest.getId(),
-                removedItems.stream().map(row -> row.inventoryId).toList(), List.of());
+        client.sendResponse(new ChestDataComposer(chest, habbo));
+        ChestFurniPackets.sendFullChunks(client, chest.getId(), chest.getContents());
 
+        ChestNotifications.send(habbo, delivered > 0 ? "success" : "rejected", delivered > 0 ? "Prelievo dei Furni dallo scrigno completato." : "Impossibile consegnare i Furni. Sono rimasti nello scrigno.");
         return delivered;
     }
 }

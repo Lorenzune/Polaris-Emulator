@@ -17,12 +17,15 @@ public final class WiredRoomDiagnostics {
         EXECUTOR_OVERLOAD,
         MARKED_AS_HEAVY,
         KILLED,
-        RECURSION_TIMEOUT
+        RECURSION_TIMEOUT,
+        WIRED_LOG
     }
 
     public enum Severity {
         WARNING,
-        ERROR
+        ERROR,
+        INFO,
+        DEBUG
     }
 
     public static final class LogEntry {
@@ -225,6 +228,7 @@ public final class WiredRoomDiagnostics {
     }
 
     public static final class HistoryEntry {
+        private String eventKey;
         private final Type type;
         private final Severity severity;
         private final long occurredAtMs;
@@ -236,6 +240,7 @@ public final class WiredRoomDiagnostics {
                 Type type, Severity severity, long occurredAtMs, String reason, String sourceLabel, int sourceId) {
             this.type = type;
             this.severity = severity;
+            this.eventKey = java.util.UUID.randomUUID().toString();
             this.occurredAtMs = occurredAtMs;
             this.reason = sanitizeReason(reason);
             this.sourceLabel = sanitizeSourceLabel(sourceLabel);
@@ -248,6 +253,14 @@ public final class WiredRoomDiagnostics {
 
         public Severity getSeverity() {
             return severity;
+        }
+
+        String getEventKey() {
+            return this.eventKey;
+        }
+
+        void setEventKey(String eventKey) {
+            this.eventKey = eventKey;
         }
 
         public long getOccurredAtMs() {
@@ -279,6 +292,24 @@ public final class WiredRoomDiagnostics {
     private final EnumMap<Type, LogEntry> logs;
     private final ArrayDeque<HistoryEntry> history;
     private final int maxHistoryEntries;
+    private WiredLogRepository logRepository;
+    private int archiveRoomId;
+
+    synchronized WiredRoomDiagnostics attachRepository(int roomId, WiredLogRepository repository) {
+        this.archiveRoomId = roomId;
+        this.logRepository = repository;
+        if (repository != null) this.history.addAll(repository.load(roomId));
+        return this;
+    }
+
+    public synchronized void recordWiredLog(String message, int itemId, Severity severity) {
+        appendHistory(new HistoryEntry(Type.WIRED_LOG, severity, System.currentTimeMillis(), message, "Wired", itemId));
+    }
+
+    private void appendHistory(HistoryEntry entry) {
+        if (this.logRepository != null) this.logRepository.append(this.archiveRoomId, entry);
+        this.history.addFirst(entry);
+    }
 
     private final java.util.concurrent.atomic.AtomicLong windowStartedAt = new java.util.concurrent.atomic.AtomicLong();
     private final java.util.concurrent.atomic.AtomicInteger usageCurrentWindow =
@@ -430,8 +461,6 @@ public final class WiredRoomDiagnostics {
             entry.latestSourceLabel = "";
             entry.latestSourceId = 0;
         }
-
-        this.history.clear();
     }
 
     public synchronized Snapshot snapshot(
@@ -559,15 +588,11 @@ public final class WiredRoomDiagnostics {
         this.heavy = false;
     }
 
-    private void record(Type type, long now, String reason, String sourceLabel, int sourceId) {
+    private synchronized void record(Type type, long now, String reason, String sourceLabel, int sourceId) {
         LogEntry entry = this.logs.get(type);
         if (entry != null) {
             entry.record(now, reason, sourceLabel, sourceId);
-            this.history.addFirst(new HistoryEntry(type, entry.getSeverity(), now, reason, sourceLabel, sourceId));
-
-            while (this.history.size() > this.maxHistoryEntries) {
-                this.history.removeLast();
-            }
+            appendHistory(new HistoryEntry(type, entry.getSeverity(), now, reason, sourceLabel, sourceId));
         }
     }
 

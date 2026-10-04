@@ -5,6 +5,7 @@ import com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage;
 import com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest;
 import com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChestFurni;
 import com.eu.habbo.messages.ServerMessage;
+import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
 
@@ -32,9 +33,15 @@ import java.util.Map;
  */
 public class ChestDataComposer extends MessageComposer {
     private final InteractionWiredChest chest;
+    private final Habbo viewer;
 
     public ChestDataComposer(InteractionWiredChest chest) {
+        this(chest, null);
+    }
+
+    public ChestDataComposer(InteractionWiredChest chest, Habbo viewer) {
         this.chest = chest;
+        this.viewer = viewer;
     }
 
     @Override
@@ -89,6 +96,12 @@ public class ChestDataComposer extends MessageComposer {
             this.response.appendInt(e.getValue());
         }
 
+        this.response.appendBoolean(c.isLocked());
+        this.response.appendBoolean(c.isAutoLock());
+        this.response.appendInt(c.getCapacity());
+        this.response.appendBoolean(chest.canManage(viewer));
+        this.response.appendBoolean(viewer != null && chest.canEdit(viewer, viewer.getHabboInfo().getCurrentRoom()));
+        this.response.appendBoolean(viewer != null && chest.canRead(viewer, viewer.getHabboInfo().getCurrentRoom()));
         return this.response;
     }
 }

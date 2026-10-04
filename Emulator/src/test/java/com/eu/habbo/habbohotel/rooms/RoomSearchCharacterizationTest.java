@@ -1,6 +1,8 @@
 package com.eu.habbo.habbohotel.rooms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Set;
@@ -47,6 +49,29 @@ class RoomSearchCharacterizationTest {
         } finally {
             RoomManager.SHOW_PUBLIC_IN_POPULAR_TAB = previous;
         }
+    }
+
+    @Test
+    void allOccupiedRoomsIncludePublicAndPrivateRoomsWithoutPopularLimits() {
+        RoomManager manager = new RoomManager(false);
+        TestRoom occupied = room(41, false, 1, "");
+        TestRoom publicRoom = room(42, true, 2, "");
+        TestRoom emptyPublic = room(43, true, 0, "");
+        TestRoom emptyPrivate = room(44, false, 0, "");
+        manager.registerActiveRoom(occupied);
+        manager.registerActiveRoom(publicRoom);
+        manager.registerActiveRoom(emptyPublic);
+        manager.registerActiveRoom(emptyPrivate);
+        for (int id = 100; id < 160; id++) {
+            manager.registerActiveRoom(room(id, id % 2 == 0, 1, ""));
+        }
+
+        List<Room> rooms = manager.getOccupiedRooms();
+        assertEquals(62, rooms.size());
+        assertTrue(rooms.contains(publicRoom));
+        assertTrue(rooms.contains(occupied));
+        assertFalse(rooms.contains(emptyPublic));
+        assertFalse(rooms.contains(emptyPrivate));
     }
 
     @Test

@@ -33,9 +33,9 @@ public class ChestWithdrawFurniEvent extends MessageHandler {
         int amount = this.packet.readInt();
 
         HabboItem item = room.getHabboItem(itemId);
-        if (!(item instanceof InteractionWiredChest chest)) return;
+        if (!(item instanceof com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChestFurni chest)) return;
 
-        if (!room.hasRights(habbo)) return;
+        if (!chest.canWithdraw(habbo, room)) return;
 
         int requested = (amount < 0) ? Integer.MAX_VALUE : Math.min(amount, MAX_WITHDRAW_AMOUNT);
         if (requested <= 0) return;

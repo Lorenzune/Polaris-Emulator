@@ -14,13 +14,10 @@ import com.eu.habbo.messages.ServerMessage;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-/**
- * Transaction Completed trigger (furni classname {@code wf_trg_transaction_complete}). Fires when an
- * {@code Initiate Transaction} effect ({@code wf_act_init_transaction}) raises a
- * {@link WiredEvent.Type#TRANSACTION_COMPLETE} event in the room. No configuration (v1: any complete
- * event fires it; the engine already routes by trigger type).
- */
+/** Matches successful transactions for selected contracts. */
 public class WiredTriggerTransactionComplete extends InteractionWiredTrigger {
+    private com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources sources = new com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources();
+    private java.util.List<Integer> contractIds = new java.util.ArrayList<>();
     public static final WiredTriggerType type = WiredTriggerType.TRANSACTION_COMPLETE;
 
     public WiredTriggerTransactionComplete(ResultSet set, Item baseItem) throws SQLException {
@@ -33,7 +30,7 @@ public class WiredTriggerTransactionComplete extends InteractionWiredTrigger {
 
     @Override
     public boolean matches(HabboItem triggerItem, WiredEvent event) {
-        return true;
+        return sources.matches(triggerItem, event, contractIds);
     }
 
     @Deprecated
@@ -51,10 +48,11 @@ public class WiredTriggerTransactionComplete extends InteractionWiredTrigger {
     public void serializeWiredData(ServerMessage message, Room room) {
         message.appendBoolean(false);
         message.appendInt(WiredManager.MAXIMUM_FURNI_SELECTION);
-        message.appendInt(0);
+        message.appendInt(contractIds.size());
+        for (int id : contractIds) message.appendInt(id);
         message.appendInt(this.getBaseItem().getSpriteId());
         message.appendInt(this.getId());
-        message.appendString("");
+        message.appendString(sources.json());
         message.appendInt(0);
         message.appendInt(0);
         message.appendInt(type.code);
@@ -64,24 +62,35 @@ public class WiredTriggerTransactionComplete extends InteractionWiredTrigger {
 
     @Override
     public boolean saveData(WiredSettings settings) {
+        sources = com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources.read(settings.getStringParam());
+        contractIds = settings.getFurniIds() == null ? new java.util.ArrayList<>() : java.util.Arrays.stream(settings.getFurniIds()).distinct().boxed().toList();
         return true;
     }
 
     @Override
     public String getWiredData() {
-        return "";
+        return WiredManager.getGson().toJson(new JsonData(contractIds, sources));
     }
 
     @Override
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
+        onPickUp(); String value = set.getString("wired_data");
+        if (value != null && value.startsWith("{")) {
+            JsonData data = WiredManager.getGson().fromJson(value, JsonData.class);
+            if (data != null) { contractIds = data.ids == null ? new java.util.ArrayList<>() : data.ids; sources = data.sources == null ? new com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources() : com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources.read(WiredManager.getGson().toJson(data.sources)); }
+        } else if (value != null && value.startsWith("[")) {
+            int[] ids = WiredManager.getGson().fromJson(value, int[].class);
+            if (ids != null) contractIds = java.util.Arrays.stream(ids).distinct().boxed().toList();
+        }
     }
 
     @Override
-    public void onPickUp() {
-    }
+    public void onPickUp() { sources = new com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources(); contractIds = new java.util.ArrayList<>(); }
 
     @Override
     public boolean isTriggeredByRoomUnit() {
         return false;
     }
+    private record JsonData(java.util.List<Integer> ids, com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources sources) {}
+
 }

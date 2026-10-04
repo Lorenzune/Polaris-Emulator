@@ -17,12 +17,7 @@ import com.eu.habbo.messages.incoming.wired.WiredSaveException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-/**
- * Cancel Transaction (furni classname {@code wf_act_cancel_transaction}). v1 (outcome-signal model):
- * raises a {@link WiredEvent.Type#TRANSACTION_FAIL} event in the room, firing every
- * {@code wf_trg_transaction_fail} trigger (the "failure/rollback" branch). Pair with
- * {@code wf_act_init_transaction} for the success branch.
- */
+/** Cancels a pending payment or trade for the specified contract, or any pending transaction, without transferring assets. */
 public class WiredEffectCancelTransaction extends InteractionWiredEffect {
     public static final WiredEffectType type = WiredEffectType.CANCEL_TRANSACTION;
 
@@ -34,17 +29,12 @@ public class WiredEffectCancelTransaction extends InteractionWiredEffect {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
+    private int cancelMode;
+    private com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources sources = new com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources();
+    private java.util.List<Integer> contractIds = new java.util.ArrayList<>();
     @Override
     public void execute(WiredContext ctx) {
-        Room room = ctx.room();
-        if (room == null || room.getLayout() == null) return;
-
-        RoomTile tile = room.getLayout().getTile(this.getX(), this.getY());
-        WiredEvent.Builder builder = WiredEvent.builder(WiredEvent.Type.TRANSACTION_FAIL, room).sourceItem(this);
-        if (tile != null) builder.tile(tile);
-        ctx.actor().ifPresent(builder::actor);
-
-        WiredManager.dispatchEffectTriggeredEvent(builder.build());
+        com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredContractTransactions.cancel(ctx, cancelMode, contractIds, sources);
     }
 
     @Deprecated
@@ -60,13 +50,16 @@ public class WiredEffectCancelTransaction extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
+        sources = com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources.read(settings.getStringParam());
+        this.cancelMode = settings.getIntParams().length > 0 && settings.getIntParams()[0] == 1 ? 1 : 0;
+        contractIds = settings.getFurniIds() == null ? new java.util.ArrayList<>() : java.util.Arrays.stream(settings.getFurniIds()).distinct().boxed().toList();
         this.setDelay(settings.getDelay());
         return true;
     }
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(this.getDelay()));
+        return WiredManager.getGson().toJson(new JsonData(this.getDelay(), cancelMode, contractIds, sources));
     }
 
     @Override
@@ -75,19 +68,21 @@ public class WiredEffectCancelTransaction extends InteractionWiredEffect {
         String wiredData = set.getString("wired_data");
         if (wiredData != null && wiredData.startsWith("{")) {
             JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
-            if (data != null) this.setDelay(data.delay);
+            if (data != null) { this.setDelay(data.delay); cancelMode = data.mode; contractIds = data.ids == null ? new java.util.ArrayList<>() : data.ids; sources = data.sources == null ? new com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources() : com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources.read(WiredManager.getGson().toJson(data.sources)); }
         }
     }
 
     @Override
     public void serializeWiredData(ServerMessage message, Room room) {
         message.appendBoolean(false);
-        message.appendInt(0);
-        message.appendInt(0);
+        message.appendInt(WiredManager.MAXIMUM_FURNI_SELECTION);
+        message.appendInt(contractIds.size());
+        for (int id : contractIds) message.appendInt(id);
         message.appendInt(this.getBaseItem().getSpriteId());
         message.appendInt(this.getId());
-        message.appendString("");
-        message.appendInt(0);
+        message.appendString(sources.json());
+        message.appendInt(1);
+        message.appendInt(cancelMode);
         message.appendInt(0);
         message.appendInt(this.getType().code);
         message.appendInt(this.getDelay());
@@ -97,13 +92,16 @@ public class WiredEffectCancelTransaction extends InteractionWiredEffect {
     @Override
     public void onPickUp() {
         this.setDelay(0);
+        sources = new com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources();
+        cancelMode = 0; contractIds = new java.util.ArrayList<>();
     }
 
     static class JsonData {
-        int delay;
+        int delay, mode; java.util.List<Integer> ids;
+        com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources sources;
 
-        public JsonData(int delay) {
-            this.delay = delay;
+        public JsonData(int delay, int mode, java.util.List<Integer> ids, com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources sources) {
+            this.sources = sources; this.delay = delay; this.mode = mode; this.ids = ids;
         }
     }
 }

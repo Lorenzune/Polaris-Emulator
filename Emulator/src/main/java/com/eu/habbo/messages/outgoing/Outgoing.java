@@ -1,6 +1,8 @@
 package com.eu.habbo.messages.outgoing;
 
 public class Outgoing {
+    public static final int WiredQuestStateComposer = 9373;
+    public static final int WiredContractTransactionComposer = 9371;
     public static final int PetStatusUpdateComposer = 1907; // error 404
 
     public static final int CfhTopicsMessageComposer = 325;
@@ -9,6 +11,7 @@ public class Outgoing {
     public static final int ChestLogComposer = 9319;
     public static final int ChestFurniChunkComposer = 9322;
     public static final int ChestFurniDeltaComposer = 9323;
+    public static final int ChestDepositResultComposer = 9343;
     public static final int ChestOpenComposer = 9327;
     public static final int ChestRoomLogComposer = 9340;
     public static final int RoomVoiceSignalComposer = 9346;
@@ -134,6 +137,7 @@ public class Outgoing {
     public static final int HallOfFameComposer = 3005; // PRODUCTION-201611291003-338511768
     public static final int WiredSavedComposer = 1155; // PRODUCTION-201611291003-338511768
     public static final int WiredMonitorDataComposer = 5101; // CUSTOM
+    public static final int WiredClickSettingsComposer = 5113; // CUSTOM, room-scoped click configuration
     public static final int WiredRoomSettingsDataComposer = 5102; // CUSTOM
     public static final int WiredUserVariablesDataComposer = 5103; // CUSTOM
     public static final int WiredAccountPreferencesDataComposer = 5111; // CUSTOM

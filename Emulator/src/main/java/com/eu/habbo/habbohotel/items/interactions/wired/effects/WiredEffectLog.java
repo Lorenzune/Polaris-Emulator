@@ -9,9 +9,14 @@ import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.wired.WiredEffectType;
+import com.eu.habbo.habbohotel.wired.WiredTriggerType;
+import com.eu.habbo.habbohotel.wired.core.DefaultWiredServices;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
+import com.eu.habbo.habbohotel.wired.core.WiredState;
+import com.eu.habbo.habbohotel.wired.core.WiredTextPlaceholderUtil;
+import com.eu.habbo.habbohotel.wired.migrate.WiredEvents;
 import com.eu.habbo.messages.ServerMessage;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -88,13 +93,24 @@ public class WiredEffectLog extends InteractionWiredEffect {
 
     @Override
     public void execute(WiredContext ctx) {
-        LOGGER.info("[WiredLog room {}] {}", ctx.room().getId(), this.message);
+        String resolvedMessage = WiredTextPlaceholderUtil.applyUsernamePlaceholders(ctx, this.message);
+        LOGGER.info("[WiredLog room {}] {}", ctx.room().getId(), resolvedMessage);
+        WiredManager.recordWiredLog(
+                ctx.room().getId(),
+                getId(),
+                resolvedMessage,
+                com.eu.habbo.habbohotel.wired.core.WiredRoomDiagnostics.Severity.INFO);
     }
 
     @Override
     @Deprecated
     public boolean execute(RoomUnit roomUnit, Room room, Object[] stuff) {
-        return false;
+        execute(new WiredContext(
+                WiredEvents.fromLegacy(WiredTriggerType.CUSTOM, room, roomUnit, stuff),
+                this,
+                DefaultWiredServices.getInstance(),
+                new WiredState(1000)));
+        return true;
     }
 
     @Override

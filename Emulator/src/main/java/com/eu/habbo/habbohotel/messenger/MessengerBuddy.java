@@ -42,7 +42,7 @@ public class MessengerBuddy implements Runnable, ISerialize {
             this.userOne = set.getInt("user_one_id");
             this.inRoom = false;
             if (this.online == 1) {
-                Habbo habbo = Emulator.getGameServer().getGameClientManager().getHabbo(this.username);
+                Habbo habbo = gameServer().getGameClientManager().getHabbo(this.username);
 
                 if (habbo != null) {
                     this.inRoom = habbo.getHabboInfo().getCurrentRoom() != null;
@@ -110,7 +110,7 @@ public class MessengerBuddy implements Runnable, ISerialize {
     }
 
     public int getOnline() {
-        Habbo habbo = Emulator.getGameServer().getGameClientManager().getHabbo(this.id);
+        Habbo habbo = gameServer().getGameClientManager().getHabbo(this.id);
 
         return habbo != null && habbo.getHabboInfo().isOnline() ? 1 : this.online;
     }
@@ -120,7 +120,7 @@ public class MessengerBuddy implements Runnable, ISerialize {
     }
 
     public boolean isVisibleOnline() {
-        Habbo habbo = Emulator.getGameServer().getGameClientManager().getHabbo(this.id);
+        Habbo habbo = gameServer().getGameClientManager().getHabbo(this.id);
 
         return this.getOnline() == 1 && (habbo == null || !habbo.getHabboStats().hideOnline);
     }
@@ -151,7 +151,7 @@ public class MessengerBuddy implements Runnable, ISerialize {
     public void setCategoryId(int categoryId) { this.categoryId = categoryId; }
 
     public boolean inRoom() {
-        Habbo habbo = Emulator.getGameServer().getGameClientManager().getHabbo(this.id);
+        Habbo habbo = gameServer().getGameClientManager().getHabbo(this.id);
 
         if (habbo != null) {
             return habbo.getHabboInfo().getCurrentRoom() != null;
@@ -165,7 +165,9 @@ public class MessengerBuddy implements Runnable, ISerialize {
     }
 
     public boolean isVisibleInRoom() {
-        return this.isVisibleOnline() && this.inRoom();
+        Habbo habbo = gameServer().getGameClientManager().getHabbo(this.id);
+        return this.isVisibleOnline() && this.inRoom()
+                && (habbo == null || !habbo.getHabboStats().blockFollowing);
     }
 
     @Override
@@ -186,7 +188,7 @@ public class MessengerBuddy implements Runnable, ISerialize {
     }
 
     public boolean onMessageReceivedWithDeliveryStatus(Habbo from, String message) {
-        Habbo habbo = Emulator.getGameServer().getGameClientManager().getHabbo(this.id);
+        Habbo habbo = gameServer().getGameClientManager().getHabbo(this.id);
 
         Message chatMessage = new Message(from.getHabboInfo().getId(), this.id, message);
 
@@ -240,4 +242,6 @@ public class MessengerBuddy implements Runnable, ISerialize {
         message.appendBoolean(false);
         message.appendShort(this.relation);
     }
+
+    private static com.eu.habbo.networking.gameserver.GameServer gameServer() { return Emulator.getGameServer(); }
 }

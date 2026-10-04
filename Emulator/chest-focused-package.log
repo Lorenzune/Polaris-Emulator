@@ -1,0 +1,324 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------< com.eu.habbo:Polaris >------------------------
+[INFO] Building Polaris 4.2.67
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- enforcer:3.6.3:enforce (enforce-build-environment) @ Polaris ---
+[INFO] Rule 0: org.apache.maven.enforcer.rules.version.RequireJavaVersion passed
+[INFO] Rule 1: org.apache.maven.enforcer.rules.version.RequireMavenVersion passed
+[INFO] Rule 2: org.apache.maven.enforcer.rules.dependency.DependencyConvergence passed
+[INFO] Rule 3: org.apache.maven.enforcer.rules.RequirePluginVersions passed
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ Polaris ---
+[INFO] Copying 155 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.16.0:compile (default-compile) @ Polaris ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 2893 source files with javac [debug parameters release 25] to target\classes
+[INFO] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/main/java/com/eu/habbo/Emulator.java: Some input files use or override a deprecated API.
+[INFO] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/main/java/com/eu/habbo/Emulator.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ Polaris ---
+[INFO] Copying 28 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.16.0:testCompile (default-testCompile) @ Polaris ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 491 source files with javac [debug parameters release 25] to target\test-classes
+[INFO] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/test/java/com/eu/habbo/PolarisRuntimeTest.java: Some input files use or override a deprecated API.
+[INFO] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/test/java/com/eu/habbo/PolarisRuntimeTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/test/java/com/eu/habbo/habbohotel/wired/core/WiredDelayedLifecycleCompatibilityTest.java: Some input files use unchecked or unsafe operations.
+[INFO] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/test/java/com/eu/habbo/habbohotel/wired/core/WiredDelayedLifecycleCompatibilityTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.6.0:test (default-test) @ Polaris ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestIntegrationTest
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\Users\Loren\.m2\repository\net\bytebuddy\byte-buddy-agent\1.17.7\byte-buddy-agent-1.17.7.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.641 s -- in com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestIntegrationTest
+[INFO] Running com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorageSecurityTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.022 s -- in com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorageSecurityTest
+[INFO] Running com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorageWireTypeTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s -- in com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorageWireTypeTest
+[INFO] Running com.eu.habbo.habbohotel.items.interactions.wired.WiredPersistenceCompatibilityTest
+07:03:48.239 WARN  [main        ] WiredCompatibilityD... | WIRED compatibility fallback point=CHEST_STORAGE_NUMERIC_FIELD room=0 item=0 error=JsonSyntaxException outcome=legacy_fallback
+07:03:48.310 WARN  [main        ] WiredCompatibilityD... | WIRED compatibility fallback point=CONDITION_FURNI_TYPE_ID room=0 item=4242 error=NumberFormatException outcome=legacy_fallback
+07:03:48.361 ERROR [main        ] WiredConditionHasVa... | Failed to load wired variable condition data for item 4242
+com.google.gson.JsonSyntaxException: java.io.EOFException: End of input at line 1 column 8 path $.broken
+	at com.google.gson.Gson.fromJson(Gson.java:1101)
+	at com.google.gson.Gson.fromJson(Gson.java:981)
+	at com.google.gson.Gson.fromJson(Gson.java:891)
+	at com.google.gson.Gson.fromJson(Gson.java:828)
+	at com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionHasVariable.loadWiredData(WiredConditionHasVariable.java:222)
+	at com.eu.habbo.habbohotel.items.interactions.wired.WiredPersistenceCompatibilityTest.outcome(WiredPersistenceCompatibilityTest.java:153)
+	at com.eu.habbo.habbohotel.items.interactions.wired.WiredPersistenceCompatibilityTest.snapshot(WiredPersistenceCompatibilityTest.java:129)
+	at com.eu.habbo.habbohotel.items.interactions.wired.WiredPersistenceCompatibilityTest.registeredWiredPersistenceBehaviorStaysStable(WiredPersistenceCompatibilityTest.java:60)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:700)
+	at org.junit.platform.commons.support.ReflectionSupport.invokeMethod(ReflectionSupport.java:528)
+	at org.junit.jupiter.engine.support.MethodReflectionUtils.invoke(MethodReflectionUtils.java:53)
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:61)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:124)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:163)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:148)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:86)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:124)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:105)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:99)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:66)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:47)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:39)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:104)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:98)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invokeVoid(InterceptingExecutableInvoker.java:71)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$0(TestMethodTestDescriptor.java:219)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:215)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:157)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:70)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$2(NodeTestTask.java:176)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$1(NodeTestTask.java:166)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:139)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$0(NodeTestTask.java:164)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:163)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:116)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:42)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$2(NodeTestTask.java:180)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$1(NodeTestTask.java:166)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:139)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$0(NodeTestTask.java:164)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:163)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:116)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:42)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$2(NodeTestTask.java:180)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$1(NodeTestTask.java:166)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:139)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$0(NodeTestTask.java:164)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:163)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:116)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:36)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:52)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:58)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.executeEngine(EngineExecutionOrchestrator.java:256)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.failOrExecuteEngine(EngineExecutionOrchestrator.java:228)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:189)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:109)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:66)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:168)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:65)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:137)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:126)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:71)
+	at org.junit.platform.launcher.core.InterceptingLauncher.lambda$execute$2(InterceptingLauncher.java:66)
+	at org.junit.platform.launcher.core.ClasspathAlignmentCheckingLauncherInterceptor.intercept(ClasspathAlignmentCheckingLauncherInterceptor.java:25)
+	at org.junit.platform.launcher.core.InterceptingLauncher.execute(InterceptingLauncher.java:65)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:71)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.apache.maven.surefire.api.util.ReflectionUtils.invokeMethodWithArray(ReflectionUtils.java:125)
+	at org.apache.maven.surefire.junitplatform.LauncherAdapter.executeWithCancellationToken(LauncherAdapter.java:68)
+	at org.apache.maven.surefire.junitplatform.LauncherAdapter.execute(LauncherAdapter.java:54)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:283)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:253)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:221)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:394)
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:181)
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:530)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:518)
+Caused by: java.io.EOFException: End of input at line 1 column 8 path $.broken
+	at com.google.gson.stream.JsonReader.nextNonWhitespace(JsonReader.java:1605)
+	at com.google.gson.stream.JsonReader.doPeek(JsonReader.java:646)
+	at com.google.gson.stream.JsonReader.skipValue(JsonReader.java:1396)
+	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$Adapter.read(ReflectiveTypeAdapterFactory.java:515)
+	at com.google.gson.Gson.fromJson(Gson.java:1080)
+	... 88 common frames omitted
+07:03:48.392 ERROR [main        ] WiredConditionHasVa... | Failed to load wired variable condition data for item 4242
+com.google.gson.JsonSyntaxException: java.io.EOFException: End of input at line 1 column 8 path $.broken
+	at com.google.gson.Gson.fromJson(Gson.java:1101)
+	at com.google.gson.Gson.fromJson(Gson.java:981)
+	at com.google.gson.Gson.fromJson(Gson.java:891)
+	at com.google.gson.Gson.fromJson(Gson.java:828)
+	at com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionHasVariable.loadWiredData(WiredConditionHasVariable.java:222)
+	at com.eu.habbo.habbohotel.items.interactions.wired.WiredPersistenceCompatibilityTest.outcome(WiredPersistenceCompatibilityTest.java:153)
+	at com.eu.habbo.habbohotel.items.interactions.wired.WiredPersistenceCompatibilityTest.snapshot(WiredPersistenceCompatibilityTest.java:129)
+	at com.eu.habbo.habbohotel.items.interactions.wired.WiredPersistenceCompatibilityTest.registeredWiredPersistenceBehaviorStaysStable(WiredPersistenceCompatibilityTest.java:60)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:700)
+	at org.junit.platform.commons.support.ReflectionSupport.invokeMethod(ReflectionSupport.java:528)
+	at org.junit.jupiter.engine.support.MethodReflectionUtils.invoke(MethodReflectionUtils.java:53)
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:61)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:124)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:163)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:148)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:86)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:124)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:105)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:99)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:66)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:47)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:39)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:104)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:98)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invokeVoid(InterceptingExecutableInvoker.java:71)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$0(TestMethodTestDescriptor.java:219)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:215)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:157)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:70)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$2(NodeTestTask.java:176)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$1(NodeTestTask.java:166)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:139)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$0(NodeTestTask.java:164)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:163)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:116)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:42)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$2(NodeTestTask.java:180)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$1(NodeTestTask.java:166)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:139)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$0(NodeTestTask.java:164)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:163)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:116)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:42)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$2(NodeTestTask.java:180)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$1(NodeTestTask.java:166)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:139)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$0(NodeTestTask.java:164)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:163)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:116)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:36)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:52)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:58)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.executeEngine(EngineExecutionOrchestrator.java:256)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.failOrExecuteEngine(EngineExecutionOrchestrator.java:228)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:189)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:109)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:66)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:168)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:65)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:137)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:126)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:71)
+	at org.junit.platform.launcher.core.InterceptingLauncher.lambda$execute$2(InterceptingLauncher.java:66)
+	at org.junit.platform.launcher.core.ClasspathAlignmentCheckingLauncherInterceptor.intercept(ClasspathAlignmentCheckingLauncherInterceptor.java:25)
+	at org.junit.platform.launcher.core.InterceptingLauncher.execute(InterceptingLauncher.java:65)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:71)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.apache.maven.surefire.api.util.ReflectionUtils.invokeMethodWithArray(ReflectionUtils.java:125)
+	at org.apache.maven.surefire.junitplatform.LauncherAdapter.executeWithCancellationToken(LauncherAdapter.java:68)
+	at org.apache.maven.surefire.junitplatform.LauncherAdapter.execute(LauncherAdapter.java:54)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:283)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:253)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:221)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:394)
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:181)
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:530)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:518)
+Caused by: java.io.EOFException: End of input at line 1 column 8 path $.broken
+	at com.google.gson.stream.JsonReader.nextNonWhitespace(JsonReader.java:1605)
+	at com.google.gson.stream.JsonReader.doPeek(JsonReader.java:646)
+	at com.google.gson.stream.JsonReader.skipValue(JsonReader.java:1396)
+	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$Adapter.read(ReflectiveTypeAdapterFactory.java:515)
+	at com.google.gson.Gson.fromJson(Gson.java:1080)
+	... 88 common frames omitted
+07:03:48.402 WARN  [main        ] WiredCompatibilityD... | WIRED compatibility fallback point=CONDITION_FURNI_INPUT_ID room=0 item=0 error=NumberFormatException outcome=legacy_fallback
+07:03:48.482 WARN  [main        ] WiredCompatibilityD... | WIRED compatibility fallback point=EFFECT_GIVE_EFFECT room=0 item=0 error=JsonSyntaxException outcome=legacy_fallback
+07:03:48.497 WARN  [main        ] WiredCompatibilityD... | WIRED compatibility fallback point=EFFECT_GIVE_VARIABLE_LEGACY room=0 item=4242 error=NumberFormatException outcome=legacy_fallback
+07:03:48.529 WARN  [main        ] WiredCompatibilityD... | WIRED compatibility fallback point=EFFECT_LOG_LEGACY room=0 item=0 error=JsonSyntaxException outcome=legacy_fallback
+07:03:48.540 WARN  [main        ] WiredCompatibilityD... | WIRED compatibility fallback point=EFFECT_REMOVE_VARIABLE_LEGACY room=0 item=4242 error=NumberFormatException outcome=legacy_fallback
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.714 s -- in com.eu.habbo.habbohotel.items.interactions.wired.WiredPersistenceCompatibilityTest
+[INFO] Running com.eu.habbo.habbohotel.rooms.RoomFacadeArchitectureTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in com.eu.habbo.habbohotel.rooms.RoomFacadeArchitectureTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 23, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.5.1:jar (default-jar) @ Polaris ---
+[INFO] Building jar: D:\ducket\Arcturus-Morningstar-Extended\Emulator\target\Polaris-4.2.67.jar
+[INFO] 
+[INFO] --- shade:3.6.2:shade (make-assembly) @ Polaris ---
+[WARNING] Discovered module-info.class. Shading will break its strong encapsulation.
+[WARNING] Discovered module-info.class. Shading will break its strong encapsulation.
+[WARNING] Discovered module-info.class. Shading will break its strong encapsulation.
+[WARNING] Discovered module-info.class. Shading will break its strong encapsulation.
+[WARNING] Discovered module-info.class. Shading will break its strong encapsulation.
+[WARNING] Discovered module-info.class. Shading will break its strong encapsulation.
+[WARNING] Discovered module-info.class. Shading will break its strong encapsulation.
+[WARNING] Discovered module-info.class. Shading will break its strong encapsulation.
+[WARNING] Discovered module-info.class. Shading will break its strong encapsulation.
+[WARNING] Discovered module-info.class. Shading will break its strong encapsulation.
+[WARNING] Discovered module-info.class. Shading will break its strong encapsulation.
+[WARNING] Discovered module-info.class. Shading will break its strong encapsulation.
+[WARNING] netty-buffer-4.2.18.Final.jar, netty-codec-base-4.2.18.Final.jar, netty-codec-compression-4.2.18.Final.jar, netty-codec-http-4.2.18.Final.jar, netty-common-4.2.18.Final.jar, netty-handler-4.2.18.Final.jar, netty-resolver-4.2.18.Final.jar, netty-transport-4.2.18.Final.jar, netty-transport-native-unix-common-4.2.18.Final.jar define 1 overlapping resource: 
+[WARNING]   - META-INF/io.netty.versions.properties
+[WARNING] angus-activation-2.0.3.jar, jakarta.activation-api-2.1.4.jar, jakarta.mail-2.0.5.jar define 2 overlapping resources: 
+[WARNING]   - META-INF/LICENSE.md
+[WARNING]   - META-INF/NOTICE.md
+[WARNING] commons-lang3-3.20.0.jar, commons-math3-3.6.1.jar define 1 overlapping resource: 
+[WARNING]   - META-INF/NOTICE.txt
+[WARNING] commons-lang3-3.20.0.jar, error_prone_annotations-2.50.0.jar, gson-2.14.0.jar, jansi-2.4.3.jar, jspecify-1.0.0.jar, mariadb-java-client-3.5.10.jar, slf4j-api-2.0.19.jar define 1 overlapping classes: 
+[WARNING]   - META-INF.versions.9.module-info
+[WARNING] caffeine-3.2.4.jar, classmate-1.7.1.jar, jackson-annotations-2.22.jar define 1 overlapping resource: 
+[WARNING]   - META-INF/LICENSE
+[WARNING] classmate-1.7.1.jar, jackson-annotations-2.22.jar define 1 overlapping resource: 
+[WARNING]   - META-INF/NOTICE
+[WARNING] jsoup-1.23.2.jar, netty-buffer-4.2.18.Final.jar, netty-codec-base-4.2.18.Final.jar, netty-codec-compression-4.2.18.Final.jar, netty-codec-http-4.2.18.Final.jar, netty-common-4.2.18.Final.jar, netty-handler-4.2.18.Final.jar, netty-resolver-4.2.18.Final.jar, netty-transport-4.2.18.Final.jar, netty-transport-native-unix-common-4.2.18.Final.jar define 1 overlapping classes: 
+[WARNING]   - META-INF.versions.11.module-info
+[WARNING] HikariCP-7.1.0.jar, Polaris-4.2.67.jar, angus-activation-2.0.3.jar, bcrypt-0.10.2.jar, bytes-1.5.0.jar, caffeine-3.2.4.jar, classmate-1.7.1.jar, commons-lang3-3.20.0.jar, commons-math3-3.6.1.jar, error_prone_annotations-2.50.0.jar, fastutil-8.5.19.jar, flyway-core-13.6.0.jar, flyway-mysql-13.6.0.jar, gson-2.14.0.jar, hibernate-validator-9.1.3.Final.jar, jackson-annotations-2.22.jar, jakarta.activation-api-2.1.4.jar, jakarta.mail-2.0.5.jar, jakarta.validation-api-3.1.1.jar, jansi-2.4.3.jar, jboss-logging-3.6.3.Final.jar, jsoup-1.23.2.jar, jspecify-1.0.0.jar, logback-classic-1.6.3.jar, logback-core-1.6.3.jar, mariadb-java-client-3.5.10.jar, netty-buffer-4.2.18.Final.jar, netty-codec-base-4.2.18.Final.jar, netty-codec-compression-4.2.18.Final.jar, netty-codec-http-4.2.18.Final.jar, netty-common-4.2.18.Final.jar, netty-handler-4.2.18.Final.jar, netty-resolver-4.2.18.Final.jar, netty-transport-4.2.18.Final.jar, netty-transport-native-unix-common-4.2.18.Final.jar, resilience4j-circuitbreaker-2.4.0.jar, resilience4j-core-2.4.0.jar, resilience4j-ratelimiter-2.4.0.jar, slf4j-api-2.0.19.jar define 1 overlapping resource: 
+[WARNING]   - META-INF/MANIFEST.MF
+[WARNING] resilience4j-circuitbreaker-2.4.0.jar, resilience4j-core-2.4.0.jar, resilience4j-ratelimiter-2.4.0.jar define 2 overlapping resources: 
+[WARNING]   - COPYRIGHT.txt
+[WARNING]   - LICENSE.txt
+[WARNING] commons-lang3-3.20.0.jar, commons-math3-3.6.1.jar, flyway-core-13.6.0.jar, slf4j-api-2.0.19.jar define 1 overlapping resource: 
+[WARNING]   - META-INF/LICENSE.txt
+[WARNING] maven-shade-plugin has detected that some files are
+[WARNING] present in two or more JARs. When this happens, only one
+[WARNING] single version of the file is copied to the uber jar.
+[WARNING] Usually this is not harmful and you can skip these warnings,
+[WARNING] otherwise try to manually exclude artifacts based on
+[WARNING] mvn dependency:tree -Ddetail=true and the above output.
+[WARNING] See https://maven.apache.org/plugins/maven-shade-plugin/
+[INFO] Attaching shaded artifact.
+[INFO] 
+[INFO] --- cyclonedx:2.9.3:makeBom (make-cyclonedx-sbom) @ Polaris ---
+[INFO] CycloneDX: Resolving Dependencies
+[INFO] CycloneDX: Creating BOM version 1.6 with 40 component(s)
+[INFO] CycloneDX: Writing and validating BOM (JSON): D:\ducket\Arcturus-Morningstar-Extended\Emulator\target\Polaris-4.2.67-sbom.json
+[WARNING] Unknown keyword meta:enum - you should define your own Meta Schema. If the keyword is irrelevant for validation, just use a NonValidationKeyword or if it should generate annotations AnnotationKeyword
+[WARNING] Unknown keyword deprecated - you should define your own Meta Schema. If the keyword is irrelevant for validation, just use a NonValidationKeyword or if it should generate annotations AnnotationKeyword
+[INFO]            attaching as Polaris-4.2.67-cyclonedx.json
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  45.737 s
+[INFO] Finished at: 2026-10-02T07:03:59+02:00
+[INFO] ------------------------------------------------------------------------

@@ -1092,7 +1092,7 @@ public final class WiredEngine {
         debug(room, "RECURSION LIMIT REACHED - aborting to prevent crash");
     }
 
-    private WiredRoomDiagnostics getDiagnostics(int roomId) {
+    public WiredRoomDiagnostics getDiagnostics(int roomId) {
         return this.executionGuard.diagnostics(roomId);
     }
 

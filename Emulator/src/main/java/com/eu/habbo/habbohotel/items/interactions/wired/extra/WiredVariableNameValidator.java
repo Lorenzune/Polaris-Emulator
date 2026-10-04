@@ -76,6 +76,10 @@ final class WiredVariableNameValidator {
     }
 
     private static String getDefinitionName(InteractionWiredExtra extra) {
+        if (extra instanceof WiredExtraQuestBase quest && quest.isNativeConfiguration()) {
+            return quest.getVariableName();
+        }
+
         if (extra instanceof WiredExtraUserVariable) {
             return ((WiredExtraUserVariable) extra).getVariableName();
         }

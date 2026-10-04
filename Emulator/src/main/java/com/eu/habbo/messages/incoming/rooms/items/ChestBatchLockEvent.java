@@ -28,7 +28,6 @@ public class ChestBatchLockEvent extends MessageHandler {
         boolean lock = this.packet.readBoolean();
         boolean allChests = this.packet.readBoolean();
 
-        if (!room.hasRights(habbo)) return;
 
         boolean isRoomOwnerOrStaff = habbo.hasPermission("acc_anyroomowner") || room.getOwnerId() == habbo.getHabboInfo().getId();
         if (allChests && !isRoomOwnerOrStaff) {
@@ -42,7 +41,7 @@ public class ChestBatchLockEvent extends MessageHandler {
                 if (allChests || chest.getUserId() == userId) {
                     ChestStorage contents = chest.getContents();
                     contents.setLocked(lock);
-                    chest.persistContents();
+                    chest.persistContents(room);
                 }
             }
         }

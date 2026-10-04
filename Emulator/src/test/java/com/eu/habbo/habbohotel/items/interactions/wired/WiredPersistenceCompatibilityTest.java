@@ -30,6 +30,10 @@ import org.mockito.Answers;
  * synthetic compatibility matrix, not a replacement for the sanitized real-hotel corpus required
  * by the modernization exit gate.
  *
+ * <p>Review 2026-10-02: wf_act_click_conf now registers WiredActionClickSettings (previously
+ * incorrectly mapped to the user-click trigger). Only the newly registered action is added
+ * to this matrix; existing loader behavior remains unchanged.
+ *
  * <p>Regeneration is an explicit review action:
  *
  * <pre>
@@ -73,7 +77,7 @@ class WiredPersistenceCompatibilityTest {
     @Test
     void matrixCoversEveryRegisteredInteractionWiredClass() throws Exception {
         Set<Class<? extends InteractionWired>> types = WiredInteractionRegistryFixture.wiredTypes();
-        assertEquals(252, types.size(), "Review every added or removed registered wired persistence type");
+        assertEquals(253, types.size(), "Review every added or removed registered wired persistence type");
     }
 
     @Test

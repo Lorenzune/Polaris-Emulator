@@ -103,6 +103,7 @@ public class RoomUserVariableManager {
     }
 
     public boolean assignVariable(Habbo habbo, int definitionItemId, Integer value, boolean overrideExisting) {
+        if (this.getDefinitionExtra(definitionItemId) instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraQuestBase quest && quest.isNativeConfiguration()) { return com.eu.habbo.habbohotel.quests.QuestManager.getInstance().mutate(habbo, quest, "give", value, overrideExisting); }
         if (habbo == null || definitionItemId <= 0) {
             return false;
         }
@@ -119,6 +120,8 @@ public class RoomUserVariableManager {
         boolean hadBefore = this.hasVariable(userId, definitionItemId);
         Integer previousValue =
                 (definitionInfo.hasValue() && hadBefore) ? this.getCurrentValue(userId, definitionItemId) : null;
+        int previousCreatedAt = this.getCreatedAt(userId, definitionItemId);
+        int previousUpdatedAt = this.getUpdatedAt(userId, definitionItemId);
 
         if (extra instanceof WiredExtraVariableReference) {
             boolean changed = WiredVariableReferenceSupport.assignSharedUserVariable(
@@ -134,7 +137,7 @@ public class RoomUserVariableManager {
                 Integer currentValue =
                         (definitionInfo.hasValue() && hasAfter) ? this.getCurrentValue(userId, definitionItemId) : null;
                 this.emitVariableChangedEvents(
-                        userId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
+                        userId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue, previousCreatedAt, previousUpdatedAt);
             }
 
             if (changed) {
@@ -158,7 +161,7 @@ public class RoomUserVariableManager {
                 Integer currentValue =
                         (definitionInfo.hasValue() && hasAfter) ? this.getCurrentValue(userId, definitionItemId) : null;
                 this.emitVariableChangedEvents(
-                        userId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
+                        userId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue, previousCreatedAt, previousUpdatedAt);
             }
 
             if (changed) {
@@ -222,7 +225,7 @@ public class RoomUserVariableManager {
             Integer currentValue =
                     (definitionInfo.hasValue() && hasAfter) ? this.getCurrentValue(userId, definitionItemId) : null;
             this.emitVariableChangedEvents(
-                    userId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
+                    userId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue, previousCreatedAt, previousUpdatedAt);
         }
 
         if (changed) {
@@ -236,6 +239,7 @@ public class RoomUserVariableManager {
     }
 
     public boolean updateVariableValue(int userId, int definitionItemId, Integer value) {
+        if (this.getDefinitionExtra(definitionItemId) instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraQuestBase quest && quest.isNativeConfiguration()) { return com.eu.habbo.habbohotel.quests.QuestManager.getInstance().mutate(this.room.getHabbo(userId), quest, "change", value, true); }
         if (userId <= 0 || definitionItemId <= 0) {
             return false;
         }
@@ -249,6 +253,8 @@ public class RoomUserVariableManager {
 
         boolean hadBefore = this.hasVariable(userId, definitionItemId);
         Integer previousValue = hadBefore ? this.getCurrentValue(userId, definitionItemId) : null;
+        int previousCreatedAt = this.getCreatedAt(userId, definitionItemId);
+        int previousUpdatedAt = this.getUpdatedAt(userId, definitionItemId);
 
         if (extra instanceof WiredExtraVariableReference) {
             boolean changed = WiredVariableReferenceSupport.updateSharedUserVariable(
@@ -259,7 +265,7 @@ public class RoomUserVariableManager {
                 boolean hasAfter = this.hasVariable(userId, definitionItemId);
                 Integer currentValue = hasAfter ? this.getCurrentValue(userId, definitionItemId) : null;
                 this.emitVariableChangedEvents(
-                        userId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
+                        userId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue, previousCreatedAt, previousUpdatedAt);
             }
 
             if (changed) {
@@ -280,7 +286,7 @@ public class RoomUserVariableManager {
                 boolean hasAfter = this.hasVariable(userId, definitionItemId);
                 Integer currentValue = hasAfter ? this.getCurrentValue(userId, definitionItemId) : null;
                 this.emitVariableChangedEvents(
-                        userId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
+                        userId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue, previousCreatedAt, previousUpdatedAt);
             }
 
             if (changed) {
@@ -308,7 +314,7 @@ public class RoomUserVariableManager {
         Integer normalizedValue = value;
         if (Objects.equals(assignment.getValue(), normalizedValue)) {
             this.emitVariableChangedEvents(
-                    userId, extra, definitionInfo, true, previousValue, true, assignment.getValue());
+                    userId, extra, definitionInfo, true, previousValue, true, assignment.getValue(), previousCreatedAt, previousUpdatedAt);
             return false;
         }
 
@@ -331,12 +337,13 @@ public class RoomUserVariableManager {
         }
 
         this.emitVariableChangedEvents(
-                userId, extra, definitionInfo, hadBefore, previousValue, true, assignment.getValue());
+                userId, extra, definitionInfo, hadBefore, previousValue, true, assignment.getValue(), previousCreatedAt, previousUpdatedAt);
         this.broadcastSnapshot();
         return true;
     }
 
     public int getCurrentValue(int userId, int definitionItemId) {
+        if (this.getDefinitionExtra(definitionItemId) instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraQuestBase quest && quest.isNativeConfiguration()) { return getQuestProgress(userId, quest).value; }
         if (userId <= 0 || definitionItemId <= 0) {
             return 0;
         }
@@ -347,7 +354,7 @@ public class RoomUserVariableManager {
         if (derivedDefinition != null) {
             Integer baseValue = this.getRawValue(userId, derivedDefinition.getBaseDefinitionItemId());
             Integer derivedValue = WiredVariableLevelSystemSupport.getDerivedValue(
-                    derivedDefinition.getLevelSystem(), derivedDefinition.getSubvariableType(), baseValue);
+                    derivedDefinition.getLevelSystem(), derivedDefinition.getSubvariableType(), baseValue, this.getCreatedAt(userId, derivedDefinition.getBaseDefinitionItemId()), this.getUpdatedAt(userId, derivedDefinition.getBaseDefinitionItemId()));
             return (derivedValue != null) ? derivedValue : 0;
         }
 
@@ -378,6 +385,7 @@ public class RoomUserVariableManager {
     }
 
     public int getCreatedAt(int userId, int definitionItemId) {
+        if (this.getDefinitionExtra(definitionItemId) instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraQuestBase quest && quest.isNativeConfiguration()) { return getQuestProgress(userId, quest).createdAt; }
         if (userId <= 0 || definitionItemId <= 0) {
             return 0;
         }
@@ -412,6 +420,7 @@ public class RoomUserVariableManager {
     }
 
     public int getUpdatedAt(int userId, int definitionItemId) {
+        if (this.getDefinitionExtra(definitionItemId) instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraQuestBase quest && quest.isNativeConfiguration()) { return getQuestProgress(userId, quest).updatedAt; }
         if (userId <= 0 || definitionItemId <= 0) {
             return 0;
         }
@@ -446,6 +455,7 @@ public class RoomUserVariableManager {
     }
 
     public boolean hasVariable(int userId, int definitionItemId) {
+        if (this.getDefinitionExtra(definitionItemId) instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraQuestBase quest && quest.isNativeConfiguration()) { return getQuestProgress(userId, quest).active; }
         if (userId <= 0 || definitionItemId <= 0) {
             return false;
         }
@@ -473,6 +483,7 @@ public class RoomUserVariableManager {
     }
 
     public boolean removeVariable(int userId, int definitionItemId) {
+        if (this.getDefinitionExtra(definitionItemId) instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraQuestBase quest && quest.isNativeConfiguration()) { return com.eu.habbo.habbohotel.quests.QuestManager.getInstance().mutate(this.room.getHabbo(userId), quest, "remove", 0, true); }
         if (userId <= 0 || definitionItemId <= 0) {
             return false;
         }
@@ -485,6 +496,8 @@ public class RoomUserVariableManager {
         boolean hadBefore = this.hasVariable(userId, definitionItemId);
         Integer previousValue =
                 (definitionInfo.hasValue() && hadBefore) ? this.getCurrentValue(userId, definitionItemId) : null;
+        int previousCreatedAt = this.getCreatedAt(userId, definitionItemId);
+        int previousUpdatedAt = this.getUpdatedAt(userId, definitionItemId);
 
         InteractionWiredExtra extra = this.getDefinitionExtra(definitionItemId);
         if (extra instanceof WiredExtraVariableReference) {
@@ -492,7 +505,7 @@ public class RoomUserVariableManager {
                     WiredVariableReferenceSupport.removeSharedUserVariable((WiredExtraVariableReference) extra, userId);
 
             if (changed) {
-                this.emitVariableChangedEvents(userId, extra, definitionInfo, hadBefore, previousValue, false, null);
+                this.emitVariableChangedEvents(userId, extra, definitionInfo, hadBefore, previousValue, false, null, previousCreatedAt, previousUpdatedAt);
             }
 
             if (changed) {
@@ -510,7 +523,7 @@ public class RoomUserVariableManager {
                 Integer currentValue =
                         (definitionInfo.hasValue() && hasAfter) ? this.getCurrentValue(userId, definitionItemId) : null;
                 this.emitVariableChangedEvents(
-                        userId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue);
+                        userId, extra, definitionInfo, hadBefore, previousValue, hasAfter, currentValue, previousCreatedAt, previousUpdatedAt);
             }
 
             if (changed) {
@@ -541,7 +554,7 @@ public class RoomUserVariableManager {
             WiredVariableReferenceSupport.clearSharedUserAssignment(this.room.getId(), definitionItemId, userId);
         }
 
-        this.emitVariableChangedEvents(userId, extra, definitionInfo, hadBefore, previousValue, false, null);
+        this.emitVariableChangedEvents(userId, extra, definitionInfo, hadBefore, previousValue, false, null, previousCreatedAt, previousUpdatedAt);
         this.broadcastSnapshot();
 
         return true;
@@ -632,6 +645,7 @@ public class RoomUserVariableManager {
         List<DefinitionEntry> definitions = new ArrayList<>();
         Map<Integer, DefinitionEntry> definitionsById = new LinkedHashMap<>();
         List<Integer> derivedDefinitionIds = new ArrayList<>();
+        List<Integer> questDefinitionIds = new ArrayList<>();
 
         for (WiredVariableDefinitionInfo definition : this.getAllDefinitionInfos()) {
             DefinitionEntry entry = new DefinitionEntry(
@@ -643,6 +657,7 @@ public class RoomUserVariableManager {
                     definition.isReadOnly());
             definitions.add(entry);
             definitionsById.put(entry.getItemId(), entry);
+            if (this.getDefinitionExtra(entry.getItemId()) instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraQuestBase quest && quest.isNativeConfiguration()) questDefinitionIds.add(entry.getItemId());
 
             if (WiredVariableLevelSystemSupport.resolveDerivedDefinition(
                             this.room, WiredVariableLevelSystemSupport.TARGET_USER, definition.getItemId())
@@ -681,6 +696,8 @@ public class RoomUserVariableManager {
                             assignmentEntry.getValue().getUpdatedAt()));
                 }
             }
+
+            for (int questId : questDefinitionIds) { if (this.hasVariable(userId,questId)) assignments.add(new AssignmentEntry(questId,this.getCurrentValue(userId,questId),this.getCreatedAt(userId,questId),this.getUpdatedAt(userId,questId))); }
 
             for (WiredExtraVariableReference reference : userReferences) {
                 if (!definitionsById.containsKey(reference.getId())) {
@@ -837,6 +854,16 @@ public class RoomUserVariableManager {
             baseDefinitions.add(echo.createDefinitionInfo(this.room));
         }
 
+        // Native quest variables are read-only hotel definitions, not co-located counter add-ons.
+        if (this.room.getRoomSpecialTypes() != null) {
+            for (var extra : this.room.getRoomSpecialTypes().getExtras()) {
+                if (extra instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraQuestBase quest
+                        && quest.isNativeConfiguration() && hasVisibleDefinitionName(quest.getVariableName())) {
+                    var info = this.getDefinitionInfo(quest.getId());
+                    if (info != null) result.add(info);
+                }
+            }
+        }
         result.addAll(baseDefinitions);
 
         for (WiredVariableDefinitionInfo definition : baseDefinitions) {
@@ -858,6 +885,11 @@ public class RoomUserVariableManager {
 
     public WiredVariableDefinitionInfo getDefinitionInfo(int definitionItemId) {
         InteractionWiredExtra extra = this.getDefinitionExtra(definitionItemId);
+        if (extra instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraQuestBase quest) {
+            return quest.isNativeConfiguration() && hasVisibleDefinitionName(quest.getVariableName())
+                    && com.eu.habbo.habbohotel.quests.QuestManager.getInstance().definitionForBox(quest) != null
+                    ? new WiredVariableDefinitionInfo(quest.getId(), quest.getVariableName(), true, 10, false, false) : null;
+        }
 
         if (extra instanceof WiredExtraUserVariable) {
             WiredExtraUserVariable definition = (WiredExtraUserVariable) extra;
@@ -972,6 +1004,7 @@ public class RoomUserVariableManager {
     }
 
     private VariableAssignment getRawAssignment(int userId, int definitionItemId) {
+        if (this.getDefinitionExtra(definitionItemId) instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraQuestBase quest && quest.isNativeConfiguration()) { var p=getQuestProgress(userId,quest); return p.active ? new VariableAssignment(p.value,p.createdAt,p.updatedAt) : null; }
         if (userId <= 0 || definitionItemId <= 0) {
             return null;
         }
@@ -1007,6 +1040,22 @@ public class RoomUserVariableManager {
         return (assignment != null) ? assignment.getValue() : null;
     }
 
+    private com.eu.habbo.habbohotel.quests.QuestProgress getQuestProgress(int userId, com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraQuestBase quest) {
+        var service=com.eu.habbo.habbohotel.quests.QuestManager.getInstance();
+        return service.definitionForBox(quest)==null ? new com.eu.habbo.habbohotel.quests.QuestProgress() : service.progress(userId,quest.getQuestCode());
+    }
+
+    public void questProgressChanged(int userId, java.util.Map<String,com.eu.habbo.habbohotel.quests.QuestProgress> before, java.util.Map<String,com.eu.habbo.habbohotel.quests.QuestProgress> after) {
+        if (this.room.getRoomSpecialTypes() == null) return;
+        for (var extra : this.room.getRoomSpecialTypes().getExtras()) {
+            if (!(extra instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraQuestBase quest) || !quest.isNativeConfiguration()) continue;
+            var old=before.getOrDefault(quest.getQuestCode(),new com.eu.habbo.habbohotel.quests.QuestProgress());
+            var next=after.getOrDefault(quest.getQuestCode(),new com.eu.habbo.habbohotel.quests.QuestProgress());
+            if(old.active!=next.active || old.value!=next.value) emitVariableChangedEvents(userId,quest,getDefinitionInfo(quest.getId()),old.active,old.active?old.value:null,next.active,next.active?next.value:null,old.createdAt,old.updatedAt);
+        }
+        broadcastSnapshot();
+    }
+
     private void emitVariableChangedEvents(
             int userId,
             InteractionWiredExtra definitionExtra,
@@ -1014,7 +1063,7 @@ public class RoomUserVariableManager {
             boolean existedBefore,
             Integer previousValue,
             boolean existsAfter,
-            Integer currentValue) {
+            Integer currentValue, int previousCreatedAt, int previousUpdatedAt) {
         if (definitionInfo == null) {
             return;
         }
@@ -1040,11 +1089,11 @@ public class RoomUserVariableManager {
 
             Integer derivedPreviousValue = existedBefore
                     ? WiredVariableLevelSystemSupport.getDerivedValue(
-                            resolvedDefinition.getLevelSystem(), resolvedDefinition.getSubvariableType(), previousValue)
+                            resolvedDefinition.getLevelSystem(), resolvedDefinition.getSubvariableType(), previousValue, previousCreatedAt, previousUpdatedAt)
                     : null;
             Integer derivedCurrentValue = existsAfter
                     ? WiredVariableLevelSystemSupport.getDerivedValue(
-                            resolvedDefinition.getLevelSystem(), resolvedDefinition.getSubvariableType(), currentValue)
+                            resolvedDefinition.getLevelSystem(), resolvedDefinition.getSubvariableType(), currentValue, this.getCreatedAt(userId, definitionInfo.getItemId()), this.getUpdatedAt(userId, definitionInfo.getItemId()))
                     : null;
 
             this.emitVariableChangedEvent(

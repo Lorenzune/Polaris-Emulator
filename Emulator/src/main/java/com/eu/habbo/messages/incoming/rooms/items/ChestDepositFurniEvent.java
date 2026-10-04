@@ -46,11 +46,11 @@ public class ChestDepositFurniEvent extends MessageHandler {
         if (amount <= 0 || amount > MAX_DEPOSIT_AMOUNT) return;
 
         HabboItem item = room.getHabboItem(itemId);
-        if (!(item instanceof InteractionWiredChest chest)) return;
+        if (!(item instanceof com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChestFurni chest)) return;
 
         ChestStorage contents = chest.getContents();
 
-        if (!contents.isAccessDonate() && !room.hasRights(habbo)) return;
+        if (!chest.canDeposit(habbo, room)) return;
 
         Item baseItem = Emulator.getGameEnvironment().getItemManager().getItem(baseItemId);
         if (baseItem == null || baseItem.getType() != FurnitureType.FLOOR) return;
@@ -58,7 +58,7 @@ public class ChestDepositFurniEvent extends MessageHandler {
         int availableInInventory = countInInventory(habbo, baseItemId);
         if (availableInInventory <= 0) return;
 
-        int capacityLeft = contents.getCapacityMax() - contents.furniItemCount();
+        int capacityLeft = contents.getCapacity() - contents.furniItemCount();
         if (capacityLeft <= 0) return;
 
         amount = Math.min(amount, Math.min(availableInInventory, capacityLeft));
@@ -84,8 +84,9 @@ public class ChestDepositFurniEvent extends MessageHandler {
         int deposited = toRemove.size();
         if (deposited <= 0) return;
 
-        contents.addLog(new ChestStorage.LogEntry(
-                "deposit", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), 0, deposited));
+        ChestStorage.LogEntry log = new ChestStorage.LogEntry("deposit", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), 0, deposited);
+        log.setFurniItems(added.stream());
+        contents.addLog(log);
         chest.persistContents();
 
         for (HabboItem removed : toRemove) {
@@ -94,8 +95,9 @@ public class ChestDepositFurniEvent extends MessageHandler {
         habbo.getClient().sendResponse(new InventoryRefreshComposer());
         Emulator.getThreading().runPersistence(new QueryDeleteHabboItems(toRemove));
 
-        this.client.sendResponse(new ChestDataComposer(chest));
+        this.client.sendResponse(new ChestDataComposer(chest, habbo));
         ChestFurniPackets.sendDelta(this.client, chest.getId(), List.of(), added);
+        com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestTransactionEvents.deposited(room, habbo, chest);
     }
 
     private static int countInInventory(Habbo habbo, int baseItemId) {

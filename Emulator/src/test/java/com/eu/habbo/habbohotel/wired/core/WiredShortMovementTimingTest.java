@@ -92,6 +92,31 @@ class WiredShortMovementTimingTest {
         }
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {-1000, 0, 80, 1000})
+    void curveOnlyExtraUsesNativeMovementPacket(int strength) {
+        Fixture fixture = fixture(WiredEvent.Type.TIMER_REPEAT, mock(HabboItem.class));
+        var extra = new com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraMovementCurve(
+                1, 2, mock(com.eu.habbo.habbohotel.items.Item.class), "", 0, 0);
+        extra.saveData(new WiredSettings(new int[]{0,strength,0},"",new int[0],0),null);
+        when(fixture.room.getRoomSpecialTypes().getExtras((short)0,(short)0)).thenReturn(Set.of(extra));
+        when(fixture.room.furnitureFitsAtWithPhysics(fixture.target,fixture.item,0,false,WiredMovementPhysics.NONE)).thenReturn(FurnitureMovementError.NONE);
+        when(fixture.room.moveFurniToWithPhysics(fixture.item,fixture.target,0,null,false,false,WiredMovementPhysics.NONE)).thenReturn(FurnitureMovementError.NONE);
+        WiredMoveCarryHelper.beginMovementCollection();
+        try {
+            assertEquals(FurnitureMovementError.NONE,move(fixture));
+            var message = WiredMoveCarryHelper.finishMovementCollection();
+            var buffer = message.get();
+            try {
+                var payload = buffer.duplicate(); payload.skipBytes(6);
+                assertEquals(1,payload.readInt()); assertEquals(1,payload.readInt()); payload.skipBytes(16);
+                payload.skipBytes(payload.readUnsignedShort()); payload.skipBytes(payload.readUnsignedShort());
+                payload.skipBytes(12); assertEquals(false,payload.readBoolean());
+                assertEquals(true,payload.readBoolean()); assertEquals(strength,payload.readInt());
+            } finally { buffer.release(); }
+        } finally { WiredMoveCarryHelper.clearThreadLocalsForCurrentThread(); }
+    }
+
     private static Fixture fixture(WiredEvent.Type type, HabboItem timer) {
         Room room = mock(Room.class, RETURNS_DEEP_STUBS);
         HabboItem item = mock(HabboItem.class);

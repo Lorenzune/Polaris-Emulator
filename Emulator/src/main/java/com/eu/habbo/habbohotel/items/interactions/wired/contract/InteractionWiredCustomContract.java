@@ -5,11 +5,7 @@ import com.eu.habbo.habbohotel.items.Item;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-/**
- * Custom Contract add-on ({@code wf_xtra_custom_contract}) — the free-form "power user" contract: an
- * arbitrary mix of PAY / RECEIVE currency terms in one box (superset of payment/reward/trade). Dialog
- * code 113. Same term/persistence shape as the fixed contracts; executed atomically by Init Transaction.
- */
+/** Builds payment and reward terms from selected furniture types, constants, variables and selectors. */
 public class InteractionWiredCustomContract extends InteractionWiredContract {
     public static final int CODE = 113;
 

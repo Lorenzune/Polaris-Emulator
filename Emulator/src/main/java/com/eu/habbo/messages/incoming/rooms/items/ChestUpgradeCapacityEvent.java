@@ -39,8 +39,9 @@ public class ChestUpgradeCapacityEvent extends MessageHandler {
 
         HabboItem item = room.getHabboItem(itemId);
         if (!(item instanceof InteractionWiredChest chest)) return;
-        if (!room.hasRights(habbo)) return;
+        if (!chest.canManage(habbo)) return;
 
+        if (chest.getBaseItem().getName().equals("wf_storage_furni_starter")) return;
         ChestStorage c = chest.getContents();
         if (c.getCapacityMax() + (ChestStorage.CAPACITY_STEP * quantity) > ChestStorage.MAX_CAPACITY) return;
 
@@ -56,6 +57,6 @@ public class ChestUpgradeCapacityEvent extends MessageHandler {
         c.setCapacityMax(c.getCapacityMax() + (ChestStorage.CAPACITY_STEP * quantity));
         chest.persistContents();
 
-        this.client.sendResponse(new ChestDataComposer(chest));
+        this.client.sendResponse(new ChestDataComposer(chest, habbo));
     }
 }

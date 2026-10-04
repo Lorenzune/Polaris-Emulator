@@ -29,6 +29,35 @@ public class InteractionWiredChestFurni extends InteractionWiredChest {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
+    public static String previewKey(ChestFurniStoredItem row) {
+        return row.wallItem + "," + row.wireTypeId()
+                + (row.legacyPosterId == null || row.legacyPosterId.isEmpty() ? "" : "," + row.legacyPosterId);
+    }
+
+    /** Same four identities used by the room's glowing chest preview. */
+    public java.util.Set<String> previewKeys() {
+        return contents.furniItems().stream().map(InteractionWiredChestFurni::previewKey)
+                .distinct().limit(4).collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
+    }
+
+    @Override
+    public void serializeExtradata(ServerMessage message) {
+        String visuals = "";
+        if ("1".equals(getExtradata())) {
+            visuals = String.join(";", this.previewKeys());
+        }
+        message.appendInt(1 | (isLimited() ? 256 : 0)); // Native MapStuffData.
+        message.appendInt(2);
+        message.appendString("state");
+        message.appendString(getExtradata());
+        message.appendString("visuals");
+        message.appendString(visuals);
+        if (isLimited()) {
+            message.appendInt(getLimitedSells());
+            message.appendInt(getLimitedStack());
+        }
+    }
+
     /**
      * Player-first: clicking the furni chest opens the player Scrigno UI (item grid + withdraw) instead of
      * the wired-config dialog. Anyone can open if accessOpen; withdraw is gated to room rights server-side
@@ -37,22 +66,14 @@ public class InteractionWiredChestFurni extends InteractionWiredChest {
     @Override
     public void onClick(GameClient client, Room room, Object[] objects) throws Exception {
         if (client == null || room == null) return;
-        if (!this.contents.isAccessOpen() && !room.hasRights(client.getHabbo())) return;
+        if (!this.contents.isAccessOpen() && !this.canEdit(client.getHabbo(), room)) return;
         ChestOpenHelper.open(client, this, room);
     }
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
-        int[] params = settings.getIntParams();
-        int baseItemId = (params.length > 0) ? params[0] : 0;
-        int quantity = (params.length > 1) ? Math.max(0, params[1]) : 0;
-
-        this.contents = new ChestStorage();
-        // Only stock a valid, existing base item.
-        if (baseItemId > 0 && quantity > 0 && Emulator.getGameEnvironment().getItemManager().getItem(baseItemId) != null) {
-            this.contents.add(ChestStorage.KIND_FURNI, baseItemId, quantity);
-        }
-        return true;
+        // Storage is filled only by real deposits/transactions, never by a Wired configuration.
+        return false;
     }
 
     @Override

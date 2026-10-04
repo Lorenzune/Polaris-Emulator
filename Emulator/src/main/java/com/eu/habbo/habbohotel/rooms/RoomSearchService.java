@@ -54,6 +54,19 @@ final class RoomSearchService {
         }));
     }
 
+    ArrayList<Room> occupiedRooms() {
+        return new ArrayList<>(this.cached(new SearchKey("occupied", 0, false), () -> {
+            ArrayList<Room> result = new ArrayList<>();
+            for (Room room : this.rooms.get()) {
+                if (room.getUserCount() > 0) {
+                    result.add(room);
+                }
+            }
+            Collections.sort(result);
+            return List.copyOf(result);
+        }));
+    }
+
     ArrayList<Room> popularRooms(int count, boolean showPublicRooms) {
         return new ArrayList<>(this.cached(new SearchKey("popular", count, showPublicRooms), () -> {
             ArrayList<Room> result = new ArrayList<>();

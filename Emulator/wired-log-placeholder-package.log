@@ -1,0 +1,20 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/C:/Users/Loren/.m2/wrapper/dists/apache-maven-3.9.11/03d7e36a140982eea48e22c1dcac01d8862b2550b2939e09a0809bbc5182a5bc/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+[ERROR] COMPILATION ERROR : 
+[ERROR] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/main/java/com/eu/habbo/habbohotel/items/interactions/wired/extra/WiredExtraProjectile.java:[144,43] cannot find symbol
+  symbol:   class WiredProjectileSupport
+  location: package com.eu.habbo.habbohotel.wired.core
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.16.0:compile (default-compile) on project Polaris: Compilation failure
+[ERROR] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/main/java/com/eu/habbo/habbohotel/items/interactions/wired/extra/WiredExtraProjectile.java:[144,43] cannot find symbol
+[ERROR]   symbol:   class WiredProjectileSupport
+[ERROR]   location: package com.eu.habbo.habbohotel.wired.core
+[ERROR] 
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

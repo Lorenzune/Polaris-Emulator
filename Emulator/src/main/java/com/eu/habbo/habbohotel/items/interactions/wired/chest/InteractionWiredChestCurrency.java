@@ -39,22 +39,14 @@ public class InteractionWiredChestCurrency extends InteractionWiredChest {
     public void onClick(GameClient client, Room room, Object[] objects) throws Exception {
         if (client == null || room == null) return;
         // "Tutti possono aprire" toggle: anyone if accessOpen, otherwise room rights only.
-        if (!this.contents.isAccessOpen() && !room.hasRights(client.getHabbo())) return;
+        if (!this.contents.isAccessOpen() && !this.canEdit(client.getHabbo(), room)) return;
         ChestOpenHelper.open(client, this, room);
     }
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
-        int[] params = settings.getIntParams();
-        int currencyType = (params.length > 0) ? params[0] : CURRENCY_CREDITS;
-        int amount = (params.length > 1) ? Math.max(0, params[1]) : 0;
-
-        // Re-configuring the chest replaces its pool.
-        this.contents = new ChestStorage();
-        if (amount > 0) {
-            this.contents.add(ChestStorage.KIND_CURRENCY, currencyType, amount);
-        }
-        return true;
+        // Storage is filled only by real deposits/transactions, never by a Wired configuration.
+        return false;
     }
 
     @Override

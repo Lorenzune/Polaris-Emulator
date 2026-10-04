@@ -564,9 +564,7 @@ public class CatalogBuyItemAsGiftEvent extends MessageHandler {
                                                 + extraData;
                                     }
 
-                                    if (baseItem.getInteractionType().getType() == InteractionTeleport.class
-                                            || baseItem.getInteractionType().getType()
-                                                    == InteractionTeleportTile.class) {
+                                    if (InteractionTeleport.class.isAssignableFrom(baseItem.getInteractionType().getType())) {
 
                                         HabboItem teleportOne = Emulator.getGameEnvironment()
                                                 .getItemManager()

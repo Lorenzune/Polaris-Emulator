@@ -25,7 +25,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -387,9 +390,11 @@ public class AchievementManager {
 
     private Map<String, Achievement> loadSwfAchievements(Map<String, DatabaseAchievement> databaseAchievements) {
         Path source = resolveAchievementSource();
-        if (source == null || !Files.isRegularFile(source)) return null;
+        String sourceDescription = source != null && Files.isRegularFile(source)
+                ? source.toString() : "bundled gamedata/achievements.json";
 
-        try (Reader reader = Files.newBufferedReader(source)) {
+        try (Reader reader = openAchievementSource(source)) {
+            if (reader == null) return null;
             JsonElement root = JsonParser.parseReader(reader);
             if (!root.isJsonArray()) return null;
 
@@ -459,12 +464,19 @@ public class AchievementManager {
                 }
                 result.put(achievement.name, achievement);
             }
-            LOGGER.info("Achievement Manager -> Loaded SWF definitions from {}", source);
+            LOGGER.info("Achievement Manager -> Loaded SWF definitions from {}", sourceDescription);
             return result;
         } catch (Exception exception) {
             LOGGER.error("Could not load SWF achievement definitions from {}", source, exception);
             return null;
         }
+    }
+
+    static Reader openAchievementSource(Path source) throws java.io.IOException {
+        if (source != null && Files.isRegularFile(source)) return Files.newBufferedReader(source);
+
+        InputStream bundled = AchievementManager.class.getResourceAsStream("/gamedata/achievements.json");
+        return bundled == null ? null : new InputStreamReader(bundled, StandardCharsets.UTF_8);
     }
 
     private Path resolveAchievementSource() {

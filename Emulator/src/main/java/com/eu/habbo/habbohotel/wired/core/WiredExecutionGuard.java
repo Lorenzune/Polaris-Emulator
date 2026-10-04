@@ -244,7 +244,8 @@ final class WiredExecutionGuard {
     }
 
     WiredRoomDiagnostics diagnostics(int roomId) {
-        return this.roomDiagnostics.computeIfAbsent(roomId, ignored -> newDiagnostics(currentLimits()));
+        return this.roomDiagnostics.computeIfAbsent(
+                roomId, id -> newDiagnostics(currentLimits()).attachRepository(id, WiredManager.logRepository()));
     }
 
     WiredRoomDiagnostics.Snapshot snapshot(int roomId) {

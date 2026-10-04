@@ -30,7 +30,7 @@ public class ChestRequestRoomLogsEvent extends MessageHandler {
         Room room = habbo.getHabboInfo().getCurrentRoom();
         if (room == null) return;
 
-        if (!room.hasRights(habbo)) return;
+        if (!room.canInspectWired(habbo)) return;
 
         int amount = Math.max(1, Math.min(50, this.packet.readInt()));
         int page = Math.max(1, this.packet.readInt());
@@ -40,14 +40,18 @@ public class ChestRequestRoomLogsEvent extends MessageHandler {
         for (HabboItem item : room.getFloorItems()) {
             if (item instanceof InteractionWiredChest chest) {
                 for (ChestStorage.LogEntry entry : chest.getContents().getLog()) {
-                    allLogs.add(new ChestRoomLogComposer.RoomLogItem(
+                    ChestRoomLogComposer.RoomLogItem row = new ChestRoomLogComposer.RoomLogItem(
                             entry.type,
                             entry.timestamp,
                             entry.userName,
                             entry.withdrawn,
                             entry.deposited,
                             chest.getId()
-                    ));
+                    );
+                    row.furniTypeIds = entry.furniTypeIds;
+                    row.currencyType = entry.currencyType;
+                    row.furniQuantities = entry.furniQuantities;
+                    allLogs.add(row);
                 }
             }
         }
@@ -55,6 +59,7 @@ public class ChestRequestRoomLogsEvent extends MessageHandler {
         allLogs.sort(Comparator.comparingLong((ChestRoomLogComposer.RoomLogItem i) -> i.timestamp).reversed());
 
         int totalCount = allLogs.size();
+        page = Math.min(page, Math.max(1, (int) Math.ceil(totalCount / (double) amount)));
         int fromIndex = (page - 1) * amount;
         List<ChestRoomLogComposer.RoomLogItem> pageRows = new ArrayList<>();
 

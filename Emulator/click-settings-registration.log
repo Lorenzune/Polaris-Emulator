@@ -1,0 +1,75 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/C:/Users/Loren/.m2/wrapper/dists/apache-maven-3.9.11/03d7e36a140982eea48e22c1dcac01d8862b2550b2939e09a0809bbc5182a5bc/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------< com.eu.habbo:Polaris >------------------------
+[INFO] Building Polaris 4.2.67
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- enforcer:3.6.3:enforce (enforce-build-environment) @ Polaris ---
+[INFO] Rule 0: org.apache.maven.enforcer.rules.version.RequireJavaVersion passed
+[INFO] Rule 1: org.apache.maven.enforcer.rules.version.RequireMavenVersion passed
+[INFO] Rule 2: org.apache.maven.enforcer.rules.dependency.DependencyConvergence passed
+[INFO] Rule 3: org.apache.maven.enforcer.rules.RequirePluginVersions passed
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ Polaris ---
+[INFO] Copying 151 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.16.0:compile (default-compile) @ Polaris ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 2891 source files with javac [debug parameters release 25] to target\classes
+[INFO] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/main/java/com/eu/habbo/Emulator.java: Some input files use or override a deprecated API.
+[INFO] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/main/java/com/eu/habbo/Emulator.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ Polaris ---
+[INFO] Copying 28 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.16.0:testCompile (default-testCompile) @ Polaris ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 485 source files with javac [debug parameters release 25] to target\test-classes
+[INFO] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/test/java/com/eu/habbo/PolarisRuntimeTest.java: Some input files use or override a deprecated API.
+[INFO] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/test/java/com/eu/habbo/PolarisRuntimeTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/test/java/com/eu/habbo/habbohotel/wired/core/WiredDelayedLifecycleCompatibilityTest.java: Some input files use unchecked or unsafe operations.
+[INFO] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/test/java/com/eu/habbo/habbohotel/wired/core/WiredDelayedLifecycleCompatibilityTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.6.0:test (default-test) @ Polaris ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.eu.habbo.habbohotel.items.interactions.wired.WiredRegisteredExecutionCompatibilityTest
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+WARNING: A Java agent has been loaded dynamically (C:\Users\Loren\.m2\repository\net\bytebuddy\byte-buddy-agent\1.17.7\byte-buddy-agent-1.17.7.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+04:28:26.841 WARN  [main        ] WiredCompatibilityD... | WIRED compatibility fallback point=EFFECT_GIVE_HAND_ITEM room=0 item=4242 error=NumberFormatException outcome=legacy_fallback
+04:28:26.911 INFO  [main        ] WiredEffectLog         | [WiredLog room 0] 
+04:28:26.922 INFO  [main        ] WiredEffectLog         | [WiredLog room 0] 
+04:28:26.926 INFO  [main        ] WiredEffectWriteToLogs | [WiredLog Room 0] 
+04:28:26.983 WARN  [main        ] WiredEffectSayCommand  | Blocked wired command item=4242 room=0 principal=0 key=
+04:28:26.995 INFO  [main        ] WiredEffectWriteToLogs | [WiredLog Room 0] 
+04:28:27.176 INFO  [main        ] WiredEffectLog         | [WiredLog room 0] 
+04:28:27.180 INFO  [main        ] WiredEffectLog         | [WiredLog room 0] 
+04:28:27.181 INFO  [main        ] WiredEffectWriteToLogs | [WiredLog Room 0] 
+04:28:27.184 WARN  [main        ] WiredEffectSayCommand  | Blocked wired command item=4242 room=0 principal=0 key=
+04:28:27.187 INFO  [main        ] WiredEffectWriteToLogs | [WiredLog Room 0] 
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.934 s -- in com.eu.habbo.habbohotel.items.interactions.wired.WiredRegisteredExecutionCompatibilityTest
+[INFO] Running com.eu.habbo.habbohotel.items.WiredInteractionProtocolContractTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.059 s -- in com.eu.habbo.habbohotel.items.WiredInteractionProtocolContractTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  44.071 s
+[INFO] Finished at: 2026-10-02T04:28:27+02:00
+[INFO] ------------------------------------------------------------------------

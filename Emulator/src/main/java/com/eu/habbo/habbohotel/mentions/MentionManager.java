@@ -27,13 +27,16 @@ public class MentionManager {
     private final ConcurrentHashMap<Integer, Long> requestListCooldowns = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, Long> markReadCooldowns = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, Long> markAllCooldowns = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer, Long> followCooldowns = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, Long> recipientCooldowns = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer, Long> settingsCooldowns = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, Long> deleteCooldowns = new ConcurrentHashMap<>();
 
     private volatile long lastPrune = System.currentTimeMillis();
     private static final long PRUNE_INTERVAL_MS = 5 * 60_000L;
 
     public boolean isEnabled() {
-        return Emulator.getConfig().getInt("mentions.enabled", 1) == 1;
+        return configuration().getInt("mentions.enabled", 1) == 1;
     }
 
     public enum BroadcastScope {
@@ -48,7 +51,7 @@ public class MentionManager {
 
     private Set<String> parseAliases(String configKey, String defaultValue) {
         Set<String> aliases = new HashSet<>();
-        String raw = Emulator.getConfig().getValue(configKey, defaultValue);
+        String raw = configuration().getValue(configKey, defaultValue);
         for (String alias : raw.split(",")) {
             String trimmed = alias.trim().toLowerCase();
             if (!trimmed.isEmpty()) {
@@ -97,7 +100,7 @@ public class MentionManager {
 
             int senderId = sender.getHabboInfo().getId();
             long now = System.currentTimeMillis();
-            long cooldownMs = Emulator.getConfig().getInt("mentions.cooldown.ms", 3000);
+            long cooldownMs = Math.max(3000, configuration().getInt("mentions.cooldown.ms", 3000));
             Long last = this.cooldowns.get(senderId);
             if (last != null && (now - last) < cooldownMs) {
                 return;
@@ -140,14 +143,14 @@ public class MentionManager {
             }
 
             if (broadcastScope != BroadcastScope.NONE) {
-                long roomCooldownMs = Emulator.getConfig().getInt("mentions.room.cooldown.ms", 15000);
+                long roomCooldownMs = configuration().getInt("mentions.room.cooldown.ms", 15000);
                 Long lastRoom = this.roomBroadcastCooldowns.get(senderId);
                 if (lastRoom != null && (now - lastRoom) < roomCooldownMs) {
                     return;
                 }
             }
 
-            int maxTargets = Emulator.getConfig().getInt("mentions.max.targets", 50);
+            int maxTargets = configuration().getInt("mentions.max.targets", 50);
             if (maxTargets <= 0) maxTargets = 1;
             int maxDirectTokens = Math.min(directTokens.size(), maxTargets);
 
@@ -190,7 +193,7 @@ public class MentionManager {
                 return;
             }
 
-            this.cooldowns.put(senderId, now);
+            if (!tryAcquire(this.cooldowns, senderId, cooldownMs)) return;
             if (broadcastScope != BroadcastScope.NONE) this.roomBroadcastCooldowns.put(senderId, now);
             this.pruneCooldownsIfDue(now);
 
@@ -199,7 +202,14 @@ public class MentionManager {
             String roomName = truncate(room.getName(), ROOM_NAME_MAX_LENGTH);
             String storedMessage = truncate(message, MESSAGE_MAX_LENGTH);
 
+            Set<Integer> mutedRecipients = mutePreferences().mutedRecipients(senderId);
             for (Habbo target : targets) {
+                if (mutedRecipients.contains(target.getHabboInfo().getId())) continue;
+                long pair = ((long) senderId << 32) | (target.getHabboInfo().getId() & 0xffffffffL);
+                long recipientWindow = Math.max(10000, configuration().getInt("mentions.recipient.cooldown.ms", 10000));
+                if (this.recipientCooldowns.size() >= 100000) this.recipientCooldowns.entrySet().removeIf(e -> now - e.getValue() >= recipientWindow);
+                if (this.recipientCooldowns.size() >= 100000) continue;
+                if (!acquire(this.recipientCooldowns, pair, now, recipientWindow)) continue;
                 this.sendWhisperNotification(target, sender, room, storedMessage);
                 this.store(target, sender, room, storedMessage, mentionType, timestamp, roomName);
             }
@@ -239,7 +249,7 @@ public class MentionManager {
 
     private void collectFriendsTargets(Habbo sender, int senderId, List<Habbo> targets, Set<Integer> seen, int maxTargets) {
         if (sender.getMessenger() == null) return;
-        HabboManager habboManager = Emulator.getGameEnvironment().getHabboManager();
+        HabboManager habboManager = environment().getHabboManager();
         for (MessengerBuddy buddy : sender.getMessenger().getFriends().values()) {
             if (buddy == null) continue;
             int buddyId = buddy.getId();
@@ -253,7 +263,7 @@ public class MentionManager {
     }
 
     private void collectEveryoneTargets(int senderId, List<Habbo> targets, Set<Integer> seen, int maxTargets) {
-        for (Habbo habbo : Emulator.getGameEnvironment().getHabboManager().getOnlineHabbos().values()) {
+        for (Habbo habbo : environment().getHabboManager().getOnlineHabbos().values()) {
             if (habbo == null || habbo.getHabboInfo().getId() == senderId) continue;
             if (!acceptsMention(habbo, true)) continue;
             if (seen.add(habbo.getHabboInfo().getId())) targets.add(habbo);
@@ -271,7 +281,7 @@ public class MentionManager {
     }
 
     private void store(Habbo target, Habbo sender, Room room, String message, int mentionType, int timestamp, String roomName) {
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = database().getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(
                      "INSERT INTO habbo_mentions (target_user_id, sender_user_id, sender_username, room_id, room_name, message, mention_type, timestamp, `read`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
                      Statement.RETURN_GENERATED_KEYS)) {
@@ -310,9 +320,9 @@ public class MentionManager {
         List<HabboMention> mentions = new ArrayList<>();
         if (limit <= 0) limit = 50;
         if (limit > 200) limit = 200;
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = database().getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                     "SELECT habbo_mentions.*, users.look AS sender_figure FROM habbo_mentions LEFT JOIN users ON users.id = habbo_mentions.sender_user_id WHERE target_user_id = ? ORDER BY id DESC LIMIT ?")) {
+                     "SELECT habbo_mentions.*, users.look AS sender_figure FROM habbo_mentions LEFT JOIN users ON users.id = habbo_mentions.sender_user_id WHERE target_user_id = ? AND NOT EXISTS (SELECT 1 FROM user_mention_mutes m WHERE m.user_id = habbo_mentions.target_user_id AND m.muted_user_id = habbo_mentions.sender_user_id) ORDER BY habbo_mentions.id DESC LIMIT ?")) {
             statement.setInt(1, userId);
             statement.setInt(2, limit);
             try (ResultSet set = statement.executeQuery()) {
@@ -333,7 +343,7 @@ public class MentionManager {
         String query = mode == 1
                 ? "UPDATE habbo_mentions SET `read` = 1 WHERE target_user_id = ? AND id = ? AND `read` = 0"
                 : "UPDATE habbo_mentions SET `read` = 1 WHERE target_user_id = ? AND `read` = 0";
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = database().getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setInt(1, userId);
             if (mode == 1) {
@@ -347,7 +357,7 @@ public class MentionManager {
 
     public void delete(int userId, int mentionId) {
         if (mentionId <= 0) return;
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = database().getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(
                      "DELETE FROM habbo_mentions WHERE target_user_id = ? AND id = ?")) {
             statement.setInt(1, userId);
@@ -359,7 +369,7 @@ public class MentionManager {
     }
 
     public boolean tryAcquireRequestList(int userId) {
-        long cooldownMs = Emulator.getConfig().getInt("mentions.request.cooldown.ms", 2000);
+        long cooldownMs = configuration().getInt("mentions.request.cooldown.ms", 2000);
         return tryAcquire(this.requestListCooldowns, userId, cooldownMs);
     }
 
@@ -367,41 +377,51 @@ public class MentionManager {
         long cooldownMs;
         ConcurrentHashMap<Integer, Long> bucket;
         if (mode == 1) {
-            cooldownMs = Emulator.getConfig().getInt("mentions.markread.cooldown.ms", 500);
+            cooldownMs = configuration().getInt("mentions.markread.cooldown.ms", 500);
             bucket = this.markReadCooldowns;
         } else {
-            cooldownMs = Emulator.getConfig().getInt("mentions.markall.cooldown.ms", 5000);
+            cooldownMs = configuration().getInt("mentions.markall.cooldown.ms", 5000);
             bucket = this.markAllCooldowns;
         }
         return tryAcquire(bucket, userId, cooldownMs);
     }
 
+    public boolean tryAcquireFollow(int userId) { return tryAcquire(this.followCooldowns, userId, 1000); }
+
+    public boolean tryAcquireSettings(int userId) { return tryAcquire(this.settingsCooldowns, userId, 300); }
+
     public boolean tryAcquireDelete(int userId) {
-        long cooldownMs = Emulator.getConfig().getInt("mentions.delete.cooldown.ms", 500);
+        long cooldownMs = configuration().getInt("mentions.delete.cooldown.ms", 500);
         return tryAcquire(this.deleteCooldowns, userId, cooldownMs);
     }
 
     private boolean tryAcquire(ConcurrentHashMap<Integer, Long> bucket, int userId, long cooldownMs) {
         long now = System.currentTimeMillis();
-        Long last = bucket.get(userId);
-        if (last != null && (now - last) < cooldownMs) {
-            return false;
-        }
-        bucket.put(userId, now);
+        if (!acquire(bucket, userId, now, cooldownMs)) return false;
         this.pruneCooldownsIfDue(now);
         return true;
+    }
+
+    static <K> boolean acquire(ConcurrentHashMap<K, Long> bucket, K key, long now, long window) {
+        java.util.concurrent.atomic.AtomicBoolean accepted = new java.util.concurrent.atomic.AtomicBoolean(false);
+        bucket.compute(key, (id, last) -> {
+            if (last != null && now - last < window) return last;
+            accepted.set(true);
+            return now;
+        });
+        return accepted.get();
     }
 
     private void pruneCooldownsIfDue(long now) {
         if (now - this.lastPrune < PRUNE_INTERVAL_MS) return;
         this.lastPrune = now;
 
-        long mentionWindow = Emulator.getConfig().getInt("mentions.cooldown.ms", 3000);
-        long roomWindow = Emulator.getConfig().getInt("mentions.room.cooldown.ms", 15000);
-        long requestWindow = Emulator.getConfig().getInt("mentions.request.cooldown.ms", 2000);
-        long markReadWindow = Emulator.getConfig().getInt("mentions.markread.cooldown.ms", 500);
-        long markAllWindow = Emulator.getConfig().getInt("mentions.markall.cooldown.ms", 5000);
-        long deleteWindow = Emulator.getConfig().getInt("mentions.delete.cooldown.ms", 500);
+        long mentionWindow = configuration().getInt("mentions.cooldown.ms", 3000);
+        long roomWindow = configuration().getInt("mentions.room.cooldown.ms", 15000);
+        long requestWindow = configuration().getInt("mentions.request.cooldown.ms", 2000);
+        long markReadWindow = configuration().getInt("mentions.markread.cooldown.ms", 500);
+        long markAllWindow = configuration().getInt("mentions.markall.cooldown.ms", 5000);
+        long deleteWindow = configuration().getInt("mentions.delete.cooldown.ms", 500);
 
         prune(this.cooldowns, now, mentionWindow);
         prune(this.roomBroadcastCooldowns, now, roomWindow);
@@ -409,6 +429,10 @@ public class MentionManager {
         prune(this.markReadCooldowns, now, markReadWindow);
         prune(this.markAllCooldowns, now, markAllWindow);
         prune(this.deleteCooldowns, now, deleteWindow);
+        prune(this.settingsCooldowns, now, 300);
+        prune(this.followCooldowns, now, 1000);
+        long recipientWindow = Math.max(10000, configuration().getInt("mentions.recipient.cooldown.ms", 10000));
+        this.recipientCooldowns.entrySet().removeIf(e -> now - e.getValue() >= recipientWindow);
     }
 
     private static void prune(ConcurrentHashMap<Integer, Long> bucket, long now, long windowMs) {
@@ -469,7 +493,7 @@ public class MentionManager {
             return habbo;
         }
 
-        HabboManager habboManager = Emulator.getGameEnvironment().getHabboManager();
+        HabboManager habboManager = environment().getHabboManager();
         habbo = habboManager.getHabbo(rawToken);
         if (habbo != null) {
             return habbo;
@@ -484,4 +508,15 @@ public class MentionManager {
         }
         return null;
     }
+
+    private static com.eu.habbo.core.ConfigurationManager configuration() { return Emulator.getConfig(); }
+
+    private static com.eu.habbo.database.Database database() { return Emulator.getDatabase(); }
+
+    private static com.eu.habbo.habbohotel.GameEnvironment environment() { return Emulator.getGameEnvironment(); }
+
+    public static MentionManager runtime() { return environment().getMentionManager(); }
+    public MentionMuteRepository mutePreferences() { return new MentionMuteRepository(database().getDataSource()); }
+    public Habbo findOnlineHabbo(int id) { return environment().getHabboManager().getHabbo(id); }
+    public int storeLimit() { return configuration().getInt("mentions.store.limit", 50); }
 }

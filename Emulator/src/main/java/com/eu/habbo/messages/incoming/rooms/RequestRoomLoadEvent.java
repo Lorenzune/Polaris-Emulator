@@ -31,13 +31,14 @@ public class RequestRoomLoadEvent extends MessageHandler {
             spawnY = -1;
         }
 
+        long nowMillis = System.currentTimeMillis();
         // Reset stale loadingRoom if timestamp has expired (indicates failed/stuck load)
         if (this.client.getHabbo().getHabboInfo().getLoadingRoom() != 0
-                && this.client.getHabbo().getHabboStats().roomEnterTimestamp + 5000 < System.currentTimeMillis()) {
+                && RoomLoadTiming.expired(this.client.getHabbo().getHabboInfo().getLoadingRoomStartedAt(), nowMillis)) {
             this.client.getHabbo().getHabboInfo().setLoadingRoom(0);
         }
 
-        if (this.client.getHabbo().getHabboInfo().getLoadingRoom() == 0 && this.client.getHabbo().getHabboStats().roomEnterTimestamp + 1000 < System.currentTimeMillis()) {
+        if (RoomLoadTiming.canStart(this.client.getHabbo().getHabboInfo().getLoadingRoom(), this.client.getHabbo().getHabboStats().roomEnterTimestamp, nowMillis)) {
 
             // Start background loading early to reduce perceived load time
             Room roomToLoad = Emulator.getGameEnvironment().getRoomManager().getRoom(roomId);
