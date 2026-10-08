@@ -411,6 +411,19 @@ public final class WiredRoomDiagnostics {
         return true;
     }
 
+    /** A native admission wave is atomic. Charge its real cost, then pace the
+     * following wave instead of dropping receivers half way through this one. */
+    void consumeSignalExecutionBudget(int estimatedCost, long now) {
+        rollWindowIfNeeded(now);
+        usageCurrentWindow.addAndGet(Math.max(0, estimatedCost));
+    }
+
+    long signalExecutionDelay(long now) {
+        rollWindowIfNeeded(now);
+        return usageCurrentWindow.get() >= usageLimitPerWindow
+                ? Math.max(1L, windowStartedAt.get() + usageWindowMs - now) : 0L;
+    }
+
     public void completeDelayedEvent() {
         this.delayedEventsPending.updateAndGet(v -> v > 0 ? v - 1 : 0);
     }

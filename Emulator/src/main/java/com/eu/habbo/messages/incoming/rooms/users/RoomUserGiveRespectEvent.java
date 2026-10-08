@@ -4,6 +4,8 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.plugin.events.users.UserRespectedEvent;
+import com.eu.habbo.habbohotel.wired.WiredUserActionType;
+import com.eu.habbo.habbohotel.wired.core.WiredManager;
 
 public class RoomUserGiveRespectEvent extends MessageHandler {
 
@@ -27,6 +29,9 @@ public class RoomUserGiveRespectEvent extends MessageHandler {
             }
 
             this.client.getHabbo().respect(target);
+            WiredManager.triggerUserPerformsAction(
+                    this.client.getHabbo().getHabboInfo().getCurrentRoom(),
+                    this.client.getHabbo().getRoomUnit(), WiredUserActionType.THUMB_UP, -1);
             Emulator.getGameEnvironment().getRewardTrackManager()
                     .addProgress(this.client.getHabbo().getHabboInfo().getId(), "give_respect", 1);
         }

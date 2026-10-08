@@ -85,6 +85,7 @@ public class WiredEffectFurniOnFurni extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
+        settings = WiredNativeSelectorSettings.normalize(this, settings);
         int[] params = settings.getIntParams();
 
         this.selectionType = (params.length > 0) ? this.normalizeSelectionType(params[0]) : SELECT_FURNI_ABOVE;
@@ -97,7 +98,7 @@ public class WiredEffectFurniOnFurni extends InteractionWiredEffect {
             return false;
         }
 
-        if (count > 0 && this.furniSource == WiredSourceUtil.SOURCE_TRIGGER) {
+        if (!settings.isNativeVariableFormat() && count > 0 && this.furniSource == WiredSourceUtil.SOURCE_TRIGGER) {
             this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         }
 
@@ -135,7 +136,7 @@ public class WiredEffectFurniOnFurni extends InteractionWiredEffect {
 
     @Override
     public boolean usesExistingSelectorTargets() {
-        return this.filterExisting;
+        return this.filterExisting || this.furniSource == WiredSourceUtil.SOURCE_SELECTOR;
     }
 
     @Override
@@ -291,7 +292,7 @@ public class WiredEffectFurniOnFurni extends InteractionWiredEffect {
                 return true;
             case SELECT_FURNI_ABOVE:
             default:
-                return matchedBase >= (sourceTop - EPSILON);
+                return matchedBase > (sourceBase + EPSILON);
         }
     }
 

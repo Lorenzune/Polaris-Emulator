@@ -107,7 +107,31 @@ final class WiredDelayedExecutionSnapshot {
         return this.triggerTime;
     }
 
+    // Incoming antenna/time/depth do not alter an identical self-feedback output.
+    // Retain payload, selector results and variable scopes to keep independent
+    // users, pieces and configurations on independent loops.
+    Object feedbackKey(int delay, String effectConfiguration) {
+        return new FeedbackKey(this.roomId, this.roomGeneration, delay, this.triggerItem,
+                this.effects, effectConfiguration, this.event.actor(), this.event.originActor(), this.event.targetUnit(), this.event.sourceItem(),
+                this.event.signalSourceUsers(), this.event.signalSourceItems(), this.targets,
+                WiredManager.getGson().toJson(this.contextVariables),
+                WiredManager.getGson().toJson(this.event.contextVariableScope()));
+    }
+
+    private record FeedbackKey(int roomId, long generation, int delay, ItemReference trigger,
+            List<ComponentReference<IWiredEffect>> effects, String configuration, UnitReference actor, UnitReference origin, UnitReference target,
+            ItemReference source, List<UnitReference> users, List<ItemReference> items,
+            TargetSnapshot targets, String variables, String eventVariables) {}
+
     Optional<Resolved> resolve(Room room) {
+        return resolve(room, false);
+    }
+
+    Optional<Resolved> resolveForNewChain(Room room) {
+        return resolve(room, true);
+    }
+
+    private Optional<Resolved> resolve(Room room, boolean newChain) {
         if (room == null
                 || room.getId() != this.roomId
                 || !room.isLoaded()
@@ -135,7 +159,7 @@ final class WiredDelayedExecutionSnapshot {
             resolvedStack = candidate.get();
         }
 
-        WiredEvent resolvedEvent = this.event.resolve(room);
+        WiredEvent resolvedEvent = this.event.resolve(room, newChain);
         Object[] resolvedLegacySettings = new Object[this.legacySettings.size()];
         for (int index = 0; index < this.legacySettings.size(); index++) {
             resolvedLegacySettings[index] = resolveLegacyValue(this.legacySettings.get(index), room);
@@ -552,6 +576,7 @@ final class WiredDelayedExecutionSnapshot {
             int signalFurniCount,
             List<UnitReference> signalSourceUsers,
             List<ItemReference> signalSourceItems,
+            boolean signalPayloadExplicit,
             boolean signalPerUser,
             boolean signalPerFurni,
             int variableTargetType,
@@ -559,6 +584,8 @@ final class WiredDelayedExecutionSnapshot {
             boolean variableCreated,
             boolean variableDeleted,
             WiredEvent.VariableChangeKind variableChangeKind,
+            int variableChangeOrigin,
+            String variableToken,
             WiredContextVariableScope contextVariableScope,
             long createdAtMs) {
 
@@ -590,6 +617,7 @@ final class WiredDelayedExecutionSnapshot {
                     event.getSignalSourceItems().stream()
                             .map(item -> ItemReference.capture(item, room))
                             .toList(),
+                    event.isSignalPayloadExplicit(),
                     event.isSignalPerUser(),
                     event.isSignalPerFurni(),
                     event.getVariableTargetType(),
@@ -597,13 +625,15 @@ final class WiredDelayedExecutionSnapshot {
                     event.isVariableCreated(),
                     event.isVariableDeleted(),
                     event.getVariableChangeKind(),
+                    event.getVariableChangeOrigin(),
+                    event.getVariableToken(),
                     event.getContextVariableScope() != null
                             ? event.getContextVariableScope().copy()
                             : null,
                     event.getCreatedAtMs());
         }
 
-        WiredEvent resolve(Room room) {
+        WiredEvent resolve(Room room, boolean newChain) {
             WiredEvent.Builder builder = WiredEvent.builder(this.type, room)
                     .actor(this.actor != null ? this.actor.resolve(room) : null)
                     .originActor(this.originActor != null ? this.originActor.resolve(room) : null)
@@ -614,7 +644,7 @@ final class WiredDelayedExecutionSnapshot {
                     .score(this.score)
                     .scoreAdded(this.scoreAdded)
                     .triggeredByEffect(this.triggeredByEffect)
-                    .callStackDepth(this.callStackDepth)
+                    .callStackDepth(newChain ? 0 : this.callStackDepth)
                     .signalChannel(this.signalChannel)
                     .actionId(this.actionId)
                     .actionParameter(this.actionParameter)
@@ -630,6 +660,7 @@ final class WiredDelayedExecutionSnapshot {
                             .map(reference -> reference.resolve(room))
                             .filter(item -> item != null)
                             .toList())
+                    .signalPayloadExplicit(this.signalPayloadExplicit)
                     .signalPerUser(this.signalPerUser)
                     .signalPerFurni(this.signalPerFurni)
                     .variableTargetType(this.variableTargetType)
@@ -637,6 +668,8 @@ final class WiredDelayedExecutionSnapshot {
                     .variableCreated(this.variableCreated)
                     .variableDeleted(this.variableDeleted)
                     .variableChangeKind(this.variableChangeKind)
+                    .variableChangeOrigin(this.variableChangeOrigin)
+                    .variableToken(this.variableToken)
                     .createdAtMs(this.createdAtMs);
             if (this.contextVariableScope != null) {
                 builder.contextVariableScope(this.contextVariableScope.copy());

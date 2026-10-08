@@ -73,6 +73,7 @@ class WiredDelayedExecutionSnapshotTest {
                 .chatStyle(11)
                 .signalUserCount(12)
                 .signalFurniCount(13)
+                .signalPayloadExplicit(true)
                 .variableTargetType(14)
                 .variableDefinitionItemId(801)
                 .variableCreated(true)
@@ -123,6 +124,8 @@ class WiredDelayedExecutionSnapshotTest {
         assertEquals(11, delayed.event().getChatStyle());
         assertEquals(12, delayed.event().getSignalUserCount());
         assertEquals(13, delayed.event().getSignalFurniCount());
+        assertTrue(delayed.event().isSignalPayloadExplicit());
+        assertTrue(WiredSourceUtil.resolveUsersRaw(delayed, 201).isEmpty());
         assertEquals(14, delayed.event().getVariableTargetType());
         assertEquals(801, delayed.event().getVariableDefinitionItemId());
         assertTrue(delayed.event().isVariableCreated());

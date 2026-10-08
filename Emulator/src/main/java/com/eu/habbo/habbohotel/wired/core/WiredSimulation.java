@@ -88,12 +88,24 @@ public final class WiredSimulation {
 
     public boolean moveItem(
             HabboItem item, short newX, short newY, double newZ, int newRotation, boolean checkForUnitCollision) {
+        return moveItem(null, null, item, newX, newY, newZ, newRotation, checkForUnitCollision);
+    }
+
+    public boolean moveItem(
+            WiredContext ctx,
+            HabboItem effect,
+            HabboItem item,
+            short newX,
+            short newY,
+            double newZ,
+            int newRotation,
+            boolean checkForUnitCollision) {
         if (item == null) {
             fail("Cannot move null item");
             return false;
         }
 
-        if (room.getLayout() == null) {
+        if (room == null || room.getLayout() == null) {
             fail("Room has no layout");
             return false;
         }
@@ -109,7 +121,14 @@ public final class WiredSimulation {
             return false;
         }
 
-        FurnitureMovementError moveError = room.furnitureFitsAt(destTile, item, newRotation, checkForUnitCollision);
+        if (!Double.isFinite(newZ) || newZ < 0 || newZ > Room.MAXIMUM_FURNI_HEIGHT) {
+            fail("Invalid altitude");
+            return false;
+        }
+        FurnitureMovementError moveError = ctx == null
+                ? room.furnitureFitsAt(destTile, item, newRotation, checkForUnitCollision)
+                : WiredMoveCarryHelper.getSimulationMovementError(
+                        room, effect, item, destTile, newRotation, ctx, checkForUnitCollision);
         if (moveError != FurnitureMovementError.NONE) {
             fail("Destination tile (" + newX + "," + newY + ") blocked: " + moveError.name());
             return false;
@@ -133,10 +152,12 @@ public final class WiredSimulation {
         }
 
         SimulatedPosition currentPos = getItemPosition(item);
-        short newX = (short) (currentPos.x + offsetX);
-        short newY = (short) (currentPos.y + offsetY);
-
-        return moveItem(item, newX, newY, currentPos.z, currentPos.rotation, checkForUnitCollision);
+        long x = (long) currentPos.x + offsetX, y = (long) currentPos.y + offsetY;
+        if (x < Short.MIN_VALUE || x > Short.MAX_VALUE || y < Short.MIN_VALUE || y > Short.MAX_VALUE) {
+            fail("Relative destination out of range");
+            return false;
+        }
+        return moveItem(item, (short) x, (short) y, currentPos.z, currentPos.rotation, checkForUnitCollision);
     }
 
     /**
@@ -165,7 +186,7 @@ public final class WiredSimulation {
     }
 
     public boolean isTileValidForItem(short x, short y, HabboItem item, boolean checkForUnitCollision) {
-        if (room.getLayout() == null) {
+        if (room == null || room.getLayout() == null) {
             return false;
         }
 

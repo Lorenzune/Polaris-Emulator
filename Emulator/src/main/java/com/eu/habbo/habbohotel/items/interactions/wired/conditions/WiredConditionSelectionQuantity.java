@@ -90,6 +90,19 @@ public class WiredConditionSelectionQuantity extends InteractionWiredCondition {
     public boolean saveData(WiredSettings settings) {
         int[] params = settings.getIntParams();
 
+        if (settings.isNativeVariableFormat()) {
+            // SWF: [users rather than furni, quantity, comparison]. Origins are separate.
+            if (params.length != 3 || (params[0] != 0 && params[0] != 1)
+                    || params[1] < 0 || params[1] > 100 || params[2] < 0 || params[2] > 2) return false;
+            boolean users = params[0] == 1;
+            int[] sources = users ? settings.getUserSourceTypes() : settings.getFurniSourceTypes();
+            if (sources.length != 1) return false;
+            int source = sources[0];
+            if (users ? source != 0 && source != 11 && source != 200 && source != 201
+                    : source != 0 && source != 100 && source != 200 && source != 201) return false;
+            params = new int[] {params[2], params[1], users ? SOURCE_GROUP_USERS : SOURCE_GROUP_FURNI, source};
+        }
+
         this.comparison = (params.length > 0) ? this.normalizeComparison(params[0]) : COMPARISON_EQUAL;
         this.quantity = (params.length > 1) ? this.normalizeQuantity(params[1]) : 0;
         this.items.clear();

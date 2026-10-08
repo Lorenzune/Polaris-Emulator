@@ -6,6 +6,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
+import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectFurniToFurni;
+import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSetAltitude;
 import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.api.IWiredCondition;
 import com.eu.habbo.habbohotel.wired.api.IWiredEffect;
@@ -76,6 +78,34 @@ class WiredEffectPlannerTest {
         assertThrows(
                 UnsupportedOperationException.class,
                 () -> withActor.get(0).effects().add(actorOnly));
+    }
+
+    @Test
+    void explicitAltitudeWinsForEveryRandomPlacementPermutationWithoutMovingOtherEffects() {
+        IWiredEffect move = mock(WiredEffectFurniToFurni.class);
+        IWiredEffect altitude = mock(WiredEffectSetAltitude.class);
+        IWiredEffect unrelated = new TestEffect(0, false, false, false);
+        WiredEffectPlanner planner = new WiredEffectPlanner();
+        for (List<IWiredEffect> permutation : List.of(
+                List.of(move, altitude, unrelated), List.of(move, unrelated, altitude),
+                List.of(altitude, move, unrelated), List.of(altitude, unrelated, move),
+                List.of(unrelated, move, altitude), List.of(unrelated, altitude, move))) {
+            List<IWiredEffect> ordered = planner.placementEffectOrder(permutation);
+            org.junit.jupiter.api.Assertions.assertTrue(ordered.indexOf(move) < ordered.indexOf(altitude));
+            assertEquals(permutation.indexOf(unrelated), ordered.indexOf(unrelated));
+            assertEquals(3, ordered.size());
+        }
+    }
+
+    @Test
+    void independentDelaysAndSinglePlacementEffectsRetainTheirOrder() {
+        IWiredEffect move = mock(WiredEffectFurniToFurni.class);
+        IWiredEffect altitude = mock(WiredEffectSetAltitude.class);
+        when(altitude.getDelay()).thenReturn(1);
+        WiredEffectPlanner planner = new WiredEffectPlanner();
+        assertEquals(List.of(altitude, move), planner.placementEffectOrder(List.of(altitude, move)));
+        IWiredEffect unrelated = new TestEffect(0, false, false, false);
+        assertEquals(List.of(unrelated, move), planner.placementEffectOrder(List.of(unrelated, move)));
     }
 
     private static InteractionWiredEffect interactionEffect(WiredEffectType type) {

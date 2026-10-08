@@ -1,9 +1,7 @@
 package com.eu.habbo.habbohotel.items;
 
 import com.eu.habbo.Emulator;
-import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionClickSettings;
 import com.eu.habbo.habbohotel.items.interactions.InteractionAntenna;
-import com.eu.habbo.habbohotel.items.interactions.InteractionRoomLinker;
 import com.eu.habbo.habbohotel.items.interactions.InteractionAreaHideControl;
 import com.eu.habbo.habbohotel.items.interactions.InteractionBackgroundToner;
 import com.eu.habbo.habbohotel.items.interactions.InteractionBadgeDisplay;
@@ -66,6 +64,7 @@ import com.eu.habbo.habbohotel.items.interactions.InteractionRedeemableSubscript
 import com.eu.habbo.habbohotel.items.interactions.InteractionRentableSpace;
 import com.eu.habbo.habbohotel.items.interactions.InteractionRoller;
 import com.eu.habbo.habbohotel.items.interactions.InteractionRoomAds;
+import com.eu.habbo.habbohotel.items.interactions.InteractionRoomLinker;
 import com.eu.habbo.habbohotel.items.interactions.InteractionRoomOMatic;
 import com.eu.habbo.habbohotel.items.interactions.InteractionSnowboardSlope;
 import com.eu.habbo.habbohotel.items.interactions.InteractionStackHelper;
@@ -154,6 +153,9 @@ import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditio
 import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionFurniInRange;
 import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionFurniNotInRange;
 import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionFurniTypeMatch;
+import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionFurniInstanceMatch;
+import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionFurniAnchoredInstanceMatch;
+import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionNotFurniInstanceMatch;
 import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionGroupMember;
 import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionHabboCount;
 import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditionHabboHasEffect;
@@ -215,6 +217,7 @@ import com.eu.habbo.habbohotel.items.interactions.wired.contract.InteractionWire
 import com.eu.habbo.habbohotel.items.interactions.wired.contract.InteractionWiredContractReward;
 import com.eu.habbo.habbohotel.items.interactions.wired.contract.InteractionWiredContractTrade;
 import com.eu.habbo.habbohotel.items.interactions.wired.contract.InteractionWiredCustomContract;
+import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionClickSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionOverrideHeight;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionProgressAchievement;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredActionProgressRewardTrack;
@@ -349,7 +352,6 @@ import com.eu.habbo.habbohotel.items.interactions.wired.selector.WiredEffectFurn
 import com.eu.habbo.habbohotel.items.interactions.wired.selector.WiredEffectFurniSignal;
 import com.eu.habbo.habbohotel.items.interactions.wired.selector.WiredEffectFurniWithVariable;
 import com.eu.habbo.habbohotel.items.interactions.wired.selector.WiredEffectRemoteSelector;
-import com.eu.habbo.habbohotel.items.interactions.wired.selector.WiredEffectScanChestFurniByType;
 import com.eu.habbo.habbohotel.items.interactions.wired.selector.WiredEffectUsersArea;
 import com.eu.habbo.habbohotel.items.interactions.wired.selector.WiredEffectUsersByAction;
 import com.eu.habbo.habbohotel.items.interactions.wired.selector.WiredEffectUsersByName;
@@ -745,6 +747,9 @@ public class ItemManager {
         this.interactionsList.add(new ItemInteraction("wf_cnd_has_furni_on", WiredConditionFurniHaveFurni.class));
         this.interactionsList.add(new ItemInteraction("wf_cnd_furnis_hv_avtrs", WiredConditionFurniHaveHabbo.class));
         this.interactionsList.add(new ItemInteraction("wf_cnd_stuff_is", WiredConditionFurniTypeMatch.class));
+        this.interactionsList.add(new ItemInteraction("wf_cnd_instance_is", WiredConditionFurniInstanceMatch.class));
+        this.interactionsList.add(new ItemInteraction("wf_cnd_anchored_instance_is", WiredConditionFurniAnchoredInstanceMatch.class));
+        this.interactionsList.add(new ItemInteraction("wf_cnd_not_instance_is", WiredConditionNotFurniInstanceMatch.class));
         this.interactionsList.add(new ItemInteraction("wf_cnd_actor_in_group", WiredConditionGroupMember.class));
         this.interactionsList.add(new ItemInteraction("wf_cnd_user_count_in", WiredConditionHabboCount.class));
         this.interactionsList.add(new ItemInteraction("wf_cnd_wearing_effect", WiredConditionHabboHasEffect.class));
@@ -818,8 +823,9 @@ public class ItemManager {
         this.interactionsList.add(new ItemInteraction("wf_act_give_furni", WiredEffectGiveFurniFromChest.class));
         this.interactionsList.add(
                 new ItemInteraction("wf_cnd_chest_has_item_type", WiredConditionChestHasItemType.class));
-        this.interactionsList.add(
-                new ItemInteraction("wf_xtra_scan_chest_furni_by_type", com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraScanChestFurniByType.class));
+        this.interactionsList.add(new ItemInteraction(
+                "wf_xtra_scan_chest_furni_by_type",
+                com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraScanChestFurniByType.class));
         this.interactionsList.add(new ItemInteraction("wf_act_init_transaction", WiredEffectInitTransaction.class));
         this.interactionsList.add(new ItemInteraction("wf_act_cancel_transaction", WiredEffectCancelTransaction.class));
         this.interactionsList.add(
@@ -869,6 +875,10 @@ public class ItemManager {
         this.interactionsList.add(new ItemInteraction("wf_var_context", WiredExtraContextVariable.class));
         this.interactionsList.add(new ItemInteraction("wf_var_reference", WiredExtraVariableReference.class));
         this.interactionsList.add(new ItemInteraction("wf_var_echo", WiredExtraVariableEcho.class));
+        // Local binding for the SWF type-8 card; no catalog item or asset is created here.
+        this.interactionsList.add(new ItemInteraction(
+                "wf_var_daily",
+                com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraDailyTaskVariable.class));
         this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_hp", WiredExtraVariableFxHealthPoints.class));
         this.interactionsList.add(new ItemInteraction("wf_xtra_varfx_prog", WiredExtraVariableFxProgressBar.class));
         this.interactionsList.add(
@@ -1572,7 +1582,10 @@ public class ItemManager {
         if (userId <= 0 || item == null) return null;
 
         if (extraData != null && extraData.length() > ItemDataGuard.MAX_EXTRA_DATA_LENGTH) {
-            LOGGER.error("Extradata exceeds maximum length of {} characters: {}", ItemDataGuard.MAX_EXTRA_DATA_LENGTH, extraData);
+            LOGGER.error(
+                    "Extradata exceeds maximum length of {} characters: {}",
+                    ItemDataGuard.MAX_EXTRA_DATA_LENGTH,
+                    extraData);
         }
         extraData = ItemDataGuard.normalizeExtraData(extraData);
 
@@ -1647,7 +1660,9 @@ public class ItemManager {
         return this.interactionsList.sortedNames();
     }
 
-    private static com.eu.habbo.database.Database database() { return Emulator.getDatabase(); }
+    private static com.eu.habbo.database.Database database() {
+        return Emulator.getDatabase();
+    }
 
     public static InformationPageRepository informationPages() {
         return new InformationPageRepository(database().getDataSource());

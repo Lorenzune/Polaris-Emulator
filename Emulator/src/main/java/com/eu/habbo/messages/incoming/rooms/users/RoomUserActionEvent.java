@@ -49,10 +49,8 @@ public class RoomUserActionEvent extends MessageHandler {
                 if (!event.isCancelled()) {
                     if (event.idle) {
                         room.idle(habbo);
-                        wiredAction = WiredUserActionType.RELAX;
                     } else {
                         room.unIdle(habbo);
-                        wiredAction = WiredUserActionType.AWAKE;
                     }
                 }
             } else {
@@ -100,6 +98,9 @@ public class RoomUserActionEvent extends MessageHandler {
                         break;
                     case 7:
                         wiredAction = WiredUserActionType.THUMB_UP;
+                        break;
+                    case SIX_SEVEN_ACTION:
+                        wiredAction = WiredUserActionType.SIX_SEVEN;
                         break;
                     default:
                         break;

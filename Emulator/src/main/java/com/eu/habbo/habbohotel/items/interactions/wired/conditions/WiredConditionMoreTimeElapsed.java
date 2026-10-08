@@ -1,8 +1,8 @@
 package com.eu.habbo.habbohotel.items.interactions.wired.conditions;
 
-import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredCondition;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeTimerSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
@@ -10,7 +10,6 @@ import com.eu.habbo.habbohotel.wired.WiredConditionType;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -18,19 +17,20 @@ public class WiredConditionMoreTimeElapsed extends InteractionWiredCondition {
     private static final WiredConditionType type = WiredConditionType.TIME_MORE_THAN;
     static final int MAX_CYCLES = 1_000_000;
 
-    private int cycles;
+    private int cycles = 1;
 
     public WiredConditionMoreTimeElapsed(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
     }
 
-    public WiredConditionMoreTimeElapsed(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredConditionMoreTimeElapsed(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
     @Override
     public boolean evaluate(WiredContext ctx) {
-        return (Emulator.getIntUnixTimestamp() - ctx.room().getLastTimerReset()) / 0.5 > this.cycles;
+        return Math.max(0L, System.currentTimeMillis() - ctx.room().getLastTimerResetMillis()) > this.cycles * 500L;
     }
 
     @Deprecated
@@ -41,9 +41,7 @@ public class WiredConditionMoreTimeElapsed extends InteractionWiredCondition {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(
-                this.cycles
-        ));
+        return WiredManager.getGson().toJson(new JsonData(this.cycles));
     }
 
     @Override
@@ -65,7 +63,7 @@ public class WiredConditionMoreTimeElapsed extends InteractionWiredCondition {
 
     @Override
     public void onPickUp() {
-        this.cycles = 0;
+        this.cycles = 1;
     }
 
     @Override
@@ -91,7 +89,8 @@ public class WiredConditionMoreTimeElapsed extends InteractionWiredCondition {
 
     @Override
     public boolean saveData(WiredSettings settings) {
-        if(settings.getIntParams().length < 1) return false;
+        settings = WiredNativeTimerSettings.normalize(this, settings);
+        if (settings.getIntParams().length < 1) return false;
         this.cycles = WiredConditionInputGuard.normalizeTimerCycles(settings.getIntParams()[0]);
         return true;
     }

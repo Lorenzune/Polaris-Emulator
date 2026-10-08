@@ -65,16 +65,41 @@ public final class WiredMoveCarryHelper {
             int rotation,
             WiredContext ctx,
             boolean checkForUnitCollision) {
+        return movementError(room, stackItem, movingItem, targetTile, rotation, ctx, checkForUnitCollision, true);
+    }
+
+    /** Dry run uses the same physics without emitting collision triggers. */
+    public static FurnitureMovementError getSimulationMovementError(
+            Room room,
+            HabboItem stackItem,
+            HabboItem movingItem,
+            RoomTile targetTile,
+            int rotation,
+            WiredContext ctx,
+            boolean checkForUnitCollision) {
+        return movementError(room, stackItem, movingItem, targetTile, rotation, ctx, checkForUnitCollision, false);
+    }
+
+    private static FurnitureMovementError movementError(
+            Room room,
+            HabboItem stackItem,
+            HabboItem movingItem,
+            RoomTile targetTile,
+            int rotation,
+            WiredContext ctx,
+            boolean checkForUnitCollision,
+            boolean notifyCollision) {
         if (room == null || movingItem == null || targetTile == null) {
             return FurnitureMovementError.INVALID_MOVE;
         }
 
-        WiredProjectileSupport.Plan projectile = WiredProjectileSupport.resolve(room, stackItem, movingItem, targetTile, null, rotation, defaultMovementDuration(ctx), ctx);
+        WiredProjectileSupport.Plan projectile = WiredProjectileSupport.resolve(
+                room, stackItem, movingItem, targetTile, null, rotation, defaultMovementDuration(ctx), ctx);
         if (projectile != null) rotation = projectile.rotation();
         if (!hasMovementBehaviorExtra(room, stackItem)) {
             FurnitureMovementError movementError =
                     room.furnitureFitsAt(targetTile, movingItem, rotation, checkForUnitCollision);
-            if (checkForUnitCollision) {
+            if (checkForUnitCollision && notifyCollision) {
                 triggerCollisionsForMovementError(
                         room, movingItem, targetTile, rotation, null, WiredMovementPhysics.NONE, movementError);
             }
@@ -87,7 +112,7 @@ public final class WiredMoveCarryHelper {
                 targetTile, movingItem, rotation, checkForUnitCollision && !carryContext.active, movementPhysics);
 
         if (movementError != FurnitureMovementError.NONE) {
-            if (checkForUnitCollision) {
+            if (checkForUnitCollision && notifyCollision) {
                 triggerCollisionsForMovementError(
                         room, movingItem, targetTile, rotation, carryContext, movementPhysics, movementError);
             }
@@ -100,7 +125,7 @@ public final class WiredMoveCarryHelper {
 
         movementError = getBlockingUnitError(room, movingItem, targetTile, rotation, carryContext, movementPhysics);
         if (movementError != FurnitureMovementError.NONE) {
-            if (checkForUnitCollision) {
+            if (checkForUnitCollision && notifyCollision) {
                 triggerCollisionsForMovementError(
                         room, movingItem, targetTile, rotation, carryContext, movementPhysics, movementError);
             }
@@ -264,9 +289,21 @@ public final class WiredMoveCarryHelper {
             return FurnitureMovementError.INVALID_MOVE;
         }
 
-        WiredProjectileSupport.Plan projectile = WiredProjectileSupport.resolve(room, stackItem, movingItem, targetTile, z, rotation,
-                animationDurationOverride != null ? Math.max(1, animationDurationOverride) : getAnimationDuration(room, stackItem, defaultMovementDuration(ctx)), ctx);
-        if (projectile != null) { rotation = projectile.rotation(); animationDurationOverride = projectile.duration(); }
+        WiredProjectileSupport.Plan projectile = WiredProjectileSupport.resolve(
+                room,
+                stackItem,
+                movingItem,
+                targetTile,
+                z,
+                rotation,
+                animationDurationOverride != null
+                        ? Math.max(1, animationDurationOverride)
+                        : getAnimationDuration(room, stackItem, defaultMovementDuration(ctx)),
+                ctx);
+        if (projectile != null) {
+            rotation = projectile.rotation();
+            animationDurationOverride = projectile.duration();
+        }
 
         if (!hasMovementBehaviorExtra(room, stackItem)) {
             int duration = animationDurationOverride != null
@@ -279,7 +316,7 @@ public final class WiredMoveCarryHelper {
                     rotation,
                     z,
                     actor,
-                    sendUpdates,
+                    false,
                     checkForUnitCollision,
                     duration,
                     animationElapsedOverride != null ? Math.max(0, animationElapsedOverride) : 0,
@@ -383,7 +420,9 @@ public final class WiredMoveCarryHelper {
                 applyInstantCarryState(room, movingItem, targetTile, rotation, carryContext);
             } else if (oldLocation != null) {
                 room.getWiredRuntime().markFurnitureMoving(movingItem, animationDuration);
-                Integer curveStrength = projectile != null && projectile.curve() != null ? projectile.curve() : resolveMovementCurve(room, stackItem, ctx, movingItem);
+                Integer curveStrength = projectile != null && projectile.curve() != null
+                        ? projectile.curve()
+                        : resolveMovementCurve(room, stackItem, ctx, movingItem);
                 sendAnimatedMove(
                         room,
                         movingItem,
@@ -400,10 +439,27 @@ public final class WiredMoveCarryHelper {
                         projectile == null ? null : projectile.overshoot());
             }
             if (projectile != null && oldLocation != null) {
-                Integer curve = projectile.curve() != null ? projectile.curve() : resolveMovementCurve(room, stackItem, ctx, movingItem);
-                room.getWiredRuntime().markFurnitureMoving(movingItem, Math.max(1, animationDuration + (projectile.overshoot() == null ? 0 : projectile.overshoot())));
-                WiredProjectileSupport.begin(room, movingItem, oldLocation, oldZ, targetTile, projectile, curve,
-                        animationElapsedOverride == null ? 0 : animationElapsedOverride, ctx, useWiredMovements);
+                Integer curve = projectile.curve() != null
+                        ? projectile.curve()
+                        : resolveMovementCurve(room, stackItem, ctx, movingItem);
+                room.getWiredRuntime()
+                        .markFurnitureMoving(
+                                movingItem,
+                                Math.max(
+                                        1,
+                                        animationDuration
+                                                + (projectile.overshoot() == null ? 0 : projectile.overshoot())));
+                WiredProjectileSupport.begin(
+                        room,
+                        movingItem,
+                        oldLocation,
+                        oldZ,
+                        targetTile,
+                        projectile,
+                        curve,
+                        animationElapsedOverride == null ? 0 : animationElapsedOverride,
+                        ctx,
+                        useWiredMovements);
             }
         }
 
@@ -806,6 +862,12 @@ public final class WiredMoveCarryHelper {
         }
 
         return getMovementPhysics(room, stackItem, null, ctx);
+    }
+
+    public static WiredMovementPhysics getFurniMovementPhysics(
+            Room room, HabboItem stackItem, HabboItem movingItem, WiredContext ctx) {
+        if (room == null || stackItem == null) return WiredMovementPhysics.NONE;
+        return getMovementPhysics(room, stackItem, movingItem, ctx);
     }
 
     public static int resolveMoveStepElapsed(RoomUnit roomUnit) {
@@ -1250,7 +1312,8 @@ public final class WiredMoveCarryHelper {
             int animationElapsed,
             int anchorType,
             int anchorId,
-            Integer curveStrength, Integer overshoot) {
+            Integer curveStrength,
+            Integer overshoot) {
         List<CarriedUnitMove> carriedMoves = getCarriedUnitMoves(room, movingItem, targetTile, rotation, carryContext);
         List<WiredMovementsComposer.MovementData> movements = new ArrayList<>();
         movements.add(WiredMovementsComposer.furniMovement(
@@ -1573,11 +1636,13 @@ public final class WiredMoveCarryHelper {
         return resolveMovementCurve(room, stackItem, ctx, null);
     }
 
-    private static Integer resolveMovementCurve(Room room, HabboItem stackItem, WiredContext ctx, HabboItem movingItem) {
+    private static Integer resolveMovementCurve(
+            Room room, HabboItem stackItem, WiredContext ctx, HabboItem movingItem) {
         Collection<InteractionWiredExtra> extras = getMovementExtras(room, stackItem);
-        if (extras != null) for (InteractionWiredExtra extra : extras) {
-            if (extra instanceof WiredExtraMovementCurve curve) return curve.resolveCurveStrength(ctx, movingItem);
-        }
+        if (extras != null)
+            for (InteractionWiredExtra extra : extras) {
+                if (extra instanceof WiredExtraMovementCurve curve) return curve.resolveCurveStrength(ctx, movingItem);
+            }
         return null;
     }
 

@@ -6,6 +6,7 @@ import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionRoomLinker;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeMovementSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomManager;
@@ -70,6 +71,7 @@ public class WiredEffectForwardUserToRoom extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
+        settings = WiredNativeMovementSettings.normalize(this, settings);
         int[] selected = settings.getFurniIds();
         if (selected == null || selected.length != 1 || selected[0] <= 0) return false;
         if (gameClient != null) {
@@ -111,16 +113,25 @@ public class WiredEffectForwardUserToRoom extends InteractionWiredEffect {
         var transferred = new java.util.HashSet<Integer>();
         for (RoomUnit unit : WiredSourceUtil.resolveUsers(ctx, this.userSource)) {
             Habbo habbo = room.getHabbo(unit);
-            if (habbo == null || habbo.getClient() == null || !transferred.add(habbo.getHabboInfo().getId())) continue;
+            if (habbo == null
+                    || habbo.getClient() == null
+                    || !transferred.add(habbo.getHabboInfo().getId())) continue;
             synchronized (habbo) {
                 Room currentRoom = habbo.getHabboInfo().getCurrentRoom();
                 // A previous effect or an in-flight transfer already owns this user's room change.
-                if (currentRoom != room || habbo.getHabboInfo().getLoadingRoom() != 0 || (habbo.getRoomUnit() != null && habbo.getRoomUnit().isTeleporting)) continue;
+                if (currentRoom != room
+                        || habbo.getHabboInfo().getLoadingRoom() != 0
+                        || (habbo.getRoomUnit() != null && habbo.getRoomUnit().isTeleporting)) continue;
                 if (currentRoom == targetRoom) {
                     currentRoom.teleportHabboToItem(habbo, destination);
                     continue;
                 }
-                RoomLinkerTransfer.start(roomManager, habbo, currentRoom, targetRoom, tile,
+                RoomLinkerTransfer.start(
+                        roomManager,
+                        habbo,
+                        currentRoom,
+                        targetRoom,
+                        tile,
                         recovery -> Emulator.getThreading().run(recovery, 15000));
             }
         }
@@ -139,17 +150,29 @@ public class WiredEffectForwardUserToRoom extends InteractionWiredEffect {
 
     @Override
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
-        String wiredData = set.getString("wired_data");
+        this.onPickUp();
+        try {
+            String wiredData = set.getString("wired_data");
+            if (wiredData == null) return;
 
-        if (wiredData != null && wiredData.startsWith("{")) {
-            JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
-            this.linkerIds = data.linkerIds == null ? new ArrayList<>() : new ArrayList<>(data.linkerIds.stream().filter(id -> id != null && id > 0).distinct().limit(1).toList());
-            this.setDelay(data.delay);
-            this.userSource = data.userSource;
-        } else {
-            this.linkerIds.clear();
-            this.userSource = WiredSourceUtil.SOURCE_TRIGGER;
-            this.setDelay(0);
+            if (wiredData != null && wiredData.startsWith("{")) {
+                JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
+                this.linkerIds = data.linkerIds == null
+                        ? new ArrayList<>()
+                        : new ArrayList<>(data.linkerIds.stream()
+                                .filter(id -> id != null && id > 0)
+                                .distinct()
+                                .limit(1)
+                                .toList());
+                this.setDelay(data.delay);
+                this.userSource = data.userSource;
+            } else {
+                this.linkerIds.clear();
+                this.userSource = WiredSourceUtil.SOURCE_TRIGGER;
+                this.setDelay(0);
+            }
+        } catch (RuntimeException malformed) {
+            this.onPickUp();
         }
     }
 

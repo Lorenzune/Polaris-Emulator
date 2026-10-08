@@ -106,6 +106,7 @@ public final class WiredEngine {
     private final WiredServices services;
     private final WiredStackIndex index;
     private final int maxStepsPerStack;
+    private final WiredSignalContinuationScheduler signalContinuations;
     private final WiredConditionEvaluator conditionEvaluator;
     private final WiredDelayedScheduler delayedScheduler;
     private final WiredEffectCooldownService effectCooldownService;
@@ -148,6 +149,10 @@ public final class WiredEngine {
         this.services = services;
         this.index = index;
         this.maxStepsPerStack = maxStepsPerStack;
+        this.signalContinuations = new WiredSignalContinuationScheduler((task, delayMs) -> {
+            var future = WiredPlatform.threading().run(task, delayMs);
+            return future == null ? null : () -> future.cancel(false);
+        });
         this.conditionEvaluator = new WiredConditionEvaluator(this::debug);
         this.delayedScheduler = new WiredDelayedScheduler(
                 (task, delayMs) -> {
@@ -203,7 +208,8 @@ public final class WiredEngine {
                 this::debug,
                 WiredStructuredDiagnostics.production());
         this.eventDispatcher = new WiredEventDispatcher(
-                this.executionGuard, this.stackRepository, this.stackExecutor::executeEvent, this::debug);
+                this.executionGuard, this.stackRepository, this.stackExecutor::executeEvent, this::debug,
+                this.stackExecutor::executeSignalBatch);
         this.unseenIndices = new ConcurrentHashMap<>();
         this.filteredSelectorAnimationTokens = new ConcurrentHashMap<>();
     }
@@ -222,6 +228,27 @@ public final class WiredEngine {
         return this.eventDispatcher.dispatch(event, negateConditions);
     }
 
+    /** Call Stacks bypasses triggers/conditions, but retains selectors and effect delays. */
+    void executeCalledEffects(HabboItem anchor, List<IWiredEffect> effects, WiredEvent event) {
+        if (effects.isEmpty()) return;
+        Collection<InteractionWiredExtra> extras = anchor != null && event.getRoom().getRoomSpecialTypes() != null
+                ? event.getRoom().getRoomSpecialTypes().getExtras(anchor.getX(), anchor.getY()) : List.of();
+        if (extras == null) extras = List.of();
+        WiredStack stack = new WiredStack(anchor, null, List.of(), effects, 0, 1,
+                extras.stream().anyMatch(extra -> extra instanceof WiredExtraRandom),
+                extras.stream().anyMatch(extra -> extra instanceof WiredExtraUnseen),
+                extras.stream().anyMatch(extra -> extra instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraExecuteInOrder));
+        WiredContext context = new WiredContext(
+                event, anchor, stack, this.services, new WiredState(this.maxStepsPerStack), null);
+        long currentTime = System.currentTimeMillis();
+        List<InteractionWiredEffect> selectors = executeSelectors(stack, context);
+        applySelectionFilterExtras(stack, context, selectors);
+        finalizeSelectors(selectors, context, currentTime);
+        // Preserve unconditional calls: an empty selector must not suppress a
+        // sibling effect with an explicit furniture selection.
+        executeEffects(stack, effects.stream().filter(effect -> !effect.isSelector()).toList(), context, currentTime);
+    }
+
     /**
      * Handle a wired event when the source trigger item is already known.
      * This is mainly used by timed wired triggers to avoid scanning unrelated stacks.
@@ -236,6 +263,16 @@ public final class WiredEngine {
 
     public boolean executeDirectStack(WiredStack stack, WiredEvent event, boolean negateConditions) {
         return this.stackExecutor.executeDirect(stack, event, negateConditions);
+    }
+
+    boolean executeSignalWave(java.util.function.Supplier<Boolean> admission) {
+        return this.stackExecutor.executeSignalWave(admission);
+    }
+
+    long signalExecutionDelay(Room room) { return this.executionGuard.signalExecutionDelay(room.getId()); }
+
+    void scheduleSignalContinuation(Room room, Runnable work, Runnable inlineFallback, long delayMs) {
+        this.signalContinuations.schedule(room, work, inlineFallback, delayMs);
     }
 
     public boolean shouldExecuteDirectStack(WiredStack stack, WiredEvent event, boolean negateConditions) {
@@ -440,13 +477,17 @@ public final class WiredEngine {
             // so ordered mode above is the only path that preserves that physical order.
             toExecute = new ArrayList<>(effects);
             Collections.shuffle(toExecute, ThreadLocalRandom.current());
+            toExecute = this.effectPlanner.placementEffectOrder(toExecute);
             debug(ctx.room(), "Random-order mode: shuffled {} effect(s)", toExecute.size());
         }
 
         WiredMoveCarryHelper.beginMovementCollection();
 
-        try (WiredInternalVariableSupport.UserMoveBatchScope ignored =
-                WiredInternalVariableSupport.beginUserMoveBatch()) {
+        try (var userMovements = WiredUserMovementBatch.begin(ctx.room());
+                WiredInternalVariableSupport.UserMoveBatchScope ignored =
+                WiredInternalVariableSupport.beginUserMoveBatch();
+                var stateBatch = WiredFurnitureStateBatch.begin();
+                var destinationSnapshot = WiredFurniDestinationSnapshot.begin(ctx, toExecute, true)) {
             // Execute selected effects
             for (int effectIndex = 0; effectIndex < toExecute.size(); effectIndex++) {
                 IWiredEffect effect = toExecute.get(effectIndex);
@@ -518,8 +559,14 @@ public final class WiredEngine {
         List<InteractionWiredEffect> executedSelectors = new ArrayList<>();
         WiredEffectPlanner.SelectorPlan selectorPlan = this.effectPlanner.selectorPlan(effects);
 
-        executeSelectorList(selectorPlan.immediate(), ctx, executedSelectors);
-        executeSelectorList(selectorPlan.deferred(), ctx, executedSelectors);
+        boolean previous = ctx.isResolvingSelectors();
+        ctx.setResolvingSelectors(true);
+        try {
+            executeSelectorList(selectorPlan.immediate(), ctx, executedSelectors);
+            executeSelectorList(selectorPlan.deferred(), ctx, executedSelectors);
+        } finally {
+            ctx.setResolvingSelectors(previous);
+        }
 
         return executedSelectors;
     }
@@ -766,8 +813,11 @@ public final class WiredEngine {
 
         WiredMoveCarryHelper.beginMovementCollection();
 
-        try (WiredInternalVariableSupport.UserMoveBatchScope ignored =
-                WiredInternalVariableSupport.beginUserMoveBatch()) {
+        try (var userMovements = WiredUserMovementBatch.begin(room);
+                WiredInternalVariableSupport.UserMoveBatchScope ignored =
+                WiredInternalVariableSupport.beginUserMoveBatch();
+                var stateBatch = WiredFurnitureStateBatch.begin();
+                var destinationSnapshot = WiredFurniDestinationSnapshot.begin(ctx, batch, true)) {
             for (IWiredEffect effect : batch) {
                 try {
                     if (!useExecutionTimeForCooldown) {
@@ -995,6 +1045,7 @@ public final class WiredEngine {
     }
 
     void shutdownScheduledWork() {
+        this.signalContinuations.shutdown();
         this.delayedScheduler.shutdown();
     }
 

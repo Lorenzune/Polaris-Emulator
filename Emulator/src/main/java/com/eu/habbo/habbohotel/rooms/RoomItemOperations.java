@@ -4,6 +4,7 @@ import com.eu.habbo.habbohotel.items.FurnitureType;
 import com.eu.habbo.habbohotel.items.interactions.InteractionMultiHeight;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredHighscore;
 import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.habbohotel.wired.core.WiredFurnitureStateEvents;
 import com.eu.habbo.habbohotel.wired.core.WiredRoomUpdateScope;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.rooms.items.FloorItemUpdateComposer;
@@ -56,6 +57,7 @@ final class RoomItemOperations {
 
         if (RoomAreaHideSupport.isControllerItem(item) || item instanceof InteractionWiredHighscore) {
             this.updateItem(item);
+            WiredFurnitureStateEvents.stateUpdated(this.room, item);
             return;
         }
 
@@ -96,6 +98,7 @@ final class RoomItemOperations {
 
         if (item.getBaseItem().getType() == FurnitureType.FLOOR) {
             this.room.onFurnitureTopologyChanged(item, false);
+            WiredFurnitureStateEvents.stateUpdated(this.room, item);
         }
     }
 

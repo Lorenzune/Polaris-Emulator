@@ -49,6 +49,73 @@ final class WiredDelayedScheduler {
     private final DiagnosticSink diagnostics;
     private final RoomResolver roomResolver;
     private final Set<PendingTask> pendingTasks = ConcurrentHashMap.newKeySet();
+    private final Set<Object> pendingFeedback = ConcurrentHashMap.newKeySet();
+    private final java.util.ArrayList<SignalFrame> signalFrames = new java.util.ArrayList<>();
+    // Group nearby native signal deliveries before their dependent turn/cleanup
+    // receivers run. Keep each payload independent; never execute before due.
+    private static final long SIGNAL_FRAME_GRACE_MS = 25L;
+
+    private final class SignalFrame {
+        final int roomId;
+        final long generation;
+        final long deadline;
+        final java.util.ArrayList<Runnable> work = new java.util.ArrayList<>();
+        ScheduledTask scheduled;
+        SignalFrame(Room room, long deadline) {
+            this.roomId = room.getId(); this.generation = room.getLifecycleGeneration(); this.deadline = deadline;
+        }
+        void run() {
+            List<Runnable> batch;
+            synchronized (signalFrames) {
+                signalFrames.remove(this);
+                batch = List.copyOf(this.work);
+                this.work.clear();
+            }
+            Room room = null;
+            try {
+                room = roomResolver.resolve(this.roomId);
+            } catch (RuntimeException exception) {
+                WiredCompatibilityDiagnostics.record(WiredCompatibilityDiagnostics.FailurePoint.DELAYED_ROOM_RESOLVE,
+                        this.roomId, 0, exception);
+            }
+            if (room != null && room.getLifecycleGeneration() == this.generation)
+                WiredManager.runDelayedSignalWave(room, batch);
+            else batch.forEach(Runnable::run);
+        }
+    }
+
+    private ScheduledTask scheduleSignalFrame(Room room, Runnable work, long delayMs) {
+        long deadline = this.clock.getAsLong() + delayMs;
+        synchronized (this.signalFrames) {
+            SignalFrame frame = this.signalFrames.stream().filter(candidate -> candidate.roomId == room.getId()
+                    && candidate.generation == room.getLifecycleGeneration()
+                    && deadline >= candidate.deadline && deadline <= candidate.deadline + SIGNAL_FRAME_GRACE_MS)
+                    .findFirst().orElse(null);
+            if (frame == null) {
+                frame = new SignalFrame(room, deadline);
+                this.signalFrames.add(frame);
+                frame.work.add(work);
+                try {
+                    frame.scheduled = this.taskScheduler.schedule(frame::run, delayMs + SIGNAL_FRAME_GRACE_MS);
+                    if (frame.scheduled == null) { this.signalFrames.remove(frame); return null; }
+                } catch (RuntimeException exception) {
+                    this.signalFrames.remove(frame);
+                    throw exception;
+                }
+            } else frame.work.add(work);
+            SignalFrame chosen = frame;
+            return () -> {
+                synchronized (this.signalFrames) {
+                    boolean removed = chosen.work.remove(work);
+                    if (chosen.work.isEmpty()) {
+                        this.signalFrames.remove(chosen);
+                        if (chosen.scheduled != null) chosen.scheduled.cancel();
+                    }
+                    return removed;
+                }
+            };
+        }
+    }
     private final AtomicBoolean accepting = new AtomicBoolean(true);
 
     WiredDelayedScheduler(
@@ -150,7 +217,15 @@ final class WiredDelayedScheduler {
             Object[] blockedArguments,
             ResolvedWork work) {
         WiredDelayedExecutionSnapshot snapshot = WiredDelayedExecutionSnapshot.capture(effects, context, triggerTime);
+        Object feedbackKey = context.eventType() == WiredEvent.Type.SIGNAL_RECEIVED
+                && context.event().isSignalPayloadExplicit() && effects.size() == 1
+                && effects.getFirst() instanceof com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSendSignal sender
+                && sender.isNativeSelfFeedback(context) ? snapshot.feedbackKey(delay, sender.getWiredData()) : null;
+        if (feedbackKey != null && !this.pendingFeedback.add(feedbackKey)) {
+            return;
+        }
         if (!roomDiagnostics.tryScheduleDelayedEvent(this.clock.getAsLong(), sourceLabel, sourceId, reason)) {
+            if (feedbackKey != null) this.pendingFeedback.remove(feedbackKey);
             this.diagnostics.log(context.room(), blockedMessage, blockedArguments);
             return;
         }
@@ -171,10 +246,16 @@ final class WiredDelayedScheduler {
                         sourceId,
                         ignored);
             }
-            if (room == null || !room.isLoaded() || room.getHabbos().isEmpty()) {
+            // A loaded room can be empty while its end-of-game reset is pending.
+            // Finish furniture effects; lifecycle validation below rejects work
+            // from unloaded/reloaded rooms and actor checks reject departed users.
+            if (room == null || !room.isLoaded()) {
                 return;
             }
-            var resolved = snapshot.resolve(room);
+            // A scheduled effect starts a new synchronous execution chain.
+            // Keeping the previous depth turns legitimate timer/signal loops
+            // into exhausted Call Stacks recursion after a few seconds.
+            var resolved = snapshot.resolveForNewChain(room);
             if (resolved.isEmpty() || !prepareDelayedExecution(resolved.get())) {
                 return;
             }
@@ -182,7 +263,7 @@ final class WiredDelayedScheduler {
             work.run(resolved.get());
         };
 
-        PendingTask pendingTask = new PendingTask(delayedWork, roomDiagnostics);
+        PendingTask pendingTask = new PendingTask(delayedWork, roomDiagnostics, feedbackKey);
         this.pendingTasks.add(pendingTask);
 
         try {
@@ -192,7 +273,12 @@ final class WiredDelayedScheduler {
                 return;
             }
 
-            ScheduledTask scheduledTask = this.taskScheduler.schedule(pendingTask::run, remainingDelayMs);
+            boolean nativeSignals = effects.stream().allMatch(effect ->
+                    effect instanceof com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSendSignal sender
+                            && sender.isNativeSignal());
+            ScheduledTask scheduledTask = nativeSignals
+                    ? scheduleSignalFrame(context.room(), pendingTask::run, remainingDelayMs)
+                    : this.taskScheduler.schedule(pendingTask::run, remainingDelayMs);
             if (scheduledTask == null) {
                 pendingTask.cancel();
                 this.diagnostics.log(context.room(), "Delayed scheduler rejected work during shutdown");
@@ -240,9 +326,12 @@ final class WiredDelayedScheduler {
         private final AtomicInteger state = new AtomicInteger(TASK_PENDING);
         private final AtomicReference<ScheduledTask> scheduledTask = new AtomicReference<>();
 
-        private PendingTask(Runnable work, WiredRoomDiagnostics roomDiagnostics) {
+        private final Object feedbackKey;
+
+        private PendingTask(Runnable work, WiredRoomDiagnostics roomDiagnostics, Object feedbackKey) {
             this.work = work;
             this.roomDiagnostics = roomDiagnostics;
+            this.feedbackKey = feedbackKey;
         }
 
         private void attach(ScheduledTask task) {
@@ -260,6 +349,7 @@ final class WiredDelayedScheduler {
             }
 
             pendingTasks.remove(this);
+            if (this.feedbackKey != null) pendingFeedback.remove(this.feedbackKey);
             try {
                 this.work.run();
             } finally {
@@ -278,6 +368,7 @@ final class WiredDelayedScheduler {
                 cancelQuietly(task);
             }
             pendingTasks.remove(this);
+            if (this.feedbackKey != null) pendingFeedback.remove(this.feedbackKey);
             this.roomDiagnostics.completeDelayedEvent();
             return true;
         }

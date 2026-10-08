@@ -4,6 +4,7 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeVariableSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
@@ -11,10 +12,10 @@ import com.eu.habbo.habbohotel.rooms.WiredVariableDefinitionInfo;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.WiredTriggerType;
 import com.eu.habbo.habbohotel.wired.core.WiredEvent;
+import com.eu.habbo.habbohotel.wired.core.WiredInternalVariableSupport;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredTriggerSaveException;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -36,12 +37,14 @@ public class WiredTriggerVariableChanged extends InteractionWiredTrigger {
     private boolean decreasedEnabled = true;
     private boolean unchangedEnabled = true;
     private boolean deletedEnabled = true;
+    private int originMask = -1;
 
     public WiredTriggerVariableChanged(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
     }
 
-    public WiredTriggerVariableChanged(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredTriggerVariableChanged(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -51,16 +54,20 @@ public class WiredTriggerVariableChanged extends InteractionWiredTrigger {
             return false;
         }
 
-        if (event.getVariableTargetType() != this.targetType || event.getVariableDefinitionItemId() != this.variableItemId) {
+        if (event.getVariableTargetType() != this.targetType
+                || (isInternalVariable()
+                        ? !this.variableToken.equals(event.getVariableToken())
+                        : event.getVariableDefinitionItemId() != this.variableItemId)) {
             return false;
         }
 
-        if (this.createdEnabled && event.isVariableCreated()) {
-            return true;
+        if (this.originMask != -1 && (this.originMask & event.getVariableChangeOrigin()) == 0) return false;
+        if (event.isVariableCreated()) {
+            return this.createdEnabled;
         }
 
-        if (this.deletedEnabled && event.isVariableDeleted()) {
-            return true;
+        if (event.isVariableDeleted()) {
+            return this.deletedEnabled;
         }
 
         if (!this.valueChangedEnabled) {
@@ -94,7 +101,7 @@ public class WiredTriggerVariableChanged extends InteractionWiredTrigger {
         message.appendInt(this.getBaseItem().getSpriteId());
         message.appendInt(this.getId());
         message.appendString(this.variableToken == null ? "" : this.variableToken);
-        message.appendInt(7);
+        message.appendInt(8);
         message.appendInt(this.targetType);
         message.appendInt(this.createdEnabled ? 1 : 0);
         message.appendInt(this.valueChangedEnabled ? 1 : 0);
@@ -102,6 +109,7 @@ public class WiredTriggerVariableChanged extends InteractionWiredTrigger {
         message.appendInt(this.decreasedEnabled ? 1 : 0);
         message.appendInt(this.unchangedEnabled ? 1 : 0);
         message.appendInt(this.deletedEnabled ? 1 : 0);
+        message.appendInt(this.originMask);
         message.appendInt(0);
         message.appendInt(this.getType().code);
         message.appendInt(0);
@@ -115,6 +123,7 @@ public class WiredTriggerVariableChanged extends InteractionWiredTrigger {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
+        settings = WiredNativeVariableSettings.normalize(this, settings);
         Room room = Emulator.getGameEnvironment().getRoomManager().getRoom(this.getRoomId());
         int[] params = settings.getIntParams();
 
@@ -125,10 +134,14 @@ public class WiredTriggerVariableChanged extends InteractionWiredTrigger {
         this.decreasedEnabled = (params.length <= 4) || (params[4] == 1);
         this.unchangedEnabled = (params.length <= 5) || (params[5] == 1);
         this.deletedEnabled = (params.length <= 6) || (params[6] == 1);
+        int mask = params.length > 7 ? params[7] : -1;
+        if (mask != -1 && (mask < 1 || mask > 15))
+            throw new WiredTriggerSaveException("wiredfurni.params.variables.validation.invalid_variable");
+        this.originMask = mask;
         this.setVariableToken(normalizeVariableToken(settings.getStringParam()));
         this.normalizeOptions();
 
-        if (this.variableItemId <= 0) {
+        if (this.variableItemId <= 0 && !isInternalVariable()) {
             throw new WiredTriggerSaveException("wiredfurni.params.variables.validation.missing_variable");
         }
 
@@ -145,17 +158,18 @@ public class WiredTriggerVariableChanged extends InteractionWiredTrigger {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(
-                this.variableToken,
-                this.variableItemId,
-                this.targetType,
-                this.createdEnabled,
-                this.valueChangedEnabled,
-                this.increasedEnabled,
-                this.decreasedEnabled,
-                this.unchangedEnabled,
-                this.deletedEnabled
-        ));
+        return WiredManager.getGson()
+                .toJson(new JsonData(
+                        this.variableToken,
+                        this.variableItemId,
+                        this.targetType,
+                        this.createdEnabled,
+                        this.valueChangedEnabled,
+                        this.increasedEnabled,
+                        this.decreasedEnabled,
+                        this.unchangedEnabled,
+                        this.deletedEnabled,
+                        this.originMask));
     }
 
     @Override
@@ -184,7 +198,11 @@ public class WiredTriggerVariableChanged extends InteractionWiredTrigger {
         this.decreasedEnabled = data.decreasedEnabled;
         this.unchangedEnabled = data.unchangedEnabled;
         this.deletedEnabled = data.deletedEnabled;
-        this.setVariableToken(normalizeVariableToken((data.variableToken != null) ? data.variableToken : ((data.variableItemId > 0) ? String.valueOf(data.variableItemId) : "")));
+        this.originMask = data.originMask == null ? -1 : data.originMask;
+        this.setVariableToken(normalizeVariableToken(
+                (data.variableToken != null)
+                        ? data.variableToken
+                        : ((data.variableItemId > 0) ? String.valueOf(data.variableItemId) : "")));
         this.normalizeOptions();
     }
 
@@ -199,6 +217,7 @@ public class WiredTriggerVariableChanged extends InteractionWiredTrigger {
         this.decreasedEnabled = true;
         this.unchangedEnabled = true;
         this.deletedEnabled = true;
+        this.originMask = -1;
     }
 
     private void setVariableToken(String token) {
@@ -222,15 +241,25 @@ public class WiredTriggerVariableChanged extends InteractionWiredTrigger {
     private boolean hasAnyEnabledOption() {
         return this.createdEnabled
                 || this.deletedEnabled
-                || (this.valueChangedEnabled && (this.increasedEnabled || this.decreasedEnabled || this.unchangedEnabled));
+                || (this.valueChangedEnabled
+                        && (this.increasedEnabled || this.decreasedEnabled || this.unchangedEnabled));
     }
 
     private boolean isValidDefinition(Room room) {
-        WiredVariableDefinitionInfo definitionInfo = switch (this.targetType) {
-            case TARGET_FURNI -> room.getFurniVariableManager().getDefinitionInfo(this.variableItemId);
-            case TARGET_ROOM -> room.getRoomVariableManager().getDefinitionInfo(this.variableItemId);
-            default -> room.getUserVariableManager().getDefinitionInfo(this.variableItemId);
-        };
+        if (isInternalVariable()) {
+            String key = this.variableToken.substring(9);
+            return switch (this.targetType) {
+                case TARGET_FURNI -> WiredInternalVariableSupport.canUseFurniReference(key);
+                case TARGET_ROOM -> WiredInternalVariableSupport.canUseRoomReference(key);
+                default -> WiredInternalVariableSupport.canUseUserReference(key);
+            };
+        }
+        WiredVariableDefinitionInfo definitionInfo =
+                switch (this.targetType) {
+                    case TARGET_FURNI -> room.getFurniVariableManager().getDefinitionInfo(this.variableItemId);
+                    case TARGET_ROOM -> room.getRoomVariableManager().getDefinitionInfo(this.variableItemId);
+                    default -> room.getUserVariableManager().getDefinitionInfo(this.variableItemId);
+                };
 
         return definitionInfo != null;
     }
@@ -252,6 +281,10 @@ public class WiredTriggerVariableChanged extends InteractionWiredTrigger {
             return "";
         }
 
+        if (normalized.startsWith("internal:")) {
+            String key = WiredInternalVariableSupport.normalizeKey(normalized.substring(9));
+            return key.isEmpty() ? "" : "internal:" + key;
+        }
         if (normalized.startsWith(CUSTOM_TOKEN_PREFIX)) {
             return normalized;
         }
@@ -276,6 +309,18 @@ public class WiredTriggerVariableChanged extends InteractionWiredTrigger {
         }
     }
 
+    public boolean isInternalVariable() {
+        return variableToken.startsWith("internal:");
+    }
+
+    public int getVariableTargetType() {
+        return targetType;
+    }
+
+    public String getVariableToken() {
+        return variableToken;
+    }
+
     static class JsonData {
         String variableToken;
         int variableItemId;
@@ -286,8 +331,19 @@ public class WiredTriggerVariableChanged extends InteractionWiredTrigger {
         boolean decreasedEnabled;
         boolean unchangedEnabled;
         boolean deletedEnabled;
+        Integer originMask;
 
-        JsonData(String variableToken, int variableItemId, int targetType, boolean createdEnabled, boolean valueChangedEnabled, boolean increasedEnabled, boolean decreasedEnabled, boolean unchangedEnabled, boolean deletedEnabled) {
+        JsonData(
+                String variableToken,
+                int variableItemId,
+                int targetType,
+                boolean createdEnabled,
+                boolean valueChangedEnabled,
+                boolean increasedEnabled,
+                boolean decreasedEnabled,
+                boolean unchangedEnabled,
+                boolean deletedEnabled,
+                int originMask) {
             this.variableToken = variableToken;
             this.variableItemId = variableItemId;
             this.targetType = targetType;
@@ -297,6 +353,7 @@ public class WiredTriggerVariableChanged extends InteractionWiredTrigger {
             this.decreasedEnabled = decreasedEnabled;
             this.unchangedEnabled = unchangedEnabled;
             this.deletedEnabled = deletedEnabled;
+            this.originMask = originMask;
         }
     }
 }

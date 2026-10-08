@@ -30,12 +30,13 @@ public class WiredExtraOrEval extends InteractionWiredExtra {
     public static final int MODE_EXACTLY = 5;
     public static final int MODE_MORE_THAN = 6;
     public static final int MIN_COMPARE_VALUE = 0;
-    public static final int MAX_COMPARE_VALUE = 100;
+    public static final int MAX_COMPARE_VALUE = 1000;
 
     private final Set<HabboItem> items;
     private int evaluationMode = MODE_ALL;
     private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
     private int compareValue = 1;
+    private boolean nativeFormat;
 
     public WiredExtraOrEval(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -56,9 +57,18 @@ public class WiredExtraOrEval extends InteractionWiredExtra {
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
         int[] params = settings.getIntParams();
 
-        this.evaluationMode = normalizeEvaluationMode((params.length > 0) ? params[0] : MODE_ALL);
-        this.furniSource = normalizeFurniSource((params.length > 1) ? params[1] : WiredSourceUtil.SOURCE_TRIGGER);
-        this.compareValue = normalizeCompareValue((params.length > 2) ? params[2] : this.compareValue);
+        this.nativeFormat = settings.isNativeVariableFormat();
+        int mode = params.length > 0 ? params[0] : MODE_ALL;
+        if (this.nativeFormat) {
+            int comparison = params.length > 1 ? params[1] : 0;
+            this.evaluationMode = normalizeEvaluationMode(mode == -1 ? MODE_LESS_THAN + comparison : mode);
+            int[] sources = settings.getFurniSourceTypes();
+            this.furniSource = normalizeFurniSource(sources != null && sources.length > 0 ? sources[0] : WiredSourceUtil.SOURCE_SELECTED);
+        } else {
+            this.evaluationMode = normalizeEvaluationMode(mode);
+            this.furniSource = normalizeFurniSource(params.length > 1 ? params[1] : WiredSourceUtil.SOURCE_TRIGGER);
+        }
+        this.compareValue = normalizeCompareValue(params.length > 2 ? params[2] : this.compareValue);
         this.items.clear();
 
         if (this.furniSource != WiredSourceUtil.SOURCE_SELECTED) {
@@ -88,6 +98,7 @@ public class WiredExtraOrEval extends InteractionWiredExtra {
     @Override
     public String getWiredData() {
         return WiredManager.getGson().toJson(new JsonData(
+                this.nativeFormat,
                 this.evaluationMode,
                 this.furniSource,
                 this.compareValue,
@@ -133,6 +144,7 @@ public class WiredExtraOrEval extends InteractionWiredExtra {
             JsonData data = WiredExtraPayloadGuard.fromJson(wiredData, JsonData.class);
 
             if (data != null) {
+                this.nativeFormat = data.nativeFormat;
                 this.evaluationMode = normalizeEvaluationMode(data.evaluationMode);
                 this.furniSource = normalizeFurniSource(data.furniSource);
                 this.compareValue = normalizeCompareValue(data.compareValue);
@@ -175,6 +187,7 @@ public class WiredExtraOrEval extends InteractionWiredExtra {
     @Override
     public void onPickUp() {
         this.items.clear();
+        this.nativeFormat = false;
         this.evaluationMode = MODE_ALL;
         this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.compareValue = 1;
@@ -200,6 +213,14 @@ public class WiredExtraOrEval extends InteractionWiredExtra {
 
     public int getCompareValue() {
         return this.compareValue;
+    }
+
+    public boolean hasReferencedConditions() {
+        return this.nativeFormat || !this.items.isEmpty() || this.furniSource == WiredSourceUtil.SOURCE_SELECTOR || this.furniSource == WiredSourceUtil.SOURCE_SIGNAL;
+    }
+
+    public List<HabboItem> resolveConditions(com.eu.habbo.habbohotel.wired.core.WiredContext context) {
+        return WiredSourceUtil.resolveItemsRaw(context, this.furniSource, this.items);
     }
 
     private void refresh(Room room) {
@@ -288,12 +309,14 @@ public class WiredExtraOrEval extends InteractionWiredExtra {
     }
 
     static class JsonData {
+        boolean nativeFormat;
         int evaluationMode;
         int furniSource;
         int compareValue;
         List<Integer> itemIds;
 
-        JsonData(int evaluationMode, int furniSource, int compareValue, List<Integer> itemIds) {
+        JsonData(boolean nativeFormat, int evaluationMode, int furniSource, int compareValue, List<Integer> itemIds) {
+            this.nativeFormat = nativeFormat;
             this.evaluationMode = evaluationMode;
             this.furniSource = furniSource;
             this.compareValue = compareValue;

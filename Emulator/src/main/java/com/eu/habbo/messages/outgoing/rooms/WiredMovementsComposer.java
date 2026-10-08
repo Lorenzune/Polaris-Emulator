@@ -4,7 +4,9 @@ import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class WiredMovementsComposer extends MessageComposer {
     public static final int TYPE_USER_MOVE = 0;
@@ -43,11 +45,59 @@ public class WiredMovementsComposer extends MessageComposer {
         if ((source == null) || source.isEmpty()) return new ArrayList<>();
 
         final List<MovementData> normalized = new ArrayList<>();
+        final Map<Integer, Integer> furnitureIndexes = new HashMap<>();
+        final Map<Integer, Integer> userIndexes = new HashMap<>();
+        final java.util.Set<Integer> mergedUserIndexes = new java.util.HashSet<>();
 
         for (final MovementData movement : source) {
-            if (movement != null) normalized.add(movement);
+            if (movement == null) continue;
+            if (movement instanceof UserMovementData next && next.movementType == USER_MOVEMENT_SLIDE) {
+                Integer index = userIndexes.get(next.id);
+                if (index != null) {
+                    UserMovementData first = (UserMovementData) normalized.get(index);
+                    normalized.set(index, new UserMovementData(next.id,
+                            first.fromX, first.fromY, next.toX, next.toY, first.fromZ, next.toZ,
+                            next.movementType, next.bodyDirection, next.headDirection, next.duration, next.jumpPower));
+                    mergedUserIndexes.add(index);
+                    continue;
+                }
+                userIndexes.put(next.id, normalized.size());
+            } else if (movement instanceof UserMovementData next) {
+                userIndexes.remove(next.id);
+            } else if (movement instanceof UserDirectionData next) {
+                userIndexes.remove(next.id);
+            }
+            // Effects in one execution batch mutate the same authoritative item.
+            // Send its initial position and final destination once, rather than
+            // letting a later height-only move overwrite the horizontal slide.
+            if (movement instanceof FurniMovementData next) {
+                Integer index = furnitureIndexes.get(next.id);
+                if (index != null) {
+                    FurniMovementData first = (FurniMovementData) normalized.get(index);
+                    normalized.set(index, new FurniMovementData(
+                            next.id, first.fromX, first.fromY, next.toX, next.toY,
+                            first.fromZ, next.toZ, next.rotation,
+                            next.duration, next.elapsed, next.anchorType, next.anchorId,
+                            next.overshootingDistance != null ? next.overshootingDistance : first.overshootingDistance,
+                            next.curveStrength != null ? next.curveStrength : first.curveStrength));
+                    continue;
+                }
+                furnitureIndexes.put(next.id, normalized.size());
+            }
+            normalized.add(movement);
         }
 
+        // A round trip through a service tile must not leak its temporary
+        // direction. Authoritative room status retains the chair's posture.
+        for (int index = normalized.size() - 1; index >= 0; index--) {
+            if (normalized.get(index) instanceof UserMovementData movement
+                    && movement.movementType == USER_MOVEMENT_SLIDE && movement.jumpPower == null
+                    && movement.fromX == movement.toX && movement.fromY == movement.toY
+                    && Double.compare(movement.fromZ, movement.toZ) == 0) {
+                if (mergedUserIndexes.contains(index)) normalized.remove(index);
+                else normalized.set(index, new UserDirectionData(movement.id, movement.headDirection, movement.bodyDirection));
+            }
+        }
         return normalized;
     }
 

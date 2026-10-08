@@ -10,6 +10,18 @@ import org.junit.jupiter.api.Test;
 class WiredRoomDiagnosticsTest {
 
     @Test
+    void acceptedSignalWaveChargesFullCostAndWaitsForNextWindowWithoutExecutionCapSpam() {
+        WiredRoomDiagnostics diagnostics = new WiredRoomDiagnostics(1000, 100, 100, 50, 150, 70, 5);
+        diagnostics.consumeSignalExecutionBudget(250, 1000L);
+        var snapshot = diagnostics.snapshot(0, 10, 0, 1000L);
+        assertEquals(250, snapshot.getUsageCurrentWindow());
+        assertEquals(0, logsByType(snapshot).get(WiredRoomDiagnostics.Type.EXECUTION_CAP).getCount());
+        assertEquals(900L, diagnostics.signalExecutionDelay(1100L));
+        assertEquals(0L, diagnostics.signalExecutionDelay(2000L));
+        assertEquals(0, diagnostics.snapshot(0, 10, 0, 2000L).getUsageCurrentWindow());
+    }
+
+    @Test
     void historySurvivesLimitAndCounterReset() {
         WiredRoomDiagnostics diagnostics = new WiredRoomDiagnostics(1_000, 100, 1, 50, 150, 70, 5);
         for (int i = 0; i < 250; i++)

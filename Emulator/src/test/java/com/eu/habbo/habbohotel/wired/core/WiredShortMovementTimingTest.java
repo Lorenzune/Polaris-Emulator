@@ -2,7 +2,6 @@ package com.eu.habbo.habbohotel.wired.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -30,7 +29,8 @@ class WiredShortMovementTimingTest {
     @ParameterizedTest
     @ValueSource(ints = {1, 2, 3, 5, 10})
     void savedShortIntervalReachesBatchedMovementPacket(int units) {
-        WiredTriggerRepeaterShort timer = mock(WiredTriggerRepeaterShort.class, CALLS_REAL_METHODS);
+        WiredTriggerRepeaterShort timer =
+                new WiredTriggerRepeaterShort(1, 1, mock(com.eu.habbo.habbohotel.items.Item.class), "", 0, 0);
         WiredSettings settings = mock(WiredSettings.class);
         when(settings.getIntParams()).thenReturn(new int[] {units});
         assertTrue(timer.saveData(settings));
@@ -98,23 +98,36 @@ class WiredShortMovementTimingTest {
         Fixture fixture = fixture(WiredEvent.Type.TIMER_REPEAT, mock(HabboItem.class));
         var extra = new com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraMovementCurve(
                 1, 2, mock(com.eu.habbo.habbohotel.items.Item.class), "", 0, 0);
-        extra.saveData(new WiredSettings(new int[]{0,strength,0},"",new int[0],0),null);
-        when(fixture.room.getRoomSpecialTypes().getExtras((short)0,(short)0)).thenReturn(Set.of(extra));
-        when(fixture.room.furnitureFitsAtWithPhysics(fixture.target,fixture.item,0,false,WiredMovementPhysics.NONE)).thenReturn(FurnitureMovementError.NONE);
-        when(fixture.room.moveFurniToWithPhysics(fixture.item,fixture.target,0,null,false,false,WiredMovementPhysics.NONE)).thenReturn(FurnitureMovementError.NONE);
+        extra.saveData(new WiredSettings(new int[] {0, strength, 0}, "", new int[0], 0), null);
+        when(fixture.room.getRoomSpecialTypes().getExtras((short) 0, (short) 0)).thenReturn(Set.of(extra));
+        when(fixture.room.furnitureFitsAtWithPhysics(fixture.target, fixture.item, 0, false, WiredMovementPhysics.NONE))
+                .thenReturn(FurnitureMovementError.NONE);
+        when(fixture.room.moveFurniToWithPhysics(
+                        fixture.item, fixture.target, 0, null, false, false, WiredMovementPhysics.NONE))
+                .thenReturn(FurnitureMovementError.NONE);
         WiredMoveCarryHelper.beginMovementCollection();
         try {
-            assertEquals(FurnitureMovementError.NONE,move(fixture));
+            assertEquals(FurnitureMovementError.NONE, move(fixture));
             var message = WiredMoveCarryHelper.finishMovementCollection();
             var buffer = message.get();
             try {
-                var payload = buffer.duplicate(); payload.skipBytes(6);
-                assertEquals(1,payload.readInt()); assertEquals(1,payload.readInt()); payload.skipBytes(16);
-                payload.skipBytes(payload.readUnsignedShort()); payload.skipBytes(payload.readUnsignedShort());
-                payload.skipBytes(12); assertEquals(false,payload.readBoolean());
-                assertEquals(true,payload.readBoolean()); assertEquals(strength,payload.readInt());
-            } finally { buffer.release(); }
-        } finally { WiredMoveCarryHelper.clearThreadLocalsForCurrentThread(); }
+                var payload = buffer.duplicate();
+                payload.skipBytes(6);
+                assertEquals(1, payload.readInt());
+                assertEquals(1, payload.readInt());
+                payload.skipBytes(16);
+                payload.skipBytes(payload.readUnsignedShort());
+                payload.skipBytes(payload.readUnsignedShort());
+                payload.skipBytes(12);
+                assertEquals(false, payload.readBoolean());
+                assertEquals(true, payload.readBoolean());
+                assertEquals(strength, payload.readInt());
+            } finally {
+                buffer.release();
+            }
+        } finally {
+            WiredMoveCarryHelper.clearThreadLocalsForCurrentThread();
+        }
     }
 
     private static Fixture fixture(WiredEvent.Type type, HabboItem timer) {

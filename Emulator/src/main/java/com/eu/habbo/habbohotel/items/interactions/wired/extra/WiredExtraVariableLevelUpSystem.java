@@ -4,6 +4,7 @@ import com.eu.habbo.WiredCompatibilityDiagnostics;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeVariableSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
@@ -32,9 +33,9 @@ public class WiredExtraVariableLevelUpSystem extends InteractionWiredExtra {
     public static final int SUBVARIABLE_COUNT = 8;
 
     private static final int DEFAULT_STEP_SIZE = 100;
-    private static final int DEFAULT_MAX_LEVEL = 10;
+    private static final int DEFAULT_MAX_LEVEL = 50;
     private static final int DEFAULT_FIRST_LEVEL_XP = 100;
-    private static final int DEFAULT_INCREASE_FACTOR = 100;
+    private static final int DEFAULT_INCREASE_FACTOR = 20;
     private static final int MAX_MANUAL_TEXT_LENGTH = 4096;
 
     private int mode = MODE_LINEAR;
@@ -61,6 +62,7 @@ public class WiredExtraVariableLevelUpSystem extends InteractionWiredExtra {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
+        settings = WiredNativeVariableSettings.normalize(this, settings);
         this.applyConfig(parseJsonData(settings.getStringParam()));
         return true;
     }
@@ -222,7 +224,7 @@ public class WiredExtraVariableLevelUpSystem extends InteractionWiredExtra {
             return "";
         }
 
-        String normalized = value.replace("\r", "");
+        String normalized = value.replace("\r\n", "\n").replace("\r", "\n");
         if (normalized.length() > MAX_MANUAL_TEXT_LENGTH) {
             normalized = normalized.substring(0, MAX_MANUAL_TEXT_LENGTH);
         }

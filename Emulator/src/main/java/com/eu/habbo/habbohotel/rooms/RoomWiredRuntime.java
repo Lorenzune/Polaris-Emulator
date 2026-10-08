@@ -18,6 +18,13 @@ public final class RoomWiredRuntime {
     private static final Logger LOGGER = LoggerFactory.getLogger(RoomWiredRuntime.class);
 
     private final Room room;
+    private final com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor variableMonitor =
+            new com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor();
+
+    public com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor getVariableMonitor() {
+        return variableMonitor;
+    }
+
     private final AtomicLong cacheGeneration = new AtomicLong();
     private final WiredGravityService gravity;
     private final WiredOpacityService opacity;
@@ -73,7 +80,8 @@ public final class RoomWiredRuntime {
     void onFurnitureTopologyChanged(HabboItem item, boolean moved) {
         if (moved) {
             com.eu.habbo.habbohotel.wired.core.WiredProjectileSupport.cancelItem(this.room, item);
-            if (item instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraProjectile projectile) com.eu.habbo.habbohotel.wired.core.WiredProjectileSupport.cancelExtra(projectile);
+            if (item instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraProjectile projectile)
+                com.eu.habbo.habbohotel.wired.core.WiredProjectileSupport.cancelExtra(projectile);
         }
         if (moved && item instanceof InteractionWired) {
             advanceCacheGeneration();
@@ -266,6 +274,7 @@ public final class RoomWiredRuntime {
     }
 
     void dispose() {
+        variableMonitor.clear();
         this.gravity.dispose();
         this.opacity.dispose();
     }

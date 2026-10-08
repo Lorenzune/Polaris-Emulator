@@ -6,6 +6,7 @@ import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeMovementSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomTile;
@@ -42,7 +43,7 @@ public abstract class WiredEffectUserFurniBase extends InteractionWiredEffect {
 
     protected List<HabboItem> resolveItems(WiredContext ctx) {
         Room room = ctx.room();
-        List<HabboItem> effectiveItems = WiredSourceUtil.resolveItems(ctx, this.furniSource, this.items);
+        List<HabboItem> effectiveItems = WiredMovementTargets.items(ctx, this.furniSource, this.items);
 
         if (this.furniSource == WiredSourceUtil.SOURCE_SELECTED && room != null) {
             this.items.removeIf(item ->
@@ -175,47 +176,55 @@ public abstract class WiredEffectUserFurniBase extends InteractionWiredEffect {
 
     @Override
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
-        this.items.clear();
-        String wiredData = set.getString("wired_data");
+        this.onPickUp();
+        try {
+            this.items.clear();
+            String wiredData = set.getString("wired_data");
+            if (wiredData == null) return;
 
-        if (wiredData.startsWith("{")) {
-            JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
-            this.setDelay(data.delay);
-            this.furniSource = data.furniSource;
-            this.userSource = data.userSource;
+            if (wiredData.startsWith("{")) {
+                JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
+                this.setDelay(data.delay);
+                this.furniSource = data.furniSource;
+                this.userSource = data.userSource;
 
-            if (data.itemIds != null) {
-                for (Integer id : data.itemIds) {
-                    HabboItem item = room.getHabboItem(id);
+                if (data.itemIds != null) {
+                    for (Integer id : data.itemIds != null ? data.itemIds : java.util.List.<Integer>of()) {
+                        if (id == null) continue;
+                        HabboItem item = room.getHabboItem(id);
 
-                    if (item != null) {
-                        this.items.add(item);
+                        if (item != null) {
+                            this.items.add(item);
+                        }
                     }
                 }
-            }
 
-            if (this.furniSource == WiredSourceUtil.SOURCE_TRIGGER && !this.items.isEmpty()) {
-                this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
-            }
-        } else {
-            String[] wiredDataOld = wiredData.split("\t");
+                if (this.furniSource == WiredSourceUtil.SOURCE_TRIGGER && !this.items.isEmpty()) {
+                    this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
+                }
+            } else {
+                String[] wiredDataOld = wiredData.split("\t");
 
-            if (wiredDataOld.length >= 1) {
-                this.setDelay(Integer.parseInt(wiredDataOld[0]));
-            }
+                if (wiredDataOld.length >= 1) {
+                    this.setDelay(Integer.parseInt(wiredDataOld[0]));
+                }
 
-            if (wiredDataOld.length == 2 && wiredDataOld[1].contains(";")) {
-                for (String s : wiredDataOld[1].split(";")) {
-                    HabboItem item = room.getHabboItem(Integer.parseInt(s));
+                if (wiredDataOld.length == 2 && wiredDataOld[1].contains(";")) {
+                    for (String s : wiredDataOld[1].split(";")) {
+                        HabboItem item = room.getHabboItem(Integer.parseInt(s));
 
-                    if (item != null) {
-                        this.items.add(item);
+                        if (item != null) {
+                            this.items.add(item);
+                        }
                     }
                 }
-            }
 
-            this.furniSource = this.items.isEmpty() ? WiredSourceUtil.SOURCE_TRIGGER : WiredSourceUtil.SOURCE_SELECTED;
-            this.userSource = WiredSourceUtil.SOURCE_TRIGGER;
+                this.furniSource =
+                        this.items.isEmpty() ? WiredSourceUtil.SOURCE_TRIGGER : WiredSourceUtil.SOURCE_SELECTED;
+                this.userSource = WiredSourceUtil.SOURCE_TRIGGER;
+            }
+        } catch (RuntimeException malformed) {
+            this.onPickUp();
         }
     }
 
@@ -270,6 +279,7 @@ public abstract class WiredEffectUserFurniBase extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
+        settings = WiredNativeMovementSettings.normalize(this, settings);
         this.furniSource =
                 (settings.getIntParams().length > 0) ? settings.getIntParams()[0] : WiredSourceUtil.SOURCE_TRIGGER;
         this.userSource =

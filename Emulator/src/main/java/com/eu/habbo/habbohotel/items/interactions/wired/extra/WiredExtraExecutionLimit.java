@@ -20,7 +20,7 @@ public class WiredExtraExecutionLimit extends InteractionWiredExtra {
     public static final int MIN_EXECUTIONS = 1;
     public static final int MAX_EXECUTIONS = 100;
     public static final int DEFAULT_EXECUTIONS = 1;
-    public static final int MIN_TIME_WINDOW_MS = 1000;
+    public static final int MIN_TIME_WINDOW_MS = 500;
     public static final int MAX_TIME_WINDOW_MS = 10000;
     public static final int DEFAULT_TIME_WINDOW_MS = 1000;
     public static final int TIME_WINDOW_STEP_MS = 500;

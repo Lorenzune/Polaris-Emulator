@@ -3,13 +3,12 @@ package com.eu.habbo.habbohotel.items.interactions.wired.extra;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeMovementSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
-import com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -18,13 +17,14 @@ public class WiredExtraAnimationTime extends InteractionWiredExtra {
     public static final int MIN_DURATION_MS = 50;
     public static final int MAX_DURATION_MS = 2000;
 
-    private int durationMs = WiredMovementsComposer.DEFAULT_DURATION;
+    private int durationMs = MIN_DURATION_MS;
 
     public WiredExtraAnimationTime(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
     }
 
-    public WiredExtraAnimationTime(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredExtraAnimationTime(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -35,9 +35,12 @@ public class WiredExtraAnimationTime extends InteractionWiredExtra {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
+        settings = WiredNativeMovementSettings.normalize(this, settings);
         int value = (settings.getIntParams().length > 0) ? settings.getIntParams()[0] : this.durationMs;
 
-        if (value == this.durationMs && settings.getStringParam() != null && !settings.getStringParam().isEmpty()) {
+        if (value == this.durationMs
+                && settings.getStringParam() != null
+                && !settings.getStringParam().isEmpty()) {
             try {
                 value = Integer.parseInt(settings.getStringParam());
             } catch (NumberFormatException ignored) {
@@ -81,26 +84,24 @@ public class WiredExtraAnimationTime extends InteractionWiredExtra {
 
         if (wiredData.startsWith("{")) {
             JsonData data = WiredExtraPayloadGuard.fromJson(wiredData, JsonData.class);
-            this.durationMs = normalizeDuration((data != null) ? data.durationMs : WiredMovementsComposer.DEFAULT_DURATION);
+            this.durationMs = normalizeDuration((data != null) ? data.durationMs : MIN_DURATION_MS);
             return;
         }
 
         try {
             this.durationMs = normalizeDuration(Integer.parseInt(wiredData));
         } catch (NumberFormatException ignored) {
-            this.durationMs = WiredMovementsComposer.DEFAULT_DURATION;
+            this.durationMs = MIN_DURATION_MS;
         }
     }
 
     @Override
     public void onPickUp() {
-        this.durationMs = WiredMovementsComposer.DEFAULT_DURATION;
+        this.durationMs = MIN_DURATION_MS;
     }
 
     @Override
-    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {
-
-    }
+    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {}
 
     @Override
     public boolean hasConfiguration() {

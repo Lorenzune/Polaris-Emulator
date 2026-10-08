@@ -5,6 +5,8 @@ import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
 import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameUpCounter;
+import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameTimer;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeTimerSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
@@ -16,7 +18,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.habbohotel.wired.core.WiredTriggerSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredTriggerSaveException;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
@@ -41,7 +42,8 @@ public class WiredTriggerClockCounter extends InteractionWiredTrigger {
         this.items = new LinkedHashSet<>();
     }
 
-    public WiredTriggerClockCounter(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredTriggerClockCounter(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
         this.items = new LinkedHashSet<>();
     }
@@ -50,11 +52,14 @@ public class WiredTriggerClockCounter extends InteractionWiredTrigger {
     public boolean matches(HabboItem triggerItem, WiredEvent event) {
         HabboItem sourceItem = event.getSourceItem().orElse(null);
 
-        if (!(sourceItem instanceof InteractionGameUpCounter)) {
+        if (!(sourceItem instanceof InteractionGameTimer)
+                || event.getRoom().getHabboItem(sourceItem.getId()) != sourceItem) {
             return false;
         }
 
-        if (((InteractionGameUpCounter) sourceItem).getCurrentTimeInMs() != this.getTargetTimeInMs()) {
+        int time = sourceItem instanceof InteractionGameUpCounter counter
+                ? counter.getCurrentTimeInMs() : ((InteractionGameTimer) sourceItem).getClockTimeInMs();
+        if (time != this.getTargetTimeInMs()) {
             return false;
         }
 
@@ -105,17 +110,26 @@ public class WiredTriggerClockCounter extends InteractionWiredTrigger {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
+        settings = WiredNativeTimerSettings.normalize(this, settings);
         int[] params = settings.getIntParams();
 
-        this.minutes = (params.length > 0) ? this.normalizeMinutes(params[0]) : 0;
-        this.halfSecondSteps = (params.length > 1) ? this.normalizeHalfSecondSteps(params[1]) : 0;
-        this.furniSource = (params.length > 2)
+        int newMinutes = (params.length > 0) ? this.normalizeMinutes(params[0]) : 0;
+        int newHalfSecondSteps = (params.length > 1) ? this.normalizeHalfSecondSteps(params[1]) : 0;
+        int newFurniSource = (params.length > 2)
                 ? this.normalizeFurniSource(params[2])
-                : ((settings.getFurniIds().length > 0) ? WiredSourceUtil.SOURCE_SELECTED : WiredSourceUtil.SOURCE_TRIGGER);
+                : ((settings.getFurniIds().length > 0)
+                        ? WiredSourceUtil.SOURCE_SELECTED
+                        : WiredSourceUtil.SOURCE_TRIGGER);
 
-        this.items.clear();
+        Set<HabboItem> newItems = new LinkedHashSet<>();
 
-        if (this.furniSource != WiredSourceUtil.SOURCE_SELECTED) {
+        if (newFurniSource != WiredSourceUtil.SOURCE_SELECTED) {
+
+            this.minutes = newMinutes;
+            this.halfSecondSteps = newHalfSecondSteps;
+            this.furniSource = newFurniSource;
+            this.items.clear();
+            this.items.addAll(newItems);
             return true;
         }
 
@@ -132,24 +146,29 @@ public class WiredTriggerClockCounter extends InteractionWiredTrigger {
         for (int itemId : settings.getFurniIds()) {
             HabboItem item = room.getHabboItem(itemId);
 
-            if (!(item instanceof InteractionGameUpCounter)) {
+            if (!(item instanceof InteractionGameTimer)) {
                 throw new WiredTriggerSaveException("wiredfurni.error.require_counter_furni");
             }
 
-            this.items.add(item);
+            newItems.add(item);
         }
 
+        this.minutes = newMinutes;
+        this.halfSecondSteps = newHalfSecondSteps;
+        this.furniSource = newFurniSource;
+        this.items.clear();
+        this.items.addAll(newItems);
         return true;
     }
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(
-                this.minutes,
-                this.halfSecondSteps,
-                this.furniSource,
-                this.items.stream().map(HabboItem::getId).collect(Collectors.toList())
-        ));
+        return WiredManager.getGson()
+                .toJson(new JsonData(
+                        this.minutes,
+                        this.halfSecondSteps,
+                        this.furniSource,
+                        this.items.stream().map(HabboItem::getId).collect(Collectors.toList())));
     }
 
     @Override
@@ -168,7 +187,12 @@ public class WiredTriggerClockCounter extends InteractionWiredTrigger {
             return;
         }
 
-        JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
+        JsonData data;
+        try {
+            data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
+        } catch (RuntimeException ignored) {
+            return;
+        }
         if (data == null) {
             return;
         }
@@ -183,7 +207,7 @@ public class WiredTriggerClockCounter extends InteractionWiredTrigger {
 
         for (Integer id : data.itemIds) {
             HabboItem item = room.getHabboItem(id);
-            if (item instanceof InteractionGameUpCounter) {
+            if (item instanceof InteractionGameTimer) {
                 this.items.add(item);
             }
         }
@@ -206,7 +230,7 @@ public class WiredTriggerClockCounter extends InteractionWiredTrigger {
 
         for (HabboItem item : this.items) {
             HabboItem roomItem = room.getHabboItem(item.getId());
-            if (!(roomItem instanceof InteractionGameUpCounter)) {
+            if (!(roomItem instanceof InteractionGameTimer)) {
                 remove.add(item);
             }
         }
@@ -229,7 +253,9 @@ public class WiredTriggerClockCounter extends InteractionWiredTrigger {
     }
 
     private int normalizeFurniSource(int value) {
-        if (value == WiredSourceUtil.SOURCE_SELECTED || value == WiredSourceUtil.SOURCE_SELECTOR) {
+        if (value == WiredSourceUtil.SOURCE_SELECTED
+                || value == WiredSourceUtil.SOURCE_SELECTOR
+                || value == WiredSourceUtil.SOURCE_SIGNAL) {
             return value;
         }
 

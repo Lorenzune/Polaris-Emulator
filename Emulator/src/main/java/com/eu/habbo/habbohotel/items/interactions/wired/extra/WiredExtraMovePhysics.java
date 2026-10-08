@@ -3,13 +3,13 @@ package com.eu.habbo.habbohotel.items.interactions.wired.extra;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeMovementSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -40,6 +40,7 @@ public class WiredExtraMovePhysics extends InteractionWiredExtra {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
+        settings = WiredNativeMovementSettings.normalize(this, settings);
         int[] params = settings.getIntParams();
 
         this.keepAltitude = readFlag(params, 0);
@@ -55,14 +56,15 @@ public class WiredExtraMovePhysics extends InteractionWiredExtra {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(
-                this.keepAltitude,
-                this.moveThroughFurni,
-                this.moveThroughUsers,
-                this.blockByFurni,
-                this.moveThroughFurniSource,
-                this.blockByFurniSource,
-                this.moveThroughUsersSource));
+        return WiredManager.getGson()
+                .toJson(new JsonData(
+                        this.keepAltitude,
+                        this.moveThroughFurni,
+                        this.moveThroughUsers,
+                        this.blockByFurni,
+                        this.moveThroughFurniSource,
+                        this.blockByFurniSource,
+                        this.moveThroughUsersSource));
     }
 
     @Override
@@ -134,9 +136,7 @@ public class WiredExtraMovePhysics extends InteractionWiredExtra {
     }
 
     @Override
-    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {
-
-    }
+    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {}
 
     @Override
     public boolean hasConfiguration() {
@@ -216,7 +216,14 @@ public class WiredExtraMovePhysics extends InteractionWiredExtra {
         int blockByFurniSource;
         int moveThroughUsersSource;
 
-        JsonData(boolean keepAltitude, boolean moveThroughFurni, boolean moveThroughUsers, boolean blockByFurni, int moveThroughFurniSource, int blockByFurniSource, int moveThroughUsersSource) {
+        JsonData(
+                boolean keepAltitude,
+                boolean moveThroughFurni,
+                boolean moveThroughUsers,
+                boolean blockByFurni,
+                int moveThroughFurniSource,
+                int blockByFurniSource,
+                int moveThroughUsersSource) {
             this.keepAltitude = keepAltitude;
             this.moveThroughFurni = moveThroughFurni;
             this.moveThroughUsers = moveThroughUsers;

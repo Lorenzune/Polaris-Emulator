@@ -183,7 +183,7 @@ public final class WiredUserMovementHelper {
                 animationDuration,
                 curveStrength));
         suppressStatusComposer(roomUnit, animationDuration);
-        room.sendComposer(new WiredMovementsComposer(movements).compose());
+        WiredUserMovementBatch.send(room, movements);
 
         scheduleTileCallbacks(room, roomUnit, oldLocation, targetTile, oldTopItem, newTopItem, animationDuration);
         scheduleFinalStatusSync(room, roomUnit, targetTile, animationDuration);

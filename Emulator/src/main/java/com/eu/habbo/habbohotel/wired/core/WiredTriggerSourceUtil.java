@@ -24,6 +24,8 @@ public final class WiredTriggerSourceUtil {
             case WiredSourceUtil.SOURCE_SELECTOR:
                 return resolveSelectorItems(trigger, event);
             case WiredSourceUtil.SOURCE_SIGNAL:
+                if (event.isSignalPayloadExplicit() && event.getType() == WiredEvent.Type.SIGNAL_RECEIVED)
+                    return new ArrayList<>(event.getSignalSourceItems());
                 if (event.getType() == WiredEvent.Type.SIGNAL_RECEIVED) {
                     if (!event.isSignalPerFurni()
                             && !event.getSignalSourceItems().isEmpty()) {
@@ -33,13 +35,17 @@ public final class WiredTriggerSourceUtil {
                 }
                 return Collections.emptyList();
             default:
-                return event.getSourceItem().map(Collections::singletonList).orElse(Collections.emptyList());
+                return Collections.emptyList();
         }
     }
 
     public static List<RoomUnit> resolveUsers(
             InteractionWiredTrigger trigger, WiredEvent event, int sourceType, Collection<RoomUnit> selectedUsers) {
         switch (sourceType) {
+            case WiredSourceUtil.SOURCE_CLICKED_USER:
+                return event.getType() == WiredEvent.Type.USER_CLICKS_USER
+                        ? event.getTargetUnit().map(Collections::singletonList).orElse(Collections.emptyList())
+                        : Collections.emptyList();
             case WiredSourceUtil.SOURCE_TRIGGER:
                 return event.getActor().map(Collections::singletonList).orElse(Collections.emptyList());
             case WiredSourceUtil.SOURCE_SELECTED:
@@ -47,6 +53,8 @@ public final class WiredTriggerSourceUtil {
             case WiredSourceUtil.SOURCE_SELECTOR:
                 return resolveSelectorUsers(trigger, event);
             case WiredSourceUtil.SOURCE_SIGNAL:
+                if (event.isSignalPayloadExplicit() && event.getType() == WiredEvent.Type.SIGNAL_RECEIVED)
+                    return new ArrayList<>(event.getSignalSourceUsers());
                 if (event.getType() == WiredEvent.Type.SIGNAL_RECEIVED) {
                     if (!event.isSignalPerUser()
                             && !event.getSignalSourceUsers().isEmpty()) {
@@ -56,7 +64,7 @@ public final class WiredTriggerSourceUtil {
                 }
                 return Collections.emptyList();
             default:
-                return event.getActor().map(Collections::singletonList).orElse(Collections.emptyList());
+                return Collections.emptyList();
         }
     }
 
@@ -119,8 +127,11 @@ public final class WiredTriggerSourceUtil {
         }
 
         WiredContext ctx = new WiredContext(event, trigger, DefaultWiredServices.getInstance(), new WiredState(100));
+        ctx.setResolvingSelectors(true);
 
-        for (InteractionWiredEffect effect : getOrderedSelectorEffects(room, trigger)) {
+        List<InteractionWiredEffect> selectors = getOrderedSelectorEffects(room, trigger);
+        selectors.sort(java.util.Comparator.comparing(InteractionWiredEffect::usesExistingSelectorTargets));
+        for (InteractionWiredEffect effect : selectors) {
             if (effect.requiresActor() && !ctx.hasActor()) {
                 continue;
             }

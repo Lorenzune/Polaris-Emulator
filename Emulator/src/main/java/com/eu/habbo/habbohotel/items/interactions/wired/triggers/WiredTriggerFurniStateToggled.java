@@ -7,13 +7,12 @@ import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.users.HabboItem;
-import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.WiredTriggerType;
 import com.eu.habbo.habbohotel.wired.core.WiredEvent;
+import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.habbohotel.wired.core.WiredTriggerSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -28,6 +27,7 @@ public class WiredTriggerFurniStateToggled extends InteractionWiredTrigger {
     private static final int MODE_SAVED_STATE = 1;
 
     private Set<StateSnapshot> snapshots;
+    private boolean nativeEvents;
     private int triggerMode = MODE_ALL_STATES;
     private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
 
@@ -36,16 +36,20 @@ public class WiredTriggerFurniStateToggled extends InteractionWiredTrigger {
         this.snapshots = new LinkedHashSet<>();
     }
 
-    public WiredTriggerFurniStateToggled(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredTriggerFurniStateToggled(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
         this.snapshots = new LinkedHashSet<>();
     }
 
     @Override
     public boolean matches(HabboItem triggerItem, WiredEvent event) {
-        if (event.isTriggeredByEffect()) {
-            return false;
-        }
+        if (event == null) return false;
+        if (this.nativeEvents) {
+            WiredEvent.Type expected =
+                    this.isFurnitureUse() ? WiredEvent.Type.FURNI_USED : WiredEvent.Type.FURNI_STATE_UPDATED;
+            if (event.getType() != expected) return false;
+        } else if (event.getType() != WiredEvent.Type.FURNI_STATE_CHANGED || event.isTriggeredByEffect()) return false;
 
         HabboItem sourceItem = event.getSourceItem().orElse(null);
         if (sourceItem == null) {
@@ -61,7 +65,9 @@ public class WiredTriggerFurniStateToggled extends InteractionWiredTrigger {
             if (snapshot == null) {
                 return false;
             }
-            return snapshot.state.equals(this.normalizeState(sourceItem.getExtradata()));
+            String changedState = event.getType() == WiredEvent.Type.FURNI_STATE_UPDATED
+                    ? event.getText().orElse(sourceItem.getExtradata()) : sourceItem.getExtradata();
+            return snapshot.state.equals(this.normalizeState(changedState));
         }
 
         return true;
@@ -75,71 +81,81 @@ public class WiredTriggerFurniStateToggled extends InteractionWiredTrigger {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(
-            this.triggerMode,
-            this.furniSource,
-            new ArrayList<>(this.snapshots)
-        ));
+        return WiredManager.getGson()
+                .toJson(new JsonData(
+                        this.triggerMode, this.furniSource, new ArrayList<>(this.snapshots), this.nativeEvents));
     }
 
     @Override
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
-        this.snapshots = new LinkedHashSet<>();
-        this.triggerMode = MODE_ALL_STATES;
-        this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
+        this.onPickUp();
         String wiredData = set.getString("wired_data");
 
-        if (wiredData != null && wiredData.startsWith("{")) {
-            JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
-            this.triggerMode = (data != null) ? data.triggerMode : MODE_ALL_STATES;
-            this.furniSource = (data != null) ? this.normalizeFurniSource(data.furniSource) : WiredSourceUtil.SOURCE_TRIGGER;
+        if (wiredData == null || wiredData.isBlank() || room == null) return;
+        try {
+            if (wiredData.startsWith("{")) {
+                JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
+                this.nativeEvents = data != null && data.nativeEvents;
+                this.triggerMode =
+                        (data != null && (data.triggerMode == MODE_SAVED_STATE || data.triggerMode == -1))
+                                ? data.triggerMode : MODE_ALL_STATES;
+                this.furniSource =
+                        (data != null) ? this.normalizeFurniSource(data.furniSource) : WiredSourceUtil.SOURCE_TRIGGER;
 
-            if (data != null && data.snapshots != null && !data.snapshots.isEmpty()) {
-                for (StateSnapshot snapshot : data.snapshots) {
-                    if (snapshot == null) continue;
+                if (data != null && data.snapshots != null && !data.snapshots.isEmpty()) {
+                    for (StateSnapshot snapshot : data.snapshots) {
+                        if (snapshot == null) continue;
 
-                    HabboItem item = room.getHabboItem(snapshot.itemId);
-                    if (item != null) {
-                        this.snapshots.add(new StateSnapshot(item.getId(), snapshot.state));
-                    }
-                }
-            } else if (data != null && data.itemIds != null) {
-                for (Integer id : data.itemIds) {
-                    HabboItem item = room.getHabboItem(id);
-                    if (item != null) {
-                        this.snapshots.add(this.captureSnapshot(item));
-                    }
-                }
-            }
-
-            if (this.furniSource == WiredSourceUtil.SOURCE_TRIGGER && !this.snapshots.isEmpty()) {
-                this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
-            }
-        } else {
-            if (wiredData.split(":").length >= 3) {
-                super.setDelay(Integer.parseInt(wiredData.split(":")[0]));
-
-                if (!wiredData.split(":")[2].equals("\t")) {
-                    for (String s : wiredData.split(":")[2].split(";")) {
-                        if (s.isEmpty()) {
-                            continue;
+                        HabboItem item = room.getHabboItem(snapshot.itemId);
+                        if (item != null) {
+                            this.snapshots.add(new StateSnapshot(item.getId(), snapshot.state));
                         }
-
-                        HabboItem item = room.getHabboItem(Integer.parseInt(s));
-
+                    }
+                } else if (data != null && data.itemIds != null) {
+                    for (Integer id : data.itemIds) {
+                        if (id == null) continue;
+                        HabboItem item = room.getHabboItem(id);
                         if (item != null) {
                             this.snapshots.add(this.captureSnapshot(item));
                         }
                     }
                 }
-            }
 
-            this.furniSource = this.snapshots.isEmpty() ? WiredSourceUtil.SOURCE_TRIGGER : WiredSourceUtil.SOURCE_SELECTED;
+                if (!this.nativeEvents
+                        && this.furniSource == WiredSourceUtil.SOURCE_TRIGGER
+                        && !this.snapshots.isEmpty()) {
+                    this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
+                }
+            } else {
+                if (wiredData.split(":").length >= 3) {
+                    super.setDelay(Integer.parseInt(wiredData.split(":")[0]));
+
+                    if (!wiredData.split(":")[2].equals("\t")) {
+                        for (String s : wiredData.split(":")[2].split(";")) {
+                            if (s.isEmpty()) {
+                                continue;
+                            }
+
+                            HabboItem item = room.getHabboItem(Integer.parseInt(s));
+
+                            if (item != null) {
+                                this.snapshots.add(this.captureSnapshot(item));
+                            }
+                        }
+                    }
+                }
+
+                this.furniSource =
+                        this.snapshots.isEmpty() ? WiredSourceUtil.SOURCE_TRIGGER : WiredSourceUtil.SOURCE_SELECTED;
+            }
+        } catch (RuntimeException exception) {
+            this.onPickUp();
         }
     }
 
     @Override
     public void onPickUp() {
+        this.nativeEvents = false;
         this.snapshots.clear();
         this.triggerMode = MODE_ALL_STATES;
         this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
@@ -176,7 +192,7 @@ public class WiredTriggerFurniStateToggled extends InteractionWiredTrigger {
         message.appendInt(this.getId());
         message.appendString("");
         message.appendInt(2);
-        message.appendInt(this.triggerMode);
+        message.appendInt(this.triggerMode == -1 ? MODE_ALL_STATES : this.triggerMode);
         message.appendInt(this.furniSource);
         message.appendInt(0);
         message.appendInt(this.getType().code);
@@ -185,34 +201,68 @@ public class WiredTriggerFurniStateToggled extends InteractionWiredTrigger {
 
     @Override
     public boolean saveData(WiredSettings settings) {
-        this.snapshots.clear();
-        this.triggerMode = (settings.getIntParams().length > 0 && settings.getIntParams()[0] == MODE_SAVED_STATE)
-                ? MODE_SAVED_STATE
-                : MODE_ALL_STATES;
-        this.furniSource = (settings.getIntParams().length > 1)
-                ? this.normalizeFurniSource(settings.getIntParams()[1])
-                : ((settings.getFurniIds().length > 0) ? WiredSourceUtil.SOURCE_SELECTED : WiredSourceUtil.SOURCE_TRIGGER);
-
-        Room room = Emulator.getGameEnvironment().getRoomManager().getRoom(this.getRoomId());
-        if (room == null) {
-            return true;
+        boolean nativeFormat = settings.isNativeVariableFormat();
+        if (nativeFormat) {
+            int[] params = settings.getIntParams();
+            int[] sources = settings.getFurniSourceTypes();
+            // Older USE_STUFF exports omit the mode; retain their all-states default.
+            if ((params.length != 1 && !("wf_trg_stuff_state".equals(this.getBaseItem().getName()) && params.length == 0))
+                    || sources.length != 1
+                    || (sources[0] != 100 && sources[0] != 200)
+                    || (params.length == 1 && params[0] != 0 && params[0] != 1)
+                    || settings.getUserSourceTypes().length != 0
+                    || settings.getVariableTokens().length != 0
+                    || settings.getFurniIds2().length != 0
+                    || !settings.getStringParam().isEmpty()
+                    || settings.getQuantifier() != 0
+                    || settings.isFilterExisting()
+                    || settings.isInvert()) throw new IllegalArgumentException("Invalid state trigger fields");
+            settings = new WiredSettings(
+                    new int[] {params.length == 0 ? -1 : params[0], sources[0]},
+                    "",
+                    settings.getFurniIds(),
+                    settings.getStuffTypeSelectionCode(),
+                    settings.getDelay());
         }
-
         int count = settings.getFurniIds().length;
-
-        for (int i = 0; i < count; i++) {
-            HabboItem item = room.getHabboItem(settings.getFurniIds()[i]);
-            if (item != null) {
-                this.snapshots.add(this.captureSnapshot(item));
-            }
+        if (count > Emulator.getConfig().getInt("hotel.wired.furni.selection.count")) return false;
+        Room room = Emulator.getGameEnvironment().getRoomManager().getRoom(this.getRoomId());
+        if (room == null) return false;
+        Set<StateSnapshot> captured = new LinkedHashSet<>();
+        for (int id : settings.getFurniIds()) {
+            HabboItem item = room.getHabboItem(id);
+            if (item == null) return false;
+            captured.add(this.captureSnapshot(item));
         }
-
+        int[] params = settings.getIntParams();
+        int mode = nativeFormat && params.length > 0 && params[0] == -1 ? -1
+                : params.length > 0 && params[0] == MODE_SAVED_STATE ? MODE_SAVED_STATE : MODE_ALL_STATES;
+        int source = params.length > 1
+                ? this.normalizeFurniSource(params[1])
+                : count > 0 ? WiredSourceUtil.SOURCE_SELECTED : WiredSourceUtil.SOURCE_TRIGGER;
+        this.snapshots.clear();
+        this.snapshots.addAll(captured);
+        this.nativeEvents = nativeFormat;
+        this.triggerMode = mode;
+        this.furniSource = source;
         return true;
     }
 
     @Override
     public boolean isTriggeredByRoomUnit() {
-        return true;
+        return !this.nativeEvents || this.isFurnitureUse();
+    }
+
+    private boolean isFurnitureUse() {
+        // A mode field identifies the state-change card, including older exports
+        // that use the stuff_state furniture name. Only the parameterless SWF
+        // USE_STUFF configuration represents furniture use.
+        if (this.triggerMode != -1) return false;
+        if (this.getBaseItem() == null) return false;
+        if ("wf_trg_stuff_state".equals(this.getBaseItem().getName())) return true;
+        return this.getBaseItem().getInteractionType() != null
+                && "wf_trg_stuff_state"
+                        .equals(this.getBaseItem().getInteractionType().getName());
     }
 
     private StateSnapshot captureSnapshot(HabboItem item) {
@@ -267,15 +317,16 @@ public class WiredTriggerFurniStateToggled extends InteractionWiredTrigger {
         int furniSource;
         List<StateSnapshot> snapshots;
         List<Integer> itemIds;
+        boolean nativeEvents;
 
-        public JsonData() {
-        }
+        public JsonData() {}
 
         public JsonData(List<Integer> itemIds) {
             this.itemIds = itemIds;
         }
 
-        public JsonData(int triggerMode, int furniSource, List<StateSnapshot> snapshots) {
+        public JsonData(int triggerMode, int furniSource, List<StateSnapshot> snapshots, boolean nativeEvents) {
+            this.nativeEvents = nativeEvents;
             this.triggerMode = triggerMode;
             this.furniSource = furniSource;
             this.snapshots = snapshots;
@@ -286,8 +337,7 @@ public class WiredTriggerFurniStateToggled extends InteractionWiredTrigger {
         int itemId;
         String state;
 
-        public StateSnapshot() {
-        }
+        public StateSnapshot() {}
 
         public StateSnapshot(int itemId, String state) {
             this.itemId = itemId;

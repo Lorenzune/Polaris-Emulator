@@ -281,8 +281,17 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
         return this.extradata;
     }
 
+    private boolean pendingWiredStateChange;
+
     public void setExtradata(String extradata) {
+        if (!java.util.Objects.equals(this.extradata, extradata)) this.pendingWiredStateChange = true;
         this.extradata = extradata;
+    }
+
+    public boolean consumeWiredStateChange() {
+        boolean changed = this.pendingWiredStateChange;
+        this.pendingWiredStateChange = false;
+        return changed;
     }
 
     public boolean needsUpdate() {

@@ -3,6 +3,7 @@ package com.eu.habbo.habbohotel.items.interactions.wired.extra;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 final class WiredVariableNameValidator {
@@ -18,11 +19,17 @@ final class WiredVariableNameValidator {
             return "";
         }
 
-        return value.replace("\t", "").replace("\r", "").replace("\n", "").replaceAll("\\s+", "_");
+        return value.replace("\t", "")
+                .replace("\r", "")
+                .replace("\n", "")
+                .replaceAll("\\s+", "_")
+                .toLowerCase(Locale.ROOT);
     }
 
     static String normalizeLegacy(String value) {
-        String normalized = normalizeForSave(value);
+        String normalized = value == null
+                ? ""
+                : value.replace("\t", "").replace("\r", "").replace("\n", "").replaceAll("\\s+", "_");
 
         if (normalized.contains("=")) {
             normalized = normalized.substring(0, normalized.indexOf('='));
@@ -76,6 +83,8 @@ final class WiredVariableNameValidator {
     }
 
     private static String getDefinitionName(InteractionWiredExtra extra) {
+        if (extra instanceof WiredExtraVariableReference reference) return reference.getVariableName();
+        if (extra instanceof WiredExtraVariableEcho echo) return echo.getVariableName();
         if (extra instanceof WiredExtraQuestBase quest && quest.isNativeConfiguration()) {
             return quest.getVariableName();
         }

@@ -58,6 +58,8 @@ public class RoomCycleManager {
     public void cycle() {
         try (GameClientFlushBatch ignored = GameClientFlushBatch.open()) {
             this.cycleWithCoalescedFlushes();
+            if (room.isLoaded() && room.getWiredRuntime() != null)
+                room.getWiredRuntime().getVariableMonitor().poll(room);
         }
     }
 

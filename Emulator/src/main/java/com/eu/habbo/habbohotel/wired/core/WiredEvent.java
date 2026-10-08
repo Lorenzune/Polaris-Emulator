@@ -57,6 +57,8 @@ public final class WiredEvent {
 
         /** Furniture state is toggled/changed */
         FURNI_STATE_CHANGED(WiredTriggerType.STATE_CHANGED),
+        FURNI_USED(WiredTriggerType.STATE_CHANGED),
+        FURNI_STATE_UPDATED(WiredTriggerType.STATE_CHANGED),
 
         /** Timer fires at a given time */
         TIMER_TICK(WiredTriggerType.AT_GIVEN_TIME),
@@ -195,11 +197,14 @@ public final class WiredEvent {
     private final int signalFurniCount; // forwarded furni in SIGNAL_RECEIVED
     private final List<RoomUnit> signalSourceUsers; // all users forwarded by the same send-signal emission
     private final List<HabboItem> signalSourceItems; // all furni forwarded by the same send-signal emission
+    private final boolean signalPayloadExplicit;
     private final boolean signalPerUser;
     private final boolean signalPerFurni;
     private final int variableTargetType;
     private final int variableDefinitionItemId;
     private final boolean variableCreated;
+    private final int variableChangeOrigin;
+    private final String variableToken;
     private final boolean variableDeleted;
     private final VariableChangeKind variableChangeKind;
     private final WiredContextVariableScope contextVariableScope;
@@ -229,15 +234,55 @@ public final class WiredEvent {
         // repeated signal events can share the same forwarded-source lists.
         this.signalSourceUsers = builder.signalSourceUsers;
         this.signalSourceItems = builder.signalSourceItems;
+        this.signalPayloadExplicit = builder.signalPayloadExplicit;
         this.signalPerUser = builder.signalPerUser;
         this.signalPerFurni = builder.signalPerFurni;
         this.variableTargetType = builder.variableTargetType;
         this.variableDefinitionItemId = builder.variableDefinitionItemId;
         this.variableCreated = builder.variableCreated;
+        this.variableChangeOrigin = builder.variableChangeOrigin;
+        this.variableToken = builder.variableToken;
         this.variableDeleted = builder.variableDeleted;
         this.variableChangeKind = builder.variableChangeKind;
         this.contextVariableScope = builder.contextVariableScope;
         this.createdAtMs = builder.createdAtMs;
+    }
+
+    /** Preserve the initiating event when calling another stack directly. */
+    public Builder toBuilder() {
+        Builder copy = new Builder(this.type, this.room);
+        copy.actor = this.actor;
+        copy.originActor = this.originActor;
+        copy.sourceItem = this.sourceItem;
+        copy.tile = this.tile;
+        copy.text = this.text;
+        copy.targetUnit = this.targetUnit;
+        copy.score = this.score;
+        copy.scoreAdded = this.scoreAdded;
+        copy.triggeredByEffect = this.triggeredByEffect;
+        copy.callStackDepth = this.callStackDepth;
+        copy.signalChannel = this.signalChannel;
+        copy.actionId = this.actionId;
+        copy.actionParameter = this.actionParameter;
+        copy.chatType = this.chatType;
+        copy.chatStyle = this.chatStyle;
+        copy.signalUserCount = this.signalUserCount;
+        copy.signalFurniCount = this.signalFurniCount;
+        copy.signalSourceUsers = this.signalSourceUsers;
+        copy.signalSourceItems = this.signalSourceItems;
+        copy.signalPayloadExplicit = this.signalPayloadExplicit;
+        copy.signalPerUser = this.signalPerUser;
+        copy.signalPerFurni = this.signalPerFurni;
+        copy.variableTargetType = this.variableTargetType;
+        copy.variableDefinitionItemId = this.variableDefinitionItemId;
+        copy.variableCreated = this.variableCreated;
+        copy.variableChangeOrigin = this.variableChangeOrigin;
+        copy.variableToken = this.variableToken;
+        copy.variableDeleted = this.variableDeleted;
+        copy.variableChangeKind = this.variableChangeKind;
+        copy.contextVariableScope = this.contextVariableScope;
+        copy.createdAtMs = this.createdAtMs;
+        return copy;
     }
 
     // Getters
@@ -374,6 +419,10 @@ public final class WiredEvent {
         return signalFurniCount;
     }
 
+    public boolean isSignalPayloadExplicit() {
+        return signalPayloadExplicit;
+    }
+
     public List<RoomUnit> getSignalSourceUsers() {
         return signalSourceUsers;
     }
@@ -400,6 +449,14 @@ public final class WiredEvent {
 
     public boolean isVariableCreated() {
         return variableCreated;
+    }
+
+    public int getVariableChangeOrigin() {
+        return variableChangeOrigin;
+    }
+
+    public String getVariableToken() {
+        return variableToken;
     }
 
     public boolean isVariableDeleted() {
@@ -477,11 +534,14 @@ public final class WiredEvent {
         private int signalFurniCount;
         private List<RoomUnit> signalSourceUsers = List.of();
         private List<HabboItem> signalSourceItems = List.of();
+        private boolean signalPayloadExplicit;
         private boolean signalPerUser;
         private boolean signalPerFurni;
         private int variableTargetType = -1;
         private int variableDefinitionItemId;
         private boolean variableCreated;
+        private int variableChangeOrigin = WiredVariableChangeOrigin.current();
+        private String variableToken = "";
         private boolean variableDeleted;
         private VariableChangeKind variableChangeKind = VariableChangeKind.NONE;
         private WiredContextVariableScope contextVariableScope;
@@ -624,6 +684,11 @@ public final class WiredEvent {
             return this;
         }
 
+        public Builder signalPayloadExplicit(boolean value) {
+            this.signalPayloadExplicit = value;
+            return this;
+        }
+
         public Builder signalSourceUsers(List<RoomUnit> signalSourceUsers) {
             this.signalSourceUsers = immutableNonNullSnapshot(signalSourceUsers);
             return this;
@@ -669,6 +734,18 @@ public final class WiredEvent {
 
         public Builder variableCreated(boolean variableCreated) {
             this.variableCreated = variableCreated;
+            return this;
+        }
+
+        public Builder variableChangeOrigin(int origin) {
+            if (origin != 1 && origin != 2 && origin != 4 && origin != 8)
+                throw new IllegalArgumentException("Invalid variable origin");
+            this.variableChangeOrigin = origin;
+            return this;
+        }
+
+        public Builder variableToken(String token) {
+            this.variableToken = token == null ? "" : token;
             return this;
         }
 

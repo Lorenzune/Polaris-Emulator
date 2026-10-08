@@ -6,6 +6,7 @@ import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredLegacyDataGuard;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeMovementSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.pets.RideablePet;
 import com.eu.habbo.habbohotel.rooms.Room;
@@ -74,7 +75,7 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
 
         Room room = roomUnit.getRoom();
 
-        if (room == null) {
+        if (room == null || !room.isLoaded() || tile == roomUnit.getCurrentLocation()) {
             return;
         }
 
@@ -204,6 +205,7 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
+        settings = WiredNativeMovementSettings.normalize(this, settings);
         int[] params = settings.getIntParams();
         if (params.length > 2) {
             this.fastTeleport = params[0] == 1;
@@ -243,7 +245,7 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
 
         int delay = settings.getDelay();
 
-        if (delay > Emulator.getConfig().getInt("hotel.wired.max_delay", 20))
+        if (delay < 0 || delay > Emulator.getConfig().getInt("hotel.wired.max_delay", 20))
             throw new WiredSaveException("Delay too long");
 
         this.items.clear();
@@ -263,7 +265,7 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
             return;
         }
 
-        List<HabboItem> effectiveItems = WiredSourceUtil.resolveItems(ctx, this.furniSource, this.items);
+        List<HabboItem> effectiveItems = WiredMovementTargets.items(ctx, this.furniSource, this.items);
         if (this.furniSource == WiredSourceUtil.SOURCE_SELECTED) {
             this.items.removeIf(item -> item == null
                     || item.getRoomId() != this.getRoomId()
@@ -277,10 +279,11 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
         if (effectiveItems.isEmpty()) return;
 
         for (RoomUnit roomUnit : WiredSourceUtil.resolveUsers(ctx, this.userSource)) {
+            if (roomUnit == null || roomUnit.getRoom() != room) continue;
             int i = Emulator.getRandom().nextInt(effectiveItems.size());
             HabboItem item = effectiveItems.get(i);
 
-            if (item == null) continue;
+            if (item == null || room.getHabboItem(item.getId()) != item) continue;
 
             RoomTile tile = room.getLayout().getTile(item.getX(), item.getY());
             if (tile != null) {
@@ -309,7 +312,7 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
 
         String key = buildSignalTeleportBatchKey(ctx, roomUnit);
         PendingSignalTeleport pending = PENDING_SIGNAL_TELEPORTS.computeIfAbsent(
-                key, ignored -> new PendingSignalTeleport(roomUnit, this.fastTeleport));
+                key, ignored -> new PendingSignalTeleport(roomUnit, ctx.room(), this.fastTeleport));
 
         pending.add(tile);
 
@@ -334,7 +337,10 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
         }
 
         RoomTile tile = pending.pickTile();
-        if (tile != null) {
+        if (tile != null
+                && pending.roomUnit.getRoom() == pending.room
+                && pending.room.isLoaded()
+                && pending.room.getLifecycleGeneration() == pending.roomGeneration) {
             teleportUnitToTile(pending.roomUnit, tile, pending.fastTeleport);
         }
     }
@@ -470,10 +476,14 @@ public class WiredEffectTeleport extends InteractionWiredEffect {
     private static final class PendingSignalTeleport {
         private final RoomUnit roomUnit;
         private final boolean fastTeleport;
+        private final Room room;
+        private final long roomGeneration;
         private final AtomicBoolean scheduled = new AtomicBoolean(false);
         private final List<RoomTile> candidateTiles = new ArrayList<>();
 
-        private PendingSignalTeleport(RoomUnit roomUnit, boolean fastTeleport) {
+        private PendingSignalTeleport(RoomUnit roomUnit, Room room, boolean fastTeleport) {
+            this.room = room;
+            this.roomGeneration = room.getLifecycleGeneration();
             this.roomUnit = roomUnit;
             this.fastTeleport = fastTeleport;
         }

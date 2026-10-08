@@ -25,6 +25,180 @@ import org.junit.jupiter.api.Test;
 class WiredStackExecutorTest {
 
     @Test
+    void limitedReceiverCanFinishThroughItsNegativeBranchAfterResettingItsCondition() {
+        List<String> calls = new ArrayList<>();
+        Room room = room(268);
+        var special = mock(com.eu.habbo.habbohotel.rooms.RoomSpecialTypes.class);
+        when(room.getRoomSpecialTypes()).thenReturn(special);
+        var limit = new com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraExecutionLimit(
+                13354, 16, null, "", 0, 0);
+        when(special.getExtras(0, 0)).thenReturn(java.util.Set.of(limit));
+        var ready = new java.util.concurrent.atomic.AtomicBoolean(true);
+        var finished = new java.util.concurrent.atomic.AtomicBoolean(false);
+        var negative = new com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectNegativeSendSignal(
+                13355, 16, null, "", 0, 0) {
+            @Override public void execute(WiredContext context) { finished.set(true); }
+        };
+        var stack = new WiredStack(item(13352), trigger(calls, true), List.of(ctx -> ready.get()),
+                List.of(ctx -> ready.set(false), negative));
+        var executor = executor(calls, 1000L);
+        assertTrue(executor.executeEvent(stack, event(room), 1000L, false));
+        assertTrue(executor.executeEvent(stack, event(room), 1100L, false));
+        assertTrue(finished.get(), "The completion signal must survive the successful branch's limit");
+        ready.set(true);
+        assertFalse(executor.executeEvent(stack, event(room), 1200L, false),
+                "A second successful reset must still respect the execution limit");
+    }
+
+    @Test
+    void negativeSenderCannotAdvanceCounterWhileReceivingClockConditionIsFalse() {
+        List<String> calls = new ArrayList<>();
+        Room room = room(268);
+        var active = new java.util.concurrent.atomic.AtomicBoolean(false);
+        var counter = new AtomicInteger();
+        var executor = executor(calls, 1000L);
+        var signal = WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room).build();
+        var receiver = new WiredStack(item(12814), trigger(calls, true),
+                List.of(ctx -> active.get()), List.of(ctx -> counter.incrementAndGet()));
+        var sender = new com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectNegativeSendSignal(
+                12829,16,null,"",0,0) {
+            @Override public void execute(WiredContext context) { dispatchSignalEvent(signal); }
+        };
+        var source = new WiredStack(item(12835), trigger(calls,true),
+                List.of(ctx -> false), List.of(sender));
+        try (var manager = org.mockito.Mockito.mockStatic(WiredManager.class)) {
+            manager.when(() -> WiredManager.dispatchEffectTriggeredEvent(signal))
+                .thenAnswer(i -> executor.executeEvent(receiver, signal, 1000L, false));
+            assertTrue(executor.executeEvent(source,event(room, WiredEvent.Type.CUSTOM),1000L,false));
+            assertEquals(0,counter.get());
+            active.set(true);
+            assertTrue(executor.executeEvent(source,event(room, WiredEvent.Type.CUSTOM),1000L,false));
+            assertEquals(1,counter.get());
+        }
+    }
+
+    @Test
+    void oneClickAdmitsCaptureBeforePlacementLocksTheControllerInEitherStackOrder() {
+        for (boolean placementFirst : new boolean[] {true, false}) {
+            List<String> calls = new ArrayList<>();
+            Room room = room(100);
+            AtomicInteger phase = new AtomicInteger(0), captures = new AtomicInteger();
+            IWiredTrigger trigger = trigger(calls, true);
+            WiredStack placement = new WiredStack(item(10001), trigger,
+                    List.of(ctx -> phase.get() == 0), List.of(ctx -> phase.set(2)));
+            WiredStack capture = new WiredStack(item(10002), trigger,
+                    List.of(ctx -> phase.get() == 0), List.of(ctx -> captures.incrementAndGet()));
+            WiredStackExecutor executor = executor(calls, 1000L);
+            WiredEvent click = event(room, WiredEvent.Type.USER_CLICKS_FURNI);
+            assertTrue(executor.executeSignalBatch(click, () -> {
+                executor.executeEvent(placementFirst ? placement : capture, click, 1000L, false);
+                return executor.executeEvent(placementFirst ? capture : placement, click, 1000L, false);
+            }));
+            assertEquals(2, phase.get());
+            assertEquals(1, captures.get());
+            executor.executeSignalBatch(click, () -> executor.executeEvent(capture, click, 1000L, false));
+            assertEquals(1, captures.get(), "A later click cannot bypass the locked controller");
+        }
+    }
+
+    @Test
+    void nativeSignalWaveKeepsTurnAdmissionStableAcrossIndependentPayloads() {
+        List<String> calls = new ArrayList<>();
+        Room room = room(96);
+        AtomicInteger turn = new AtomicInteger(0), deliveries = new AtomicInteger();
+        IWiredTrigger trigger = trigger(calls, true);
+        WiredStack first = new WiredStack(item(9601), trigger,
+                List.of(ctx -> turn.get() == 0), List.of(ctx -> turn.set(1)));
+        WiredStack second = new WiredStack(item(9602), trigger,
+                List.of(ctx -> turn.get() == 1), List.of(ctx -> turn.set(0)));
+        WiredStack counter = new WiredStack(item(9603), trigger, List.of(),
+                List.of(ctx -> deliveries.incrementAndGet()));
+        WiredStackExecutor executor = executor(calls, 1000L);
+        assertTrue(executor.executeSignalWave(() -> {
+            boolean matched = false;
+            for (int delivery = 0; delivery < 2; delivery++) {
+                WiredEvent signal = WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
+                        .signalPayloadExplicit(true).build();
+                matched = executor.executeSignalBatch(signal, () -> {
+                    executor.executeEvent(first, signal, 1000L, false);
+                    executor.executeEvent(second, signal, 1000L, false);
+                    return executor.executeEvent(counter, signal, 1000L, false);
+                }) || matched;
+            }
+            return matched;
+        }));
+        assertEquals(1, turn.get());
+        assertEquals(2, deliveries.get());
+    }
+
+    @Test
+    void admittedAltitudeReceiverDoesNotApplyAfterAnotherReceiverMovesItsSource() {
+        for (boolean movementFirst : new boolean[] {true, false}) {
+            List<String> calls = new ArrayList<>();
+            Room room = room(99);
+            var altitude = new java.util.concurrent.atomic.AtomicReference<Double>(2.06);
+            IWiredTrigger trigger = trigger(calls, true);
+            WiredStack movement = new WiredStack(item(9901), trigger, List.of(),
+                    List.of(context -> altitude.set(2.02)));
+            WiredStack animation = new WiredStack(item(9902), trigger,
+                    List.of(context -> Math.abs(altitude.get() - 2.06) < 0.001),
+                    List.of(context -> altitude.set(altitude.get() + 0.20)));
+            WiredStackExecutor executor = executor(calls, 1000L);
+            WiredEvent signal = WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
+                    .signalPayloadExplicit(true).build();
+            assertTrue(executor.executeSignalBatch(signal, () -> {
+                executor.executeEvent(movementFirst ? movement : animation, signal, 1000L, false);
+                return executor.executeEvent(movementFirst ? animation : movement, signal, 1000L, false);
+            }));
+            assertEquals(2.02, altitude.get(), 0.001);
+        }
+    }
+
+    @Test
+    void nativeReceiversDoNotSwitchTheTurnTwiceInOneSignal() {
+        List<String> calls = new ArrayList<>();
+        Room room = room(97);
+        AtomicInteger turn = new AtomicInteger(0);
+        IWiredTrigger trigger = trigger(calls, true);
+        WiredStack first = new WiredStack(item(9701), trigger,
+                List.of(ctx -> turn.get() == 0), List.of(ctx -> turn.set(1)));
+        WiredStack second = new WiredStack(item(9702), trigger,
+                List.of(ctx -> turn.get() == 1), List.of(ctx -> turn.set(0)));
+        WiredStackExecutor executor = executor(calls, 1000L);
+        for (int expected : new int[] {1, 0, 1, 0}) {
+            WiredEvent signal = WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
+                    .signalPayloadExplicit(true).build();
+            assertTrue(executor.executeSignalBatch(signal, () -> {
+                boolean a = executor.executeEvent(first, signal, 1000L, false);
+                boolean b = executor.executeEvent(second, signal, 1000L, false);
+                return a || b;
+            }));
+            assertEquals(expected, turn.get());
+        }
+    }
+
+    @Test
+    void signalBatchIsolatesReceiverFailuresAndDoesNotRetainDeferredWork() {
+        List<String> calls = new ArrayList<>();
+        Room room = room(98);
+        AtomicInteger executions = new AtomicInteger();
+        IWiredTrigger trigger = trigger(calls, true);
+        WiredStack failing = new WiredStack(item(9801), trigger, List.of(),
+                List.of(ctx -> { throw new IllegalStateException("receiver failure"); }));
+        WiredStack succeeding = new WiredStack(item(9802), trigger, List.of(),
+                List.of(ctx -> executions.incrementAndGet()));
+        WiredStackExecutor executor = executor(calls, 1000L);
+        WiredEvent signal = event(room, WiredEvent.Type.SIGNAL_RECEIVED);
+        assertTrue(executor.executeSignalBatch(signal, () -> {
+            executor.executeEvent(failing, signal, 1000L, false);
+            return executor.executeEvent(succeeding, signal, 1000L, false);
+        }));
+        assertEquals(1, executions.get());
+        assertTrue(executor.executeEvent(succeeding, event(room), 1000L, false));
+        assertEquals(2, executions.get());
+    }
+
+    @Test
     void eventExecutionPreservesTriggerSelectorConditionAndEffectOrder() {
         List<String> calls = new ArrayList<>();
         Room room = room(91);
@@ -140,6 +314,26 @@ class WiredStackExecutorTest {
         assertTrue(executedEffects > 0);
         assertTrue(executedEffects < 20);
         assertTrue(executionGuard.snapshot(room.getId()).getUsageCurrentWindow() > 10);
+    }
+
+    @Test
+    void queuedSignalWaveCompletesEveryReceiverEvenWhenUsageLimitIsReachedMidWave() {
+        List<String> calls = new ArrayList<>();
+        Room room = room(101);
+        var guard = executionGuard(4000L, 10);
+        var executor = executor(calls, 4000L, guard);
+        var stack = new WiredStack(item(10101), trigger(calls, true), List.of(), List.of(ctx -> calls.add("effect")));
+        var signal = event(room, WiredEvent.Type.SIGNAL_RECEIVED);
+        try (var scope = WiredSignalExecutionScope.begin()) {
+            assertTrue(executor.executeSignalWave(() -> {
+                for (int i = 0; i < 20; i++) assertTrue(executor.executeEvent(stack, signal, 4000L, false));
+                return true;
+            }));
+        }
+        assertEquals(20L, calls.stream().filter("effect"::equals).count());
+        assertTrue(guard.snapshot(room.getId()).getUsageCurrentWindow() > 10);
+        assertTrue(guard.signalExecutionDelay(room.getId()) > 0);
+        assertFalse(WiredSignalExecutionScope.active());
     }
 
     private static WiredStackExecutor executor(List<String> calls, long now) {

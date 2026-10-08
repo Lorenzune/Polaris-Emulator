@@ -6,6 +6,7 @@ import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeVariableSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
@@ -91,7 +92,7 @@ public class WiredEffectGiveVariable extends InteractionWiredEffect {
     private void executeContextVariables(WiredContext ctx, Room room) {
         WiredVariableDefinitionInfo definitionInfo =
                 WiredContextVariableSupport.getDefinitionInfo(room, this.variableItemId);
-        if (definitionInfo == null || definitionInfo.isReadOnly()) {
+        if (definitionInfo == null || (definitionInfo.isReadOnly() || !definitionInfo.canCreateAndDelete())) {
             return;
         }
 
@@ -103,7 +104,7 @@ public class WiredEffectGiveVariable extends InteractionWiredEffect {
         WiredVariableDefinitionInfo definitionInfo =
                 room.getUserVariableManager().getDefinitionInfo(this.variableItemId);
 
-        if (definitionInfo == null || definitionInfo.isReadOnly()) {
+        if (definitionInfo == null || (definitionInfo.isReadOnly() || !definitionInfo.canCreateAndDelete())) {
             return;
         }
 
@@ -133,7 +134,7 @@ public class WiredEffectGiveVariable extends InteractionWiredEffect {
     private void executeFurniVariables(WiredContext ctx, Room room) {
         WiredVariableDefinitionInfo definition = room.getFurniVariableManager().getDefinitionInfo(this.variableItemId);
 
-        if (definition == null || definition.isReadOnly()) {
+        if (definition == null || (definition.isReadOnly() || !definition.canCreateAndDelete())) {
             return;
         }
 
@@ -201,6 +202,7 @@ public class WiredEffectGiveVariable extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
+        settings = WiredNativeVariableSettings.normalize(this, settings);
         Room room = Emulator.getGameEnvironment().getRoomManager().getRoom(this.getRoomId());
 
         if (room == null) {
@@ -234,7 +236,9 @@ public class WiredEffectGiveVariable extends InteractionWiredEffect {
                 ? room.getUserVariableManager().getDefinitionInfo(nextVariableItemId)
                 : null;
 
-        if (nextTargetType == TARGET_USER && (userDefinitionInfo == null || userDefinitionInfo.isReadOnly())) {
+        if (nextTargetType == TARGET_USER
+                && (userDefinitionInfo == null
+                        || (userDefinitionInfo.isReadOnly() || !userDefinitionInfo.canCreateAndDelete()))) {
             throw new WiredSaveException("wiredfurni.params.variables.validation.invalid_variable");
         }
 
@@ -242,7 +246,8 @@ public class WiredEffectGiveVariable extends InteractionWiredEffect {
             WiredVariableDefinitionInfo furniDefinitionInfo =
                     room.getFurniVariableManager().getDefinitionInfo(nextVariableItemId);
 
-            if (furniDefinitionInfo == null || furniDefinitionInfo.isReadOnly()) {
+            if (furniDefinitionInfo == null
+                    || (furniDefinitionInfo.isReadOnly() || !furniDefinitionInfo.canCreateAndDelete())) {
                 throw new WiredSaveException("wiredfurni.params.variables.validation.invalid_variable");
             }
         }
@@ -251,7 +256,8 @@ public class WiredEffectGiveVariable extends InteractionWiredEffect {
             WiredVariableDefinitionInfo contextDefinitionInfo =
                     WiredContextVariableSupport.getDefinitionInfo(room, nextVariableItemId);
 
-            if (contextDefinitionInfo == null || contextDefinitionInfo.isReadOnly()) {
+            if (contextDefinitionInfo == null
+                    || (contextDefinitionInfo.isReadOnly() || !contextDefinitionInfo.canCreateAndDelete())) {
                 throw new WiredSaveException("wiredfurni.params.variables.validation.invalid_variable");
             }
         }

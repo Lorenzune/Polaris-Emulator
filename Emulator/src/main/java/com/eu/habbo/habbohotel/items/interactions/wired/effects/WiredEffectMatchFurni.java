@@ -5,9 +5,9 @@ import com.eu.habbo.WiredPlatform;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeSnapshotSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.interfaces.InteractionWiredMatchFurniSettings;
-import com.eu.habbo.habbohotel.rooms.FurnitureMovementError;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomTile;
 import com.eu.habbo.habbohotel.rooms.RoomTileState;
@@ -61,7 +61,7 @@ public class WiredEffectMatchFurni extends InteractionWiredEffect implements Int
 
         if (this.settings.isEmpty()) return;
 
-        if (room.getLayout() == null) return;
+        if (room == null || room.getLayout() == null) return;
 
         if (this.furniSource == WiredSourceUtil.SOURCE_SELECTED) {
             for (WiredMatchFurniSetting setting : this.settings) {
@@ -110,8 +110,21 @@ public class WiredEffectMatchFurni extends InteractionWiredEffect implements Int
     }
 
     private void applySetting(Room room, HabboItem item, WiredMatchFurniSetting setting, WiredContext ctx) {
-        if (this.state && (this.checkForWiredResetPermission && item.allowWiredResetState())) {
-            if (!setting.state.equals(" ") && !item.getExtradata().equals(setting.state)) {
+        if (this.state && this.checkForWiredResetPermission
+                && (item.allowWiredResetState()
+                        || item instanceof com.eu.habbo.habbohotel.items.interactions.games.football.scoreboards.InteractionFootballScoreboard)) {
+            if (item instanceof com.eu.habbo.habbohotel.items.interactions.games.football.scoreboards.InteractionFootballScoreboard counter) {
+                // SWF snapshots use an empty state for a counter's initial value.
+                // Updating only extradata leaves the counter's numeric score stale.
+                try {
+                    int score = setting.state.isBlank() ? 0 : Integer.parseInt(setting.state);
+                    if (score != counter.getScore()) {
+                        counter.setScore(score);
+                        room.updateItemState(counter);
+                    }
+                } catch (NumberFormatException ignored) {
+                }
+            } else if (!setting.state.equals(" ") && !setting.state.equals(item.getExtradata())) {
                 item.setExtradata(setting.state);
                 item.needsUpdate(true);
                 room.updateItemState(item);
@@ -121,40 +134,58 @@ public class WiredEffectMatchFurni extends InteractionWiredEffect implements Int
         RoomTile oldLocation = room.getLayout().getTile(item.getX(), item.getY());
         if (oldLocation == null) return;
 
-        if (this.direction && !this.position) {
-            if (item.getRotation() != setting.rotation
-                    && room.furnitureFitsAt(oldLocation, item, setting.rotation, false)
-                            == FurnitureMovementError.NONE) {
-                WiredMoveCarryHelper.moveFurni(room, this, item, oldLocation, setting.rotation, null, true, ctx);
-            }
-        } else if (this.altitude && !this.position) {
-            int newRotation = this.direction ? setting.rotation : item.getRotation();
-            if (BigDecimal.valueOf(item.getZ()).compareTo(BigDecimal.valueOf(setting.z)) != 0
-                    || newRotation != item.getRotation()) {
-                WiredMoveCarryHelper.moveFurni(room, this, item, oldLocation, newRotation, setting.z, null, true, ctx);
-            }
-        } else if (this.position) {
-            boolean slideAnimation = !this.direction || item.getRotation() == setting.rotation;
-            RoomTile newLocation = room.getLayout().getTile((short) setting.x, (short) setting.y);
-            int newRotation = this.direction ? setting.rotation : item.getRotation();
-            double newZ = this.altitude ? setting.z : item.getZ();
-
-            if (newLocation != null
-                    && newLocation.state != RoomTileState.INVALID
-                    && (newLocation != oldLocation || newRotation != item.getRotation())
-                    && WiredMoveCarryHelper.getMovementError(room, this, item, newLocation, newRotation, ctx)
-                            == FurnitureMovementError.NONE) {
-                if (WiredMoveCarryHelper.moveFurni(
-                                room, this, item, newLocation, newRotation, newZ, null, !slideAnimation, ctx)
-                        == FurnitureMovementError.NONE) {}
-            }
-        }
+        RoomTile destination =
+                this.position ? room.getLayout().getTile((short) setting.x, (short) setting.y) : oldLocation;
+        int rotation = this.direction ? setting.rotation : item.getRotation();
+        Double height = null;
+        if (this.altitude) height = setting.z;
+        else if (this.position) height = item.getZ();
+        boolean heightChanged =
+                height != null && BigDecimal.valueOf(item.getZ()).compareTo(BigDecimal.valueOf(height)) != 0;
+        if (destination == null
+                || destination.state == RoomTileState.INVALID
+                || (destination == oldLocation && rotation == item.getRotation() && !heightChanged)) return;
+        WiredMoveCarryHelper.moveFurni(
+                room, this, item, destination, rotation, height, null, rotation != item.getRotation(), ctx);
     }
 
     @Deprecated
     @Override
     public boolean execute(RoomUnit roomUnit, Room room, Object[] stuff) {
         return false;
+    }
+
+    @Override
+    public boolean simulate(WiredContext ctx, com.eu.habbo.habbohotel.wired.core.WiredSimulation simulation) {
+        if (ctx == null || ctx.room() == null || ctx.room().getLayout() == null) return false;
+        Room room = ctx.room();
+        List<HabboItem> targets = this.furniSource == WiredSourceUtil.SOURCE_SELECTED
+                ? this.settings.stream()
+                        .map(s -> room.getHabboItem(s.item_id))
+                        .filter(java.util.Objects::nonNull)
+                        .toList()
+                : WiredMovementTargets.items(ctx, this.furniSource, null);
+        for (HabboItem item : targets) {
+            WiredMatchFurniSetting captured = this.furniSource == WiredSourceUtil.SOURCE_SELECTED
+                    ? this.settings.stream()
+                            .filter(s -> s.item_id == item.getId())
+                            .findFirst()
+                            .orElse(null)
+                    : this.resolveSettingForTarget(room, item);
+            if (captured == null) continue;
+            var p = simulation.getItemPosition(item);
+            if (this.position
+                    && (captured.x < Short.MIN_VALUE
+                            || captured.x > Short.MAX_VALUE
+                            || captured.y < Short.MIN_VALUE
+                            || captured.y > Short.MAX_VALUE)) return false;
+            short x = this.position ? (short) captured.x : p.x, y = this.position ? (short) captured.y : p.y;
+            int rotation = this.direction ? captured.rotation : p.rotation;
+            double z = this.altitude ? captured.z : p.z;
+            if ((x != p.x || y != p.y || rotation != p.rotation || z != p.z)
+                    && !simulation.moveItem(ctx, this, item, x, y, z, rotation, false)) return false;
+        }
+        return true;
     }
 
     @Override
@@ -173,60 +204,68 @@ public class WiredEffectMatchFurni extends InteractionWiredEffect implements Int
 
     @Override
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
+        this.onPickUp();
         String wiredData = set.getString("wired_data");
+        if (wiredData == null || wiredData.isBlank()) return;
+        try {
+            if (wiredData.startsWith("{")) {
+                JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
+                if (data == null) return;
+                this.setDelay(data.delay);
+                this.state = data.state;
+                this.direction = data.direction;
+                this.position = data.position;
+                this.altitude = data.altitude;
+                this.settings.clear();
+                this.settings.addAll(
+                        com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredMatchPositionInputGuard
+                                .sanitizeSettings(data.items, room));
+                this.furniSource = data.furniSource;
+            } else {
+                String[] data = set.getString("wired_data").split(":");
 
-        if (wiredData.startsWith("{")) {
-            JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
-            this.setDelay(data.delay);
-            this.state = data.state;
-            this.direction = data.direction;
-            this.position = data.position;
-            this.altitude = data.altitude;
-            this.settings.clear();
-            this.settings.addAll(data.items);
-            this.furniSource = data.furniSource;
-        } else {
-            String[] data = set.getString("wired_data").split(":");
+                Integer.parseInt(data[0]); // itemCount - consumed but unused, data[1] contains actual items
 
-            Integer.parseInt(data[0]); // itemCount - consumed but unused, data[1] contains actual items
+                String[] items = data[1].split(Pattern.quote(";"));
 
-            String[] items = data[1].split(Pattern.quote(";"));
+                for (int i = 0; i < items.length; i++) {
+                    try {
 
-            for (int i = 0; i < items.length; i++) {
-                try {
+                        String[] stuff = items[i].split(Pattern.quote("-"));
 
-                    String[] stuff = items[i].split(Pattern.quote("-"));
+                        if (stuff.length >= 6) {
+                            this.settings.add(new WiredMatchFurniSetting(
+                                    Integer.parseInt(stuff[0]),
+                                    stuff[1],
+                                    Integer.parseInt(stuff[2]),
+                                    Integer.parseInt(stuff[3]),
+                                    Integer.parseInt(stuff[4]),
+                                    Double.parseDouble(stuff[5])));
+                        } else if (stuff.length >= 5) {
+                            this.settings.add(new WiredMatchFurniSetting(
+                                    Integer.parseInt(stuff[0]),
+                                    stuff[1],
+                                    Integer.parseInt(stuff[2]),
+                                    Integer.parseInt(stuff[3]),
+                                    Integer.parseInt(stuff[4])));
+                        }
 
-                    if (stuff.length >= 6) {
-                        this.settings.add(new WiredMatchFurniSetting(
-                                Integer.parseInt(stuff[0]),
-                                stuff[1],
-                                Integer.parseInt(stuff[2]),
-                                Integer.parseInt(stuff[3]),
-                                Integer.parseInt(stuff[4]),
-                                Double.parseDouble(stuff[5])));
-                    } else if (stuff.length >= 5) {
-                        this.settings.add(new WiredMatchFurniSetting(
-                                Integer.parseInt(stuff[0]),
-                                stuff[1],
-                                Integer.parseInt(stuff[2]),
-                                Integer.parseInt(stuff[3]),
-                                Integer.parseInt(stuff[4])));
+                    } catch (Exception e) {
+                        LOGGER.error("Caught exception", e);
                     }
-
-                } catch (Exception e) {
-                    LOGGER.error("Caught exception", e);
                 }
-            }
 
-            this.state = data[2].equals("1");
-            this.direction = data[3].equals("1");
-            this.position = data[4].equals("1");
-            this.altitude = false;
-            this.setDelay(Integer.parseInt(data[5]));
-            this.furniSource =
-                    this.settings.isEmpty() ? WiredSourceUtil.SOURCE_TRIGGER : WiredSourceUtil.SOURCE_SELECTED;
-            this.needsUpdate(true);
+                this.state = data[2].equals("1");
+                this.direction = data[3].equals("1");
+                this.position = data[4].equals("1");
+                this.altitude = false;
+                this.setDelay(Integer.parseInt(data[5]));
+                this.furniSource =
+                        this.settings.isEmpty() ? WiredSourceUtil.SOURCE_TRIGGER : WiredSourceUtil.SOURCE_SELECTED;
+                this.needsUpdate(true);
+            }
+        } catch (RuntimeException exception) {
+            this.onPickUp();
         }
     }
 
@@ -273,13 +312,13 @@ public class WiredEffectMatchFurni extends InteractionWiredEffect implements Int
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
+        settings = WiredNativeSnapshotSettings.normalize(settings, false);
         if (settings.getIntParams().length < 4) throw new WiredSaveException("Invalid data");
         boolean setState = settings.getIntParams()[0] == 1;
         boolean setDirection = settings.getIntParams()[1] == 1;
         boolean setPosition = settings.getIntParams()[2] == 1;
         boolean setAltitude = (settings.getIntParams().length > 4) ? (settings.getIntParams()[3] == 1) : false;
-        this.furniSource =
-                (settings.getIntParams().length > 4) ? settings.getIntParams()[4] : settings.getIntParams()[3];
+        int newSource = (settings.getIntParams().length > 4) ? settings.getIntParams()[4] : settings.getIntParams()[3];
 
         Room room = Emulator.getGameEnvironment().getRoomManager().getRoom(this.getRoomId());
 
@@ -310,13 +349,14 @@ public class WiredEffectMatchFurni extends InteractionWiredEffect implements Int
 
         int delay = settings.getDelay();
 
-        if (delay > Emulator.getConfig().getInt("hotel.wired.max_delay", 20))
+        if (delay < 0 || delay > Emulator.getConfig().getInt("hotel.wired.max_delay", 20))
             throw new WiredSaveException("Delay too long");
 
         this.state = setState;
         this.direction = setDirection;
         this.position = setPosition;
         this.altitude = setAltitude;
+        this.furniSource = newSource;
         this.settings.clear();
         this.settings.addAll(newSettings);
         this.setDelay(delay);

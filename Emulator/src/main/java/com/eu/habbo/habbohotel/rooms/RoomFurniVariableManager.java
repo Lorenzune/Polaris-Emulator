@@ -186,8 +186,6 @@ public class RoomFurniVariableManager {
 
         if (definition.isPermanentAvailability()) {
             this.upsertPersistentAssignment(furniId, definitionItemId, assignments.get(definitionItemId));
-        } else {
-            this.deletePersistentAssignment(furniId, definitionItemId);
         }
 
         if (changed
@@ -458,7 +456,11 @@ public class RoomFurniVariableManager {
             this.activeAssignmentsByFurniId.remove(furniId, assignments);
         }
 
-        this.deletePersistentAssignment(furniId, definitionItemId);
+        // Temporary assignments have no database row. Stale rows are cleaned on
+        // restore and when a definition changes its availability.
+        if (extra instanceof WiredExtraFurniVariable definition && definition.isPermanentAvailability()) {
+            this.deletePersistentAssignment(furniId, definitionItemId);
+        }
         this.emitVariableChangedEvents(furniId, extra, definitionInfo, hadBefore, previousValue, false, null, previousCreatedAt, previousUpdatedAt);
         this.broadcastSnapshot();
 

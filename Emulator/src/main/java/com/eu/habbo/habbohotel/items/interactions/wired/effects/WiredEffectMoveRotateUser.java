@@ -5,6 +5,7 @@ import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeMovementSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomTile;
@@ -173,12 +174,13 @@ public class WiredEffectMoveRotateUser extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
+        settings = WiredNativeMovementSettings.normalize(this, settings);
         if (settings.getIntParams().length < 3) {
             throw new WiredSaveException("Invalid data");
         }
 
         int delay = settings.getDelay();
-        if (delay > Emulator.getConfig().getInt("hotel.wired.max_delay", 20)) {
+        if (delay < 0 || delay > Emulator.getConfig().getInt("hotel.wired.max_delay", 20)) {
             throw new WiredSaveException("Delay too long");
         }
 
@@ -241,41 +243,7 @@ public class WiredEffectMoveRotateUser extends InteractionWiredEffect {
             return null;
         }
 
-        int deltaX = 0;
-        int deltaY = 0;
-
-        switch (RoomUserRotation.fromValue(direction)) {
-            case NORTH:
-                deltaY = 1;
-                break;
-            case NORTH_EAST:
-                deltaX = 1;
-                deltaY = 1;
-                break;
-            case EAST:
-                deltaX = 1;
-                break;
-            case SOUTH_EAST:
-                deltaX = 1;
-                deltaY = -1;
-                break;
-            case SOUTH:
-                deltaY = -1;
-                break;
-            case SOUTH_WEST:
-                deltaX = -1;
-                deltaY = -1;
-                break;
-            case WEST:
-                deltaX = -1;
-                break;
-            case NORTH_WEST:
-                deltaX = -1;
-                deltaY = 1;
-                break;
-        }
-
-        return room.getLayout().getTile((short) (currentTile.x + deltaX), (short) (currentTile.y + deltaY));
+        return room.getLayout().getTileInFront(currentTile, direction);
     }
 
     private boolean canMoveTo(Room room, RoomUnit roomUnit, RoomTile targetTile, WiredMovementPhysics movementPhysics) {

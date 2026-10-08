@@ -145,12 +145,13 @@ public class WiredEffectTriggerStacks extends InteractionWiredEffect {
         
         // Prevent excessive recursion depth
         if (currentDepth >= MAX_STACK_DEPTH) {
+            WiredManager.debug("Call Stacks {} skipped at recursion depth {}", this.getId(), currentDepth);
             return;
         }
 
         Set<RoomTile> usedTiles = collectTargetTiles(room, ctx);
 
-        WiredManager.executeEffectsAtTiles(usedTiles, roomUnit, room, currentDepth + 1);
+        WiredManager.executeEffectsAtTiles(usedTiles, roomUnit, room, currentDepth + 1, ctx);
     }
 
     @Deprecated

@@ -19,6 +19,29 @@ import org.junit.jupiter.api.Test;
 class WiredExecutionGuardTest {
 
     @Test
+    void queuedSignalWaveCountsEveryAdmissionAndPacesWithoutBanningOrDroppingReceivers() {
+        Room room = room(80);
+        AtomicLong clock = new AtomicLong(1000L);
+        AtomicInteger rejected = new AtomicInteger();
+        WiredExecutionGuard guard = new WiredExecutionGuard(limits(10, 2, 1000L, 2000L), clock::get,
+                (ignored, type, count, limits, banned) -> rejected.incrementAndGet(),
+                (ignored, type, kind, depth, maximum) -> {});
+        try (var scope = WiredSignalExecutionScope.begin()) {
+            for (int i = 0; i < 10; i++) assertTrue(enterAndExit(guard, room, WiredEvent.Type.SIGNAL_RECEIVED));
+        }
+        assertEquals(0, rejected.get());
+        assertEquals(1001L, guard.signalExecutionDelay(room.getId()));
+        assertEquals(0, guard.snapshot(room.getId()).getKilledRemainingSeconds());
+        clock.set(2001L);
+        assertEquals(0L, guard.signalExecutionDelay(room.getId()));
+        try (var scope = WiredSignalExecutionScope.begin()) {
+            assertTrue(enterAndExit(guard, room, WiredEvent.Type.SIGNAL_RECEIVED));
+        }
+        assertEquals(0L, guard.signalExecutionDelay(room.getId()));
+        assertFalse(WiredSignalExecutionScope.active());
+    }
+
+    @Test
     void recursionAdmissionRecoversAndPreservesEntryKindDiagnostics() {
         Room room = room(71);
         List<WiredExecutionGuard.EntryKind> blockedKinds = new ArrayList<>();

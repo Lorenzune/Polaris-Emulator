@@ -178,6 +178,13 @@ public class WiredConditionHasAltitude extends InteractionWiredCondition {
         this.furniSource = (params.length > 1) ? this.normalizeFurniSource(params[1]) : WiredSourceUtil.SOURCE_TRIGGER;
         this.quantifier = (params.length > 2) ? this.normalizeQuantifier(params[2]) : QUANTIFIER_ALL;
         this.altitude = this.parseAltitudeOrDefault(settings.getStringParam());
+        if (settings.isNativeVariableFormat()) {
+            this.altitude = Math.max(0, Math.min(8000, params.length > 0 ? params[0] : 0)) / 100.0D;
+            this.comparison = this.normalizeComparison(params.length > 1 ? params[1] : COMPARISON_EQUAL);
+            int[] sources = settings.getFurniSourceTypes();
+            this.furniSource = this.normalizeFurniSource(sources != null && sources.length > 0 ? sources[0] : WiredSourceUtil.SOURCE_SELECTED);
+            this.quantifier = this.normalizeQuantifier(settings.getQuantifier());
+        }
 
         int count = settings.getFurniIds().length;
         if (count > Emulator.getConfig().getInt("hotel.wired.furni.selection.count")) {

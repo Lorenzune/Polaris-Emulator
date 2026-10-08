@@ -229,6 +229,17 @@ public final class WiredInternalVariableSupport {
 
     public static boolean writeUserValue(
             Room room, RoomUnit roomUnit, String key, int value, int animationDuration, boolean noAnimation) {
+        Integer previous = hasUserValue(room, roomUnit, key) ? readUserValue(room, roomUnit, key) : null;
+        boolean result = writeUserValueImpl(room, roomUnit, key, value, animationDuration, noAnimation);
+        if (result && room != null && roomUnit != null && room.getWiredRuntime() != null) {
+            Integer next = hasUserValue(room, roomUnit, key) ? readUserValue(room, roomUnit, key) : null;
+            room.getWiredRuntime().getVariableMonitor().changed(room, 0, roomUnit, null, key, previous, next);
+        }
+        return result;
+    }
+
+    private static boolean writeUserValueImpl(
+            Room room, RoomUnit roomUnit, String key, int value, int animationDuration, boolean noAnimation) {
         if (room == null || roomUnit == null) {
             return false;
         }
@@ -343,6 +354,16 @@ public final class WiredInternalVariableSupport {
     }
 
     public static boolean writeFurniValue(Room room, HabboItem item, String key, int value) {
+        Integer previous = room != null && item != null ? readFurniValue(room, item, key) : null;
+        boolean result = writeFurniValueImpl(room, item, key, value);
+        if (result && room != null && item != null && room.getWiredRuntime() != null)
+            room.getWiredRuntime()
+                    .getVariableMonitor()
+                    .changed(room, 1, null, item, key, previous, readFurniValue(room, item, key));
+        return result;
+    }
+
+    private static boolean writeFurniValueImpl(Room room, HabboItem item, String key, int value) {
         if (room == null || item == null) {
             return false;
         }
@@ -426,7 +447,10 @@ public final class WiredInternalVariableSupport {
         String normalized = normalizeKey(key);
 
         return switch (normalized) {
-            case "@event.transaction_failed.reason" -> ctx.event().getType() == WiredEvent.Type.TRANSACTION_FAIL ? ctx.event().getActionParameter() : null;
+            case "@event.transaction_failed.reason" ->
+                ctx.event().getType() == WiredEvent.Type.TRANSACTION_FAIL
+                        ? ctx.event().getActionParameter()
+                        : null;
             case "@selector_furni_count" ->
                 countIterable(ctx.targets() != null ? ctx.targets().items() : null);
             case "@selector_user_count" ->

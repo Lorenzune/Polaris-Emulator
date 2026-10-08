@@ -4,9 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraOrEval;
 import com.eu.habbo.habbohotel.rooms.Room;
+import com.eu.habbo.habbohotel.rooms.RoomSpecialTypes;
+import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.habbohotel.items.interactions.InteractionWiredCondition;
 import com.eu.habbo.habbohotel.wired.WiredConditionOperator;
 import com.eu.habbo.habbohotel.wired.api.IWiredCondition;
 import com.eu.habbo.habbohotel.wired.api.WiredStack;
@@ -58,6 +62,80 @@ class WiredConditionEvaluatorTest {
 
         assertFalse(evaluator.outcomeForExecution(stack, context(room, services, stack, state), true));
         assertEquals(0, state.steps());
+    }
+
+    @Test
+    void clickTurnGroupsRespectBothSeatsAndBothTurnStates() {
+        for (int bits = 0; bits < 16; bits++) {
+            Room room = mock(Room.class);
+            RoomSpecialTypes types = mock(RoomSpecialTypes.class);
+            when(room.getRoomSpecialTypes()).thenReturn(types);
+            HabboItem trigger = mock(HabboItem.class);
+            InteractionWiredCondition leftTurn = mock(InteractionWiredCondition.class);
+            InteractionWiredCondition rightTurn = mock(InteractionWiredCondition.class);
+            InteractionWiredCondition leftSeat = mock(InteractionWiredCondition.class);
+            InteractionWiredCondition rightSeat = mock(InteractionWiredCondition.class);
+            boolean lt = (bits & 1) != 0, ls = (bits & 2) != 0;
+            boolean rt = (bits & 4) != 0, rs = (bits & 8) != 0;
+            WiredStack stack = new WiredStack(trigger, null, List.of(leftTurn, rightTurn, leftSeat, rightSeat), List.of());
+            WiredContext context = context(room, mock(WiredServices.class), stack, new WiredState(100));
+            when(leftTurn.evaluate(context)).thenReturn(lt);
+            when(leftSeat.evaluate(context)).thenReturn(ls);
+            when(rightTurn.evaluate(context)).thenReturn(rt);
+            when(rightSeat.evaluate(context)).thenReturn(rs);
+            WiredExtraOrEval left = group(1, WiredExtraOrEval.MODE_ALL, context, List.of(leftTurn, leftSeat));
+            WiredExtraOrEval right = group(2, WiredExtraOrEval.MODE_ALL, context, List.of(rightTurn, rightSeat));
+            WiredExtraOrEval either = group(3, WiredExtraOrEval.MODE_AT_LEAST_ONE, context, List.of(left, right));
+            when(types.getExtras(0, 0)).thenReturn(java.util.Set.of(left, right, either));
+            WiredConditionEvaluator evaluator = new WiredConditionEvaluator((r, f, a) -> {});
+            var result = evaluator.evaluateForExecution(stack, context, false);
+            assertEquals((lt && ls) || (rt && rs), result.passed(), "seat/turn combination " + bits);
+            assertEquals(4, result.conditions().size());
+        }
+    }
+
+    @Test
+    void cyclicGroupsFailWithoutRecursionOverflowEvenInNoneMode() {
+        Room room = mock(Room.class);
+        RoomSpecialTypes types = mock(RoomSpecialTypes.class);
+        when(room.getRoomSpecialTypes()).thenReturn(types);
+        HabboItem trigger = mock(HabboItem.class);
+        WiredStack stack = new WiredStack(trigger, null, List.of(), List.of());
+        WiredContext context = context(room, mock(WiredServices.class), stack, new WiredState(100));
+        WiredExtraOrEval cycle = group(1, WiredExtraOrEval.MODE_NONE, context, List.of());
+        when(cycle.resolveConditions(context)).thenReturn(List.of(cycle));
+        when(types.getExtras(0, 0)).thenReturn(java.util.Set.of(cycle));
+        assertFalse(new WiredConditionEvaluator((r, f, a) -> {}).outcomeForExecution(stack, context, false));
+    }
+
+    @Test
+    void independentStackConditionStillBlocksPassingNestedGroup() {
+        Room room = mock(Room.class);
+        RoomSpecialTypes types = mock(RoomSpecialTypes.class);
+        when(room.getRoomSpecialTypes()).thenReturn(types);
+        HabboItem trigger = mock(HabboItem.class);
+        InteractionWiredCondition selected = mock(InteractionWiredCondition.class);
+        List<String> order = new ArrayList<>();
+        WiredStack stack = new WiredStack(trigger, null,
+                List.of(selected, new TestCondition("outside", false, WiredConditionOperator.AND, order)), List.of());
+        WiredContext context = context(room, mock(WiredServices.class), stack, new WiredState(100));
+        when(selected.evaluate(context)).thenReturn(true);
+        WiredExtraOrEval group = group(1, WiredExtraOrEval.MODE_AT_LEAST_ONE, context, List.of(selected));
+        when(types.getExtras(0, 0)).thenReturn(java.util.Set.of(group));
+        var result = new WiredConditionEvaluator((r, f, a) -> {}).evaluateForExecution(stack, context, false);
+        assertFalse(result.passed());
+        assertEquals(2, result.conditions().size());
+        assertEquals(List.of("outside"), order);
+    }
+
+    private static WiredExtraOrEval group(int id, int mode, WiredContext context, List<HabboItem> children) {
+        WiredExtraOrEval group = mock(WiredExtraOrEval.class);
+        when(group.getId()).thenReturn(id);
+        when(group.hasReferencedConditions()).thenReturn(true);
+        when(group.getEvaluationMode()).thenReturn(mode);
+        when(group.getCompareValue()).thenReturn(1);
+        when(group.resolveConditions(context)).thenReturn(children);
+        return group;
     }
 
     private static WiredStack stack(List<IWiredCondition> conditions) {

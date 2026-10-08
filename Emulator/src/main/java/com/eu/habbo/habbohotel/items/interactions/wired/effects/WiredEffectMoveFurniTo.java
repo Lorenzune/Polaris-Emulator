@@ -5,6 +5,7 @@ import com.eu.habbo.WiredCompatibilityDiagnostics;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeMovementSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.FurnitureMovementError;
 import com.eu.habbo.habbohotel.rooms.Room;
@@ -36,6 +37,8 @@ public class WiredEffectMoveFurniTo extends InteractionWiredEffect {
     private int spacing = 1;
     private Map<Integer, Integer> indexOffset = new LinkedHashMap<>();
     private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
+    private final Map<WiredContext, java.util.ArrayDeque<Integer>> simulatedTargets =
+            java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
 
     public WiredEffectMoveFurniTo(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -47,6 +50,7 @@ public class WiredEffectMoveFurniTo extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
+        settings = WiredNativeMovementSettings.normalize(this, settings);
         Room room = Emulator.getGameEnvironment().getRoomManager().getRoom(this.getRoomId());
 
         if (room == null) return false;
@@ -86,7 +90,7 @@ public class WiredEffectMoveFurniTo extends InteractionWiredEffect {
         Room room = ctx.room();
         if (room == null || room.getLayout() == null) return;
 
-        List<HabboItem> effectiveItems = WiredSourceUtil.resolveItems(ctx, this.furniSource, this.items);
+        List<HabboItem> effectiveItems = WiredMovementTargets.items(ctx, this.furniSource, this.items);
         if (this.furniSource == WiredSourceUtil.SOURCE_SELECTED) {
             List<HabboItem> toRemove = new ArrayList<>();
             for (HabboItem item : effectiveItems) {
@@ -104,12 +108,18 @@ public class WiredEffectMoveFurniTo extends InteractionWiredEffect {
 
         if (effectiveItems.isEmpty()) return;
 
+        java.util.ArrayDeque<Integer> planned = this.simulatedTargets.remove(ctx);
         Object[] stuff = ctx.legacySettings();
         if (stuff != null && stuff.length > 0) {
             for (Object object : stuff) {
                 if (object instanceof HabboItem) {
-                    HabboItem targetItem =
-                            effectiveItems.get(Emulator.getRandom().nextInt(effectiveItems.size()));
+                    Integer plannedId = planned == null ? null : planned.pollFirst();
+                    HabboItem targetItem = plannedId == null
+                            ? effectiveItems.get(Emulator.getRandom().nextInt(effectiveItems.size()))
+                            : effectiveItems.stream()
+                                    .filter(i -> i.getId() == plannedId)
+                                    .findFirst()
+                                    .orElse(null);
 
                     if (targetItem != null) {
                         int indexOffset = 0;
@@ -161,38 +171,35 @@ public class WiredEffectMoveFurniTo extends InteractionWiredEffect {
 
     @Override
     public boolean simulate(WiredContext ctx, WiredSimulation simulation) {
+        if (ctx == null || ctx.room() == null || ctx.room().getLayout() == null) return false;
         Room room = ctx.room();
-        if (room == null || room.getLayout() == null) return true;
-
+        this.simulatedTargets.remove(ctx);
         Object[] stuff = ctx.legacySettings();
         if (stuff == null || stuff.length == 0) return true;
-
-        List<HabboItem> effectiveItems = WiredSourceUtil.resolveItems(ctx, this.furniSource, this.items);
+        List<HabboItem> targets = WiredMovementTargets.items(ctx, this.furniSource, this.items);
+        if (targets.isEmpty()) return true;
+        Map<Integer, Integer> offsets = new LinkedHashMap<>(this.indexOffset);
+        java.util.ArrayDeque<Integer> planned = new java.util.ArrayDeque<>();
         for (Object object : stuff) {
-            if (object instanceof HabboItem) {
-                HabboItem item = (HabboItem) object;
-
-                if (effectiveItems.isEmpty()) continue;
-                HabboItem targetItem = effectiveItems.get(0);
-                if (targetItem == null) continue;
-
-                WiredSimulation.SimulatedPosition targetPos = simulation.getItemPosition(targetItem);
-                RoomTile objectTile = room.getLayout().getTile(targetPos.x, targetPos.y);
-                if (objectTile == null) continue;
-
-                RoomTile tile = room.getLayout().getTileInFront(objectTile, this.direction, 0);
-                if (tile == null) continue;
-
-                WiredSimulation.SimulatedPosition currentPos = simulation.getItemPosition(item);
-                if (!simulation.isTileValidForItem(tile.x, tile.y, item)) {
-                    return false;
-                }
-                if (!simulation.moveItem(item, tile.x, tile.y, tile.getStackHeight(), currentPos.rotation)) {
-                    return false;
-                }
+            if (!(object instanceof HabboItem item)) continue;
+            HabboItem target = targets.get(Emulator.getRandom().nextInt(targets.size()));
+            planned.add(target.getId());
+            int offset = offsets.containsKey(target.getId()) ? offsets.get(target.getId()) + this.spacing : 0;
+            var destination = simulation.getItemPosition(target);
+            RoomTile origin = room.getLayout().getTile(destination.x, destination.y);
+            if (origin == null) return false;
+            RoomTile tile = room.getLayout().getTileInFront(origin, this.direction, offset);
+            if (tile == null || !tile.getAllowStack()) {
+                offset = 0;
+                tile = room.getLayout().getTileInFront(origin, this.direction, offset);
             }
+            if (tile == null) return false;
+            var p = simulation.getItemPosition(item);
+            if (!simulation.moveItem(ctx, this, item, tile.x, tile.y, tile.getStackHeight(), p.rotation, false))
+                return false;
+            offsets.put(target.getId(), offset);
         }
-
+        this.simulatedTargets.put(ctx, planned);
         return true;
     }
 
@@ -262,57 +269,66 @@ public class WiredEffectMoveFurniTo extends InteractionWiredEffect {
 
     @Override
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
-        this.items.clear();
-        String wiredData = set.getString("wired_data");
+        this.onPickUp();
+        try {
+            this.items.clear();
+            String wiredData = set.getString("wired_data");
+            if (wiredData == null) return;
 
-        if (wiredData.startsWith("{")) {
-            JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
-            this.direction = data.direction;
-            this.spacing = data.spacing;
-            this.setDelay(data.delay);
-            this.furniSource = data.furniSource;
+            if (wiredData.startsWith("{")) {
+                JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
+                this.direction = data.direction;
+                this.spacing = data.spacing;
+                this.setDelay(data.delay);
+                this.furniSource = data.furniSource;
 
-            for (Integer id : data.itemIds) {
-                HabboItem item = room.getHabboItem(id);
-                if (item != null) {
-                    this.items.add(item);
+                for (Integer id : data.itemIds != null ? data.itemIds : java.util.List.<Integer>of()) {
+                    if (id == null) continue;
+                    HabboItem item = room.getHabboItem(id);
+                    if (item != null) {
+                        this.items.add(item);
+                    }
                 }
-            }
-            if (this.furniSource == WiredSourceUtil.SOURCE_TRIGGER && !this.items.isEmpty()) {
-                this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
-            }
-        } else {
-            String[] data = wiredData.split("\t");
-
-            if (data.length == 4) {
-                try {
-                    this.direction = Integer.parseInt(data[0]);
-                    this.spacing = Integer.parseInt(data[1]);
-                    this.setDelay(Integer.parseInt(data[2]));
-                } catch (Exception e) {
-                    WiredCompatibilityDiagnostics.record(
-                            WiredCompatibilityDiagnostics.FailurePoint.EFFECT_MOVE_FURNI_TO_LEGACY,
-                            room.getId(),
-                            this.getId(),
-                            e);
+                if (this.furniSource == WiredSourceUtil.SOURCE_TRIGGER && !this.items.isEmpty()) {
+                    this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
                 }
+            } else {
+                String[] data = wiredData.split("\t");
 
-                for (String s : data[3].split("\r")) {
-                    HabboItem item = room.getHabboItem(Integer.parseInt(s));
+                if (data.length == 4) {
+                    try {
+                        this.direction = Integer.parseInt(data[0]);
+                        this.spacing = Integer.parseInt(data[1]);
+                        this.setDelay(Integer.parseInt(data[2]));
+                    } catch (Exception e) {
+                        WiredCompatibilityDiagnostics.record(
+                                WiredCompatibilityDiagnostics.FailurePoint.EFFECT_MOVE_FURNI_TO_LEGACY,
+                                room.getId(),
+                                this.getId(),
+                                e);
+                    }
 
-                    if (item != null) this.items.add(item);
+                    for (String s : data[3].split("\r")) {
+                        HabboItem item = room.getHabboItem(Integer.parseInt(s));
+
+                        if (item != null) this.items.add(item);
+                    }
                 }
+                this.furniSource =
+                        this.items.isEmpty() ? WiredSourceUtil.SOURCE_TRIGGER : WiredSourceUtil.SOURCE_SELECTED;
             }
-            this.furniSource = this.items.isEmpty() ? WiredSourceUtil.SOURCE_TRIGGER : WiredSourceUtil.SOURCE_SELECTED;
+        } catch (RuntimeException malformed) {
+            this.onPickUp();
         }
     }
 
     @Override
     public void onPickUp() {
+        this.simulatedTargets.clear();
         this.setDelay(0);
         this.items.clear();
         this.direction = 0;
-        this.spacing = 0;
+        this.spacing = 1;
         this.indexOffset.clear();
         this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
     }

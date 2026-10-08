@@ -49,17 +49,18 @@ final class WiredSelectionFilterSupport {
         }
 
         int furniLimit = Integer.MAX_VALUE;
+        List<WiredExtraFilterFurni> countFilters = new ArrayList<>();
         List<WiredExtraFilterFurniByVariable> variableFilters = new ArrayList<>();
 
         for (InteractionWiredExtra extra : extras) {
             if (extra instanceof WiredExtraFilterFurni) {
-                furniLimit = Math.min(furniLimit, ((WiredExtraFilterFurni) extra).getAmount());
+                countFilters.add((WiredExtraFilterFurni) extra);
             } else if (extra instanceof WiredExtraFilterFurniByVariable) {
                 variableFilters.add((WiredExtraFilterFurniByVariable) extra);
             }
         }
 
-        if (furniLimit == Integer.MAX_VALUE && variableFilters.isEmpty()) {
+        if (countFilters.isEmpty() && variableFilters.isEmpty()) {
             return items;
         }
 
@@ -67,6 +68,8 @@ final class WiredSelectionFilterSupport {
 
         try (FilterScope ignored = enterScope()) {
             Iterable<HabboItem> filteredItems = items;
+            for (WiredExtraFilterFurni extra : countFilters)
+                furniLimit = Math.min(furniLimit, extra.resolveAmount(ctx, room));
 
             for (WiredExtraFilterFurniByVariable extra : variableFilters) {
                 filteredItems = extra.filterItems(room, ctx, filteredItems);
@@ -94,17 +97,18 @@ final class WiredSelectionFilterSupport {
         }
 
         int userLimit = Integer.MAX_VALUE;
+        List<WiredExtraFilterUser> countFilters = new ArrayList<>();
         List<WiredExtraFilterUsersByVariable> variableFilters = new ArrayList<>();
 
         for (InteractionWiredExtra extra : extras) {
             if (extra instanceof WiredExtraFilterUser) {
-                userLimit = Math.min(userLimit, ((WiredExtraFilterUser) extra).getAmount());
+                countFilters.add((WiredExtraFilterUser) extra);
             } else if (extra instanceof WiredExtraFilterUsersByVariable) {
                 variableFilters.add((WiredExtraFilterUsersByVariable) extra);
             }
         }
 
-        if (userLimit == Integer.MAX_VALUE && variableFilters.isEmpty()) {
+        if (countFilters.isEmpty() && variableFilters.isEmpty()) {
             return users;
         }
 
@@ -112,6 +116,8 @@ final class WiredSelectionFilterSupport {
 
         try (FilterScope ignored = enterScope()) {
             Iterable<RoomUnit> filteredUsers = users;
+            for (WiredExtraFilterUser extra : countFilters)
+                userLimit = Math.min(userLimit, extra.resolveAmount(ctx, room));
 
             for (WiredExtraFilterUsersByVariable extra : variableFilters) {
                 filteredUsers = extra.filterUsers(room, ctx, filteredUsers);

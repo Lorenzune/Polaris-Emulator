@@ -147,6 +147,14 @@ public class WiredConditionTriggererMatch extends InteractionWiredCondition {
         if (params.length > 3) this.compareUserSource = this.normalizeCompareUserSource(params[3]);
         if (params.length > 4) this.quantifier = this.normalizeQuantifier(params[4]);
 
+        if (settings.isNativeVariableFormat()) {
+            int[] sources = settings.getUserSourceTypes();
+            this.matchUserSource = this.normalizePrimaryUserSource(sources != null && sources.length > 0 ? sources[0] : WiredSourceUtil.SOURCE_TRIGGER);
+            this.compareUserSource = this.normalizeCompareUserSource(sources != null && sources.length > 1 ? sources[1] : WiredSourceUtil.SOURCE_TRIGGER);
+            this.quantifier = this.normalizeQuantifier(settings.getQuantifier());
+            this.avatarMode = settings.getStringParam() != null && !settings.getStringParam().isEmpty() ? AVATAR_MODE_CERTAIN : AVATAR_MODE_ANY;
+        }
+
         this.username = this.normalizeUsername(settings.getStringParam());
 
         return true;

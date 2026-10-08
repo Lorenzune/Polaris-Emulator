@@ -16,7 +16,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredMoveCarryHelper;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -43,7 +42,8 @@ public class WiredEffectRelativeMove extends InteractionWiredEffect {
         super(set, baseItem);
     }
 
-    public WiredEffectRelativeMove(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredEffectRelativeMove(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -57,9 +57,8 @@ public class WiredEffectRelativeMove extends InteractionWiredEffect {
         List<HabboItem> effectiveItems = WiredSourceUtil.resolveItems(ctx, this.furniSource, this.items);
 
         if (this.furniSource == WiredSourceUtil.SOURCE_SELECTED) {
-            this.items.removeIf(item -> item == null
-                    || item.getRoomId() != this.getRoomId()
-                    || room.getHabboItem(item.getId()) == null);
+            this.items.removeIf(item ->
+                    item == null || item.getRoomId() != this.getRoomId() || room.getHabboItem(item.getId()) == null);
         }
 
         int deltaX = this.getHorizontalOffset();
@@ -93,16 +92,33 @@ public class WiredEffectRelativeMove extends InteractionWiredEffect {
     }
 
     @Override
+    public boolean simulate(WiredContext ctx, com.eu.habbo.habbohotel.wired.core.WiredSimulation simulation) {
+        if (ctx == null || ctx.room() == null || ctx.room().getLayout() == null) return false;
+        if (this.getHorizontalOffset() == 0 && this.getVerticalOffset() == 0) return true;
+        for (HabboItem item : WiredMovementTargets.items(ctx, this.furniSource, this.items)) {
+            var p = simulation.getItemPosition(item);
+            int x = p.x + this.getHorizontalOffset(), y = p.y + this.getVerticalOffset();
+            if (x < Short.MIN_VALUE
+                    || x > Short.MAX_VALUE
+                    || y < Short.MIN_VALUE
+                    || y > Short.MAX_VALUE
+                    || !simulation.moveItem(ctx, this, item, (short) x, (short) y, p.z, p.rotation, false))
+                return false;
+        }
+        return true;
+    }
+
+    @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(
-                this.getDelay(),
-                this.items.stream().map(HabboItem::getId).collect(Collectors.toList()),
-                this.horizontalDirection,
-                this.horizontalDistance,
-                this.verticalDirection,
-                this.verticalDistance,
-                this.furniSource
-        ));
+        return WiredManager.getGson()
+                .toJson(new JsonData(
+                        this.getDelay(),
+                        this.items.stream().map(HabboItem::getId).collect(Collectors.toList()),
+                        this.horizontalDirection,
+                        this.horizontalDistance,
+                        this.verticalDirection,
+                        this.verticalDistance,
+                        this.furniSource));
     }
 
     @Override
@@ -159,9 +175,8 @@ public class WiredEffectRelativeMove extends InteractionWiredEffect {
     @Override
     public void serializeWiredData(ServerMessage message, Room room) {
         List<HabboItem> itemsSnapshot = new ArrayList<>(this.items);
-        itemsSnapshot.removeIf(item -> item == null
-                || item.getRoomId() != this.getRoomId()
-                || room.getHabboItem(item.getId()) == null);
+        itemsSnapshot.removeIf(item ->
+                item == null || item.getRoomId() != this.getRoomId() || room.getHabboItem(item.getId()) == null);
 
         this.items.clear();
         this.items.addAll(itemsSnapshot);
@@ -190,20 +205,44 @@ public class WiredEffectRelativeMove extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
+        if (settings.isNativeVariableFormat()) {
+            int[] nativeParams = settings.getIntParams();
+            int[] sources = settings.getFurniSourceTypes();
+            if (nativeParams.length != 2
+                    || sources.length != 1
+                    || (sources[0] != 0 && sources[0] != 100 && sources[0] != 200 && sources[0] != 201)
+                    || nativeParams[0] < -MAX_DISTANCE
+                    || nativeParams[0] > MAX_DISTANCE
+                    || nativeParams[1] < -MAX_DISTANCE
+                    || nativeParams[1] > MAX_DISTANCE
+                    || settings.getUserSourceTypes().length != 0
+                    || settings.getVariableTokens().length != 0
+                    || settings.getFurniIds2().length != 0
+                    || !settings.getStringParam().isEmpty()
+                    || settings.getQuantifier() != 0
+                    || settings.isFilterExisting()
+                    || settings.isInvert()) throw new IllegalArgumentException("Invalid relative movement fields");
+            settings = new WiredSettings(
+                    new int[] {
+                        nativeParams[0] < 0 ? 0 : 1,
+                        Math.abs(nativeParams[0]),
+                        nativeParams[1] < 0 ? 0 : 1,
+                        Math.abs(nativeParams[1]),
+                        sources[0]
+                    },
+                    "",
+                    settings.getFurniIds(),
+                    settings.getStuffTypeSelectionCode(),
+                    settings.getDelay());
+        }
         int[] params = settings.getIntParams();
 
         if (params.length < 5) {
             throw new WiredSaveException("Invalid data");
         }
 
-        this.horizontalDirection = this.normalizeBinary(params[0], HORIZONTAL_POSITIVE);
-        this.horizontalDistance = this.normalizeDistance(params[1]);
-        this.verticalDirection = this.normalizeBinary(params[2], VERTICAL_POSITIVE);
-        this.verticalDistance = this.normalizeDistance(params[3]);
-        this.furniSource = params[4];
-
         int delay = settings.getDelay();
-        if (delay > Emulator.getConfig().getInt("hotel.wired.max_delay", 20)) {
+        if (delay < 0 || delay > Emulator.getConfig().getInt("hotel.wired.max_delay", 20)) {
             throw new WiredSaveException("Delay too long");
         }
 
@@ -226,6 +265,12 @@ public class WiredEffectRelativeMove extends InteractionWiredEffect {
 
             newItems.add(item);
         }
+
+        this.horizontalDirection = this.normalizeBinary(params[0], HORIZONTAL_POSITIVE);
+        this.horizontalDistance = this.normalizeDistance(params[1]);
+        this.verticalDirection = this.normalizeBinary(params[2], VERTICAL_POSITIVE);
+        this.verticalDistance = this.normalizeDistance(params[3]);
+        this.furniSource = params[4];
 
         this.items.clear();
         this.items.addAll(newItems);
@@ -271,7 +316,14 @@ public class WiredEffectRelativeMove extends InteractionWiredEffect {
         int verticalDistance;
         int furniSource;
 
-        public JsonData(int delay, List<Integer> itemIds, int horizontalDirection, int horizontalDistance, int verticalDirection, int verticalDistance, int furniSource) {
+        public JsonData(
+                int delay,
+                List<Integer> itemIds,
+                int horizontalDirection,
+                int horizontalDistance,
+                int verticalDirection,
+                int verticalDistance,
+                int furniSource) {
             this.delay = delay;
             this.itemIds = itemIds;
             this.horizontalDirection = horizontalDirection;

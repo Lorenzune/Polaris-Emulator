@@ -81,7 +81,7 @@ class WiredDelayedLifecycleCompatibilityTest {
     }
 
     @Test
-    void emptyRoomDropsCapturedDelayedWork() {
+    void emptyLoadedRoomFinishesCapturedFurnitureWork() {
         Room room = room(53, true, true);
         AtomicInteger executions = new AtomicInteger();
         WiredEngine engine = engine(room, delayedEffect(executions, false));
@@ -90,7 +90,8 @@ class WiredDelayedLifecycleCompatibilityTest {
         when(room.getHabbos()).thenReturn(List.of());
         scheduledTask().run();
 
-        assertEquals(0, executions.get());
+        // The last player can leave before an end-of-game furniture reset finishes.
+        assertEquals(1, executions.get());
         assertEquals(0, engine.getDiagnosticsSnapshot(room.getId()).getDelayedEventsPending());
     }
 
@@ -157,6 +158,56 @@ class WiredDelayedLifecycleCompatibilityTest {
         ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
         verify(scheduler).run(task.capture(), longThat(delay -> delay >= 0L && delay <= 500L));
         return task.getValue();
+    }
+
+    @Test
+    void calledStackRunsSelectorsBeforeEffectsAndRetainsSelectionAcrossDelay() {
+        Room room = room(57, true, true);
+        HabboItem target = mock(HabboItem.class);
+        when(target.getId()).thenReturn(9001);
+        when(target.getRoomId()).thenReturn(57);
+        when(room.getHabboItem(9001)).thenReturn(target);
+        AtomicInteger immediate = new AtomicInteger();
+        AtomicInteger delayed = new AtomicInteger();
+        IWiredEffect selector = new IWiredEffect() {
+            public void execute(WiredContext context) { context.targets().setItems(List.of(target)); }
+            public boolean isSelector() { return true; }
+        };
+        IWiredEffect first = context -> {
+            assertEquals(Set.of(target), context.targets().items());
+            immediate.incrementAndGet();
+        };
+        IWiredEffect later = new IWiredEffect() {
+            public void execute(WiredContext context) {
+                assertEquals(Set.of(target), context.targets().items());
+                delayed.incrementAndGet();
+            }
+            public int getDelay() { return 1; }
+        };
+        WiredEngine engine = new WiredEngine(
+                mock(WiredServices.class), (candidate, type) -> List.of(), 100, ignoredId -> room);
+        engine.executeCalledEffects(null, List.of(first, later, selector), event(room, null));
+        assertEquals(1, immediate.get());
+        assertEquals(0, delayed.get());
+        scheduledTask().run();
+        assertEquals(1, delayed.get());
+        assertEquals(0, engine.getDiagnosticsSnapshot(room.getId()).getDelayedEventsPending());
+    }
+
+    @Test
+    void calledStackHonorsRandomExtraInsteadOfExecutingBothTurnInitializers() {
+        Room room = room(58, true, true);
+        when(room.getRoomSpecialTypes()).thenReturn(mock(com.eu.habbo.habbohotel.rooms.RoomSpecialTypes.class));
+        HabboItem anchor = mock(HabboItem.class);
+        var extra = mock(com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraRandom.class);
+        when(room.getRoomSpecialTypes().getExtras(0, 0)).thenReturn(Set.of(extra));
+        when(extra.selectWiredEffects(any())).thenAnswer(invocation ->
+                List.of(((List<IWiredEffect>) invocation.getArgument(0)).getFirst()));
+        AtomicInteger first = new AtomicInteger(), second = new AtomicInteger();
+        WiredEngine engine = new WiredEngine(mock(WiredServices.class), (candidate, type) -> List.of(), 100);
+        engine.executeCalledEffects(anchor, List.of(ctx -> first.incrementAndGet(), ctx -> second.incrementAndGet()), event(room, null));
+        assertEquals(1, first.get());
+        assertEquals(0, second.get());
     }
 
     private static WiredEngine engine(Room room, IWiredEffect effect) {

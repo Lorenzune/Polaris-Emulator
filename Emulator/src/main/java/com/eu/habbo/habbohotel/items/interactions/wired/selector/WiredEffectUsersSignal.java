@@ -12,7 +12,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredEvent;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedHashSet;
@@ -46,7 +45,8 @@ public class WiredEffectUsersSignal extends InteractionWiredEffect {
             List<RoomUnit> signalUsers = WiredSourceUtil.resolveUsers(ctx, WiredSourceUtil.SOURCE_SIGNAL);
             result.addAll(signalUsers);
 
-            result = this.applySelectorModifiers(result, room.getRoomUnits(), ctx.targets().users(), this.filterExisting, this.invert);
+            result = this.applySelectorModifiers(
+                    result, room.getRoomUnits(), ctx.targets().users(), this.filterExisting, this.invert);
         }
 
         ctx.targets().setUsers(result);
@@ -54,6 +54,7 @@ public class WiredEffectUsersSignal extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
+        settings = WiredNativeSelectorSettings.normalize(this, settings);
         int[] params = settings.getIntParams();
         this.filterExisting = params.length > 0 && params[0] == 1;
         this.invert = params.length > 1 && params[1] == 1;

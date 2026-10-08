@@ -73,7 +73,7 @@ public class WiredEffectSaveDataEvent extends MessageHandler {
                         this.client.sendResponse(
                                 new UpdateFailedComposer("There was an error while saving that effect"));
                     }
-                } catch (WiredSaveException e) {
+                } catch (WiredSaveException | IllegalArgumentException e) {
                     this.client.sendResponse(new UpdateFailedComposer(e.getMessage()));
                 }
             }

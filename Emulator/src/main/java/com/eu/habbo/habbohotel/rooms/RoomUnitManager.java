@@ -318,8 +318,10 @@ public class RoomUnitManager {
                 continue;
             }
 
-            if (WiredMoveCarryHelper.shouldSuppressStatusUpdate(habbo.getRoomUnit())
-                    || WiredUserMovementHelper.shouldSuppressStatusUpdate(habbo.getRoomUnit())) {
+            // User slides suppress outgoing status packets, not authoritative
+            // chair/bed posture and base-height calculation. The send loop below
+            // still suppresses the intermediate packet until the slide finishes.
+            if (WiredMoveCarryHelper.shouldSuppressStatusUpdate(habbo.getRoomUnit())) {
                 continue;
             }
 
@@ -1079,6 +1081,7 @@ public class RoomUnitManager {
 
         this.room.sendComposer(new RoomUnitIdleComposer(habbo.getRoomUnit()).compose());
         WiredManager.triggerUserIdles(this.room, habbo.getRoomUnit());
+        WiredManager.triggerUserPerformsAction(this.room, habbo.getRoomUnit(), WiredUserActionType.RELAX, -1);
     }
 
     public void unIdle(Habbo habbo) {
@@ -1092,6 +1095,7 @@ public class RoomUnitManager {
         if (wasIdle) {
             this.room.sendComposer(new RoomUnitIdleComposer(habbo.getRoomUnit()).compose());
             WiredManager.triggerUserUnidles(this.room, habbo.getRoomUnit());
+            WiredManager.triggerUserPerformsAction(this.room, habbo.getRoomUnit(), WiredUserActionType.AWAKE, -1);
         }
     }
 

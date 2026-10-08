@@ -2,18 +2,17 @@ package com.eu.habbo.habbohotel.wired.core;
 
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraContextVariable;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableEcho;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.WiredVariableDefinitionInfo;
 import com.eu.habbo.messages.outgoing.wired.WiredUserVariablesDataComposer;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 
 public final class WiredContextVariableSupport {
-    private WiredContextVariableSupport() {
-    }
+    private WiredContextVariableSupport() {}
 
     public static List<WiredExtraContextVariable> getDefinitions(Room room) {
         List<WiredExtraContextVariable> definitions = new ArrayList<>();
@@ -33,8 +32,7 @@ public final class WiredContextVariableSupport {
             }
         }
 
-        definitions.sort(Comparator
-                .comparing(WiredExtraContextVariable::getVariableName, String.CASE_INSENSITIVE_ORDER)
+        definitions.sort(Comparator.comparing(WiredExtraContextVariable::getVariableName, String.CASE_INSENSITIVE_ORDER)
                 .thenComparingInt(WiredExtraContextVariable::getId));
 
         return definitions;
@@ -44,7 +42,9 @@ public final class WiredContextVariableSupport {
         List<WiredVariableDefinitionInfo> definitions = new ArrayList<>();
 
         for (WiredExtraContextVariable definition : getDefinitions(room)) {
-            if (definition == null || definition.getVariableName() == null || definition.getVariableName().isEmpty()) {
+            if (definition == null
+                    || definition.getVariableName() == null
+                    || definition.getVariableName().isEmpty()) {
                 continue;
             }
 
@@ -57,6 +57,12 @@ public final class WiredContextVariableSupport {
                     false));
         }
 
+        if (room != null && room.getRoomSpecialTypes() != null) {
+            for (InteractionWiredExtra extra : room.getRoomSpecialTypes().getExtras()) {
+                if (extra instanceof WiredExtraVariableEcho echo && echo.isContextEcho())
+                    definitions.add(echo.createDefinitionInfo(room));
+            }
+        }
         return definitions;
     }
 
@@ -70,8 +76,16 @@ public final class WiredContextVariableSupport {
     }
 
     public static WiredVariableDefinitionInfo getDefinitionInfo(Room room, int definitionItemId) {
+        if (room != null
+                && room.getRoomSpecialTypes() != null
+                && room.getRoomSpecialTypes().getExtra(definitionItemId) instanceof WiredExtraVariableEcho echo
+                && echo.isContextEcho()) {
+            return echo.createDefinitionInfo(room);
+        }
         WiredExtraContextVariable definition = getDefinition(room, definitionItemId);
-        if (definition == null || definition.getVariableName() == null || definition.getVariableName().trim().isEmpty()) {
+        if (definition == null
+                || definition.getVariableName() == null
+                || definition.getVariableName().trim().isEmpty()) {
             return null;
         }
 
@@ -88,7 +102,8 @@ public final class WiredContextVariableSupport {
         return getDefinitionInfo(room, definitionItemId) != null;
     }
 
-    public static boolean assignVariable(WiredContext ctx, Room room, int definitionItemId, Integer value, boolean overrideExisting) {
+    public static boolean assignVariable(
+            WiredContext ctx, Room room, int definitionItemId, Integer value, boolean overrideExisting) {
         WiredExtraContextVariable definition = getDefinition(room, definitionItemId);
         if (ctx == null || definition == null) {
             return false;
@@ -98,10 +113,17 @@ public final class WiredContextVariableSupport {
             ctx.forkContextVariables();
         }
 
-        return ctx.contextVariables().assignValue(definitionItemId, definition.hasValue() ? value : null, overrideExisting);
+        return ctx.contextVariables()
+                .assignValue(definitionItemId, definition.hasValue() ? value : null, overrideExisting);
     }
 
     public static boolean updateVariableValue(WiredContext ctx, Room room, int definitionItemId, Integer value) {
+        WiredExtraVariableEcho echo = contextEcho(ctx, definitionItemId);
+        if (echo != null) {
+            WiredVariableDefinitionInfo info = echo.createDefinitionInfo(room);
+            if (info.isReadOnly() || !info.hasValue()) return false;
+            return updateVariableValue(ctx, room, echo.getSourceVariableItemId(), value);
+        }
         WiredExtraContextVariable definition = getDefinition(room, definitionItemId);
         if (ctx == null || definition == null || !definition.hasValue()) {
             return false;
@@ -111,23 +133,45 @@ public final class WiredContextVariableSupport {
     }
 
     public static boolean removeVariable(WiredContext ctx, Room room, int definitionItemId) {
-        return ctx != null && getDefinition(room, definitionItemId) != null && ctx.contextVariables().removeValue(definitionItemId);
+        return ctx != null
+                && getDefinition(room, definitionItemId) != null
+                && ctx.contextVariables().removeValue(definitionItemId);
     }
 
     public static boolean hasVariable(WiredContext ctx, int definitionItemId) {
+        WiredExtraVariableEcho echo = contextEcho(ctx, definitionItemId);
+        if (echo != null) return echo.readContextValue(ctx) != null;
         return ctx != null && ctx.contextVariables().hasVariable(definitionItemId);
     }
 
     public static Integer getCurrentValue(WiredContext ctx, int definitionItemId) {
+        WiredExtraVariableEcho echo = contextEcho(ctx, definitionItemId);
+        if (echo != null) return echo.readContextValue(ctx);
         return ctx != null ? ctx.contextVariables().getValue(definitionItemId) : null;
     }
 
     public static int getCreatedAt(WiredContext ctx, int definitionItemId) {
+        WiredExtraVariableEcho echo = contextEcho(ctx, definitionItemId);
+        if (echo != null)
+            return echo.createDefinitionInfo(ctx.room()).canReadCreationTime()
+                    ? getCreatedAt(ctx, echo.getSourceVariableItemId())
+                    : 0;
         return ctx != null ? ctx.contextVariables().getCreatedAt(definitionItemId) : 0;
     }
 
     public static int getUpdatedAt(WiredContext ctx, int definitionItemId) {
+        WiredExtraVariableEcho echo = contextEcho(ctx, definitionItemId);
+        if (echo != null)
+            return echo.createDefinitionInfo(ctx.room()).canReadLastUpdateTime()
+                    ? getUpdatedAt(ctx, echo.getSourceVariableItemId())
+                    : 0;
         return ctx != null ? ctx.contextVariables().getUpdatedAt(definitionItemId) : 0;
+    }
+
+    private static WiredExtraVariableEcho contextEcho(WiredContext ctx, int id) {
+        if (ctx == null || ctx.room() == null || ctx.room().getRoomSpecialTypes() == null) return null;
+        InteractionWiredExtra extra = ctx.room().getRoomSpecialTypes().getExtra(id);
+        return extra instanceof WiredExtraVariableEcho echo && echo.isContextEcho() ? echo : null;
     }
 
     public static void broadcastDefinitions(Room room) {
@@ -140,8 +184,7 @@ public final class WiredContextVariableSupport {
                 room.getFurniVariableManager().createSnapshot(),
                 room.getRoomVariableManager().createSnapshot());
 
-        room.getHabbos().forEach(habbo ->
-        {
+        room.getHabbos().forEach(habbo -> {
             if (habbo == null || habbo.getClient() == null) {
                 return;
             }

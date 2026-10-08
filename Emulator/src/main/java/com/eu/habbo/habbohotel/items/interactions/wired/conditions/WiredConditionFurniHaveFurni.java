@@ -60,7 +60,7 @@ public class WiredConditionFurniHaveFurni extends InteractionWiredCondition {
                 if (item == null) return false;
                 RoomTile baseTile = room.getLayout().getTile(item.getX(), item.getY());
                 if (baseTile == null) return false;
-                double minZ = item.getZ() + Item.getCurrentHeight(item);
+                double minZ = item.getZ();
                 Set<RoomTile> occupiedTiles = room.getLayout()
                         .getTilesAt(
                                 baseTile,
@@ -71,14 +71,14 @@ public class WiredConditionFurniHaveFurni extends InteractionWiredCondition {
                 return occupiedTiles.stream()
                         .anyMatch(tile -> tile != null
                                 && room.getItemsAt(tile).stream()
-                                        .anyMatch(matchedItem -> matchedItem != item && matchedItem.getZ() >= minZ));
+                                        .anyMatch(matchedItem -> matchedItem != item && matchedItem.getZ() > minZ + 0.001));
             });
         } else {
             return targets.stream().anyMatch(item -> {
                 if (item == null) return false;
                 RoomTile baseTile = room.getLayout().getTile(item.getX(), item.getY());
                 if (baseTile == null) return false;
-                double minZ = item.getZ() + Item.getCurrentHeight(item);
+                double minZ = item.getZ();
                 Set<RoomTile> occupiedTiles = room.getLayout()
                         .getTilesAt(
                                 baseTile,
@@ -89,7 +89,7 @@ public class WiredConditionFurniHaveFurni extends InteractionWiredCondition {
                 return occupiedTiles.stream()
                         .anyMatch(tile -> tile != null
                                 && room.getItemsAt(tile).stream()
-                                        .anyMatch(matchedItem -> matchedItem != item && matchedItem.getZ() >= minZ));
+                                        .anyMatch(matchedItem -> matchedItem != item && matchedItem.getZ() > minZ + 0.001));
             });
         }
     }
@@ -205,7 +205,9 @@ public class WiredConditionFurniHaveFurni extends InteractionWiredCondition {
 
         int[] params = settings.getIntParams();
         this.all = params[0] == 1;
-        this.furniSource = (params.length > 1)
+        this.furniSource = settings.getFurniSourceTypes().length > 0
+                ? WiredFurniConditionInputGuard.normalizeFurniSource(settings.getFurniSourceTypes()[0])
+                : (params.length > 1)
                 ? WiredFurniConditionInputGuard.normalizeFurniSource(params[1])
                 : WiredSourceUtil.SOURCE_TRIGGER;
 

@@ -13,6 +13,7 @@ import com.eu.habbo.habbohotel.games.wired.WiredGame;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeVariableSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.FurnitureMovementError;
 import com.eu.habbo.habbohotel.rooms.Room;
@@ -293,6 +294,7 @@ public class WiredEffectChangeVariableValue extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
+        settings = WiredNativeVariableSettings.normalize(this, settings);
         Room room = this.getRoom();
         if (room == null) throw new WiredSaveException("Room not found");
 
@@ -312,6 +314,7 @@ public class WiredEffectChangeVariableValue extends InteractionWiredEffect {
         String nextReferenceVariableToken = normalizeVariableToken((stringParts.length > 1) ? stringParts[1] : "");
 
         this.validateDestination(room, nextDestinationTargetType, nextDestinationVariableToken);
+        if (isUnaryOperation(nextOperation)) nextReferenceMode = REF_CONSTANT;
         if (nextReferenceMode == REF_VARIABLE)
             this.validateReference(room, nextReferenceTargetType, nextReferenceVariableToken);
 
@@ -596,6 +599,8 @@ public class WiredEffectChangeVariableValue extends InteractionWiredEffect {
     }
 
     private int applyOperation(int currentValue, Integer referenceValue) {
+        if (WiredVariableBitOperations.supports(this.operation))
+            return WiredVariableBitOperations.apply(this.operation, currentValue, referenceValue);
         return switch (this.operation) {
             case OP_ASSIGN -> (referenceValue != null) ? referenceValue : currentValue;
             case OP_ADD -> clamp((long) currentValue + referenceValue);
@@ -614,7 +619,7 @@ public class WiredEffectChangeVariableValue extends InteractionWiredEffect {
             case OP_RANDOM ->
                 (referenceValue == null || referenceValue <= 0)
                         ? 0
-                        : Emulator.getRandom().nextInt(referenceValue + 1);
+                        : (int) Emulator.getRandom().nextLong((long) referenceValue + 1);
             case OP_ABS -> (currentValue == Integer.MIN_VALUE) ? Integer.MAX_VALUE : Math.abs(currentValue);
             case OP_AND -> (referenceValue != null) ? (currentValue & referenceValue) : currentValue;
             case OP_OR -> (referenceValue != null) ? (currentValue | referenceValue) : currentValue;
@@ -627,7 +632,11 @@ public class WiredEffectChangeVariableValue extends InteractionWiredEffect {
     }
 
     private boolean isUnaryOperation() {
-        return this.operation == OP_ABS || this.operation == OP_NOT;
+        return isUnaryOperation(this.operation);
+    }
+
+    private static boolean isUnaryOperation(int operation) {
+        return operation == OP_ABS || operation == OP_NOT || operation == 110;
     }
 
     private void validateDestination(Room room, int targetType, String variableToken) throws WiredSaveException {
@@ -1016,6 +1025,7 @@ public class WiredEffectChangeVariableValue extends InteractionWiredEffect {
     }
 
     private static int normalizeOperation(int value) {
+        if (WiredVariableBitOperations.supports(value)) return value;
         return switch (value) {
             case OP_ADD,
                     OP_SUB,

@@ -4,6 +4,7 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeMovementSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomTile;
@@ -16,7 +17,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredMoveCarryHelper;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.ResultSet;
@@ -36,7 +36,7 @@ public class WiredEffectSetAltitude extends InteractionWiredEffect {
     public static final WiredEffectType type = WiredEffectType.SET_ALTITUDE;
 
     private final List<HabboItem> items = new ArrayList<>();
-    private int operator = OPERATOR_SET;
+    private int operator = OPERATOR_INCREASE;
     private double altitude = 0.0D;
     private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
 
@@ -55,12 +55,11 @@ public class WiredEffectSetAltitude extends InteractionWiredEffect {
             return;
         }
 
-        List<HabboItem> effectiveItems = WiredSourceUtil.resolveItems(ctx, this.furniSource, this.items);
+        List<HabboItem> effectiveItems = WiredMovementTargets.items(ctx, this.furniSource, this.items);
 
         if (this.furniSource == WiredSourceUtil.SOURCE_SELECTED) {
-            this.items.removeIf(item -> item == null
-                    || item.getRoomId() != this.getRoomId()
-                    || room.getHabboItem(item.getId()) == null);
+            this.items.removeIf(item ->
+                    item == null || item.getRoomId() != this.getRoomId() || room.getHabboItem(item.getId()) == null);
         }
 
         for (HabboItem item : effectiveItems) {
@@ -78,6 +77,17 @@ public class WiredEffectSetAltitude extends InteractionWiredEffect {
         }
     }
 
+    @Override
+    public boolean simulate(WiredContext ctx, com.eu.habbo.habbohotel.wired.core.WiredSimulation simulation) {
+        if (ctx == null || ctx.room() == null || ctx.room().getLayout() == null) return false;
+        for (HabboItem item : WiredMovementTargets.items(ctx, this.furniSource, this.items)) {
+            var p = simulation.getItemPosition(item);
+            if (!simulation.moveItem(ctx, this, item, p.x, p.y, this.computeAltitude(p.z), p.rotation, false))
+                return false;
+        }
+        return true;
+    }
+
     @Deprecated
     @Override
     public boolean execute(RoomUnit roomUnit, Room room, Object[] stuff) {
@@ -86,13 +96,13 @@ public class WiredEffectSetAltitude extends InteractionWiredEffect {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(
-                this.getDelay(),
-                this.items.stream().map(HabboItem::getId).collect(Collectors.toList()),
-                this.operator,
-                this.formatAltitude(this.altitude),
-                this.furniSource
-        ));
+        return WiredManager.getGson()
+                .toJson(new JsonData(
+                        this.getDelay(),
+                        this.items.stream().map(HabboItem::getId).collect(Collectors.toList()),
+                        this.operator,
+                        this.formatAltitude(this.altitude),
+                        this.furniSource));
     }
 
     @Override
@@ -121,7 +131,7 @@ public class WiredEffectSetAltitude extends InteractionWiredEffect {
             return;
         }
 
-        this.operator = OPERATOR_SET;
+        this.operator = OPERATOR_INCREASE;
         this.altitude = 0.0D;
         this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.setDelay(0);
@@ -130,7 +140,7 @@ public class WiredEffectSetAltitude extends InteractionWiredEffect {
     @Override
     public void onPickUp() {
         this.items.clear();
-        this.operator = OPERATOR_SET;
+        this.operator = OPERATOR_INCREASE;
         this.altitude = 0.0D;
         this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         this.setDelay(0);
@@ -144,9 +154,8 @@ public class WiredEffectSetAltitude extends InteractionWiredEffect {
     @Override
     public void serializeWiredData(ServerMessage message, Room room) {
         List<HabboItem> itemsSnapshot = new ArrayList<>(this.items);
-        itemsSnapshot.removeIf(item -> item == null
-                || item.getRoomId() != this.getRoomId()
-                || room.getHabboItem(item.getId()) == null);
+        itemsSnapshot.removeIf(item ->
+                item == null || item.getRoomId() != this.getRoomId() || room.getHabboItem(item.getId()) == null);
 
         this.items.clear();
         this.items.addAll(itemsSnapshot);
@@ -172,12 +181,13 @@ public class WiredEffectSetAltitude extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
+        settings = WiredNativeMovementSettings.normalize(this, settings);
         int[] params = settings.getIntParams();
         this.operator = (params.length > 0) ? this.normalizeOperator(params[0]) : OPERATOR_SET;
         this.furniSource = (params.length > 1) ? params[1] : WiredSourceUtil.SOURCE_TRIGGER;
 
         int delay = settings.getDelay();
-        if (delay > Emulator.getConfig().getInt("hotel.wired.max_delay", 20)) {
+        if (delay < 0 || delay > Emulator.getConfig().getInt("hotel.wired.max_delay", 20)) {
             throw new WiredSaveException("Delay too long");
         }
 
@@ -264,7 +274,9 @@ public class WiredEffectSetAltitude extends InteractionWiredEffect {
 
     private double normalizeAltitude(double value) {
         double clampedValue = Math.max(0.0D, Math.min(Room.MAXIMUM_FURNI_HEIGHT, value));
-        return BigDecimal.valueOf(clampedValue).setScale(2, RoundingMode.HALF_UP).doubleValue();
+        return BigDecimal.valueOf(clampedValue)
+                .setScale(2, RoundingMode.HALF_UP)
+                .doubleValue();
     }
 
     private String formatAltitude(double value) {

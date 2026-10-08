@@ -70,6 +70,7 @@ public class WiredEffectUsersOnFurni extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
+        settings = WiredNativeSelectorSettings.normalize(this, settings);
         int[] params = settings.getIntParams();
 
         this.furniSource = (params.length > 0) ? this.normalizeFurniSource(params[0]) : WiredSourceUtil.SOURCE_TRIGGER;
@@ -81,7 +82,7 @@ public class WiredEffectUsersOnFurni extends InteractionWiredEffect {
             return false;
         }
 
-        if (count > 0 && this.furniSource == WiredSourceUtil.SOURCE_TRIGGER) {
+        if (!settings.isNativeVariableFormat() && count > 0 && this.furniSource == WiredSourceUtil.SOURCE_TRIGGER) {
             this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
         }
 
@@ -119,7 +120,7 @@ public class WiredEffectUsersOnFurni extends InteractionWiredEffect {
 
     @Override
     public boolean usesExistingSelectorTargets() {
-        return this.filterExisting;
+        return this.filterExisting || this.furniSource == WiredSourceUtil.SOURCE_SELECTOR;
     }
 
     @Override

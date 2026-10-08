@@ -7,6 +7,7 @@ import com.eu.habbo.habbohotel.items.interactions.*;
 import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameGate;
 import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameScoreboard;
 import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameTimer;
+import com.eu.habbo.habbohotel.items.interactions.games.football.scoreboards.InteractionFootballScoreboard;
 import com.eu.habbo.habbohotel.items.interactions.games.battlebanzai.InteractionBattleBanzaiTeleporter;
 import com.eu.habbo.habbohotel.items.interactions.games.battlebanzai.InteractionBattleBanzaiTile;
 import com.eu.habbo.habbohotel.items.interactions.games.freeze.InteractionFreezeBlock;
@@ -209,7 +210,8 @@ public class WiredEffectToggleFurni extends InteractionWiredEffect {
 
         Set<HabboItem> itemsToRemove = new HashSet<>();
         for (HabboItem item : effectiveItems) {
-            if (item == null || item.getRoomId() == 0 || FORBIDDEN_TYPES.stream().anyMatch(a -> a.isAssignableFrom(item.getClass()))) {
+            if (item == null || item.getRoomId() == 0 || (!(item instanceof InteractionFootballScoreboard)
+                    && FORBIDDEN_TYPES.stream().anyMatch(a -> a.isAssignableFrom(item.getClass())))) {
                 itemsToRemove.add(item);
                 continue;
             }
@@ -334,6 +336,10 @@ public class WiredEffectToggleFurni extends InteractionWiredEffect {
             return;
         }
 
+        if (item instanceof InteractionFootballScoreboard scoreboard) {
+            scoreboard.setScore(nextState);
+            return;
+        }
         item.setExtradata(Integer.toString(nextState));
         item.needsUpdate(true);
         room.updateItemState(item);

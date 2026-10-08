@@ -177,6 +177,7 @@ public class WiredTriggerHabboPerformsAction extends InteractionWiredTrigger {
             case WiredUserActionType.SIGN:
             case WiredUserActionType.DANCE:
             case WiredUserActionType.THUMB_UP:
+            case WiredUserActionType.SIX_SEVEN:
                 return action;
             default:
                 return DEFAULT_ACTION;

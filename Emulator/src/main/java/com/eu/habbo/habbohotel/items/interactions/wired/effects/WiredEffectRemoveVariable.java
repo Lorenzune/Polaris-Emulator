@@ -6,6 +6,7 @@ import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeVariableSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
@@ -89,7 +90,7 @@ public class WiredEffectRemoveVariable extends InteractionWiredEffect {
     private void executeUserVariables(WiredContext ctx, Room room) {
         WiredVariableDefinitionInfo definition = room.getUserVariableManager().getDefinitionInfo(this.variableItemId);
 
-        if (definition == null || definition.isReadOnly()) {
+        if (definition == null || (definition.isReadOnly() || !definition.canCreateAndDelete())) {
             return;
         }
 
@@ -113,7 +114,7 @@ public class WiredEffectRemoveVariable extends InteractionWiredEffect {
     private void executeFurniVariables(WiredContext ctx, Room room) {
         WiredVariableDefinitionInfo definition = room.getFurniVariableManager().getDefinitionInfo(this.variableItemId);
 
-        if (definition == null || definition.isReadOnly()) {
+        if (definition == null || (definition.isReadOnly() || !definition.canCreateAndDelete())) {
             return;
         }
 
@@ -136,7 +137,7 @@ public class WiredEffectRemoveVariable extends InteractionWiredEffect {
         WiredVariableDefinitionInfo definition =
                 WiredContextVariableSupport.getDefinitionInfo(room, this.variableItemId);
 
-        if (definition == null || definition.isReadOnly()) {
+        if (definition == null || (definition.isReadOnly() || !definition.canCreateAndDelete())) {
             return;
         }
 
@@ -184,6 +185,7 @@ public class WiredEffectRemoveVariable extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
+        settings = WiredNativeVariableSettings.normalize(this, settings);
         Room room = Emulator.getGameEnvironment().getRoomManager().getRoom(this.getRoomId());
 
         if (room == null) {
@@ -206,21 +208,23 @@ public class WiredEffectRemoveVariable extends InteractionWiredEffect {
             case TARGET_USER:
                 WiredVariableDefinitionInfo userDefinition =
                         room.getUserVariableManager().getDefinitionInfo(nextVariableItemId);
-                if (userDefinition == null || userDefinition.isReadOnly()) {
+                if (userDefinition == null || (userDefinition.isReadOnly() || !userDefinition.canCreateAndDelete())) {
                     throw new WiredSaveException("wiredfurni.params.variables.validation.invalid_variable");
                 }
                 break;
             case TARGET_FURNI:
                 WiredVariableDefinitionInfo furniDefinition =
                         room.getFurniVariableManager().getDefinitionInfo(nextVariableItemId);
-                if (furniDefinition == null || furniDefinition.isReadOnly()) {
+                if (furniDefinition == null
+                        || (furniDefinition.isReadOnly() || !furniDefinition.canCreateAndDelete())) {
                     throw new WiredSaveException("wiredfurni.params.variables.validation.invalid_variable");
                 }
                 break;
             case TARGET_CONTEXT:
                 WiredVariableDefinitionInfo contextDefinition =
                         WiredContextVariableSupport.getDefinitionInfo(room, nextVariableItemId);
-                if (contextDefinition == null || contextDefinition.isReadOnly()) {
+                if (contextDefinition == null
+                        || (contextDefinition.isReadOnly() || !contextDefinition.canCreateAndDelete())) {
                     throw new WiredSaveException("wiredfurni.params.variables.validation.invalid_variable");
                 }
                 break;
