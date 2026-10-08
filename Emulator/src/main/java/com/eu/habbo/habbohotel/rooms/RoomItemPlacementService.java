@@ -194,6 +194,7 @@ final class RoomItemPlacementService {
         item.setX(tile.x);
         item.setY(tile.y);
         item.setRotation(rotation);
+        this.transferRightsPlacementToRoomOwner(item, owner);
         this.ensureOwnerName(item, owner);
         item.needsUpdate(true);
         this.facade.addHabboItem(item);
@@ -243,6 +244,7 @@ final class RoomItemPlacementService {
         }
 
         item.setWallPosition(wallPosition);
+        this.transferRightsPlacementToRoomOwner(item, owner);
         this.ensureOwnerName(item, owner);
         this.room.sendComposer(
                 new AddWallItemComposer(item, this.facade.getFurniOwnerName(item.getUserId())).compose());
@@ -253,6 +255,39 @@ final class RoomItemPlacementService {
         RoomAreaHideSupport.synchronizeClientVisibility(this.room);
         Emulator.getThreading().runHabboItemPersistence(item);
         return FurnitureMovementError.NONE;
+    }
+
+    /**
+     * Furniture placed with ordinary room rights belongs to the room owner.
+     * Higher-level controllers (owner, guild admin, or staff) retain the
+     * existing ownership behavior.
+     */
+    private void transferRightsPlacementToRoomOwner(HabboItem item, Habbo placer) {
+        if (placer == null || placer.getRoomUnit() == null || this.room.isOwner(placer)) {
+            return;
+        }
+
+        if (placer.getRoomUnit().getRightsLevel() == RoomRightLevels.RIGHTS) {
+            int roomOwnerId = this.room.getOwnerId();
+            item.setUserId(roomOwnerId);
+
+            if (!this.index.ownerNames().containsKey(roomOwnerId)) {
+                Habbo roomOwner = this.room.getHabbo(roomOwnerId);
+                if (roomOwner == null) {
+                    roomOwner = Emulator.getGameEnvironment().getHabboManager().getHabbo(roomOwnerId);
+                }
+
+                if (roomOwner != null) {
+                    this.index.ownerNames().put(roomOwnerId, roomOwner.getHabboInfo().getUsername());
+                } else {
+                    com.eu.habbo.habbohotel.users.HabboInfo roomOwnerInfo =
+                            com.eu.habbo.habbohotel.users.HabboManager.getOfflineHabboInfo(roomOwnerId);
+                    if (roomOwnerInfo != null) {
+                        this.index.ownerNames().put(roomOwnerId, roomOwnerInfo.getUsername());
+                    }
+                }
+            }
+        }
     }
 
     private boolean isYoutubeInteractionLimitReached(HabboItem item) {

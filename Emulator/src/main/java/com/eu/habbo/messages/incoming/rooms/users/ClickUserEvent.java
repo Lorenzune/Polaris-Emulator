@@ -30,6 +30,7 @@ public class ClickUserEvent extends MessageHandler {
             return;
         }
 
+        room.unIdle(this.client.getHabbo());
         WiredManager.triggerUserClicksUser(room, clickingUser, clickedHabbo.getRoomUnit());
 
         if (WiredTriggerHabboClicksUser.hasPendingIgnoreLook(clickingUser)) {
