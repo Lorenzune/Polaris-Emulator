@@ -295,7 +295,9 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
     }
 
     public boolean needsUpdate() {
-        return this.needsUpdate;
+        synchronized (this) {
+            return this.needsUpdate;
+        }
     }
 
     public boolean needsDelete() {
@@ -303,9 +305,11 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
     }
 
     public void needsUpdate(boolean value) {
-        this.needsUpdate = value;
-        if (value) {
-            this.persistenceRevision.incrementAndGet();
+        synchronized (this) {
+            this.needsUpdate = value;
+            if (value) {
+                this.persistenceRevision.incrementAndGet();
+            }
         }
     }
 
@@ -335,6 +339,7 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
 
     @Override
     public void run() {
+        long savedRevision = this.getPersistenceRevision();
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
             if (this.needsDelete) {
                 this.needsUpdate = false;
@@ -344,7 +349,7 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
                     statement.setInt(1, this.getId());
                     statement.execute();
                 }
-            } else if (this.needsUpdate) {
+            } else if (this.needsUpdate()) {
                 try (PreparedStatement statement = connection.prepareStatement(
                         "UPDATE items SET user_id = ?, room_id = ?, wall_pos = ?, x = ?, y = ?, z = ?, rot = ?, extra_data = ?, limited_data = ? WHERE id = ?")) {
                     statement.setInt(1, this.databaseUserId);
@@ -364,7 +369,10 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
                     LOGGER.error("SQLException trying to save HabboItem: {}", this.toString());
                 }
 
-                this.needsUpdate = false;
+                synchronized (this) {
+                    // An older write must not acknowledge a movement made during JDBC.
+                    this.needsUpdate = this.getPersistenceRevision() != savedRevision;
+                }
             }
 
         } catch (SQLException e) {

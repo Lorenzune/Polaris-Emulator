@@ -1,0 +1,1 @@
+ALTER TABLE collectible_shop ADD COLUMN sold INT NOT NULL DEFAULT 0;

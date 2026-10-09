@@ -5,14 +5,128 @@ import static org.mockito.Mockito.*;
 
 import com.eu.habbo.habbohotel.rooms.*;
 import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.habbohotel.items.Item;
+import com.eu.habbo.habbohotel.items.FurnitureType;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraMoveNoAnimation;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer;
 import io.netty.buffer.ByteBuf;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
+import java.util.ArrayList;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class WiredMovementBatchTest {
+    @Test
+    void cancellationPreservesOtherFurnitureAndUserUpdates() {
+        var independent = WiredMovementsComposer.furniMovement(810, 19, 18, 20, 19, 2.04, 2.04);
+        var direction = WiredMovementsComposer.userDirectionUpdate(7, 2, 2);
+        var movements = new ArrayList<>(List.of(
+                WiredMovementsComposer.furniMovement(141, 18, 19, 20, 21, 0.02, 0.02),
+                independent, direction,
+                WiredMovementsComposer.furniMovement(141, 20, 21, 20, 21, 0.02, 0.04)));
+        WiredMovementsComposer.discardFurnitureMovements(movements, 141);
+        assertEquals(List.of(independent, direction), movements);
+        var newMove = WiredMovementsComposer.furniMovement(141, 1, 3, 7, 14, 0.02, 0.02);
+        movements.add(newMove);
+        WiredMovementsComposer.discardFurnitureMovements(movements, 999);
+        assertEquals(List.of(independent, direction, newMove), movements,
+                "Later movements start a new path after the reset and must survive");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"extra", "variables", "failed_variables", "variables_then_move", "extra_other_thread", "variables_other_thread", "variables_other_thread_then_move", "extra_other_thread_nested"})
+    void instantResetCancelsTheItemsEarlierCollectedAnimation(String resetPath) throws Exception {
+        Room room = mock(Room.class, RETURNS_DEEP_STUBS);
+        HabboItem piece = mock(HabboItem.class), animatedEffect = mock(HabboItem.class), resetEffect = mock(HabboItem.class);
+        when(resetEffect.getX()).thenReturn((short) 5);
+        when(room.getRoomSpecialTypes().getExtras(5, 0))
+                .thenReturn(Set.of(mock(WiredExtraMoveNoAnimation.class)));
+        double[] position = {18, 19, 0.02};
+        when(piece.getId()).thenReturn(141);
+        Item base = mock(Item.class);
+        when(base.getType()).thenReturn(FurnitureType.FLOOR);
+        when(piece.getBaseItem()).thenReturn(base);
+        when(piece.getX()).thenAnswer(i -> (short) position[0]);
+        when(piece.getY()).thenAnswer(i -> (short) position[1]);
+        when(piece.getZ()).thenAnswer(i -> position[2]);
+        when(room.getLayout().getTile(anyShort(), anyShort())).thenAnswer(i ->
+                new RoomTile(i.getArgument(0), i.getArgument(1), (short) 0, RoomTileState.OPEN, true));
+        when(room.moveFurniTo(eq(piece), any(), eq(0), anyDouble(), isNull(), eq(false), eq(false)))
+                .thenAnswer(i -> {
+                    RoomTile target = i.getArgument(1);
+                    position[0] = target.x;
+                    position[1] = target.y;
+                    position[2] = i.getArgument(3);
+                    return FurnitureMovementError.NONE;
+                });
+        when(room.furnitureFitsAtWithPhysics(any(), eq(piece), eq(0), eq(false), any()))
+                .thenReturn(FurnitureMovementError.NONE);
+        when(room.moveFurniTo(eq(piece), any(), eq(0), anyDouble(), isNull(), eq(true), eq(false)))
+                .thenAnswer(i -> {
+                    WiredMoveCarryHelper.discardCollectedFurnitureMovements(piece.getId());
+                    RoomTile target = i.getArgument(1);
+                    position[0] = target.x;
+                    position[1] = target.y;
+                    position[2] = i.getArgument(3);
+                    return FurnitureMovementError.NONE;
+                });
+        when(room.moveFurniToWithPhysics(eq(piece), any(), eq(0), anyDouble(), isNull(), eq(true), eq(false), any(), eq(true)))
+                .thenAnswer(i -> {
+                    WiredMoveCarryHelper.discardCollectedFurnitureMovements(piece.getId());
+                    RoomTile target = i.getArgument(1);
+                    position[0] = target.x;
+                    position[1] = target.y;
+                    position[2] = i.getArgument(3);
+                    return FurnitureMovementError.NONE;
+                });
+        RoomTile board = new RoomTile((short) 20, (short) 21, (short) 0, RoomTileState.OPEN, true);
+        RoomTile deposit = new RoomTile((short) 1, (short) 3, (short) 0, RoomTileState.OPEN, true);
+        WiredMoveCarryHelper.beginMovementCollection();
+        try {
+            if (resetPath.endsWith("nested")) WiredMoveCarryHelper.beginMovementCollection();
+            assertEquals(FurnitureMovementError.NONE, WiredMoveCarryHelper.moveFurni(
+                    room, animatedEffect, piece, board, 0, 0.02, null, false, null));
+            if (resetPath.equals("failed_variables")) {
+                when(room.moveFurniTo(eq(piece), any(), eq(0), anyDouble(), isNull(), eq(true), eq(false)))
+                        .thenReturn(FurnitureMovementError.INVALID_MOVE);
+                assertFalse(WiredInternalVariableSupport.writeFurniValue(room, piece, "@position_x", 1));
+                assertMovement(WiredMoveCarryHelper.finishMovementCollection(), 18, 19, 20, 21, 0.02, 0.02);
+                return;
+            }
+            Runnable reset = () -> {
+                if (resetPath.startsWith("variables")) {
+                    assertTrue(WiredInternalVariableSupport.writeFurniValue(room, piece, "@position_x", 1));
+                    assertTrue(WiredInternalVariableSupport.writeFurniValue(room, piece, "@position_y", 3));
+                } else {
+                    assertEquals(FurnitureMovementError.NONE, WiredMoveCarryHelper.moveFurni(
+                            room, resetEffect, piece, deposit, 0, 0.02, null, false, null));
+                }
+            };
+            if (resetPath.contains("other_thread")) {
+                try (var executor = java.util.concurrent.Executors.newSingleThreadExecutor()) {
+                    executor.submit(reset).get(5, java.util.concurrent.TimeUnit.SECONDS);
+                }
+            } else reset.run();
+            assertEquals(1, piece.getX());
+            assertEquals(3, piece.getY());
+            if (resetPath.endsWith("then_move")) {
+                assertEquals(FurnitureMovementError.NONE, WiredMoveCarryHelper.moveFurni(
+                        room, animatedEffect, piece, board, 0, 0.02, null, false, null));
+                assertMovement(WiredMoveCarryHelper.finishMovementCollection(), 1, 3, 20, 21, 0.02, 0.02);
+                return;
+            }
+            if (resetPath.endsWith("nested")) assertNull(WiredMoveCarryHelper.finishMovementCollection());
+            assertNull(WiredMoveCarryHelper.finishMovementCollection(),
+                    "A collected board animation must not be sent after the instant deposit reset");
+        } finally {
+            WiredMoveCarryHelper.clearThreadLocalsForCurrentThread();
+        }
+    }
+
     @Test
     void promotionCombinesHorizontalMoveAndFinalAltitudeWithoutInstantRefresh() {
         Room room = mock(Room.class, RETURNS_DEEP_STUBS);

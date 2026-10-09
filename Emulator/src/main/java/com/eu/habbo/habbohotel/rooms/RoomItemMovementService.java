@@ -12,6 +12,7 @@ import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
+import com.eu.habbo.habbohotel.wired.core.WiredMoveCarryHelper;
 import com.eu.habbo.habbohotel.wired.core.WiredMovementPhysics;
 import com.eu.habbo.messages.outgoing.rooms.items.FloorItemOnRollerComposer;
 import com.eu.habbo.messages.outgoing.rooms.items.FloorItemUpdateComposer;
@@ -244,6 +245,7 @@ final class RoomItemMovementService {
         }
 
         // Update furniture
+        if (sendUpdates) WiredMoveCarryHelper.discardCollectedFurnitureMovements(item.getId());
         item.onMove(this.room, oldLocation, tile);
         item.needsUpdate(true);
         Emulator.getThreading().runHabboItemPersistence(item);
@@ -428,6 +430,7 @@ final class RoomItemMovementService {
             }
         }
 
+        if (sendUpdates) WiredMoveCarryHelper.discardCollectedFurnitureMovements(item.getId());
         item.onMove(this.room, oldLocation, tile);
         item.needsUpdate(true);
         Emulator.getThreading().runHabboItemPersistence(item);
@@ -690,6 +693,7 @@ final class RoomItemMovementService {
         }
 
         // Update Furniture
+        if (sendUpdates) WiredMoveCarryHelper.discardCollectedFurnitureMovements(item.getId());
         item.onMove(this.room, oldLocation, tile);
         item.needsUpdate(true);
         Emulator.getThreading().runHabboItemPersistence(item);
@@ -928,6 +932,7 @@ final class RoomItemMovementService {
             WiredManager.invalidateRoom(this.room);
         }
 
+        if (sendUpdates) WiredMoveCarryHelper.discardCollectedFurnitureMovements(item.getId());
         item.onMove(this.room, oldLocation, tile);
         item.needsUpdate(true);
         Emulator.getThreading().runHabboItemPersistence(item);

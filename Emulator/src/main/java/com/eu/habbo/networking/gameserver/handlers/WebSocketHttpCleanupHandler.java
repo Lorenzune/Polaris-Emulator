@@ -29,6 +29,7 @@ public class WebSocketHttpCleanupHandler extends ChannelInboundHandlerAdapter {
         "emuStatsHttpHandler",
         "rewardTrackHttpHandler",
         "dailyTaskHttpHandler",
+        "collectibleHttpHandler",
     };
 
     @Override

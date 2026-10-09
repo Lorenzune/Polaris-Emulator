@@ -18,6 +18,58 @@ import org.junit.jupiter.api.Test;
 class RoomItemPersistenceBehaviorTest {
 
     @Test
+    void movementDuringIndividualSaveIsRetainedForTheNextSave() throws Exception {
+        RoomJdbcTestSupport.RecordingDataSource dataSource = new RoomJdbcTestSupport.RecordingDataSource();
+        TestItem moving = item(1001, "moving");
+        moving.needsUpdate(true);
+        AtomicBoolean moved = new AtomicBoolean();
+        dataSource.beforeExecution(sql -> {
+            if (sql.startsWith("UPDATE items") && moved.compareAndSet(false, true)) {
+                moving.setX((short) 11);
+                moving.needsUpdate(true);
+            }
+        });
+
+        try (RoomJdbcTestSupport.InstalledDatabase ignored = RoomJdbcTestSupport.install(dataSource)) {
+            moving.run();
+            assertTrue(moving.needsUpdate());
+            moving.run();
+        }
+        assertEquals(2, dataSource.calls().size());
+        assertEquals(11, dataSource.calls().get(1).parameters().get(4));
+        assertFalse(moving.needsUpdate());
+    }
+
+    @Test
+    void movementDuringPendingSaveIsRetainedForTheNextSave() throws Exception {
+        RoomJdbcTestSupport.RecordingDataSource dataSource = new RoomJdbcTestSupport.RecordingDataSource();
+        RoomItemManager manager = new RoomItemManager(new Room(41, 7));
+        TestItem moving = item(1001, "moving");
+        moving.needsUpdate(true);
+        items(manager).put(moving.getId(), moving);
+        AtomicBoolean moved = new AtomicBoolean();
+        dataSource.beforeExecution(sql -> {
+            if (sql.startsWith("UPDATE items") && moved.compareAndSet(false, true)) {
+                moving.setX((short) 11);
+                moving.setY((short) 12);
+                moving.needsUpdate(true);
+            }
+        });
+
+        try (RoomJdbcTestSupport.InstalledDatabase ignored = RoomJdbcTestSupport.install(dataSource)) {
+            manager.saveAllPendingItems();
+            assertTrue(moving.needsUpdate(), "A newer movement must remain pending after the older save");
+            manager.saveAllPendingItems();
+        }
+
+        assertEquals(2, dataSource.calls().size());
+        assertEquals(5, dataSource.calls().get(0).parameters().get(4));
+        assertEquals(11, dataSource.calls().get(1).parameters().get(4));
+        assertEquals(12, dataSource.calls().get(1).parameters().get(5));
+        assertFalse(moving.needsUpdate());
+    }
+
+    @Test
     void pendingItemsShareOneConnectionAndReleaseTheRegistryBeforeJdbc() throws Exception {
         RoomJdbcTestSupport.RecordingDataSource dataSource = new RoomJdbcTestSupport.RecordingDataSource();
         RoomItemManager manager = new RoomItemManager(new Room(41, 7));

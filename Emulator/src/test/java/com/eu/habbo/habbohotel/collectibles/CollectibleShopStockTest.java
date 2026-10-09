@@ -1,0 +1,56 @@
+package com.eu.habbo.habbohotel.collectibles;
+
+import com.eu.habbo.Emulator;
+import com.eu.habbo.database.Database;
+import com.eu.habbo.habbohotel.GameEnvironment;
+import com.eu.habbo.habbohotel.economy.*;
+import com.eu.habbo.habbohotel.items.Item;
+import com.eu.habbo.habbohotel.users.Habbo;
+import com.eu.habbo.habbohotel.users.LedgerWalletMutation;
+import com.google.gson.JsonObject;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import java.lang.reflect.InvocationTargetException;
+import java.sql.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class CollectibleShopStockTest {
+    @ParameterizedTest @CsvSource({"24,false,0", "25,false,0", "24,true,0", "24,false,20"})
+    void lastUnitAndPaymentCommitTogetherAndSoldOutCannotCharge(int sold, boolean paymentFails, long availableAt) throws Exception {
+        var manager=spy(new CollectibleManager());doReturn(new JsonObject()).when(manager).state(7);
+        var user=mock(Habbo.class,RETURNS_DEEP_STUBS);when(user.getHabboInfo().getId()).thenReturn(7);
+        var database=mock(Database.class,RETURNS_DEEP_STUBS);var environment=mock(GameEnvironment.class,RETURNS_DEEP_STUBS);
+        when(environment.getItemManager().getItem(42)).thenReturn(mock(Item.class));
+        var c=mock(Connection.class);when(database.getDataSource().getConnection()).thenReturn(c);
+        var stock=mock(PreparedStatement.class);when(stock.executeUpdate()).thenReturn(1);
+        when(c.prepareStatement(anyString())).thenAnswer(call->{
+            String sql=call.getArgument(0);if(sql.startsWith("UPDATE collectible_shop"))return stock;
+            var statement=mock(PreparedStatement.class);var rs=mock(ResultSet.class);
+            when(statement.executeQuery()).thenReturn(rs);when(rs.next()).thenReturn(true,false);
+            if(sql.startsWith("SELECT available_at"))when(rs.getLong(1)).thenReturn(availableAt);
+            if(sql.startsWith("SELECT item_id,price")) {
+                when(rs.getInt(1)).thenReturn(42);when(rs.getInt(2)).thenReturn(100);
+                when(rs.getInt(3)).thenReturn(105);when(rs.getInt(4)).thenReturn(25);when(rs.getInt(5)).thenReturn(sold);
+            }
+            return statement;
+        });
+        var item=mock(PreparedStatement.class);var keys=mock(ResultSet.class);
+        when(c.prepareStatement(anyString(),eq(Statement.RETURN_GENERATED_KEYS))).thenReturn(item);
+        when(item.getGeneratedKeys()).thenReturn(keys);when(keys.next()).thenReturn(true);when(keys.getInt(1)).thenReturn(90);
+        var method=CollectibleManager.class.getDeclaredMethod("buyShopLocked",Habbo.class,int.class);method.setAccessible(true);
+        try(var emulator=mockStatic(Emulator.class);var ledger=mockStatic(EconomyLedger.class);var wallet=mockStatic(LedgerWalletMutation.class)) {
+            emulator.when(Emulator::getDatabase).thenReturn(database);emulator.when(Emulator::getGameEnvironment).thenReturn(environment);
+            if(paymentFails)ledger.when(()->EconomyLedger.apply(eq(c),any())).thenThrow(new IllegalArgumentException("Insufficient balance"));
+            else ledger.when(()->EconomyLedger.apply(eq(c),any())).thenReturn(new EconomyMutationResult(100,0,true));
+            if(sold==25 || paymentFails || availableAt>0) {
+                var error=assertThrows(InvocationTargetException.class,()->method.invoke(manager,user,1));
+                assertInstanceOf(IllegalArgumentException.class,error.getCause());verify(c).rollback();verify(c,never()).commit();verify(item,never()).executeUpdate();
+                if(sold==25 || availableAt>0){ledger.verifyNoInteractions();verify(stock,never()).executeUpdate();}
+            } else {
+                method.invoke(manager,user,1);verify(stock).executeUpdate();verify(item,times(1)).executeUpdate();verify(c).commit();verify(c,never()).rollback();
+            }
+            if(availableAt==0)verify(c).prepareStatement(contains("quantity,sold FROM collectible_shop WHERE id=? AND enabled=1 AND deleted=0 FOR UPDATE"));
+        }
+    }
+}

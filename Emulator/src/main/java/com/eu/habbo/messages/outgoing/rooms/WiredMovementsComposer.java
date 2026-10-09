@@ -1,6 +1,8 @@
 package com.eu.habbo.messages.outgoing.rooms;
 
 import com.eu.habbo.messages.ServerMessage;
+import com.eu.habbo.messages.WiredMovementMessage;
+import com.eu.habbo.habbohotel.wired.core.WiredFurnitureAnimationState;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
 import java.util.ArrayList;
@@ -28,8 +30,17 @@ public class WiredMovementsComposer extends MessageComposer {
         this.movements = normalizeMovements(movements);
     }
 
+    /** An instant furniture update supersedes earlier animations still waiting in the batch. */
+    public static void discardFurnitureMovements(List<MovementData> movements, int itemId) {
+        if (movements == null) return;
+        movements.removeIf(movement -> movement instanceof FurniMovementData furniture && furniture.id == itemId);
+    }
+
     @Override
     protected ServerMessage composeInternal() {
+        if (this.movements.stream().anyMatch(movement -> movement instanceof FurniMovementData)) {
+            return new WiredMovementMessage(this.movements);
+        }
         this.response.init(Outgoing.WiredMovementsComposer);
         this.response.appendInt(this.movements.size());
 
@@ -74,12 +85,17 @@ public class WiredMovementsComposer extends MessageComposer {
                 Integer index = furnitureIndexes.get(next.id);
                 if (index != null) {
                     FurniMovementData first = (FurniMovementData) normalized.get(index);
+                    if (first.epoch != next.epoch) {
+                        normalized.set(index, next);
+                        continue;
+                    }
                     normalized.set(index, new FurniMovementData(
                             next.id, first.fromX, first.fromY, next.toX, next.toY,
                             first.fromZ, next.toZ, next.rotation,
                             next.duration, next.elapsed, next.anchorType, next.anchorId,
                             next.overshootingDistance != null ? next.overshootingDistance : first.overshootingDistance,
-                            next.curveStrength != null ? next.curveStrength : first.curveStrength));
+                            next.curveStrength != null ? next.curveStrength : first.curveStrength,
+                            next.epoch));
                     continue;
                 }
                 furnitureIndexes.put(next.id, normalized.size());
@@ -243,6 +259,8 @@ public class WiredMovementsComposer extends MessageComposer {
     public interface MovementData {
         int getType();
 
+        default boolean isCurrent() { return true; }
+
         void append(ServerMessage response);
     }
 
@@ -322,6 +340,7 @@ public class WiredMovementsComposer extends MessageComposer {
     }
 
     private static final class FurniMovementData extends BaseMovementData {
+        private final WiredFurnitureAnimationState.Epoch epoch;
         private final int id;
         private final int fromX;
         private final int fromY;
@@ -352,7 +371,17 @@ public class WiredMovementsComposer extends MessageComposer {
                 int anchorId,
                 Integer overshootingDistance,
                 Integer curveStrength) {
+            this(id, fromX, fromY, toX, toY, fromZ, toZ, rotation, duration, elapsed,
+                    anchorType, anchorId, overshootingDistance, curveStrength,
+                    WiredFurnitureAnimationState.capture(id));
+        }
+
+        private FurniMovementData(
+                int id, int fromX, int fromY, int toX, int toY, double fromZ, double toZ,
+                int rotation, int duration, int elapsed, int anchorType, int anchorId,
+                Integer overshootingDistance, Integer curveStrength, WiredFurnitureAnimationState.Epoch epoch) {
             super(TYPE_FURNI_MOVE);
+            this.epoch = epoch;
             this.id = id;
             this.fromX = fromX;
             this.fromY = fromY;
@@ -368,6 +397,9 @@ public class WiredMovementsComposer extends MessageComposer {
             this.overshootingDistance = overshootingDistance;
             this.curveStrength = curveStrength;
         }
+
+        @Override
+        public boolean isCurrent() { return this.epoch.isCurrent(); }
 
         @Override
         public void append(ServerMessage response) {

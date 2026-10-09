@@ -417,6 +417,7 @@ public final class WiredMoveCarryHelper {
             }
 
             if (!useWiredMovements) {
+                // The movement service invalidates older animations before publishing the refresh.
                 applyInstantCarryState(room, movingItem, targetTile, rotation, carryContext);
             } else if (oldLocation != null) {
                 room.getWiredRuntime().markFurnitureMoving(movingItem, animationDuration);
@@ -506,7 +507,7 @@ public final class WiredMoveCarryHelper {
             List<WiredMovementsComposer.MovementData> collectedMovements = COLLECTED_MOVEMENTS.get();
 
             if (collectedMovements != null) {
-                collectedMovements.add(WiredMovementsComposer.furniMovement(
+                WiredMovementCollection.addFurniture(collectedMovements, movingItem.getId(), WiredMovementsComposer.furniMovement(
                         movingItem.getId(),
                         oldLocation.x,
                         oldLocation.y,
@@ -593,11 +594,18 @@ public final class WiredMoveCarryHelper {
         SUPPRESSED_STATUS_COMPOSER_UNTIL.remove(roomUnit.getId());
     }
 
+    /** Successful instant writes supersede this furniture's pending animations on every thread. */
+    public static void discardCollectedFurnitureMovements(int itemId) {
+        WiredFurnitureAnimationState.invalidate(itemId);
+        WiredMovementCollection.invalidateFurniture(itemId);
+        WiredMovementsComposer.discardFurnitureMovements(COLLECTED_MOVEMENTS.get(), itemId);
+    }
+
     public static void beginMovementCollection() {
         Integer currentDepth = MOVEMENT_COLLECTION_DEPTH.get();
 
         if (currentDepth == null || currentDepth <= 0) {
-            COLLECTED_MOVEMENTS.set(new ArrayList<>());
+            COLLECTED_MOVEMENTS.set(new WiredMovementCollection());
             COLLECTED_TILE_UPDATES.set(new LinkedHashMap<>());
             MOVEMENT_COLLECTION_DEPTH.set(1);
             return;
@@ -620,15 +628,16 @@ public final class WiredMoveCarryHelper {
         COLLECTED_TILE_UPDATES.remove();
         MOVEMENT_COLLECTION_DEPTH.remove();
 
-        if (tileUpdates != null) {
-            tileUpdates.forEach(WiredMoveCarryHelper::sendTileUpdates);
+        try {
+            if (tileUpdates != null) {
+                tileUpdates.forEach(WiredMoveCarryHelper::sendTileUpdates);
+            }
+            if (movements instanceof WiredMovementCollection collection) collection.discardInvalidated();
+            if (movements == null || movements.isEmpty()) return null;
+            return new WiredMovementsComposer(movements).compose();
+        } finally {
+            if (movements instanceof WiredMovementCollection collection) collection.release();
         }
-
-        if (movements == null || movements.isEmpty()) {
-            return null;
-        }
-
-        return new WiredMovementsComposer(movements).compose();
     }
 
     /** Tile physics is updated immediately; only duplicate client notifications wait for the batch end. */
@@ -661,6 +670,7 @@ public final class WiredMoveCarryHelper {
     }
 
     static void clearThreadLocalsForCurrentThread() {
+        if (COLLECTED_MOVEMENTS.get() instanceof WiredMovementCollection collection) collection.release();
         SUPPRESSED_STATUS_ROOM_UNIT_IDS.remove();
         COLLECTED_MOVEMENTS.remove();
         COLLECTED_TILE_UPDATES.remove();
@@ -1351,7 +1361,8 @@ public final class WiredMoveCarryHelper {
         List<WiredMovementsComposer.MovementData> collectedMovements = COLLECTED_MOVEMENTS.get();
 
         if (collectedMovements != null) {
-            collectedMovements.addAll(movements);
+            WiredMovementCollection.addFurniture(collectedMovements, movingItem.getId(), movements.getFirst());
+            collectedMovements.addAll(movements.subList(1, movements.size()));
         } else {
             room.sendComposer(new WiredMovementsComposer(movements).compose());
         }

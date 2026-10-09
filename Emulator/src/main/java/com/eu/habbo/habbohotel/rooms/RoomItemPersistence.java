@@ -7,6 +7,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Objects;
 
 final class RoomItemPersistence {
@@ -64,8 +66,10 @@ final class RoomItemPersistence {
             return;
         }
 
+        Map<HabboItem, Long> savedRevisions = new IdentityHashMap<>();
         try (PreparedStatement statement = connection.prepareStatement(UPDATE_ITEM_SQL)) {
             for (HabboItem item : items) {
+                savedRevisions.put(item, item.getPersistenceRevision());
                 statement.setInt(1, item.getDatabaseUserId());
                 statement.setInt(2, item.getRoomId());
                 statement.setString(3, item.getWallPosition());
@@ -85,7 +89,9 @@ final class RoomItemPersistence {
         }
 
         for (HabboItem item : items) {
-            item.needsUpdate(false);
+            synchronized (item) {
+                item.needsUpdate(item.getPersistenceRevision() != savedRevisions.get(item));
+            }
         }
     }
 
