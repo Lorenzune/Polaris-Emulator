@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** SWF type 8 fields; exposes today's local daily-task progress without duplicating its state. */
 public final class WiredExtraDailyTaskVariable extends WiredExtraUserVariable {
-    public static final int CODE = 115;
+    private static final int DAILY_TASK_CODE = 115;
     private String name = "";
     private String taskCode = "";
     private final ConcurrentHashMap<Integer, CachedProgress> progress = new ConcurrentHashMap<>();
@@ -101,7 +101,7 @@ public final class WiredExtraDailyTaskVariable extends WiredExtraUserVariable {
         message.appendString(name + "\t" + taskCode);
         message.appendInt(0);
         message.appendInt(0);
-        message.appendInt(CODE);
+        message.appendInt(DAILY_TASK_CODE);
         message.appendInt(0);
         message.appendInt(0);
     }

@@ -354,7 +354,7 @@ public final class WiredInternalVariableSupport {
     }
 
     public static boolean writeFurniValue(Room room, HabboItem item, String key, int value) {
-        Integer previous = room != null && item != null ? readFurniValue(room, item, key) : null;
+        Integer previous = room != null && item != null && hasFurniValue(item, key) ? readFurniValue(room, item, key) : null;
         boolean result = writeFurniValueImpl(room, item, key, value);
         if (result && room != null && item != null && room.getWiredRuntime() != null)
             room.getWiredRuntime()

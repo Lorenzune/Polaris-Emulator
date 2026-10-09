@@ -56,6 +56,8 @@ public class WiredExtraFilterFurni extends WiredExtraVariableFilterBase {
                 try {
                     amount = Integer.parseInt(settings.getStringParam());
                 } catch (NumberFormatException ignored) {
+                    com.eu.habbo.WiredCompatibilityDiagnostics.record(
+                            com.eu.habbo.WiredCompatibilityDiagnostics.FailurePoint.EXTRA_FILTER_FURNI_AMOUNT, ignored);
                 }
             }
             onPickUp();
@@ -80,6 +82,8 @@ public class WiredExtraFilterFurni extends WiredExtraVariableFilterBase {
             try {
                 amountConstantValue = Math.max(0, Math.min(10000, Integer.parseInt(data)));
             } catch (NumberFormatException ignored) {
+                com.eu.habbo.WiredCompatibilityDiagnostics.record(
+                        com.eu.habbo.WiredCompatibilityDiagnostics.FailurePoint.EXTRA_FILTER_FURNI_AMOUNT, ignored);
             }
             return;
         }

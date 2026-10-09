@@ -123,6 +123,8 @@ public class WiredEffectMatchFurni extends InteractionWiredEffect implements Int
                         room.updateItemState(counter);
                     }
                 } catch (NumberFormatException ignored) {
+                    com.eu.habbo.WiredCompatibilityDiagnostics.record(
+                            com.eu.habbo.WiredCompatibilityDiagnostics.FailurePoint.EFFECT_MATCH_COUNTER_STATE, ignored);
                 }
             } else if (!setting.state.equals(" ") && !setting.state.equals(item.getExtradata())) {
                 item.setExtradata(setting.state);

@@ -3821,6 +3821,17 @@
           "kind": "scalar",
           "type": "int",
           "name": "tradeType"
+        },
+        {
+          "kind": "optional",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "boolean",
+              "name": ""
+            }
+          ],
+          "controller": "bytesAvailable"
         }
       ]
     },
@@ -18530,6 +18541,46 @@
       "symbol": "CalendarEditorResultComposer",
       "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/events/calendar/CalendarEditorResultComposer.java",
       "reason": "Custom calendar editor result packet has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9342,
+      "symbol": "ChestCommitDepositEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/rooms/items/ChestCommitDepositEvent.java",
+      "reason": "Polaris extension for quests and chest transactions; custom client integration, not a legacy Habbo packet."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9372,
+      "symbol": "WiredQuestRequestEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/quests/WiredQuestRequestEvent.java",
+      "reason": "Polaris extension for quests and chest transactions; custom client integration, not a legacy Habbo packet."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9370,
+      "symbol": "WiredContractTransactionEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/rooms/items/WiredContractTransactionEvent.java",
+      "reason": "Polaris extension for quests and chest transactions; custom client integration, not a legacy Habbo packet."
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 9373,
+      "symbol": "WiredQuestStateComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/quests/WiredQuestStateComposer.java",
+      "reason": "Polaris extension for quests and chest transactions; custom client integration, not a legacy Habbo packet."
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 9343,
+      "symbol": "ChestDepositResultComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/items/ChestDepositResultComposer.java",
+      "reason": "Polaris extension for quests and chest transactions; custom client integration, not a legacy Habbo packet."
     }
   ],
   "exemptions": [

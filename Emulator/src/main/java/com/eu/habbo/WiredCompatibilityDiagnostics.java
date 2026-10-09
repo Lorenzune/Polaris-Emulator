@@ -13,6 +13,10 @@ public final class WiredCompatibilityDiagnostics {
 
     /** Finite call-site identifiers keep diagnostic state bounded and make every fallback auditable. */
     public enum FailurePoint {
+        TRANSACTION_SOURCES_JSON,
+        EFFECT_MATCH_COUNTER_STATE,
+        EXTRA_FILTER_FURNI_AMOUNT,
+        EXTRA_FILTER_USER_AMOUNT,
         LEGACY_DATA_LIST_ENTRY,
         CHEST_STORAGE_NUMERIC_FIELD,
         CONTRACT_POSTER_INDEX,

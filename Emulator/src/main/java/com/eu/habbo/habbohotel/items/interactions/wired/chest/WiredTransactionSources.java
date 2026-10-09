@@ -16,7 +16,10 @@ public final class WiredTransactionSources {
             try {
                 var parsed = WiredManager.getGson().fromJson(value, WiredTransactionSources.class);
                 if (parsed != null && parsed.version == 1) result = parsed;
-            } catch (RuntimeException ignored) { /* Legacy or malformed optional configuration. */ }
+            } catch (RuntimeException ignored) {
+                com.eu.habbo.WiredCompatibilityDiagnostics.record(
+                        com.eu.habbo.WiredCompatibilityDiagnostics.FailurePoint.TRANSACTION_SOURCES_JSON, ignored);
+            }
         }
         if (result.furniSource != 0 && result.furniSource != 100 && result.furniSource != 200 && result.furniSource != 201) result.furniSource = 100;
         if (!WiredSourceUtil.isDefaultUserSource(result.userSource)) result.userSource = 0;
