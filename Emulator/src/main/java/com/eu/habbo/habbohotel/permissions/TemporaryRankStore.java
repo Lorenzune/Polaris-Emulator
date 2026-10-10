@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.function.IntPredicate;
+import java.util.function.IntUnaryOperator;
 
 /** Durable rank transitions; users row is always locked before its lease row. */
 public final class TemporaryRankStore {
@@ -28,7 +29,12 @@ public final class TemporaryRankStore {
     }
 
     public static State refresh(Connection connection, int userId, long now) throws SQLException {
-        return transition(connection, userId, null, 0, 0, "", now, rank -> true);
+        return refresh(connection, userId, now, rank -> rank);
+    }
+
+    public static State refresh(Connection connection, int userId, long now, IntUnaryOperator rankResolver)
+            throws SQLException {
+        return transition(connection, userId, null, 0, 0, "", now, rank -> true, rankResolver);
     }
 
     public static State grant(
@@ -41,9 +47,23 @@ public final class TemporaryRankStore {
             long now,
             IntPredicate allowed)
             throws SQLException {
+        return grant(connection, userId, assigned, duration, actorId, reason, now, allowed, rank -> rank);
+    }
+
+    public static State grant(
+            Connection connection,
+            int userId,
+            int assigned,
+            long duration,
+            int actorId,
+            String reason,
+            long now,
+            IntPredicate allowed,
+            IntUnaryOperator rankResolver)
+            throws SQLException {
         if (duration < 60_000L || duration > 30L * 86_400_000L || userId == actorId || assigned <= 0)
             throw new IllegalArgumentException("Invalid temporary rank grant");
-        return transition(connection, userId, assigned, duration, actorId, reason, now, allowed);
+        return transition(connection, userId, assigned, duration, actorId, reason, now, allowed, rankResolver);
     }
 
     private static State transition(
@@ -54,7 +74,8 @@ public final class TemporaryRankStore {
             int actorId,
             String reason,
             long now,
-            IntPredicate allowed)
+            IntPredicate allowed,
+            IntUnaryOperator rankResolver)
             throws SQLException {
         if (!connection.getAutoCommit()) throw new SQLException("Rank transition requires its own transaction");
         connection.setAutoCommit(false);
@@ -81,6 +102,7 @@ public final class TemporaryRankStore {
                 expires = 0;
             }
             if (previous != null && expires <= now) {
+                previous = rankResolver.applyAsInt(previous);
                 writeRank(connection, userId, previous);
                 current = previous;
                 clear(connection, userId);
@@ -88,7 +110,7 @@ public final class TemporaryRankStore {
                 expires = 0;
             }
             if (assigned != null) {
-                int returnRank = previous == null ? current : previous;
+                int returnRank = rankResolver.applyAsInt(previous == null ? current : previous);
                 if (!allowed.test(current) || !allowed.test(returnRank) || !allowed.test(assigned))
                     throw new SecurityException("Temporary rank hierarchy denied");
                 if (returnRank == assigned)

@@ -405,7 +405,11 @@ public class HabboManager {
                 synchronized (this) {
                     if (this.rankExpiryDisposed) break;
                     try (Connection connection = this.rankDataSource.getConnection()) {
-                        var state = TemporaryRankStore.refresh(connection, userId, System.currentTimeMillis());
+                        var state = TemporaryRankStore.refresh(
+                                connection,
+                                userId,
+                                System.currentTimeMillis(),
+                                id -> fallbackRank(id).getId());
                         Habbo online = this.getHabbo(userId);
                         if (online != null) publishRank(online, fallbackRank(state.rank()), state);
                     }
@@ -433,7 +437,15 @@ public class HabboManager {
             throw new IllegalStateException("Temporary ranks unavailable");
         try (Connection connection = this.rankDataSource.getConnection()) {
             var state = TemporaryRankStore.grant(
-                    connection, userId, rankId, duration, actorId, reason, System.currentTimeMillis(), allowed);
+                    connection,
+                    userId,
+                    rankId,
+                    duration,
+                    actorId,
+                    reason,
+                    System.currentTimeMillis(),
+                    allowed,
+                    id -> fallbackRank(id).getId());
             Habbo online = this.getHabbo(userId);
             if (online != null) publishRank(online, fallbackRank(state.rank()), state);
         }
@@ -448,7 +460,11 @@ public class HabboManager {
 
     public void refreshTemporaryRankForLogin(Connection connection, HabboInfo info) throws SQLException {
         if (this.rankDataSource == null) return;
-        var state = TemporaryRankStore.refresh(connection, info.getId(), System.currentTimeMillis());
+        var state = TemporaryRankStore.refresh(
+                connection,
+                info.getId(),
+                System.currentTimeMillis(),
+                id -> fallbackRank(id).getId());
         info.setRank(fallbackRank(state.rank()));
         if (state.previousRank() != null)
             info.setTemporaryRank(

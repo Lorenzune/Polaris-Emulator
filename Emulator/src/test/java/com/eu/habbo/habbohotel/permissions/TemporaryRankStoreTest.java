@@ -46,6 +46,15 @@ class TemporaryRankStoreTest {
     }
 
     @Test
+    void aDeletedOriginalRankIsAlsoReplacedInTheDatabase() throws Exception {
+        Fixture fixture = new Fixture(4, 3, 4, 5_000);
+        assertEquals(
+                new TemporaryRankStore.State(1, null, 0),
+                TemporaryRankStore.refresh(fixture.connection, 42, 5_000, rank -> rank == 3 ? 1 : rank));
+        verify(fixture.statement("UPDATE users")).setInt(1, 1);
+    }
+
+    @Test
     void externalRankChangeWinsOverOldExpiry() throws Exception {
         Fixture fixture = new Fixture(4, 1, 3, 5_000);
         assertEquals(
