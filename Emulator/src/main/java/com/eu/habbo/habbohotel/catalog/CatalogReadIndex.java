@@ -89,7 +89,10 @@ final class CatalogReadIndex {
                     List<CatalogItem> pageItemList;
                     synchronized (pageItems) {
                         for (Int2ObjectMap.Entry<CatalogItem> entry : pageItems.int2ObjectEntrySet()) {
-                            items.putIfAbsent(entry.getIntKey(), entry.getValue());
+                            // Normal-tree BC aliases may share offer IDs with paid normal items.
+                            // Keep their offers page-local; never replace normal purchase lookups.
+                            if (!(page instanceof BuildersBlocksCatalogAccessPage))
+                                items.putIfAbsent(entry.getIntKey(), entry.getValue());
                         }
                         pageItemList = new ArrayList<>(pageItems.values());
                     }

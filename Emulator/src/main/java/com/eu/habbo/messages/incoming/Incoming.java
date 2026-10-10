@@ -113,6 +113,7 @@ public class Incoming {
     public static int RequestCatalogIndexEvent = 2529;
     public static final int BuildersClubQueryFurniCountEvent = 2529;
     public static final int BuildersClubPlaceRoomItemEvent = 1051;
+    public static final int BuildersClubRecolorFurniEvent = 9480;
     public static final int BuildersClubPlaceWallItemEvent = 462;
     public static final int RequestInventoryPetsEvent = 3095;
     public static final int ModToolRequestRoomVisitsEvent = 3526;

@@ -59,7 +59,7 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
     private int userId;
     private int databaseUserId;
     private int roomId;
-    private Item baseItem;
+    private volatile Item baseItem;
     private String wallPosition;
     private short x;
     private short y;
@@ -214,6 +214,10 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
 
     public Item getBaseItem() {
         return this.baseItem;
+    }
+
+    public void setBaseItem(Item baseItem) {
+        if (baseItem != null) this.baseItem = baseItem;
     }
 
     public String getWallPosition() {

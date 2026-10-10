@@ -94,12 +94,13 @@ final class CatalogPurchasePageResolver {
             // If the normal page does not exist, retain support for a standalone
             // Builder subscription page with no catalog-item row.
             page = containsOffer(buildersClubPage, command.itemId())
-                    || (normalPage == null && this.catalog.isBuildersClubOffer(command.itemId()))
+                            || (normalPage == null && this.catalog.isBuildersClubOffer(command.itemId()))
                     ? buildersClubPage
                     : normalPage;
         }
 
         if (page == null
+                || page instanceof com.eu.habbo.habbohotel.catalog.BuildersBlocksCatalogAccessPage
                 || page.getLayout() != null && page.getLayout().equalsIgnoreCase(CatalogPageLayouts.club_gift.name())) {
             return null;
         }
@@ -120,7 +121,6 @@ final class CatalogPurchasePageResolver {
             return false;
         }
 
-        return catalogItems.values().stream()
-                .anyMatch(item -> item != null && item.getOfferId() == offerId);
+        return catalogItems.values().stream().anyMatch(item -> item != null && item.getOfferId() == offerId);
     }
 }

@@ -361,6 +361,7 @@ public class CatalogManager {
         this.loadCatalogFeaturedPages();
         this.loadCatalogItems();
         this.loadBuildersClubCatalogItems();
+        BuildersBlocksCatalogAccessPage.install(this);
         this.loadClubOffers();
         this.loadTargetOffers();
         this.loadVouchers();
@@ -403,6 +404,12 @@ public class CatalogManager {
     }
 
     public void markCatalogChanged() {
+        var normal = this.getCatalogPagesMap(CatalogPageType.NORMAL);
+        synchronized (normal) {
+            for (CatalogPage page : normal.values()) {
+                if (page instanceof BuildersBlocksCatalogAccessPage access) access.refreshOffers();
+            }
+        }
         this.catalogVersion.incrementAndGet();
     }
 
