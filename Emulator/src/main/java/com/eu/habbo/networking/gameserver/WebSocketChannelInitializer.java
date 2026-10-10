@@ -101,7 +101,11 @@ public class WebSocketChannelInitializer extends ChannelInitializer<SocketChanne
         ch.pipeline().addLast(blockingHttp, "emuStatsHttpHandler", new EmuStatsHttpHandler());
         ch.pipeline().addLast(blockingHttp, "rewardTrackHttpHandler", new RewardTrackHttpHandler());
         ch.pipeline().addLast(blockingHttp, "dailyTaskHttpHandler", new DailyTaskHttpHandler());
-        ch.pipeline().addLast(blockingHttp, "collectibleHttpHandler", new com.eu.habbo.networking.gameserver.collectibles.CollectibleHttpHandler());
+        ch.pipeline()
+                .addLast(
+                        blockingHttp,
+                        "collectibleHttpHandler",
+                        new com.eu.habbo.networking.gameserver.collectibles.CollectibleHttpHandler());
         ch.pipeline().addLast("wsProtocolHandler", new WebSocketServerProtocolHandler(this.wsConfig));
         ch.pipeline().addLast("wsHttpCleanup", new WebSocketHttpCleanupHandler());
         ch.pipeline().addLast("wsFrameAggregator", new WebSocketFrameAggregator(MAX_FRAME_SIZE));
@@ -120,6 +124,7 @@ public class WebSocketChannelInitializer extends ChannelInitializer<SocketChanne
         }
 
         ch.pipeline().addLast("idleEventHandler", new IdleTimeoutHandler(30, 60));
+        ch.pipeline().addLast("gameClientRegistrar", new GameMessageHandler.ClientRegistrar());
         ch.pipeline().addLast(new GameMessageRateLimit());
         ch.pipeline().addLast("packetDispatchMarker", new PacketDispatchMarker());
         ch.pipeline()

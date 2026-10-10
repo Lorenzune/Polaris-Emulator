@@ -2395,3 +2395,6 @@ D|com/eu/habbo/messages/incoming/users/ChangeChatBubbleEvent.java|1
 D|com/eu/habbo/messages/incoming/users/ConfirmChangeNameEvent.java|1
 D|com/eu/habbo/messages/incoming/users/GetBlockedUsersEvent.java|1
 D|com/eu/habbo/messages/incoming/users/GetIgnoredUsersEvent.java|1
+
+# 2026-10-10: existing furniture-report public-offer lookup, already present in snapshot 2c61b947.
+U|com/eu/habbo/messages/incoming/furniturereport/FurnitureReportSupport.java|CALL|getGameEnvironment|1

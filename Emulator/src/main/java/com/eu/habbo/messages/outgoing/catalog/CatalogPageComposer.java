@@ -11,8 +11,6 @@ import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -45,10 +43,8 @@ public class CatalogPageComposer extends MessageComposer {
                 item.getValue().serialize(this.response);
             }
         } else {
-            this.response.appendInt(this.page.getCatalogItems().size());
-            List<CatalogItem> items =
-                    new ArrayList<>(this.page.getCatalogItems().values());
-            Collections.sort(items);
+            List<CatalogItem> items = catalogManager().getEffectivePageItems(this.page);
+            this.response.appendInt(items.size());
             for (CatalogItem item : items) {
                 item.serialize(this.response);
             }
@@ -63,9 +59,12 @@ public class CatalogPageComposer extends MessageComposer {
         return this.response;
     }
 
+    private static com.eu.habbo.habbohotel.catalog.CatalogManager catalogManager() {
+        return Emulator.getGameEnvironment().getCatalogManager();
+    }
+
     public void serializeExtra(ServerMessage message) {
-        List<CatalogFeaturedPage> featuredPages =
-                Emulator.getGameEnvironment().getCatalogManager().getCatalogFeaturedPagesSnapshot();
+        List<CatalogFeaturedPage> featuredPages = catalogManager().getCatalogFeaturedPagesSnapshot();
         message.appendInt(featuredPages.size());
 
         for (CatalogFeaturedPage page : featuredPages) {

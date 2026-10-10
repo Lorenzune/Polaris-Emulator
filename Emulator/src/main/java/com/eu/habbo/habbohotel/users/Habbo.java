@@ -138,12 +138,22 @@ public class Habbo implements Runnable {
 
     private int retainedAvatarEffect;
     private int retainedHandItem;
-    public int getRetainedHandItem() { return this.retainedHandItem; }
-    public void setRetainedHandItem(int itemId) { this.retainedHandItem = Math.max(0, itemId); }
 
-    public int getRetainedAvatarEffect() { return this.retainedAvatarEffect; }
+    public int getRetainedHandItem() {
+        return this.retainedHandItem;
+    }
 
-    public void setRetainedAvatarEffect(int effectId) { this.retainedAvatarEffect = Math.max(0, effectId); }
+    public void setRetainedHandItem(int itemId) {
+        this.retainedHandItem = Math.max(0, itemId);
+    }
+
+    public int getRetainedAvatarEffect() {
+        return this.retainedAvatarEffect;
+    }
+
+    public void setRetainedAvatarEffect(int effectId) {
+        this.retainedAvatarEffect = Math.max(0, effectId);
+    }
 
     public void setRoomUnit(RoomUnit roomUnit) {
         this.roomUnit = roomUnit;
@@ -684,7 +694,7 @@ public class Habbo implements Runnable {
             return;
         }
 
-        if (!this.hasPermission("acc_no_mute")) {
+        if (!this.hasPermission("acc_nomute")) {
             int remaining = this.habboStats.addMuteTime(seconds);
             this.client.sendResponse(new FloodCounterComposer(remaining));
             this.client.sendResponse(new MutedWhisperComposer(remaining));

@@ -76,11 +76,22 @@ public final class EconomyLedger {
     }
 
     public static EconomyMutationResult apply(Connection connection, EconomyOperation operation) throws SQLException {
+        return apply(connection, operation, true);
+    }
+
+    /** Audited direct balance adjustment for the legacy wallet API; not a new pending earning. */
+    public static EconomyMutationResult applyBalanceAdjustment(Connection connection, EconomyOperation operation)
+            throws SQLException {
+        return apply(connection, operation, false);
+    }
+
+    private static EconomyMutationResult apply(
+            Connection connection, EconomyOperation operation, boolean captureEarnings) throws SQLException {
         int balanceBefore = lockBalance(connection, operation.userId(), operation.currencyType());
         EconomyMutationResult existing = existingResult(connection, operation);
         if (existing != null) return existing;
 
-        if (PendingCurrencyEarnings.shouldCapture(operation)) {
+        if (captureEarnings && PendingCurrencyEarnings.shouldCapture(operation)) {
             PendingCurrencyEarnings.capture(connection, operation, balanceBefore);
             return new EconomyMutationResult(balanceBefore, balanceBefore, true);
         }

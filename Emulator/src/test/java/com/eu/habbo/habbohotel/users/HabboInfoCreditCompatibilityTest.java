@@ -2,18 +2,18 @@ package com.eu.habbo.habbohotel.users;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
 
 import org.junit.jupiter.api.Test;
 
 class HabboInfoCreditCompatibilityTest {
     @Test
-    void setCreditsIsAnAbsoluteSynchronousSave() {
-        RecordingHabboInfo info = new RecordingHabboInfo(100);
-
-        info.setCredits(250);
-
-        assertEquals(250, info.getCredits());
-        assertEquals(1, info.saveCount);
+    void setCreditsIsAnAbsoluteSynchronousSave() throws Exception {
+        try (var fixture = new LegacyWalletMutationTest.Fixture(100, 0)) {
+            fixture.info.setCredits(250);
+            assertEquals(250, fixture.info.getCredits());
+            verify(fixture.connection).commit();
+        }
     }
 
     @Test
@@ -27,21 +27,24 @@ class HabboInfoCreditCompatibilityTest {
     }
 
     @Test
-    void addCreditsAppliesADeltaClampsAndSavesSynchronously() {
-        RecordingHabboInfo info = new RecordingHabboInfo(100);
-
-        info.addCredits(50);
-        assertEquals(150, info.getCredits());
-        assertEquals(1, info.saveCount);
-
-        info.addCredits(-200);
-        assertEquals(0, info.getCredits());
-        assertEquals(2, info.saveCount);
-
-        info.setCredits(Integer.MAX_VALUE);
-        info.addCredits(1);
-        assertEquals(Integer.MAX_VALUE, info.getCredits());
-        assertEquals(4, info.saveCount);
+    void addCreditsAppliesADeltaClampsAndSavesSynchronously() throws Exception {
+        try (var fixture = new LegacyWalletMutationTest.Fixture(100, 0)) {
+            fixture.info.addCredits(50);
+            assertEquals(150, fixture.info.getCredits());
+            verify(fixture.connection).commit();
+        }
+        try (var fixture = new LegacyWalletMutationTest.Fixture(150, 0)) {
+            fixture.info.addCredits(-200);
+            assertEquals(0, fixture.info.getCredits());
+            verify(fixture.connection).commit();
+        }
+        try (var fixture = new LegacyWalletMutationTest.Fixture(Integer.MAX_VALUE, 0)) {
+            fixture.info.applyPersistedCredits(Integer.MAX_VALUE);
+            fixture.info.addCredits(1);
+            assertEquals(Integer.MAX_VALUE, fixture.info.getCredits());
+            verify(fixture.connection).commit();
+            fixture.ledger.verifyNoInteractions();
+        }
     }
 
     @Test

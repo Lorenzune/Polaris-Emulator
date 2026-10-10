@@ -69,8 +69,14 @@ public class RoomUnit {
     private int tilesWalked;
     private boolean inRoom;
     private volatile boolean entrySnapshotReady;
-    public boolean isEntrySnapshotReady() { return entrySnapshotReady; }
-    public void setEntrySnapshotReady(boolean ready) { entrySnapshotReady = ready; }
+
+    public boolean isEntrySnapshotReady() {
+        return entrySnapshotReady;
+    }
+
+    public void setEntrySnapshotReady(boolean ready) {
+        entrySnapshotReady = ready;
+    }
 
     private boolean canWalk;
     private boolean fastWalk = false;
@@ -961,6 +967,11 @@ public class RoomUnit {
 
         int tileIndex = (tile.x & 0xFF) | (tile.y << 12);
         return this.overridableTiles.contains(tileIndex);
+    }
+
+    /** Whether tiles were granted to this unit to walk on whatever their state. */
+    public boolean hasOverrideTiles() {
+        return !this.overridableTiles.isEmpty();
     }
 
     public void addOverrideTile(RoomTile tile) {

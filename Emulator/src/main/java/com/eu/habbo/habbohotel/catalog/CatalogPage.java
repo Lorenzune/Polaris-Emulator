@@ -2,25 +2,24 @@ package com.eu.habbo.habbohotel.catalog;
 
 import com.eu.habbo.messages.ISerialize;
 import com.eu.habbo.messages.ServerMessage;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class CatalogPage implements Comparable<CatalogPage>, ISerialize {
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogPage.class);
 
     protected final IntList offerIds = new IntArrayList();
-    protected final Map<Integer, CatalogPage> childPages = new HashMap<>();
+    protected final Map<Integer, CatalogPage> childPages = java.util.Collections.synchronizedMap(new HashMap<>());
     private final Int2ObjectMap<CatalogItem> catalogItems = Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>());
     private final ArrayList<Integer> included = new ArrayList<>();
     protected int id;
@@ -44,12 +43,10 @@ public abstract class CatalogPage implements Comparable<CatalogPage>, ISerialize
     protected String textDetails;
     protected String textTeaser;
 
-    public CatalogPage() {
-    }
+    public CatalogPage() {}
 
     public CatalogPage(ResultSet set) throws SQLException {
-        if (set == null)
-            return;
+        if (set == null) return;
 
         this.id = set.getInt("id");
         this.parentId = set.getInt("parent_id");
@@ -247,6 +244,28 @@ public abstract class CatalogPage implements Comparable<CatalogPage>, ISerialize
 
     public Int2ObjectMap<CatalogItem> getCatalogItems() {
         return this.catalogItems;
+    }
+
+    /**
+     * Package-private, non-overridable view of the backing item map for {@link
+     * CatalogReadIndex#build}. Unlike {@link #getCatalogItems()} - which {@code
+     * RoomBundleLayout} overrides to run room-loading DB I/O as a side effect - this is {@code
+     * final}, so a read-index rebuild can walk every page's items without triggering that work
+     * while holding the manager's read-index lock.
+     */
+    final Int2ObjectMap<CatalogItem> catalogItemsView() {
+        return this.catalogItems;
+    }
+
+    /**
+     * Whether {@link #getCatalogItems()} must be called for its side effect before this page's
+     * cached, read-index-backed item list is served. {@code RoomBundleLayout} overrides {@link
+     * #getCatalogItems()} to recompute the bundle contents from the live room and needs that
+     * refresh on every open; a plain page's items only change through explicit mutation plus
+     * {@link CatalogManager#markCatalogChanged()}, so the default is false.
+     */
+    protected boolean refreshesItemsOnRead() {
+        return false;
     }
 
     public CatalogItem getCatalogItem(int id) {

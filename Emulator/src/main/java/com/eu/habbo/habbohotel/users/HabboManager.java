@@ -282,23 +282,29 @@ public class HabboManager {
         }
     }
 
-    public void setRank(int userId, int rankId) throws Exception {
+    public synchronized void setRank(int userId, int rankId) throws Exception {
         Habbo habbo = this.getHabbo(userId);
 
         if (!Emulator.getGameEnvironment().getPermissionsManager().rankExists(rankId)) {
             throw new Exception("Rank ID (" + rankId + ") does not exist");
         }
         Rank newRank = Emulator.getGameEnvironment().getPermissionsManager().getRank(rankId);
+
+        try {
+            SqlQueries.update("UPDATE users SET `rank` = ? WHERE id = ? LIMIT 1", rankId, userId);
+        } catch (SqlQueries.DataAccessException e) {
+            throw e;
+        }
+
+        Rank oldRank = habbo != null ? habbo.getHabboInfo().getRank() : null;
+        if (habbo != null) habbo.getHabboInfo().setRank(newRank);
         if (habbo != null && habbo.getHabboStats() != null) {
-            Rank oldRank = habbo.getHabboInfo().getRank();
             if (!oldRank.getBadge().isEmpty()) {
                 habbo.deleteBadge(habbo.getInventory().getBadgesComponent().getBadge(oldRank.getBadge()));
             }
             if (oldRank.getRoomEffect() > 0) {
                 habbo.getInventory().getEffectsComponent().effects.remove(oldRank.getRoomEffect());
             }
-
-            habbo.getHabboInfo().setRank(newRank);
 
             if (!newRank.getBadge().isEmpty()) {
                 habbo.addBadge(newRank.getBadge());
@@ -327,12 +333,6 @@ public class HabboManager {
             habbo.alert(Emulator.getTexts()
                     .getValue("commands.generic.cmd_give_rank.new_rank")
                     .replace("id", newRank.getName()));
-        } else {
-            try {
-                SqlQueries.update("UPDATE users SET `rank` = ? WHERE id = ? LIMIT 1", rankId, userId);
-            } catch (SqlQueries.DataAccessException e) {
-                LOGGER.error("Caught SQL exception", e);
-            }
         }
 
         Emulator.getPluginManager().fireEvent(new UserRankChangedEvent(habbo));

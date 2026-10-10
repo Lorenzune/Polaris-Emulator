@@ -112,8 +112,8 @@ public class SecureLoginEvent extends MessageHandler {
             // (it was cleared on first login, and parkHabbo hasn't run because the old
             // channel hasn't closed). Find the old client by SSO ticket and force-dispose
             // it, which parks the habbo and restores the ticket to the DB.
-            GameClient existingClient =
-                    Emulator.getGameServer().getGameClientManager().findClientBySsoTicket(sso);
+            GameClientManager existingClientManager = Emulator.getGameServer().getGameClientManager();
+            GameClient existingClient = existingClientManager.findClientBySsoTicket(sso);
             if (existingClient != null && existingClient != this.client) {
                 LOGGER.info(
                         "[SessionResume] Found existing client with same SSO ticket — disposing old connection to trigger parking");
@@ -127,15 +127,18 @@ public class SecureLoginEvent extends MessageHandler {
             // session is still open, so enforcing expiry here would refuse a normal
             // mid-session reconnect. A genuinely fresh login still falls through to
             // loadHabbo() below, which does enforce the ticket expiry.
+            var gameEnvironment = Emulator.getGameEnvironment();
             int lookupUserId = 0;
+            int lookupRankId = -1;
             try (java.sql.Connection conn =
                             Emulator.getDatabase().getDataSource().getConnection();
                     java.sql.PreparedStatement stmt =
-                            conn.prepareStatement("SELECT id FROM users WHERE auth_ticket = ? LIMIT 1")) {
+                            conn.prepareStatement("SELECT id, `rank` FROM users WHERE auth_ticket = ? LIMIT 1")) {
                 stmt.setString(1, sso);
                 try (java.sql.ResultSet rs = stmt.executeQuery()) {
                     if (rs.next()) {
                         lookupUserId = rs.getInt("id");
+                        lookupRankId = rs.getInt("rank");
                     }
                 }
             } catch (Exception e) {
@@ -161,6 +164,12 @@ public class SecureLoginEvent extends MessageHandler {
                 habbo.setClient(this.client);
                 this.client.setHabbo(habbo);
                 this.client.setMachineId(habbo.getHabboInfo().getMachineID());
+                var resumedRank = gameEnvironment.getPermissionsManager().getRank(lookupRankId);
+                if (resumedRank == null) {
+                    existingClientManager.forceDisposeClient(this.client);
+                    return;
+                }
+                habbo.getHabboInfo().setRank(resumedRank);
 
                 if (!habbo.passesConnectionSecurityChecks()) {
                     LOGGER.warn(
@@ -276,7 +285,6 @@ public class SecureLoginEvent extends MessageHandler {
                 messages.add(new UserClothesComposer(this.client.getHabbo()).compose());
                 messages.add(new NewUserIdentityComposer(habbo).compose());
                 messages.add(new UserPermissionsComposer(this.client.getHabbo()).compose());
-                var gameEnvironment = Emulator.getGameEnvironment();
                 messages.add(new AvailableCommandsComposer(
                                 gameEnvironment
                                         .getCommandHandler()

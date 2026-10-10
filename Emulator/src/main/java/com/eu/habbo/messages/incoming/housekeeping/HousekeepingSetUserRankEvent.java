@@ -7,8 +7,6 @@ import com.eu.habbo.habbohotel.permissions.Rank;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.housekeeping.HousekeepingActionResultComposer;
-import com.eu.habbo.messages.outgoing.users.UserPermissionsComposer;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -32,25 +30,29 @@ public class HousekeepingSetUserRankEvent extends MessageHandler {
         int rankId = this.packet.readInt();
 
         if (userId <= 0 || rankId <= 0) {
-            this.client.sendResponse(new HousekeepingActionResultComposer(ACTION_KEY, false, 0, "housekeeping.error.invalid_input"));
+            this.client.sendResponse(
+                    new HousekeepingActionResultComposer(ACTION_KEY, false, 0, "housekeeping.error.invalid_input"));
             return;
         }
 
-        PermissionsManager permissions = Emulator.getGameEnvironment().getPermissionsManager();
+        var gameEnvironment = Emulator.getGameEnvironment();
+        PermissionsManager permissions = gameEnvironment.getPermissionsManager();
 
         if (!permissions.rankExists(rankId)) {
-            this.client.sendResponse(new HousekeepingActionResultComposer(ACTION_KEY, false, 0, "housekeeping.error.rank_not_found"));
+            this.client.sendResponse(
+                    new HousekeepingActionResultComposer(ACTION_KEY, false, 0, "housekeeping.error.rank_not_found"));
             return;
         }
 
         Rank rank = permissions.getRank(rankId);
 
         if (!HousekeepingTargetRankGuard.canAssignRank(this.client.getHabbo(), rank.getId())) {
-            this.client.sendResponse(new HousekeepingActionResultComposer(ACTION_KEY, false, 0, "housekeeping.error.rank_too_high"));
+            this.client.sendResponse(
+                    new HousekeepingActionResultComposer(ACTION_KEY, false, 0, "housekeeping.error.rank_too_high"));
             return;
         }
 
-        Habbo online = Emulator.getGameEnvironment().getHabboManager().getHabbo(userId);
+        Habbo online = gameEnvironment.getHabboManager().getHabbo(userId);
 
         int targetRankId;
         if (online != null) {
@@ -58,7 +60,8 @@ public class HousekeepingSetUserRankEvent extends MessageHandler {
         } else {
             targetRankId = 0;
             try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-                 PreparedStatement statement = connection.prepareStatement("SELECT rank FROM users WHERE id = ? LIMIT 1")) {
+                    PreparedStatement statement =
+                            connection.prepareStatement("SELECT rank FROM users WHERE id = ? LIMIT 1")) {
                 statement.setInt(1, userId);
                 try (ResultSet set = statement.executeQuery()) {
                     if (set.next()) {
@@ -66,45 +69,38 @@ public class HousekeepingSetUserRankEvent extends MessageHandler {
                     }
                 }
             } catch (SQLException e) {
-                this.client.sendResponse(new HousekeepingActionResultComposer(ACTION_KEY, false, 0, "housekeeping.error.db_failed"));
+                this.client.sendResponse(
+                        new HousekeepingActionResultComposer(ACTION_KEY, false, 0, "housekeeping.error.db_failed"));
                 return;
             }
         }
 
         if (targetRankId <= 0) {
-            this.client.sendResponse(new HousekeepingActionResultComposer(ACTION_KEY, false, 0, "housekeeping.error.user_not_found"));
+            this.client.sendResponse(
+                    new HousekeepingActionResultComposer(ACTION_KEY, false, 0, "housekeeping.error.user_not_found"));
             return;
         }
 
         if (!HousekeepingTargetRankGuard.canTargetRank(this.client.getHabbo(), targetRankId)) {
-            this.client.sendResponse(new HousekeepingActionResultComposer(ACTION_KEY, false, 0, "housekeeping.error.rank_too_high"));
+            this.client.sendResponse(
+                    new HousekeepingActionResultComposer(ACTION_KEY, false, 0, "housekeeping.error.rank_too_high"));
             return;
         }
 
-        // Persist for the offline path. Online users get their in-memory
-        // HabboInfo.rank rebound below so server-side hasPermission()
-        // checks land on the new permission set without a relogin.
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE users SET rank = ? WHERE id = ? LIMIT 1")) {
-            statement.setInt(1, rankId);
-            statement.setInt(2, userId);
-            statement.execute();
-        } catch (SQLException e) {
-            this.client.sendResponse(new HousekeepingActionResultComposer(ACTION_KEY, false, 0, "housekeeping.error.db_failed"));
+        try {
+            gameEnvironment.getHabboManager().setRank(userId, rankId);
+        } catch (Exception failure) {
+            this.client.sendResponse(
+                    new HousekeepingActionResultComposer(ACTION_KEY, false, 0, "housekeeping.error.db_failed"));
             return;
-        }
-
-        if (online != null) {
-            online.getHabboInfo().setRank(rank);
-            // Ship the refreshed permissions snapshot — same payload the
-            // :update_permissions command emits when a rank is rebound.
-            online.getClient().sendResponse(new UserPermissionsComposer(online));
         }
 
         com.eu.habbo.habbohotel.modtool.HousekeepingAuditLog.log(
                 this.client.getHabbo().getHabboInfo().getId(),
                 this.client.getHabbo().getHabboInfo().getUsername(),
-                ACTION_KEY, userId, "rankId=" + rankId,
+                ACTION_KEY,
+                userId,
+                "rankId=" + rankId,
                 this.client.getHabbo().getHabboInfo().getIpLogin());
 
         this.client.sendResponse(new HousekeepingActionResultComposer(ACTION_KEY, true, userId, ""));
