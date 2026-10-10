@@ -37,7 +37,7 @@ class CollectibleTransactionTest {
             emulator.when(Emulator::getDatabase).thenReturn(database);
             var error=assertThrows(InvocationTargetException.class,()->method.invoke(manager,user,List.of(1)));
             assertInstanceOf(IllegalArgumentException.class,error.getCause());
-            verify(c).prepareStatement("SELECT item_id FROM items WHERE user_id=? FOR UPDATE");
+            verify(c).prepareStatement("SELECT item_id FROM items WHERE user_id=? AND first_owner_id=? AND ownership_transferred=0 FOR UPDATE");
             verify(c).rollback();verify(c,never()).commit();ledger.verifyNoInteractions();
             verify(c,never()).prepareStatement(startsWith("INSERT INTO collectible_claims"));
         }

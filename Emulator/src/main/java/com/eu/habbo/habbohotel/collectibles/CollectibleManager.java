@@ -5,6 +5,7 @@ import com.eu.habbo.habbohotel.economy.*;
 import com.eu.habbo.habbohotel.users.*;
 import com.eu.habbo.habbohotel.items.FurnitureType;
 import com.eu.habbo.messages.outgoing.inventory.InventoryRefreshComposer;
+import com.eu.habbo.messages.outgoing.inventory.InventoryBadgesComposer;
 import com.eu.habbo.messages.outgoing.users.UserCreditsComposer;
 import com.eu.habbo.messages.outgoing.users.UserCurrencyComposer;
 import com.google.gson.*;
@@ -33,6 +34,26 @@ public final class CollectibleManager {
         }
         return owned;
     }
+    private Set<Integer> eligibleItems(Connection c,int userId,boolean lock) throws SQLException {
+        var eligible=new HashSet<Integer>();
+        try(var s=c.prepareStatement("SELECT item_id FROM items WHERE user_id=? AND first_owner_id=? AND ownership_transferred=0"+(lock?" FOR UPDATE":""))) {
+            s.setInt(1,userId);s.setInt(2,userId);try(var rs=s.executeQuery()){while(rs.next())eligible.add(rs.getInt(1));}
+        }
+        return eligible;
+    }
+    private boolean ownsBadge(Connection c,int userId,String code) throws SQLException {
+        try(var s=c.prepareStatement("SELECT id FROM users_badges WHERE user_id=? AND badge_code=?")){s.setInt(1,userId);s.setString(2,code);try(var rs=s.executeQuery()){return rs.next();}}
+    }
+    private void grantBadge(Connection c,int userId,String code,List<String> badges) throws SQLException {
+        if(ownsBadge(c,userId,code))return;
+        try(var s=c.prepareStatement("INSERT INTO users_badges(user_id,badge_code,slot_id) VALUES(?,?,0)")){s.setInt(1,userId);s.setString(2,code);s.executeUpdate();}
+        badges.add(code);
+    }
+    private void refreshBadges(Habbo user,List<String> badges) throws SQLException {
+        if(badges.isEmpty())return;
+        try(var c=connection();var s=c.prepareStatement("SELECT * FROM users_badges WHERE user_id=?")){s.setInt(1,user.getHabboInfo().getId());try(var rs=s.executeQuery()){while(rs.next())if(badges.contains(rs.getString("badge_code")))user.getInventory().getBadgesComponent().addBadge(new HabboBadge(rs,user));}}
+        user.getClient().sendResponse(new InventoryBadgesComposer(user));
+    }
     private List<Integer> categoryItems(String json) {
         return Arrays.asList(GSON.fromJson(json,Integer[].class));
     }
@@ -46,17 +67,18 @@ public final class CollectibleManager {
                 s.setInt(1,userId); try(var rs=s.executeQuery()) { if(rs.next()){xp=rs.getLong(1);high=rs.getLong(2);} }
             }
             var ownedIds=ownedItems(c,userId,false);
+            var eligibleIds=eligibleItems(c,userId,false);
             var categoryByReward=new HashMap<Integer,JsonObject>();
             try(var s=c.prepareStatement("SELECT * FROM collectible_categories WHERE reward_id IN (SELECT id FROM collectible_rewards WHERE deleted=0) ORDER BY id");var rs=s.executeQuery()) {
                 while(rs.next()) {
                     var category=new JsonObject();category.addProperty("id",rs.getInt("id"));category.addProperty("title",rs.getString("title"));
-                    var ids=categoryItems(rs.getString("item_ids"));var entries=new JsonArray();int count=0;
-                    for(int id:ids){var entry=new JsonObject();entry.addProperty("itemId",id);entry.addProperty("owned",ownedIds.contains(id));if(ownedIds.contains(id))count++;
+                    var ids=categoryItems(rs.getString("item_ids"));var entries=new JsonArray();int count=0,eligibleCount=0;
+                    for(int id:ids){var entry=new JsonObject();entry.addProperty("itemId",id);entry.addProperty("owned",ownedIds.contains(id));entry.addProperty("eligible",eligibleIds.contains(id));if(eligibleIds.contains(id))eligibleCount++;if(ownedIds.contains(id))count++;
                         var base=Emulator.getGameEnvironment().getItemManager().getItem(id);
                         if(base!=null){entry.addProperty("spriteId",base.getSpriteId());entry.addProperty("productType",base.getType().code.toLowerCase());entry.addProperty("name",base.getName());}
                         entries.add(entry);
                     }
-                    category.add("items",entries);category.addProperty("ownedCount",count);category.addProperty("complete",count==ids.size());
+                    category.add("items",entries);category.addProperty("ownedCount",count);category.addProperty("complete",count==ids.size());category.addProperty("eligibleCount",eligibleCount);category.addProperty("rewardComplete",eligibleCount==ids.size());
                     categoryByReward.put(rs.getInt("reward_id"),category);categories.add(category);
                 }
             }
@@ -71,7 +93,7 @@ public final class CollectibleManager {
                         if(base!=null){row.addProperty("spriteId",base.getSpriteId());row.addProperty("productType",base.getType().code.toLowerCase());}
                     }
                     var category=categoryByReward.get(rs.getInt("id"));
-                    if(category!=null){category.add("reward",row.deepCopy());category.addProperty("claimable",category.get("complete").getAsBoolean() && reward.availableTo(userId,CollectibleReward.level(xp),now,enabled,claimed));}
+                    if(category!=null){category.add("reward",row.deepCopy());category.addProperty("claimable",category.get("rewardComplete").getAsBoolean() && reward.availableTo(userId,CollectibleReward.level(xp),now,enabled,claimed));}
                     else {
                         if(reward.availableTo(userId,CollectibleReward.level(xp),now,enabled,claimed)) rewards.add(row.deepCopy());
                         if(edit) admin.add(row.deepCopy());
@@ -82,8 +104,8 @@ public final class CollectibleManager {
             result.addProperty("serverTime",now);
             var shop=new JsonArray();
             try(var s=c.prepareStatement("SELECT * FROM collectible_shop WHERE deleted=0 ORDER BY id");var rs=s.executeQuery()) {
-                while(rs.next()) {if(!edit && !rs.getBoolean("enabled"))continue;var row=new JsonObject();row.addProperty("enabled",rs.getBoolean("enabled"));row.addProperty("quantity",rs.getInt("quantity"));row.addProperty("sold",rs.getInt("sold"));row.addProperty("remaining",Math.max(0,rs.getInt("quantity")-rs.getInt("sold")));row.addProperty("soldOut",rs.getInt("sold")>=rs.getInt("quantity"));var base=Emulator.getGameEnvironment().getItemManager().getItem(rs.getInt("item_id"));if(base==null)continue;
-                    row.addProperty("id",rs.getInt("id"));row.addProperty("category",rs.getString("category"));row.addProperty("title",rs.getString("title"));row.addProperty("itemId",base.getId());row.addProperty("spriteId",base.getSpriteId());row.addProperty("productType",base.getType().code.toLowerCase());row.addProperty("price",rs.getInt("price"));row.addProperty("currencyType",rs.getInt("currency_type"));shop.add(row);
+                while(rs.next()) {if(!edit && !rs.getBoolean("enabled"))continue;var row=new JsonObject();row.addProperty("enabled",rs.getBoolean("enabled"));row.addProperty("quantity",rs.getInt("quantity"));row.addProperty("sold",rs.getInt("sold"));row.addProperty("remaining",Math.max(0,rs.getInt("quantity")-rs.getInt("sold")));row.addProperty("soldOut",rs.getInt("sold")>=rs.getInt("quantity"));var base=Emulator.getGameEnvironment().getItemManager().getItem(rs.getInt("item_id"));if(base==null && !"badge".equals(rs.getString("category")))continue;
+                    row.addProperty("id",rs.getInt("id"));row.addProperty("category",rs.getString("category"));row.addProperty("title",rs.getString("title"));row.addProperty("badgeCode",rs.getString("badge_code"));row.addProperty("owned", "badge".equals(rs.getString("category")) && ownsBadge(c,userId,rs.getString("badge_code")));row.addProperty("itemId",base==null?0:base.getId());row.addProperty("spriteId",base==null?0:base.getSpriteId());row.addProperty("productType",base==null?"badge":base.getType().code.toLowerCase());row.addProperty("price",rs.getInt("price"));row.addProperty("currencyType",rs.getInt("currency_type"));shop.add(row);
                 }
             }
             result.add("shop",shop);
@@ -96,11 +118,13 @@ public final class CollectibleManager {
         if(!canEdit(userId))throw new SecurityException("Permessi insufficienti.");
         String category=body.get("category").getAsString(), title=body.get("title").getAsString();
         int quantity=body.has("quantity")?body.get("quantity").getAsInt():1;
-        int itemId=body.get("itemId").getAsInt(),price=body.get("price").getAsInt(),currency=body.get("currencyType").getAsInt();
-        if(!List.of("clothes","furni").contains(category)||title.isBlank()||title.length()>100||quantity<1||quantity>1000000||price<1||!List.of(-1,0,5,105).contains(currency))throw new IllegalArgumentException("Articolo o prezzo non valido.");
+        String badgeCode=body.has("badgeCode")?body.get("badgeCode").getAsString():"";
+        int itemId="badge".equals(category)?0:body.get("itemId").getAsInt(),price=body.get("price").getAsInt(),currency=body.get("currencyType").getAsInt();
+        if(!List.of("clothes","furni","badge").contains(category)||title.isBlank()||title.length()>100||quantity<1||quantity>1000000||price<1||!List.of(-1,0,5,105).contains(currency))throw new IllegalArgumentException("Articolo o prezzo non valido.");
         var base=Emulator.getGameEnvironment().getItemManager().getItem(itemId);
-        if(base==null || (base.getType()!=FurnitureType.FLOOR && base.getType()!=FurnitureType.WALL))throw new IllegalArgumentException("Furni inesistente.");
-        try(var c=connection();var s=c.prepareStatement(body.has("id") ? "UPDATE collectible_shop SET category=?,title=?,item_id=?,price=?,currency_type=?,quantity=? WHERE id=? AND deleted=0" : "INSERT INTO collectible_shop(category,title,item_id,price,currency_type,quantity) VALUES(?,?,?,?,?,?)")){s.setString(1,category);s.setString(2,title);s.setInt(3,itemId);s.setInt(4,price);s.setInt(5,currency);s.setInt(6,quantity);if(body.has("id"))s.setInt(7,body.get("id").getAsInt());if(s.executeUpdate()!=1)throw new IllegalArgumentException("Offerta inesistente.");}
+        if("badge".equals(category) && !CollectibleReward.validBadgeCode(badgeCode))throw new IllegalArgumentException("Codice badge non valido.");
+        if(!"badge".equals(category) && (base==null || (base.getType()!=FurnitureType.FLOOR && base.getType()!=FurnitureType.WALL)))throw new IllegalArgumentException("Furni inesistente.");
+        try(var c=connection();var s=c.prepareStatement(body.has("id") ? "UPDATE collectible_shop SET category=?,title=?,item_id=?,price=?,currency_type=?,quantity=?,badge_code=? WHERE id=? AND deleted=0" : "INSERT INTO collectible_shop(category,title,item_id,price,currency_type,quantity,badge_code) VALUES(?,?,?,?,?,?,?)")){s.setString(1,category);s.setString(2,title);s.setInt(3,itemId);s.setInt(4,price);s.setInt(5,currency);s.setInt(6,quantity);s.setString(7,"badge".equals(category)?badgeCode:"");if(body.has("id"))s.setInt(8,body.get("id").getAsInt());if(s.executeUpdate()!=1)throw new IllegalArgumentException("Offerta inesistente.");}
         return state(userId);
     }
     public JsonObject disableShop(int userId,int id) throws SQLException {
@@ -115,22 +139,24 @@ public final class CollectibleManager {
     }
     private JsonObject buyShopLocked(Habbo user,int id) throws SQLException {
         int userId=user.getHabboInfo().getId();
-            var deliveredItems=new ArrayList<Integer>();int currency, balance;
+            var deliveredItems=new ArrayList<Integer>();var deliveredBadges=new ArrayList<String>();int currency, balance;
             try(var c=connection()) {c.setAutoCommit(false);try {
                 try(var s=c.prepareStatement("SELECT id FROM users WHERE id=? FOR UPDATE")){s.setInt(1,userId);try(var rs=s.executeQuery()){if(!rs.next())throw new SQLException("User missing");}}
                 long purchaseTime=now(c);
                 try(var stmt=c.prepareStatement("SELECT available_at FROM collectible_shop_cooldowns WHERE user_id=? FOR UPDATE")){stmt.setInt(1,userId);try(var rs=stmt.executeQuery()){if(rs.next() && rs.getLong(1)>purchaseTime)throw new IllegalArgumentException("Attendi 20 secondi tra un acquisto e il successivo.");}}
-                int baseId,price,quantity,sold;
-                try(var s=c.prepareStatement("SELECT item_id,price,currency_type,quantity,sold FROM collectible_shop WHERE id=? AND enabled=1 AND deleted=0 FOR UPDATE")){s.setInt(1,id);try(var rs=s.executeQuery()){if(!rs.next())throw new IllegalArgumentException("Articolo non disponibile.");baseId=rs.getInt(1);price=rs.getInt(2);currency=rs.getInt(3);quantity=rs.getInt(4);sold=rs.getInt(5);}}
-                if(quantity<1 || quantity>1000000 || price<1 || !List.of(-1,0,5,105).contains(currency) || Emulator.getGameEnvironment().getItemManager().getItem(baseId)==null)throw new IllegalArgumentException("Articolo non disponibile.");
+                int baseId,price,quantity,sold;String shopCategory,badgeCode;
+                try(var s=c.prepareStatement("SELECT item_id,price,currency_type,quantity,sold,category,badge_code FROM collectible_shop WHERE id=? AND enabled=1 AND deleted=0 FOR UPDATE")){s.setInt(1,id);try(var rs=s.executeQuery()){if(!rs.next())throw new IllegalArgumentException("Articolo non disponibile.");baseId=rs.getInt(1);price=rs.getInt(2);currency=rs.getInt(3);quantity=rs.getInt(4);sold=rs.getInt(5);shopCategory=rs.getString(6);badgeCode=rs.getString(7);}}
+                if(quantity<1 || quantity>1000000 || price<1 || !List.of(-1,0,5,105).contains(currency) || (!"badge".equals(shopCategory) && Emulator.getGameEnvironment().getItemManager().getItem(baseId)==null) || ("badge".equals(shopCategory) && !CollectibleReward.validBadgeCode(badgeCode)))throw new IllegalArgumentException("Articolo non disponibile.");
+                if("badge".equals(shopCategory) && ownsBadge(c,userId,badgeCode))throw new IllegalArgumentException("Possiedi già questo badge.");
                 if(sold>=quantity)throw new IllegalArgumentException("Sold out: articolo esaurito.");
                 try(var s=c.prepareStatement("UPDATE collectible_shop SET sold=sold+1 WHERE id=? AND sold<quantity AND enabled=1 AND deleted=0")){s.setInt(1,id);if(s.executeUpdate()!=1)throw new IllegalArgumentException("Sold out: articolo esaurito.");}
                 balance=EconomyLedger.apply(c,new EconomyOperation("collectible-shop:"+UUID.randomUUID(),userId,userId,"collectible_shop","collectibles",currency,-price,null,"shop:"+id)).balanceAfter();
-                try(var s=c.prepareStatement("INSERT INTO items(user_id,item_id,extra_data,limited_data) VALUES(?,?,'','0:0')",Statement.RETURN_GENERATED_KEYS)){s.setInt(1,userId);s.setInt(2,baseId);s.executeUpdate();try(var rs=s.getGeneratedKeys()){if(!rs.next())throw new SQLException("Missing item id");deliveredItems.add(rs.getInt(1));}}
+                if("badge".equals(shopCategory))grantBadge(c,userId,badgeCode,deliveredBadges);
+                else try(var s=c.prepareStatement("INSERT INTO items(user_id,item_id,extra_data,limited_data) VALUES(?,?,'','0:0')",Statement.RETURN_GENERATED_KEYS)){s.setInt(1,userId);s.setInt(2,baseId);s.executeUpdate();try(var rs=s.getGeneratedKeys()){if(!rs.next())throw new SQLException("Missing item id");deliveredItems.add(rs.getInt(1));}}
                 try(var stmt=c.prepareStatement("INSERT INTO collectible_shop_cooldowns(user_id,available_at) VALUES(?,?) ON DUPLICATE KEY UPDATE available_at=VALUES(available_at)")){stmt.setInt(1,userId);stmt.setLong(2,purchaseTime+20);stmt.executeUpdate();}
                 c.commit();
             }catch(SQLException|RuntimeException e){c.rollback();throw e;}}
-            try {LedgerWalletMutation.applyCommitted(user,currency,balance);for(int item:deliveredItems){var delivered=Emulator.getGameEnvironment().getItemManager().loadHabboItem(item);if(delivered!=null)user.getInventory().getItemsComponent().addItem(delivered);}user.getClient().sendResponse(new InventoryRefreshComposer());user.getClient().sendResponse(new UserCreditsComposer(user));user.getClient().sendResponse(new UserCurrencyComposer(user));}
+            try {LedgerWalletMutation.applyCommitted(user,currency,balance);for(int item:deliveredItems){var delivered=Emulator.getGameEnvironment().getItemManager().loadHabboItem(item);if(delivered!=null)user.getInventory().getItemsComponent().addItem(delivered);}user.getClient().sendResponse(new InventoryRefreshComposer());user.getClient().sendResponse(new UserCreditsComposer(user));user.getClient().sendResponse(new UserCurrencyComposer(user));refreshBadges(user,deliveredBadges);}
             catch(Exception e){LoggerFactory.getLogger(CollectibleManager.class).error("Collectible purchase committed; client refresh failed",e);}
             return state(userId);
     }
@@ -200,7 +226,7 @@ public final class CollectibleManager {
         return LedgerWalletMutation.coordinated(user,()->claimLocked(user,ids.stream().distinct().sorted().toList()));
     }
     private JsonObject claimLocked(Habbo user,List<Integer> ids) throws SQLException {
-        int userId=user.getHabboInfo().getId();var items=new ArrayList<Integer>();var balances=new HashMap<Integer,Integer>();
+        int userId=user.getHabboInfo().getId();var items=new ArrayList<Integer>();var badges=new ArrayList<String>();var balances=new HashMap<Integer,Integer>();
         try(var c=connection()) {
             c.setAutoCommit(false);
             try {
@@ -224,13 +250,16 @@ public final class CollectibleManager {
                         }
                     }
                     try(var s=c.prepareStatement("SELECT title,item_ids FROM collectible_categories WHERE reward_id=? FOR UPDATE")) {
-                        s.setInt(1,id);try(var rs=s.executeQuery()){if(rs.next() && !new CollectibleCategory(rs.getString(1),categoryItems(rs.getString(2))).complete(ownedItems(c,userId,true)))
-                            throw new IllegalArgumentException("Devi possedere tutti gli articoli della categoria per riscattare il premio.");}
+                        s.setInt(1,id);try(var rs=s.executeQuery()){if(rs.next() && !new CollectibleCategory(rs.getString(1),categoryItems(rs.getString(2))).complete(eligibleItems(c,userId,true)))
+                            throw new IllegalArgumentException("Per riscattare il premio devi possedere tutti gli articoli come primo proprietario, senza trasferimenti precedenti.");}
                     }
                     if("currency".equals(reward.kind())) {
                         var mutation=EconomyLedger.apply(c,new EconomyOperation("collectible:"+userId+":"+id,userId,userId,
                             "collectible_reward","collectibles",reward.currencyType(),reward.amount(),null,"collectible:"+id));
                         balances.put(reward.currencyType(),mutation.balanceAfter());
+                    } else if("badge".equals(reward.kind())) {
+                        if(!CollectibleReward.validBadgeCode(reward.badgeCode()))throw new IllegalArgumentException("Codice badge non valido.");
+                        grantBadge(c,userId,reward.badgeCode(),badges);
                     } else {
                         var base=Emulator.getGameEnvironment().getItemManager().getItem(reward.itemId());
                         if(base==null)throw new IllegalArgumentException("Articolo non disponibile.");
@@ -255,6 +284,7 @@ public final class CollectibleManager {
             for(int id:items){var item=Emulator.getGameEnvironment().getItemManager().loadHabboItem(id);if(item!=null)user.getInventory().getItemsComponent().addItem(item);}
             if(!items.isEmpty())user.getClient().sendResponse(new InventoryRefreshComposer());
             if(!balances.isEmpty()){user.getClient().sendResponse(new UserCreditsComposer(user));user.getClient().sendResponse(new UserCurrencyComposer(user));}
+            refreshBadges(user,badges);
         }catch(Exception error){LoggerFactory.getLogger(CollectibleManager.class).error("Collectible claim committed; client refresh failed",error);}
         return state(userId);
     }

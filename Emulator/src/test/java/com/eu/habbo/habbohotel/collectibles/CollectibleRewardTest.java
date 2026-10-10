@@ -5,6 +5,13 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CollectibleRewardTest {
+    @Test void acceptsBadgeRewardsAndRejectsInvalidCodesOrDuplicateQuantities() {
+        assertDoesNotThrow(() -> new CollectibleReward("Badge","","badge",0,105,1,50,200,List.of(),null,"DUCKET_01").validate(100));
+        for(String code: List.of("", "../BADGE", "a".repeat(51)))
+            assertThrows(IllegalArgumentException.class, () -> new CollectibleReward("Badge","","badge",0,105,1,50,200,List.of(),null,code).validate(100));
+        assertThrows(IllegalArgumentException.class, () -> new CollectibleReward("Badge","","badge",0,105,2,50,200,List.of(),null,"DUCKET").validate(100));
+    }
+
     @Test void categoryRewardMayHaveNoRedemptionDeadline() {
         var reward=new CollectibleReward("P","C","currency",0,-1,1,0,0,List.of());
         assertDoesNotThrow(()->reward.validate(100));

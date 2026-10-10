@@ -1,6 +1,7 @@
 package com.eu.habbo.messages.incoming.furniturereport;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.catalog.CatalogPageType;
 import com.eu.habbo.habbohotel.items.editor.FurniEditorRepository;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.HabboItem;
@@ -42,6 +43,18 @@ final class FurnitureReportSupport {
         data.addProperty("room_rotation", item.getRotation());
         data.addProperty("owner_id", item.getUserId() > 0 ? item.getUserId() : room.getOwnerId());
         data.addProperty("owner_name", room.getOwnerName() == null ? "" : room.getOwnerName());
+        int publicOfferId = -1;
+        var pages = Emulator.getGameEnvironment().getCatalogManager().getCatalogPagesMap(CatalogPageType.NORMAL);
+        synchronized (pages) {
+            for (var page : pages.values()) {
+                if (page.getRank() != 1 || !page.isVisible() || !page.isEnabled()) continue;
+                for (var offer : page.getCatalogItems().values()) {
+                    if (offer.getBaseItems().stream().anyMatch(base -> base.getId() == item.getBaseItem().getId())
+                            && (publicOfferId < 0 || offer.getId() < publicOfferId)) publicOfferId = offer.getId();
+                }
+            }
+        }
+        data.addProperty("public_catalog_offer_id", publicOfferId);
         return Optional.of(data);
     }
 

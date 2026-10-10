@@ -16,8 +16,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class CollectibleShopStockTest {
-    @ParameterizedTest @CsvSource({"24,false,0", "25,false,0", "24,true,0", "24,false,20"})
-    void lastUnitAndPaymentCommitTogetherAndSoldOutCannotCharge(int sold, boolean paymentFails, long availableAt) throws Exception {
+    @ParameterizedTest @CsvSource({"24,false,0,furni,false", "25,false,0,furni,false", "24,true,0,furni,false", "24,false,20,furni,false", "24,false,0,badge,false", "24,true,0,badge,false", "24,false,0,badge,true"})
+    void lastUnitAndPaymentCommitTogetherAndSoldOutCannotCharge(int sold, boolean paymentFails, long availableAt, String category, boolean ownedBadge) throws Exception {
         var manager=spy(new CollectibleManager());doReturn(new JsonObject()).when(manager).state(7);
         var user=mock(Habbo.class,RETURNS_DEEP_STUBS);when(user.getHabboInfo().getId()).thenReturn(7);
         var database=mock(Database.class,RETURNS_DEEP_STUBS);var environment=mock(GameEnvironment.class,RETURNS_DEEP_STUBS);
@@ -31,8 +31,9 @@ class CollectibleShopStockTest {
             if(sql.startsWith("SELECT available_at"))when(rs.getLong(1)).thenReturn(availableAt);
             if(sql.startsWith("SELECT item_id,price")) {
                 when(rs.getInt(1)).thenReturn(42);when(rs.getInt(2)).thenReturn(100);
-                when(rs.getInt(3)).thenReturn(105);when(rs.getInt(4)).thenReturn(25);when(rs.getInt(5)).thenReturn(sold);
+                when(rs.getInt(3)).thenReturn(105);when(rs.getInt(4)).thenReturn(25);when(rs.getInt(5)).thenReturn(sold);when(rs.getString(6)).thenReturn(category);when(rs.getString(7)).thenReturn("DUCKET01");
             }
+            if(sql.startsWith("SELECT id FROM users_badges"))when(rs.next()).thenReturn(ownedBadge,false);
             return statement;
         });
         var item=mock(PreparedStatement.class);var keys=mock(ResultSet.class);
@@ -43,14 +44,14 @@ class CollectibleShopStockTest {
             emulator.when(Emulator::getDatabase).thenReturn(database);emulator.when(Emulator::getGameEnvironment).thenReturn(environment);
             if(paymentFails)ledger.when(()->EconomyLedger.apply(eq(c),any())).thenThrow(new IllegalArgumentException("Insufficient balance"));
             else ledger.when(()->EconomyLedger.apply(eq(c),any())).thenReturn(new EconomyMutationResult(100,0,true));
-            if(sold==25 || paymentFails || availableAt>0) {
+            if(sold==25 || paymentFails || availableAt>0 || ownedBadge) {
                 var error=assertThrows(InvocationTargetException.class,()->method.invoke(manager,user,1));
                 assertInstanceOf(IllegalArgumentException.class,error.getCause());verify(c).rollback();verify(c,never()).commit();verify(item,never()).executeUpdate();
-                if(sold==25 || availableAt>0){ledger.verifyNoInteractions();verify(stock,never()).executeUpdate();}
+                if(sold==25 || availableAt>0 || ownedBadge){ledger.verifyNoInteractions();verify(stock,never()).executeUpdate();}
             } else {
-                method.invoke(manager,user,1);verify(stock).executeUpdate();verify(item,times(1)).executeUpdate();verify(c).commit();verify(c,never()).rollback();
+                method.invoke(manager,user,1);verify(stock).executeUpdate();if("badge".equals(category)){verify(item,never()).executeUpdate();verify(c).prepareStatement("INSERT INTO users_badges(user_id,badge_code,slot_id) VALUES(?,?,0)");}else verify(item,times(1)).executeUpdate();verify(c).commit();verify(c,never()).rollback();
             }
-            if(availableAt==0)verify(c).prepareStatement(contains("quantity,sold FROM collectible_shop WHERE id=? AND enabled=1 AND deleted=0 FOR UPDATE"));
+            if(availableAt==0)verify(c).prepareStatement(contains("quantity,sold,category,badge_code FROM collectible_shop WHERE id=? AND enabled=1 AND deleted=0 FOR UPDATE"));
         }
     }
 }
