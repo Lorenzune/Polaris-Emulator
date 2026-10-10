@@ -10,11 +10,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.eu.habbo.Emulator;
-import com.eu.habbo.database.SqlQueries;
+import com.eu.habbo.WiredPlatform;
+import com.eu.habbo.database.Database;
 import com.eu.habbo.habbohotel.GameEnvironment;
 import com.eu.habbo.habbohotel.permissions.PermissionsManager;
 import com.eu.habbo.habbohotel.permissions.Rank;
+import com.eu.habbo.habbohotel.permissions.TemporaryRankStore;
 import com.eu.habbo.plugin.PluginManager;
+import com.zaxxer.hikari.HikariDataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 import org.junit.jupiter.api.Test;
 
 class RankPersistenceTest {
@@ -40,22 +45,28 @@ class RankPersistenceTest {
         when(environment.getPermissionsManager()).thenReturn(permissions);
         when(permissions.rankExists(2)).thenReturn(true);
         when(permissions.getRank(2)).thenReturn(next);
+        Database database = mock(Database.class);
+        HikariDataSource source = mock(HikariDataSource.class);
+        Connection connection = mock(Connection.class);
+        when(database.getDataSource()).thenReturn(source);
+        when(source.getConnection()).thenReturn(connection);
         try (var emulator = mockStatic(Emulator.class);
-                var sql = mockStatic(SqlQueries.class)) {
+                var platform = mockStatic(WiredPlatform.class);
+                var sql = mockStatic(TemporaryRankStore.class)) {
+            platform.when(WiredPlatform::database).thenReturn(database);
             emulator.when(Emulator::getGameEnvironment).thenReturn(environment);
             emulator.when(Emulator::getPluginManager).thenReturn(mock(PluginManager.class));
             if (success) {
-                sql.when(() -> SqlQueries.update("UPDATE users SET `rank` = ? WHERE id = ? LIMIT 1", 2, 42))
-                        .thenAnswer(call -> {
-                            verify(info, never()).setRank(next);
-                            return 1;
-                        });
+                sql.when(() -> TemporaryRankStore.permanent(connection, 42, 2)).thenAnswer(call -> {
+                    verify(info, never()).setRank(next);
+                    return null;
+                });
                 manager.setRank(42, 2);
                 verify(info).setRank(next);
             } else {
-                sql.when(() -> SqlQueries.update("UPDATE users SET `rank` = ? WHERE id = ? LIMIT 1", 2, 42))
-                        .thenThrow(new SqlQueries.DataAccessException("unavailable", null));
-                assertThrows(SqlQueries.DataAccessException.class, () -> manager.setRank(42, 2));
+                sql.when(() -> TemporaryRankStore.permanent(connection, 42, 2))
+                        .thenThrow(new SQLException("unavailable"));
+                assertThrows(SQLException.class, () -> manager.setRank(42, 2));
                 verify(info, never()).setRank(next);
             }
         }

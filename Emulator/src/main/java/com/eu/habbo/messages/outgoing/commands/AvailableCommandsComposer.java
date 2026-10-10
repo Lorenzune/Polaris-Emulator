@@ -8,7 +8,6 @@ import com.eu.habbo.habbohotel.permissions.Rank;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -43,8 +42,10 @@ public class AvailableCommandsComposer extends MessageComposer {
         for (Command cmd : this.commands) {
             this.response.appendString(cmd.keys[0]);
             this.response.appendString(
-                    Emulator.getTexts().getValueQuietly("commands.description." + cmd.permission, cmd.permission)
-            );
+                    cmd instanceof com.eu.habbo.habbohotel.commands.TemporaryRankCommand
+                            ? ":temprank nome rank durata [motivo] (30m, 2h, 7d; massimo 30 giorni)"
+                            : Emulator.getTexts()
+                                    .getValueQuietly("commands.description." + cmd.permission, cmd.permission));
 
             if (this.ranks == null) {
                 continue;

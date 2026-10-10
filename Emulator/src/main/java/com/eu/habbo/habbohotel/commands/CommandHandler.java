@@ -273,6 +273,7 @@ public class CommandHandler {
         addCommand(new FurniDataCommand());
         addCommand(new GiftCommand());
         addCommand(new GiveRankCommand());
+        addCommand(new TemporaryRankCommand());
         addCommand(new HabnamCommand());
         addCommand(new HandItemCommand());
         addCommand(new HappyHourCommand());

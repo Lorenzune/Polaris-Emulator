@@ -225,6 +225,7 @@ public class GameEnvironment {
         });
         Emulator.getThreading().run(this.subscriptionScheduler);
 
+        this.habboManager.startTemporaryRanks();
         LOGGER.info("GameEnvironment -> Loaded!");
     }
 

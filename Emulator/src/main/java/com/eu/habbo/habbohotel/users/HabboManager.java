@@ -1,13 +1,16 @@
 package com.eu.habbo.habbohotel.users;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.WiredPlatform;
 import com.eu.habbo.database.SqlQueries;
 import com.eu.habbo.habbohotel.economy.EconomyLedger;
 import com.eu.habbo.habbohotel.economy.EconomyOperation;
 import com.eu.habbo.habbohotel.economy.EconomyOperationId;
 import com.eu.habbo.habbohotel.modtool.ModToolBan;
 import com.eu.habbo.habbohotel.permissions.Permission;
+import com.eu.habbo.habbohotel.permissions.PermissionsManager;
 import com.eu.habbo.habbohotel.permissions.Rank;
+import com.eu.habbo.habbohotel.permissions.TemporaryRankStore;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.catalog.CatalogModeComposer;
 import com.eu.habbo.messages.outgoing.catalog.CatalogUpdatedComposer;
@@ -21,6 +24,7 @@ import com.eu.habbo.messages.outgoing.users.UserPerksComposer;
 import com.eu.habbo.messages.outgoing.users.UserPermissionsComposer;
 import com.eu.habbo.plugin.events.users.UserRankChangedEvent;
 import com.eu.habbo.plugin.events.users.UserRegisteredEvent;
+import com.eu.habbo.threading.ThreadPooling;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -32,6 +36,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledFuture;
+import java.util.function.IntPredicate;
+import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +54,11 @@ public class HabboManager {
     private final ConcurrentHashMap<String, Habbo> onlineHabbosByName;
     private final ConcurrentHashMap<Integer, String> usernameCache = new ConcurrentHashMap<>();
     private final DisconnectPersistenceGate disconnectPersistence;
+    private DataSource rankDataSource;
+    private PermissionsManager rankPermissions;
+    private ThreadPooling rankThreading;
+    private ScheduledFuture<?> rankExpiryTask;
+    private volatile boolean rankExpiryDisposed;
 
     public HabboManager() {
         this(Runnable::run);
@@ -82,7 +94,14 @@ public class HabboManager {
         }
     }
 
-    public void addHabbo(Habbo habbo) {
+    public synchronized void addHabbo(Habbo habbo) {
+        if (this.rankDataSource != null) {
+            try (Connection connection = this.rankDataSource.getConnection()) {
+                refreshTemporaryRankForLogin(connection, habbo.getHabboInfo());
+            } catch (SQLException failure) {
+                throw new IllegalStateException("Cannot establish current rank", failure);
+            }
+        }
         this.onlineHabbos.put(habbo.getHabboInfo().getId(), habbo);
         this.onlineHabbosByName.put(habbo.getHabboInfo().getUsername().toLowerCase(), habbo);
     }
@@ -115,6 +134,7 @@ public class HabboManager {
             }
             statement.close();
         } catch (SQLException e) {
+            habbo = null;
             LOGGER.error("Caught SQL exception", e);
         }
 
@@ -145,6 +165,7 @@ public class HabboManager {
             try (ResultSet set = statement.executeQuery()) {
                 if (set.next()) {
                     habbo = new Habbo(set);
+                    refreshTemporaryRankForLogin(connection, habbo.getHabboInfo());
 
                     if (habbo.getHabboInfo().firstVisit) {
                         Emulator.getPluginManager().fireEvent(new UserRegisteredEvent(habbo));
@@ -159,8 +180,10 @@ public class HabboManager {
                 }
             }
         } catch (SQLException e) {
+            habbo = null;
             LOGGER.error("Caught SQL exception", e);
         } catch (Exception ex) {
+            habbo = null;
             LOGGER.error("Caught exception", ex);
         }
 
@@ -248,6 +271,8 @@ public class HabboManager {
     }
 
     public synchronized void dispose() {
+        this.rankExpiryDisposed = true;
+        if (this.rankExpiryTask != null) this.rankExpiryTask.cancel(false);
 
         //
 
@@ -290,14 +315,28 @@ public class HabboManager {
         }
         Rank newRank = Emulator.getGameEnvironment().getPermissionsManager().getRank(rankId);
 
-        try {
-            SqlQueries.update("UPDATE users SET `rank` = ? WHERE id = ? LIMIT 1", rankId, userId);
-        } catch (SqlQueries.DataAccessException e) {
-            throw e;
+        DataSource source = this.rankDataSource != null
+                ? this.rankDataSource
+                : WiredPlatform.database().getDataSource();
+        try (Connection connection = source.getConnection()) {
+            TemporaryRankStore.permanent(connection, userId, rankId);
         }
+        publishRank(habbo, newRank);
+    }
 
-        Rank oldRank = habbo != null ? habbo.getHabboInfo().getRank() : null;
-        if (habbo != null) habbo.getHabboInfo().setRank(newRank);
+    private void publishRank(Habbo habbo, Rank newRank) {
+        publishRank(habbo, newRank, null);
+    }
+
+    private void publishRank(Habbo habbo, Rank newRank, TemporaryRankStore.State lease) {
+        Rank oldRank = habbo != null ? habbo.getHabboInfo().getStoredRank() : null;
+        if (habbo != null) {
+            if (lease != null && lease.previousRank() != null)
+                habbo.getHabboInfo()
+                        .setTemporaryRank(
+                                newRank, fallbackRank(lease.previousRank()), lease.expiresAt(), this::fallbackRank);
+            else habbo.getHabboInfo().setRank(newRank);
+        }
         if (habbo != null && habbo.getHabboStats() != null) {
             if (!oldRank.getBadge().isEmpty()) {
                 habbo.deleteBadge(habbo.getInventory().getBadgesComponent().getBadge(oldRank.getBadge()));
@@ -336,6 +375,87 @@ public class HabboManager {
         }
 
         Emulator.getPluginManager().fireEvent(new UserRankChangedEvent(habbo));
+    }
+
+    /** Starts one bounded shared-pool task, never one timer/thread per user. */
+    public synchronized void startTemporaryRanks() {
+        if (this.rankDataSource != null || this.rankExpiryDisposed) return;
+        this.rankDataSource = WiredPlatform.database().getDataSource();
+        this.rankPermissions = WiredPlatform.gameEnvironment().getPermissionsManager();
+        this.rankThreading = WiredPlatform.threading();
+        scheduleRankExpiry();
+    }
+
+    private void scheduleRankExpiry() {
+        if (!this.rankExpiryDisposed) this.rankExpiryTask = this.rankThreading.run(this::expireTemporaryRanks, 60_000L);
+    }
+
+    private void expireTemporaryRanks() {
+        try {
+            List<Integer> due = new ArrayList<>();
+            try (Connection connection = this.rankDataSource.getConnection();
+                    PreparedStatement query = connection.prepareStatement(
+                            "SELECT tr.user_id FROM user_temporary_ranks tr INNER JOIN users u ON u.id = tr.user_id WHERE tr.expires_at <= ? ORDER BY tr.expires_at, tr.user_id LIMIT 100")) {
+                query.setLong(1, System.currentTimeMillis());
+                try (ResultSet rows = query.executeQuery()) {
+                    while (rows.next()) due.add(rows.getInt(1));
+                }
+            }
+            for (int userId : due) {
+                synchronized (this) {
+                    if (this.rankExpiryDisposed) break;
+                    try (Connection connection = this.rankDataSource.getConnection()) {
+                        var state = TemporaryRankStore.refresh(connection, userId, System.currentTimeMillis());
+                        Habbo online = this.getHabbo(userId);
+                        if (online != null) publishRank(online, fallbackRank(state.rank()), state);
+                    }
+                }
+            }
+        } catch (Exception failure) {
+            LOGGER.error("Temporary rank expiry will retry; online leases still expire locally", failure);
+        } finally {
+            synchronized (this) {
+                scheduleRankExpiry();
+            }
+        }
+    }
+
+    private Rank fallbackRank(int rankId) {
+        Rank rank = this.rankPermissions.getRank(rankId);
+        if (rank != null) return rank;
+        Rank base = this.rankPermissions.getRank(1);
+        return base == null ? new Rank(1) : base;
+    }
+
+    public synchronized void grantTemporaryRank(
+            int userId, int rankId, long duration, int actorId, String reason, IntPredicate allowed) throws Exception {
+        if (this.rankDataSource == null || !this.rankPermissions.rankExists(rankId))
+            throw new IllegalStateException("Temporary ranks unavailable");
+        try (Connection connection = this.rankDataSource.getConnection()) {
+            var state = TemporaryRankStore.grant(
+                    connection, userId, rankId, duration, actorId, reason, System.currentTimeMillis(), allowed);
+            Habbo online = this.getHabbo(userId);
+            if (online != null) publishRank(online, fallbackRank(state.rank()), state);
+        }
+    }
+
+    public synchronized void refreshTemporaryRankForResume(HabboInfo info) throws SQLException {
+        if (this.rankDataSource == null) return;
+        try (Connection connection = this.rankDataSource.getConnection()) {
+            refreshTemporaryRankForLogin(connection, info);
+        }
+    }
+
+    public void refreshTemporaryRankForLogin(Connection connection, HabboInfo info) throws SQLException {
+        if (this.rankDataSource == null) return;
+        var state = TemporaryRankStore.refresh(connection, info.getId(), System.currentTimeMillis());
+        info.setRank(fallbackRank(state.rank()));
+        if (state.previousRank() != null)
+            info.setTemporaryRank(
+                    fallbackRank(state.rank()),
+                    fallbackRank(state.previousRank()),
+                    state.expiresAt(),
+                    this::fallbackRank);
     }
 
     public void giveCredits(int userId, int credits) {

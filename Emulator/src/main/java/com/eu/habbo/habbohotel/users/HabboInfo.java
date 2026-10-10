@@ -42,6 +42,11 @@ public class HabboInfo implements Runnable {
     private int id;
     private int accountCreated;
     private volatile Rank rank;
+
+    private record RankSnapshot(
+            Rank current, Rank previous, long expiresAt, java.util.function.IntFunction<Rank> resolver) {}
+
+    private volatile RankSnapshot rankSnapshot;
     private int credits;
     private int lastOnline;
     private int homeRoom;
@@ -468,10 +473,31 @@ public class HabboInfo implements Runnable {
     }
 
     public Rank getRank() {
-        return this.rank;
+        RankSnapshot snapshot = this.rankSnapshot;
+        if (snapshot == null) return this.rank;
+        if (snapshot.previous() != null && System.currentTimeMillis() >= snapshot.expiresAt())
+            return snapshot.resolver() == null
+                    ? snapshot.previous()
+                    : snapshot.resolver().apply(snapshot.previous().getId());
+        return snapshot.current();
+    }
+
+    Rank getStoredRank() {
+        RankSnapshot snapshot = this.rankSnapshot;
+        return snapshot == null ? this.rank : snapshot.current();
+    }
+
+    void setTemporaryRank(Rank assigned, Rank previous, long expiresAt) {
+        setTemporaryRank(assigned, previous, expiresAt, null);
+    }
+
+    void setTemporaryRank(Rank assigned, Rank previous, long expiresAt, java.util.function.IntFunction<Rank> resolver) {
+        this.rankSnapshot = new RankSnapshot(assigned, previous, expiresAt, resolver);
+        this.rank = assigned;
     }
 
     public void setRank(Rank rank) {
+        this.rankSnapshot = new RankSnapshot(rank, null, 0, null);
         this.rank = rank;
     }
 

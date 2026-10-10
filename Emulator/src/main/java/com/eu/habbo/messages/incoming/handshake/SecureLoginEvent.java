@@ -170,6 +170,12 @@ public class SecureLoginEvent extends MessageHandler {
                     return;
                 }
                 habbo.getHabboInfo().setRank(resumedRank);
+                try {
+                    gameEnvironment.getHabboManager().refreshTemporaryRankForResume(habbo.getHabboInfo());
+                } catch (java.sql.SQLException failure) {
+                    existingClientManager.forceDisposeClient(this.client);
+                    throw failure;
+                }
 
                 if (!habbo.passesConnectionSecurityChecks()) {
                     LOGGER.warn(
