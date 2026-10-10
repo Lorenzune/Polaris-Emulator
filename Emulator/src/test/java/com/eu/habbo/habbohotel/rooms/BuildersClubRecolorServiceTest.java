@@ -107,6 +107,22 @@ class BuildersClubRecolorServiceTest {
     }
 
     @Test
+    void unknownBatchCountsAreNotPublishedAsSuccessfulRecolors() throws Exception {
+        Connection connection = mock(Connection.class);
+        PreparedStatement statement = mock(PreparedStatement.class);
+        when(connection.getAutoCommit()).thenReturn(true);
+        when(connection.prepareStatement(org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn(statement);
+        when(statement.executeBatch()).thenReturn(new int[] {java.sql.Statement.SUCCESS_NO_INFO});
+        HabboItem item = mock(HabboItem.class);
+        Item original = block(1, 1, 1, 1, InteractionDefault.class);
+        when(item.getBaseItem()).thenReturn(original);
+        assertThrows(SQLException.class, () -> BuildersClubRecolorService.store(connection, List.of(item), 2, 77));
+        verify(connection).rollback();
+        verify(connection, never()).commit();
+    }
+
+    @Test
     void successfulBatchCommitsBeforeReturningTargets() throws Exception {
         Connection connection = mock(Connection.class);
         PreparedStatement statement = mock(PreparedStatement.class);

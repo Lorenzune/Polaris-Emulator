@@ -26,6 +26,15 @@ public class BuildersClubRecolorFurniEvent extends MessageHandler {
 
         this.client.sendResponse(new BubbleAlertComposer(
                 BubbleAlertKeys.FURNITURE_PLACEMENT_ERROR.key,
-                "builder.recolor.error." + result.name().toLowerCase()));
+                switch (result) {
+                    case NO_RIGHTS -> "Non hai i permessi Builders Club per modificare questa stanza.";
+                    case NOT_FOUND -> "Il furni non è disponibile oppure il salvataggio non è riuscito.";
+                    case NOT_RECOLORABLE -> "Questo furni non può essere ricolorato.";
+                    case NOT_BUILDERS_CLUB -> "Puoi ricolorare soltanto i furni posati con Builders Club.";
+                    case NO_SUCH_COLOR -> "Questo colore non è disponibile per il tuo rank o non è compatibile.";
+                    case LIMIT_EXCEEDED ->
+                        "Puoi ricolorare al massimo 500 furni uguali per operazione. Seleziona un singolo furni.";
+                    default -> "Ricolora il furni tra qualche istante.";
+                }));
     }
 }

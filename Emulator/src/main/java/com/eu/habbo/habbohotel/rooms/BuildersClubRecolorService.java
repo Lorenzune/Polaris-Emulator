@@ -3,6 +3,8 @@ package com.eu.habbo.habbohotel.rooms;
 import com.eu.habbo.WiredPlatform;
 import com.eu.habbo.database.Database;
 import com.eu.habbo.habbohotel.GameEnvironment;
+import com.eu.habbo.habbohotel.catalog.CatalogManager;
+import com.eu.habbo.habbohotel.catalog.CatalogPageType;
 import com.eu.habbo.habbohotel.items.FurnitureType;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionDefault;
@@ -14,7 +16,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -47,7 +48,8 @@ public final class BuildersClubRecolorService {
         NOT_FOUND,
         NOT_RECOLORABLE,
         NOT_BUILDERS_CLUB,
-        NO_SUCH_COLOR
+        NO_SUCH_COLOR,
+        LIMIT_EXCEEDED
     }
 
     private BuildersClubRecolorService() {}
@@ -101,7 +103,11 @@ public final class BuildersClubRecolorService {
         }
 
         Item target = environment.getItemManager().getItem(family + "*" + colorIndex);
-        if (!interchangeable(clicked.getBaseItem(), target)) {
+        if (!interchangeable(clicked.getBaseItem(), target)
+                || !targetAllowedInCatalog(
+                        environment.getCatalogManager(),
+                        target.getId(),
+                        habbo.getHabboInfo().getRank().getId())) {
             return Result.NO_SUCH_COLOR;
         }
 
@@ -119,14 +125,12 @@ public final class BuildersClubRecolorService {
             if (scope == SCOPE_SAME_IN_ROOM) {
                 int sourceBaseId = clicked.getBaseItem().getId();
                 for (HabboItem item : room.getFloorItems()) {
-                    if (items.size() >= MAX_ITEMS_PER_REQUEST) {
-                        break;
-                    }
                     if (item != null
                             && item.getBaseItem() != null
                             && item.getBaseItem().getId() == sourceBaseId
                             && !item.isLimited()
                             && buildersClubItems.contains(item.getId())) {
+                        if (items.size() >= MAX_ITEMS_PER_REQUEST) return Result.LIMIT_EXCEEDED;
                         items.add(item);
                     }
                 }
@@ -151,6 +155,23 @@ public final class BuildersClubRecolorService {
         }
     }
 
+    static boolean targetAllowedInCatalog(CatalogManager manager, int baseItemId, int rankId) {
+        var pages = manager.getCatalogPagesMap(CatalogPageType.BUILDER);
+        synchronized (pages) {
+            for (var page : pages.values()) {
+                if (!page.isEnabled() || !page.isVisible() || page.getRank() > rankId) continue;
+                var offers = page.getCatalogItems();
+                synchronized (offers) {
+                    for (var offer : offers.values()) {
+                        if (offer.getAmount() != 1 || offer.getBaseItems().size() != 1) continue;
+                        for (Item item : offer.getBaseItems()) if (item.getId() == baseItemId) return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     static String familyOf(String itemName) {
         if (itemName == null) {
             return null;
@@ -171,6 +192,7 @@ public final class BuildersClubRecolorService {
         return from != null
                 && to != null
                 && from.getId() != to.getId()
+                && from.getType() == FurnitureType.FLOOR
                 && to.getType() == FurnitureType.FLOOR
                 && from.getWidth() == to.getWidth()
                 && from.getLength() == to.getLength()
@@ -264,7 +286,7 @@ public final class BuildersClubRecolorService {
             int[] counts = statement.executeBatch();
             if (counts.length != items.size()) throw new SQLException("Incomplete recolor batch");
             for (int count : counts) {
-                if (count != 1 && count != Statement.SUCCESS_NO_INFO) throw new SQLException("Recolor target changed");
+                if (count != 1) throw new SQLException("Recolor target changed");
             }
             connection.commit();
             stored.addAll(items);
