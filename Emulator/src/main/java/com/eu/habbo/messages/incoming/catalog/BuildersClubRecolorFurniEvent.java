@@ -33,7 +33,7 @@ public class BuildersClubRecolorFurniEvent extends MessageHandler {
                     case NOT_BUILDERS_CLUB -> "Puoi ricolorare soltanto i furni posati con Builders Club.";
                     case NO_SUCH_COLOR -> "Questo colore non è disponibile per il tuo rank o non è compatibile.";
                     case LIMIT_EXCEEDED ->
-                        "Puoi ricolorare al massimo 500 furni uguali per operazione. Seleziona un singolo furni.";
+                        "Limite colori della stanza o limite di 500 furni per operazione raggiunto. Seleziona un singolo furni.";
                     default -> "Ricolora il furni tra qualche istante.";
                 }));
     }

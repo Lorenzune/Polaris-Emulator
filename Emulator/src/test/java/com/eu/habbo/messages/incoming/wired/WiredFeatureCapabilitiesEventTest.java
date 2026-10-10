@@ -26,6 +26,15 @@ import org.junit.jupiter.api.Test;
 class WiredFeatureCapabilitiesEventTest {
 
     @Test
+    void remembersColorSupportBeforeRoomEntryCompletes() throws Exception {
+        Fixture fixture = fixture();
+        when(fixture.client.getHabbo().getHabboInfo().getCurrentRoom()).thenReturn(null);
+        event(fixture, 3, GameClient.WIRED_FEATURE_CUSTOM_COLOR).handle();
+        assertEquals(true, fixture.client.supportsWiredFeature(3, GameClient.WIRED_FEATURE_CUSTOM_COLOR));
+        verify(fixture.client, never()).sendResponse(any(MessageComposer.class));
+    }
+
+    @Test
     void supportedClientReceivesItsAuthoritativeRoomSnapshot() throws Exception {
         Fixture fixture = fixture();
         when(fixture.runtime.opacitySnapshot(77)).thenReturn(List.of(new WiredOpacityState(901, false, 35, true)));

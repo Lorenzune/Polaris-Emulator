@@ -23,6 +23,7 @@ final class RoomOpacityPersistence {
     private final RoomDependencies.ConnectionProvider database;
     private final Executor executor;
     private final Object lock = new Object();
+    private final Object writeLock = new Object();
     private final Map<Integer, PersistedState> pending = new HashMap<>();
     private boolean scheduled;
 
@@ -101,26 +102,63 @@ final class RoomOpacityPersistence {
     }
 
     private void flush() {
-        while (true) {
-            Map<Integer, PersistedState> batch;
-            synchronized (this.lock) {
-                if (this.pending.isEmpty()) {
-                    this.scheduled = false;
+        synchronized (this.writeLock) {
+            while (true) {
+                Map<Integer, PersistedState> batch;
+                synchronized (this.lock) {
+                    if (this.pending.isEmpty()) {
+                        this.scheduled = false;
+                        return;
+                    }
+                    batch = new HashMap<>(this.pending);
+                    this.pending.clear();
+                }
+
+                try {
+                    this.write(batch);
+                } catch (SQLException exception) {
+                    synchronized (this.lock) {
+                        batch.forEach(this.pending::putIfAbsent);
+                        this.scheduled = false;
+                    }
+                    LOGGER.error("Unable to persist furniture opacity and scale for room {}", this.roomId, exception);
                     return;
                 }
-                batch = new HashMap<>(this.pending);
-                this.pending.clear();
             }
+        }
+    }
 
-            try {
-                this.write(batch);
-            } catch (SQLException exception) {
-                synchronized (this.lock) {
-                    batch.forEach(this.pending::putIfAbsent);
-                    this.scheduled = false;
+    /** The BC palette commits the complete selection before publishing its new color. */
+    void saveBuildersBlockColors(Collection<WiredOpacityState> updates, Map<Integer, Integer> expectedBaseIds)
+            throws SQLException {
+        if (updates.isEmpty()) return;
+        synchronized (this.writeLock) {
+            try (Connection connection = this.database.openConnection()) {
+                if (!connection.getAutoCommit()) throw new SQLException("Palette requires its own transaction");
+                connection.setAutoCommit(false);
+                try (PreparedStatement update = connection.prepareStatement(
+                        "UPDATE items SET wired_opacity = ?, wired_scaling = ?, custom_color = ? WHERE id = ? AND room_id = ? AND item_id = ?"
+                                + " AND EXISTS (SELECT 1 FROM builders_club_items bc WHERE bc.item_id = items.id AND bc.room_id = items.room_id)")) {
+                    for (WiredOpacityState state : updates) {
+                        update.setInt(1, state.opacity());
+                        update.setInt(2, state.scaling());
+                        update.setString(3, state.customColor());
+                        update.setInt(4, state.itemId());
+                        update.setInt(5, this.roomId);
+                        update.setInt(6, expectedBaseIds.get(state.itemId()));
+                        update.addBatch();
+                    }
+                    int[] counts = update.executeBatch();
+                    if (counts.length != updates.size()) throw new SQLException("Incomplete palette batch");
+                    for (int count : counts) if (count != 1) throw new SQLException("Palette target changed");
+                    connection.commit();
+                } catch (SQLException | RuntimeException failure) {
+                    connection.rollback();
+                    throw failure;
                 }
-                LOGGER.error("Unable to persist furniture opacity and scale for room {}", this.roomId, exception);
-                return;
+                synchronized (this.lock) {
+                    for (WiredOpacityState state : updates) this.pending.remove(state.itemId());
+                }
             }
         }
     }

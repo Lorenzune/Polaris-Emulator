@@ -495,9 +495,7 @@ public class RoomManager {
         List<Room> eligibleRooms;
         if ("public_root".equals(scope) && categoryId == 0) {
             listKey = "public-root";
-            eligibleRooms = environment()
-                    .getNavigatorManager()
-                    .getOrderedPublicRooms(listKey, this.getPublicRooms());
+            eligibleRooms = environment().getNavigatorManager().getOrderedPublicRooms(listKey, this.getPublicRooms());
         } else if ("public_category".equals(scope) && categoryId > 0) {
             listKey = "public-category:" + categoryId;
             eligibleRooms = environment().getNavigatorManager().getPublicCategoryRooms(categoryId);
@@ -866,9 +864,7 @@ public class RoomManager {
         }
 
         if (habbo.getHabboInfo().getRoomQueueId() > 0) {
-            Room r = environment()
-                    .getRoomManager()
-                    .getRoom(habbo.getHabboInfo().getRoomQueueId());
+            Room r = environment().getRoomManager().getRoom(habbo.getHabboInfo().getRoomQueueId());
 
             if (r != null) {
                 r.removeFromQueue(habbo);
@@ -963,9 +959,8 @@ public class RoomManager {
         }
 
         if (habbo.getHabboInfo().getLoadingRoom() != 0) {
-            Room oldRoom = environment()
-                    .getRoomManager()
-                    .getRoom(habbo.getHabboInfo().getLoadingRoom());
+            Room oldRoom =
+                    environment().getRoomManager().getRoom(habbo.getHabboInfo().getLoadingRoom());
             if (oldRoom != null) {
                 oldRoom.removeFromQueue(habbo);
             }
@@ -1000,8 +995,7 @@ public class RoomManager {
         if (room.getOwnerId() != habbo.getHabboInfo().getId()) {
             if (!habbo.getHabboStats().visitedRoom(room.getId())) {
                 AchievementManager.progressAchievement(
-                        habbo,
-                        environment().getAchievementManager().getAchievement("RoomEntry"));
+                        habbo, environment().getAchievementManager().getAchievement("RoomEntry"));
             }
 
             environment()
@@ -1117,13 +1111,18 @@ public class RoomManager {
 
             int effect = habbo.getInventory().getEffectsComponent().activatedEffect;
             int retainedEffect = habbo.getRetainedAvatarEffect();
-            if (retainedEffect > 0 && habbo.getHabboInfo().getRiding() == null
-                    && !environment().getPermissionsManager().isEffectBlocked(
-                            retainedEffect, habbo.getHabboInfo().getRank().getId())) {
+            if (retainedEffect > 0
+                    && habbo.getHabboInfo().getRiding() == null
+                    && !environment()
+                            .getPermissionsManager()
+                            .isEffectBlocked(
+                                    retainedEffect,
+                                    habbo.getHabboInfo().getRank().getId())) {
                 effect = retainedEffect;
             }
             room.giveEffect(habbo.getRoomUnit(), effect, -1);
-            if (habbo.getRetainedHandItem() > 0 && habbo.hasPermission("cmd_hand_item")
+            if (habbo.getRetainedHandItem() > 0
+                    && habbo.hasPermission("cmd_hand_item")
                     && !RoomHanditemBlockSupport.isHanditemBlocked(room)) {
                 room.giveHandItem(habbo, habbo.getRetainedHandItem());
             }
@@ -1182,6 +1181,8 @@ public class RoomManager {
             floorItems.clear();
         }
 
+        WiredOpacityBroadcaster.sendCustomColorSnapshot(
+                habbo, room.getId(), room.getWiredRuntime().customColorSnapshot());
         habbo.getClient().sendResponse(new ConfInvisStateComposer(room).compose());
         RoomAreaHideSupport.sendState(room, habbo.getClient());
         habbo.getClient().sendResponse(new HanditemBlockStateComposer(room).compose());
@@ -1239,8 +1240,7 @@ public class RoomManager {
                 }
 
                 if (roomHabbo.getHabboStats().guild != 0 && !guildBadges.containsKey(roomHabbo.getHabboStats().guild)) {
-                    Guild guild =
-                            environment().getGuildManager().getGuild(roomHabbo.getHabboStats().guild);
+                    Guild guild = environment().getGuildManager().getGuild(roomHabbo.getHabboStats().guild);
 
                     if (guild != null) {
                         guildBadges.put(roomHabbo.getHabboStats().guild, guild.getBadge());
@@ -1357,9 +1357,7 @@ public class RoomManager {
         habbo.getClient()
                 .sendResponse(new com.eu.habbo.messages.outgoing.soundboard.SoundboardSettingsComposer(
                                 room.isSoundboardEnabled(),
-                                environment()
-                                        .getSoundboardManager()
-                                        .getSounds())
+                                environment().getSoundboardManager().getSounds())
                         .compose());
 
         // Snapshot packets are complete before room-entry Wired effects can transfer this user.
@@ -1913,5 +1911,7 @@ public class RoomManager {
         }
     }
 
-    private static com.eu.habbo.habbohotel.GameEnvironment environment() { return Emulator.getGameEnvironment(); }
+    private static com.eu.habbo.habbohotel.GameEnvironment environment() {
+        return Emulator.getGameEnvironment();
+    }
 }

@@ -104,6 +104,14 @@ final class CatalogPurchasePageResolver {
                 || page.getLayout() != null && page.getLayout().equalsIgnoreCase(CatalogPageLayouts.club_gift.name())) {
             return null;
         }
+        if (page.getId()
+                == com.eu.habbo.habbohotel.catalog.BuildersBlocksCatalogAccessPage.RECOLORABLE_SOURCE_PAGE_ID) {
+            for (CatalogItem offer : page.getCatalogItems().values()) {
+                if ((offer.getId() == command.itemId() || offer.getOfferId() == command.itemId())
+                        && com.eu.habbo.habbohotel.catalog.BuildersBlocksCatalogAccessPage.isRecolorableOffer(offer))
+                    return null;
+            }
+        }
         return canAccess.test(page) ? page : null;
     }
 

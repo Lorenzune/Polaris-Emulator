@@ -191,6 +191,16 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
         return this.userId;
     }
 
+    private boolean buildersClubItem;
+
+    public boolean isBuildersClubItem() {
+        return buildersClubItem;
+    }
+
+    public void setBuildersClubItem(boolean tracked) {
+        this.buildersClubItem = tracked;
+    }
+
     public int getDatabaseUserId() {
         return this.databaseUserId;
     }

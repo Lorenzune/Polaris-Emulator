@@ -144,6 +144,11 @@ public final class WiredInternalVariableSupport {
             case "@wallitem_offset" -> item.getBaseItem().getType() == FurnitureType.WALL;
             case "@gravity" -> item.getBaseItem().getType() == FurnitureType.FLOOR;
             case "@opacity", "@scaling" -> true;
+            case "~recolorable_furni.color.rgb",
+                    "~recolorable_furni.color.rgb.r",
+                    "~recolorable_furni.color.rgb.g",
+                    "~recolorable_furni.color.rgb.b" ->
+                com.eu.habbo.habbohotel.catalog.BuildersBlocksCatalogAccessPage.isRecolorableBlock(item.getBaseItem());
             case "@is_stackable" -> item.getBaseItem().allowStack();
             case "@can_stand_on" -> item.getBaseItem().allowWalk();
             case "@can_sit_on" -> item.getBaseItem().allowSit();
@@ -349,12 +354,26 @@ public final class WiredInternalVariableSupport {
             case "@gravity" -> room.getWiredRuntime().isGravityEnabled(item) ? 1 : 0;
             case "@opacity" -> room.getWiredRuntime().globalOpacity(item);
             case "@scaling" -> room.getWiredRuntime().globalScaling(item);
+            case "~recolorable_furni.color.rgb",
+                    "~recolorable_furni.color.rgb.r",
+                    "~recolorable_furni.color.rgb.g",
+                    "~recolorable_furni.color.rgb.b" -> {
+                if (!hasFurniValue(item, normalized)) yield null;
+                int rgb = room.getWiredRuntime().buildersBlockColor(item);
+                yield switch (normalized) {
+                    case "~recolorable_furni.color.rgb.r" -> (rgb >>> 16) & 255;
+                    case "~recolorable_furni.color.rgb.g" -> (rgb >>> 8) & 255;
+                    case "~recolorable_furni.color.rgb.b" -> rgb & 255;
+                    default -> rgb;
+                };
+            }
             default -> null;
         };
     }
 
     public static boolean writeFurniValue(Room room, HabboItem item, String key, int value) {
-        Integer previous = room != null && item != null && hasFurniValue(item, key) ? readFurniValue(room, item, key) : null;
+        Integer previous =
+                room != null && item != null && hasFurniValue(item, key) ? readFurniValue(room, item, key) : null;
         boolean result = writeFurniValueImpl(room, item, key, value);
         if (result && room != null && item != null && room.getWiredRuntime() != null)
             room.getWiredRuntime()
@@ -382,6 +401,9 @@ public final class WiredInternalVariableSupport {
         }
         if ("@scaling".equals(normalized)) {
             return room.getWiredRuntime().setGlobalScaling(room, item, value);
+        }
+        if (com.eu.habbo.habbohotel.rooms.BuildersClubPalette.isKey(normalized)) {
+            return com.eu.habbo.habbohotel.rooms.BuildersClubPalette.write(room, item, normalized, value);
         }
 
         if (item.getBaseItem() == null || item.getBaseItem().getType() != FurnitureType.FLOOR) {

@@ -26,6 +26,8 @@ public final class RoomWiredRuntime {
     }
 
     private final AtomicLong cacheGeneration = new AtomicLong();
+    private long blockColorWindow;
+    private int blockColorsInWindow;
     private final WiredGravityService gravity;
     private final WiredOpacityService opacity;
     private final RoomOpacityPersistence visualStatePersistence;
@@ -111,6 +113,31 @@ public final class RoomWiredRuntime {
 
     public List<WiredOpacityState> opacitySnapshot(int userId) {
         return this.opacity.snapshot(userId);
+    }
+
+    /** Modern block RGB shared by the palette and Octane's color variables. */
+    public int buildersBlockColor(HabboItem item) {
+        return BuildersClubRecolorService.colorValue(
+                item == null ? null : this.opacity.globalCustomColor(item.getId()));
+    }
+
+    /** Room-owned admission bound; persistence uses the existing asynchronous visual-state queue. */
+    public synchronized boolean writeBuildersBlockColor(HabboItem item, String key, int value) {
+        if (!BuildersClubPalette.hasColor(item)
+                || !BuildersClubPalette.validValue(key, value)
+                || !item.isBuildersClubItem()
+                || this.room.getHabboItem(item.getId()) != item) return false;
+        long now = System.nanoTime();
+        if (blockColorWindow == 0L || now - blockColorWindow >= 1_000_000_000L) {
+            blockColorWindow = now;
+            blockColorsInWindow = 0;
+        }
+        if (blockColorsInWindow >= 100) return false;
+        blockColorsInWindow++;
+        int rgb = BuildersClubPalette.withComponent(buildersBlockColor(item), key, value);
+        return !setGlobalCustomColorForItems(
+                        this.room, List.of(item), BuildersClubRecolorService.colorConfiguration(rgb))
+                .isEmpty();
     }
 
     /** Room-wide opacity for one item, ignoring per-user overlays. Used by the {@code @opacity} variable. */
@@ -263,6 +290,34 @@ public final class RoomWiredRuntime {
 
     public List<WiredOpacityState> customColorSnapshot() {
         return this.opacity.customColorSnapshot();
+    }
+
+    /** Additive BC palette path; existing WIRED mutations retain their established behavior. */
+    public boolean setBuildersBlockColor(Collection<HabboItem> items, String customColor) throws SQLException {
+        String normalized = WiredFurnitureCustomColor.normalize(customColor);
+        Set<Integer> ids = items.stream().map(HabboItem::getId).collect(java.util.stream.Collectors.toSet());
+        List<WiredOpacityState> applied;
+        synchronized (this.opacity) {
+            var previous = this.opacity.createSnapshot(ids);
+            applied = this.opacity.applyGlobalCustomColor(items, normalized);
+            if (applied.size() != ids.size()) {
+                this.opacity.restoreSnapshot(previous, ids);
+                return false;
+            }
+            try {
+                this.visualStatePersistence.saveBuildersBlockColors(
+                        applied,
+                        items.stream()
+                                .collect(java.util.stream.Collectors.toMap(
+                                        HabboItem::getId,
+                                        item -> item.getBaseItem().getId())));
+            } catch (SQLException | RuntimeException failure) {
+                this.opacity.restoreSnapshot(previous, ids);
+                throw failure;
+            }
+        }
+        WiredFurniCustomColorBroadcaster.broadcast(this.room, applied);
+        return true;
     }
 
     void forgetOpacity(HabboItem item) {

@@ -120,6 +120,13 @@ final class WiredInternalVariableRegistry {
                 "@wallitem_offset",
                 "@dimensions.x",
                 "@dimensions.y");
+        builder.registerWhen(
+                ALWAYS_ENABLED,
+                EnumSet.of(Capability.FURNI_REFERENCE, Capability.FURNI_DESTINATION),
+                "~recolorable_furni.color.rgb",
+                "~recolorable_furni.color.rgb.r",
+                "~recolorable_furni.color.rgb.g",
+                "~recolorable_furni.color.rgb.b");
         builder.register(
                 Capability.FURNI_DESTINATION, "@state", "@position_x", "@position_y", "@rotation", "@altitude");
         builder.registerWhen(

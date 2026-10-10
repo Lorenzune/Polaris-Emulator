@@ -10,8 +10,6 @@ import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionDefault;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
-import com.eu.habbo.messages.outgoing.rooms.items.AddFloorItemComposer;
-import com.eu.habbo.messages.outgoing.rooms.items.RemoveFloorItemComposer;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -88,82 +86,87 @@ public final class BuildersClubRecolorService {
 
         if (clicked.isLimited()) return Result.NOT_RECOLORABLE;
 
-        String family = familyOf(clicked.getBaseItem().getName());
-        if (family == null) {
+        if (!com.eu.habbo.habbohotel.catalog.BuildersBlocksCatalogAccessPage.isRecolorableBlock(
+                clicked.getBaseItem())) {
             return Result.NOT_RECOLORABLE;
         }
-        if (colorIndex < 0 || clicked.getBaseItem().getName().equalsIgnoreCase(family + "*" + colorIndex)) {
-            return Result.NO_SUCH_COLOR;
-        }
-
+        if (colorIndex < 0 || colorIndex > 0xffffff) return Result.NO_SUCH_COLOR;
         GameEnvironment environment = WiredPlatform.gameEnvironment();
         Database database = WiredPlatform.database();
-        if (environment == null || database == null) {
-            return Result.NOT_FOUND;
-        }
-
-        Item target = environment.getItemManager().getItem(family + "*" + colorIndex);
-        if (!interchangeable(clicked.getBaseItem(), target)
-                || !targetAllowedInCatalog(
-                        environment.getCatalogManager(),
-                        target.getId(),
-                        habbo.getHabboInfo().getRank().getId())) {
-            return Result.NO_SUCH_COLOR;
-        }
-
+        if (environment == null || database == null) return Result.NOT_FOUND;
+        if (!targetAllowedInCatalog(
+                environment.getCatalogManager(),
+                clicked.getBaseItem().getId(),
+                habbo.getHabboInfo().getRank().getId())) return Result.NO_SUCH_COLOR;
         try (Connection connection = database.getDataSource().getConnection()) {
-            if (!offeredInBuildersClub(connection, target.getId())) {
-                return Result.NO_SUCH_COLOR;
-            }
-
-            Set<Integer> buildersClubItems = buildersClubItemsIn(connection, room.getId());
-            if (!buildersClubItems.contains(clicked.getId())) {
-                return Result.NOT_BUILDERS_CLUB;
-            }
-
+            Set<Integer> tracked = buildersClubItemsIn(connection, room.getId());
+            if (!tracked.contains(clicked.getId())) return Result.NOT_BUILDERS_CLUB;
             List<HabboItem> items = new ArrayList<>();
             if (scope == SCOPE_SAME_IN_ROOM) {
-                int sourceBaseId = clicked.getBaseItem().getId();
                 for (HabboItem item : room.getFloorItems()) {
                     if (item != null
                             && item.getBaseItem() != null
-                            && item.getBaseItem().getId() == sourceBaseId
+                            && item.getBaseItem().getId()
+                                    == clicked.getBaseItem().getId()
                             && !item.isLimited()
-                            && buildersClubItems.contains(item.getId())) {
+                            && tracked.contains(item.getId())) {
                         if (items.size() >= MAX_ITEMS_PER_REQUEST) return Result.LIMIT_EXCEEDED;
                         items.add(item);
                     }
                 }
-            } else {
-                items.add(clicked);
-            }
-
-            List<HabboItem> stored = store(connection, items, target.getId(), room.getId());
-            charge(userId, room.getId(), now, stored.size());
-            for (HabboItem item : stored) {
-                if (room.getHabboItem(item.getId()) != item) {
-                    continue;
-                }
-                item.setBaseItem(target);
-                room.sendComposer(new RemoveFloorItemComposer(item, true).compose());
-                room.sendComposer(new AddFloorItemComposer(item, room.getFurniOwnerName(item.getUserId())).compose());
-            }
+            } else items.add(clicked);
+            // Release the lookup connection before the runtime opens its transaction.
+            connection.close();
+            if (!room.getWiredRuntime().setBuildersBlockColor(items, colorConfiguration(colorIndex)))
+                return Result.LIMIT_EXCEEDED;
+            charge(userId, room.getId(), now, items.size());
             return Result.DONE;
-        } catch (SQLException e) {
-            LOGGER.error("Could not recolor Builders Club furni {} in room {}", itemId, room.getId(), e);
+        } catch (SQLException failure) {
+            LOGGER.error("Could not recolor Builders Club furni {} in room {}", itemId, room.getId(), failure);
             return Result.NOT_FOUND;
         }
     }
 
+    public static int colorValue(String configuration) {
+        if (configuration == null || configuration.isEmpty()) return 0xffffff;
+        var layer = com.google.gson.JsonParser.parseString(configuration)
+                .getAsJsonObject()
+                .getAsJsonObject("layers")
+                .getAsJsonObject("0");
+        if (layer == null || !"solid".equals(layer.get("mode").getAsString())) return 0xffffff;
+        return Integer.parseInt(layer.get("color").getAsString().substring(1), 16);
+    }
+
+    public static String colorConfiguration(int rgb) {
+        if (rgb < 0 || rgb > 0xffffff) throw new IllegalArgumentException("Invalid block RGB color");
+        if (rgb == 0xffffff) return null;
+        String hex = String.format(java.util.Locale.ROOT, "#%06x", rgb);
+        var layers = new com.google.gson.JsonObject();
+        for (int i = 0; i < WiredFurnitureCustomColor.MAXIMUM_LAYERS; i++) {
+            var layer = new com.google.gson.JsonObject();
+            layer.addProperty("mode", "solid");
+            layer.addProperty("color", hex);
+            layers.add(Integer.toString(i), layer);
+        }
+        var config = new com.google.gson.JsonObject();
+        config.addProperty("v", 1);
+        config.add("layers", layers);
+        return WiredFurnitureCustomColor.normalize(config.toString());
+    }
+
     static boolean targetAllowedInCatalog(CatalogManager manager, int baseItemId, int rankId) {
-        var pages = manager.getCatalogPagesMap(CatalogPageType.BUILDER);
+        var pages = manager.getCatalogPagesMap(CatalogPageType.NORMAL);
         synchronized (pages) {
             for (var page : pages.values()) {
-                if (!page.isEnabled() || !page.isVisible() || page.getRank() > rankId) continue;
+                if (!(page instanceof com.eu.habbo.habbohotel.catalog.BuildersBlocksCatalogAccessPage)
+                        || !page.isEnabled()
+                        || !page.isVisible()
+                        || page.getRank() > rankId) continue;
                 var offers = page.getCatalogItems();
                 synchronized (offers) {
                     for (var offer : offers.values()) {
-                        if (offer.getAmount() != 1 || offer.getBaseItems().size() != 1) continue;
+                        if (!com.eu.habbo.habbohotel.catalog.BuildersBlocksCatalogAccessPage.isRecolorableOffer(offer))
+                            continue;
                         for (Item item : offer.getBaseItems()) if (item.getId() == baseItemId) return true;
                     }
                 }

@@ -25,7 +25,11 @@ class WiredInternalVariableRegistryCompatibilityTest {
                         "@altitude",
                         "@gravity",
                         "@opacity",
-                        "@scaling"),
+                        "@scaling",
+                        "~recolorable_furni.color.rgb",
+                        "~recolorable_furni.color.rgb.r",
+                        "~recolorable_furni.color.rgb.g",
+                        "~recolorable_furni.color.rgb.b"),
                 keys(WiredInternalVariableRegistry.Capability.FURNI_DESTINATION));
         assertEquals(
                 Set.of(
@@ -87,7 +91,11 @@ class WiredInternalVariableRegistryCompatibilityTest {
                         "@dimensions.y",
                         "@gravity",
                         "@opacity",
-                        "@scaling"),
+                        "@scaling",
+                        "~recolorable_furni.color.rgb",
+                        "~recolorable_furni.color.rgb.r",
+                        "~recolorable_furni.color.rgb.g",
+                        "~recolorable_furni.color.rgb.b"),
                 keys(WiredInternalVariableRegistry.Capability.FURNI_REFERENCE));
         assertEquals(
                 Set.of(

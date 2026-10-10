@@ -8,14 +8,20 @@ import com.eu.habbo.messages.outgoing.rooms.WiredFurniOpacityComposer;
 public class WiredFeatureCapabilitiesEvent extends MessageHandler {
     @Override
     public void handle() throws Exception {
-        Room room = currentRoom();
-        if (room == null || this.packet.bytesAvailable() < 8) {
+        if (this.client == null || this.client.getHabbo() == null || this.packet.bytesAvailable() < 8) {
             return;
         }
 
         int protocolVersion = this.packet.readInt();
         int capabilities = this.packet.readInt();
         this.client.setWiredFeatureCapabilities(protocolVersion, capabilities);
+
+        // The room engine can initialize before the server commits room entry.
+        // Capabilities belong to the connection and must survive that interval.
+        Room room = currentRoom();
+        if (room == null) {
+            return;
+        }
 
         int opacityProtocolVersion = WiredOpacityBroadcaster.opacityProtocolVersion(this.client.getHabbo());
         if (opacityProtocolVersion > 0) {

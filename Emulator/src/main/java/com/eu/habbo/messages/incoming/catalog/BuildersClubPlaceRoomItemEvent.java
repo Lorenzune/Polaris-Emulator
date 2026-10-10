@@ -75,6 +75,14 @@ public class BuildersClubPlaceRoomItemEvent extends MessageHandler {
             return;
         }
 
+        Integer blockColor = null;
+        if (extraData != null && extraData.startsWith("blockcolor:")) {
+            if (!com.eu.habbo.habbohotel.catalog.BuildersBlocksCatalogAccessPage.isRecolorableBlock(baseItem)
+                    || !extraData.matches("blockcolor:#[0-9a-fA-F]{6}")) return;
+            blockColor = Integer.parseInt(extraData.substring(12), 16);
+            extraData = "";
+        }
+
         RoomTile tile = room.getLayout().getTile(x, y);
 
         if (tile == null) {
@@ -119,6 +127,31 @@ public class BuildersClubPlaceRoomItemEvent extends MessageHandler {
         }
 
         BuildersClubRoomSupport.trackPlacedItem(item.getId(), placementUserId, room.getId());
+        item.setBuildersClubItem(BuildersClubRoomSupport.isTrackedItem(item.getId()));
+
+        if (blockColor != null) {
+            synchronized (room) {
+                try {
+                    if (!room.getWiredRuntime()
+                            .setBuildersBlockColor(
+                                    java.util.List.of(item),
+                                    com.eu.habbo.habbohotel.rooms.BuildersClubRecolorService.colorConfiguration(
+                                            blockColor))) {
+                        this.client.getHabbo().whisper("Blocco posato: limite colori della stanza raggiunto.");
+                    }
+                } catch (java.sql.SQLException failure) {
+                    org.slf4j.LoggerFactory.getLogger(BuildersClubPlaceRoomItemEvent.class)
+                            .error(
+                                    "Could not save initial block color for item {} in room {}",
+                                    item.getId(),
+                                    room.getId(),
+                                    failure);
+                    this.client
+                            .getHabbo()
+                            .whisper("Blocco posato, ma il colore non è stato salvato. Riprova con Cambia colore.");
+                }
+            }
+        }
 
         if (BuildersClubRoomSupport.syncRoom(room) == BuildersClubRoomSupport.SyncResult.LOCKED) {
             BuildersClubRoomSupport.sendRoomLockedBubble(room.getOwnerId());
@@ -131,7 +164,7 @@ public class BuildersClubPlaceRoomItemEvent extends MessageHandler {
         var manager = Emulator.getGameEnvironment().getCatalogManager();
         CatalogPage normalPage = manager.getCatalogPage(pageId, CatalogPageType.NORMAL);
         if (normalPage instanceof com.eu.habbo.habbohotel.catalog.BuildersBlocksCatalogAccessPage access) {
-            CatalogPage source = manager.getCatalogPage(access.getSourcePageId(), CatalogPageType.BUILDER);
+            CatalogPage source = manager.getCatalogPage(access.getSourcePageId(), access.getSourcePageType());
             if (!access.isEnabled()
                     || !access.isVisible()
                     || source == null
@@ -139,8 +172,22 @@ public class BuildersClubPlaceRoomItemEvent extends MessageHandler {
                     || !source.isVisible()
                     || source.getRank()
                             > this.client.getHabbo().getHabboInfo().getRank().getId()) return null;
-            for (CatalogItem item : source.getCatalogItems().values()) {
+            for (CatalogItem item : access.getCatalogItems().values()) {
                 if (item.getOfferId() == offerId || item.getId() == offerId) return item;
+            }
+            return null;
+        }
+        if (normalPage != null
+                && normalPage.getId()
+                        == com.eu.habbo.habbohotel.catalog.BuildersBlocksCatalogAccessPage.RECOLORABLE_SOURCE_PAGE_ID) {
+            if (!normalPage.isEnabled()
+                    || !normalPage.isVisible()
+                    || normalPage.getRank()
+                            > this.client.getHabbo().getHabboInfo().getRank().getId()) return null;
+            for (CatalogItem item : normalPage.getCatalogItems().values()) {
+                if ((item.getOfferId() == offerId || item.getId() == offerId)
+                        && com.eu.habbo.habbohotel.catalog.BuildersBlocksCatalogAccessPage.isRecolorableOffer(item))
+                    return item;
             }
             return null;
         }

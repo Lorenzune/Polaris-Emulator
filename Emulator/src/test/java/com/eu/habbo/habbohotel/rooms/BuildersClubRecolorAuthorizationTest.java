@@ -26,14 +26,14 @@ class BuildersClubRecolorAuthorizationTest {
     @Test
     void hiddenDisabledOrStaffVariantsAreNotRecolorTargets() {
         var manager = mock(CatalogManager.class);
-        var page = mock(CatalogPage.class);
+        var page = mock(com.eu.habbo.habbohotel.catalog.BuildersBlocksCatalogAccessPage.class);
         var offer = mock(CatalogItem.class);
         var item = mock(Item.class);
         var pages = new Int2ObjectOpenHashMap<CatalogPage>();
         var offers = new Int2ObjectOpenHashMap<CatalogItem>();
         pages.put(1, page);
         offers.put(72, offer);
-        when(manager.getCatalogPagesMap(CatalogPageType.BUILDER)).thenReturn(pages);
+        when(manager.getCatalogPagesMap(CatalogPageType.NORMAL)).thenReturn(pages);
         when(page.getCatalogItems()).thenReturn(offers);
         when(page.getRank()).thenReturn(1);
         when(page.isVisible()).thenReturn(true);
@@ -41,6 +41,11 @@ class BuildersClubRecolorAuthorizationTest {
         when(offer.getAmount()).thenReturn(1);
         when(offer.getBaseItems()).thenReturn(Set.of(item));
         when(item.getId()).thenReturn(123);
+        when(item.getName()).thenReturn("bc_cone_recolorable");
+        when(item.getType()).thenReturn(FurnitureType.FLOOR);
+        var interaction = new com.eu.habbo.habbohotel.items.ItemInteraction(
+                "default", com.eu.habbo.habbohotel.items.interactions.InteractionDefault.class);
+        when(item.getInteractionType()).thenReturn(interaction);
         assertTrue(BuildersClubRecolorService.targetAllowedInCatalog(manager, 123, 1));
         when(page.getRank()).thenReturn(3);
         assertFalse(BuildersClubRecolorService.targetAllowedInCatalog(manager, 123, 1));

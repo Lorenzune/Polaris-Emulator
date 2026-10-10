@@ -52,6 +52,7 @@ final class RoomItemOwnershipService {
         if (item == null) {
             return;
         }
+        item.setBuildersClubItem(trackedBuildersClub);
 
         synchronized (this.index.items()) {
             try {
