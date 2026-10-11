@@ -142,11 +142,12 @@ conservando separatamente il tempo guadagnato prima della loro introduzione.
 I dati originali vengono letti senza bloccare le righe dopo aver acquisito
 il blocco dell'utente in una nuova transazione: gli eventi concorrenti non
 possono confermare modifiche parziali durante il ricalcolo. Nessun inventario
-in memoria viene usato come fonte autorevole. I test riproducono il salto
-errato al 30 e verificano correzione al 3, mantenimento dei livelli legittimi,
-premi differiti, riparazione delle proiezioni dopo eventi offline e assenza di
-ricontrolli periodici. Anche gli eventi di ospitalità rileggono tutte le
-categorie e riparano eventuali discrepanze nei contatori delle collezioni.
+in memoria viene usato come fonte autorevole. I test di dominio verificano
+le soglie, il mantenimento del massimo legittimo e la progressione Pantheon;
+non costituiscono una verifica end-to-end dei premi differiti o della
+riconciliazione degli eventi offline. Anche gli eventi di ospitalità rileggono
+tutte le categorie e riparano eventuali discrepanze nei contatori delle
+collezioni.
 
 ## Progressi dei singoli traguardi e barra toolbar
 
