@@ -7,7 +7,6 @@ import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectGiveReward;
-import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectTriggerStacks;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraExecutionLimit;
 import com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboClicksUser;
 import com.eu.habbo.habbohotel.rooms.Room;
@@ -370,8 +369,11 @@ public final class WiredManager {
 
             if (nextDepth == 1) {
                 var queued = DEFERRED_EFFECT_EVENTS.get();
-                if (visualUpdateScope == null && queued != null && queued.stream().anyMatch(
-                        publication -> publication.event != null && shouldBatchVisualUpdatesForDeferred(publication.event))) {
+                if (visualUpdateScope == null
+                        && queued != null
+                        && queued.stream()
+                                .anyMatch(publication -> publication.event != null
+                                        && shouldBatchVisualUpdatesForDeferred(publication.event))) {
                     visualUpdateScope = WiredRoomUpdateScope.batchVisualUpdates();
                 }
                 handled = drainDeferredEvents(event.getRoom()) || handled;
@@ -418,45 +420,63 @@ public final class WiredManager {
             }
             boolean signalPending = queue.peekFirst().event != null
                     && queue.peekFirst().event.getType() == WiredEvent.Type.SIGNAL_RECEIVED;
-            long pacingDelay = signalPending ? owner.signalExecutionDelay(queue.peekFirst().event.getRoom()) : 0L;
+            long pacingDelay = signalPending
+                    ? owner.signalExecutionDelay(queue.peekFirst().event.getRoom())
+                    : 0L;
             if (!Boolean.TRUE.equals(INLINE_SIGNAL_CONTINUATION.get())
                     && (pacingDelay > 0 || (budget != null && budget.shouldYield()))) {
                 var retainedQueue = queue;
-                owner.scheduleSignalContinuation(room,
+                owner.scheduleSignalContinuation(
+                        room,
                         () -> resumeSignalChain(owner, room, lifecycle, retainedQueue, budget, false),
-                        () -> resumeSignalChain(owner, room, lifecycle, retainedQueue, budget, true), pacingDelay);
+                        () -> resumeSignalChain(owner, room, lifecycle, retainedQueue, budget, true),
+                        pacingDelay);
                 return handled;
             }
             var first = queue.pollFirst();
-            if (first == null || !first.valid() || RoomWiredDisableSupport.isWiredDisabled(first.event.getRoom())) continue;
+            if (first == null || !first.valid() || RoomWiredDisableSupport.isWiredDisabled(first.event.getRoom()))
+                continue;
             int processed = 1;
             try (var paced = WiredSignalExecutionScope.begin()) {
-              if (first.event.getType() == WiredEvent.Type.SIGNAL_RECEIVED && first.event.isSignalPayloadExplicit()) {
-                var wave = new java.util.ArrayList<DeferredEffectEvent>();
-                wave.add(first);
-                while (!queue.isEmpty() && queue.peekFirst().event != null
-                        && queue.peekFirst().event.getRoom() == room
-                        && queue.peekFirst().event.getType() == WiredEvent.Type.SIGNAL_RECEIVED
-                        && queue.peekFirst().event.isSignalPayloadExplicit()) wave.add(queue.pollFirst());
-                processed = wave.size();
-                handled = owner.executeSignalWave(() -> {
-                    boolean matched = false;
-                    for (var signal : wave) {
-                        if (!signal.valid() || RoomWiredDisableSupport.isWiredDisabled(signal.event.getRoom())) continue;
-                        try { matched = owner.handleEvent(signal.event, signal.negateConditions) || matched; }
-                        catch (RuntimeException failure) { LOGGER.error("WIRED signal delivery failed in room {} on antenna {}",
-                                signal.event.getRoom().getId(), signal.event.getSignalChannel(), failure); }
-                    }
-                    return matched;
-                }) || handled;
-            } else {
-                handled = owner.handleEvent(first.event, first.negateConditions) || handled;
-              }
+                if (first.event.getType() == WiredEvent.Type.SIGNAL_RECEIVED && first.event.isSignalPayloadExplicit()) {
+                    var wave = new java.util.ArrayList<DeferredEffectEvent>();
+                    wave.add(first);
+                    while (!queue.isEmpty()
+                            && queue.peekFirst().event != null
+                            && queue.peekFirst().event.getRoom() == room
+                            && queue.peekFirst().event.getType() == WiredEvent.Type.SIGNAL_RECEIVED
+                            && queue.peekFirst().event.isSignalPayloadExplicit()) wave.add(queue.pollFirst());
+                    processed = wave.size();
+                    handled = owner.executeSignalWave(() -> {
+                                boolean matched = false;
+                                for (var signal : wave) {
+                                    if (!signal.valid()
+                                            || RoomWiredDisableSupport.isWiredDisabled(signal.event.getRoom()))
+                                        continue;
+                                    try {
+                                        matched = owner.handleEvent(signal.event, signal.negateConditions) || matched;
+                                    } catch (RuntimeException failure) {
+                                        LOGGER.error(
+                                                "WIRED signal delivery failed in room {} on antenna {}",
+                                                signal.event.getRoom().getId(),
+                                                signal.event.getSignalChannel(),
+                                                failure);
+                                    }
+                                }
+                                return matched;
+                            })
+                            || handled;
+                } else {
+                    handled = owner.handleEvent(first.event, first.negateConditions) || handled;
+                }
             } catch (RuntimeException failure) {
                 // An invalid receiver must not abort unrelated accepted deliveries.
                 // Do not retry partially executed effects, which could duplicate changes.
-                LOGGER.error("WIRED queued delivery failed in room {} for {}",
-                        first.event.getRoom().getId(), first.event.getType(), failure);
+                LOGGER.error(
+                        "WIRED queued delivery failed in room {} for {}",
+                        first.event.getRoom().getId(),
+                        first.event.getType(),
+                        failure);
             } finally {
                 if (budget != null) budget.processed(processed);
             }
@@ -464,8 +484,13 @@ public final class WiredManager {
         return handled;
     }
 
-    private static void resumeSignalChain(WiredEngine owner, Room room, long lifecycle,
-            ArrayDeque<DeferredEffectEvent> queue, WiredSignalChainBudget budget, boolean inline) {
+    private static void resumeSignalChain(
+            WiredEngine owner,
+            Room room,
+            long lifecycle,
+            ArrayDeque<DeferredEffectEvent> queue,
+            WiredSignalChainBudget budget,
+            boolean inline) {
         if (engine != owner || !room.isLoaded() || room.getLifecycleGeneration() != lifecycle) return;
         Integer previousDepth = EVENT_HANDLING_DEPTH.get();
         var previousQueue = DEFERRED_EFFECT_EVENTS.get();
@@ -491,7 +516,8 @@ public final class WiredManager {
     }
 
     private static <T> void restoreThreadLocal(ThreadLocal<T> local, T value) {
-        if (value == null) local.remove(); else local.set(value);
+        if (value == null) local.remove();
+        else local.set(value);
     }
 
     static void runDelayedSignalWave(Room room, List<Runnable> tasks) {
@@ -517,8 +543,9 @@ public final class WiredManager {
 
     private static void runSignalFrameTasks(Room room, List<Runnable> tasks) {
         for (Runnable task : tasks) {
-            try { task.run(); }
-            catch (RuntimeException failure) {
+            try {
+                task.run();
+            } catch (RuntimeException failure) {
                 LOGGER.error("WIRED delayed signal publication failed in room {}", room.getId(), failure);
             }
         }
@@ -582,14 +609,16 @@ public final class WiredManager {
     }
 
     private static WiredSignalChainBudget newSignalChainBudget() {
-        int legacyEvents = Emulator.getConfig().getInt("wired.signal.max.events.per.chain", DEFAULT_MAX_SIGNAL_EVENTS_PER_CHAIN);
+        int legacyEvents =
+                Emulator.getConfig().getInt("wired.signal.max.events.per.chain", DEFAULT_MAX_SIGNAL_EVENTS_PER_CHAIN);
         int legacyMs = Emulator.getConfig().getInt("wired.signal.max.chain.ms", DEFAULT_MAX_SIGNAL_CHAIN_DURATION_MS);
         int sliceEvents = Emulator.getConfig().getInt("wired.signal.slice.events", 256);
         int sliceMs = Emulator.getConfig().getInt("wired.signal.slice.ms", 8);
         return new WiredSignalChainBudget(
                 legacyEvents > 0 ? Math.min(Math.max(1, sliceEvents), legacyEvents) : Math.max(1, sliceEvents),
                 legacyMs > 0 ? Math.min(Math.max(1, sliceMs), legacyMs) : Math.max(1, sliceMs),
-                Emulator.getConfig().getInt("wired.signal.max.total.events.per.chain", 100_000), System::nanoTime);
+                Emulator.getConfig().getInt("wired.signal.max.total.events.per.chain", 100_000),
+                System::nanoTime);
     }
 
     private static void reportSignalChainLimit(Room room, WiredSignalChainBudget budget) {
@@ -1285,9 +1314,7 @@ public final class WiredManager {
     }
 
     public static boolean isTriggerExecutionAllowed(Room room, HabboItem triggerItem, long timestamp) {
-        WiredExtraExecutionLimit executionLimit = getExecutionLimitExtra(room, triggerItem);
-
-        return executionLimit == null || executionLimit.canExecuteAt(timestamp);
+        return WiredExecutionLimitSupport.forStack(room, triggerItem).canExecuteAt(timestamp);
     }
 
     public static WiredExtraExecutionLimit getExecutionLimitExtra(Room room, HabboItem triggerItem) {
@@ -1346,7 +1373,10 @@ public final class WiredManager {
     }
 
     public static boolean executeEffectsAtTiles(
-            Collection<RoomTile> tiles, final RoomUnit roomUnit, final Room room, final int callStackDepth,
+            Collection<RoomTile> tiles,
+            final RoomUnit roomUnit,
+            final Room room,
+            final int callStackDepth,
             WiredContext parent) {
         if (tiles == null || tiles.isEmpty() || room == null || engine == null || stackIndex == null) {
             return false;
@@ -1356,11 +1386,13 @@ public final class WiredManager {
             List<InteractionWiredEffect> effects = room.getItemsAt(tile).stream()
                     .filter(item -> item instanceof InteractionWiredEffect)
                     .map(item -> (InteractionWiredEffect) item)
-                    .sorted(java.util.Comparator.comparingDouble(HabboItem::getZ).thenComparingInt(HabboItem::getId))
+                    .sorted(java.util.Comparator.comparingDouble(HabboItem::getZ)
+                            .thenComparingInt(HabboItem::getId))
                     .toList();
             if (effects.isEmpty()) continue;
             WiredEvent.Builder builder = parent != null
-                    ? parent.event().toBuilder().contextVariableScope(parent.contextVariables().copy())
+                    ? parent.event().toBuilder()
+                            .contextVariableScope(parent.contextVariables().copy())
                     : WiredEvent.builder(WiredEvent.Type.CUSTOM, room);
             WiredEvent event = builder.actor(roomUnit)
                     .callStackDepth(callStackDepth)
