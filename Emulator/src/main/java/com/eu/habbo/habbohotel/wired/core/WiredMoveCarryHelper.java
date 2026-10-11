@@ -507,19 +507,22 @@ public final class WiredMoveCarryHelper {
             List<WiredMovementsComposer.MovementData> collectedMovements = COLLECTED_MOVEMENTS.get();
 
             if (collectedMovements != null) {
-                WiredMovementCollection.addFurniture(collectedMovements, movingItem.getId(), WiredMovementsComposer.furniMovement(
+                WiredMovementCollection.addFurniture(
+                        collectedMovements,
                         movingItem.getId(),
-                        oldLocation.x,
-                        oldLocation.y,
-                        targetTile.x,
-                        targetTile.y,
-                        oldZ,
-                        movingItem.getZ(),
-                        movingItem.getRotation(),
-                        animationDuration,
-                        animationElapsed,
-                        anchorType,
-                        anchorId));
+                        WiredMovementsComposer.furniMovement(
+                                movingItem.getId(),
+                                oldLocation.x,
+                                oldLocation.y,
+                                targetTile.x,
+                                targetTile.y,
+                                oldZ,
+                                movingItem.getZ(),
+                                movingItem.getRotation(),
+                                animationDuration,
+                                animationElapsed,
+                                anchorType,
+                                anchorId));
             } else if (animationDuration != WiredMovementsComposer.DEFAULT_DURATION
                     || animationElapsed != 0
                     || anchorType != WiredMovementsComposer.FURNI_ANCHOR_NONE

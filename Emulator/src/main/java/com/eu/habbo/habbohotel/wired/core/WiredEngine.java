@@ -207,7 +207,10 @@ public final class WiredEngine {
                 this::debug,
                 WiredStructuredDiagnostics.production());
         this.eventDispatcher = new WiredEventDispatcher(
-                this.executionGuard, this.stackRepository, this.stackExecutor::executeEvent, this::debug,
+                this.executionGuard,
+                this.stackRepository,
+                this.stackExecutor::executeEvent,
+                this::debug,
                 this.stackExecutor::executeSignalBatch);
         this.unseenIndices = new ConcurrentHashMap<>();
         this.filteredSelectorAnimationTokens = new ConcurrentHashMap<>();
@@ -230,22 +233,34 @@ public final class WiredEngine {
     /** Call Stacks bypasses triggers/conditions, but retains selectors and effect delays. */
     void executeCalledEffects(HabboItem anchor, List<IWiredEffect> effects, WiredEvent event) {
         if (effects.isEmpty()) return;
-        Collection<InteractionWiredExtra> extras = anchor != null && event.getRoom().getRoomSpecialTypes() != null
-                ? event.getRoom().getRoomSpecialTypes().getExtras(anchor.getX(), anchor.getY()) : List.of();
+        Collection<InteractionWiredExtra> extras =
+                anchor != null && event.getRoom().getRoomSpecialTypes() != null
+                        ? event.getRoom().getRoomSpecialTypes().getExtras(anchor.getX(), anchor.getY())
+                        : List.of();
         if (extras == null) extras = List.of();
-        WiredStack stack = new WiredStack(anchor, null, List.of(), effects, 0, 1,
+        WiredStack stack = new WiredStack(
+                anchor,
+                null,
+                List.of(),
+                effects,
+                0,
+                1,
                 extras.stream().anyMatch(extra -> extra instanceof WiredExtraRandom),
                 extras.stream().anyMatch(extra -> extra instanceof WiredExtraUnseen),
-                extras.stream().anyMatch(extra -> extra instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraExecuteInOrder));
-        WiredContext context = new WiredContext(
-                event, anchor, stack, this.services, new WiredState(this.maxStepsPerStack), null);
+                extras.stream()
+                        .anyMatch(extra -> extra
+                                instanceof
+                                com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraExecuteInOrder));
+        WiredContext context =
+                new WiredContext(event, anchor, stack, this.services, new WiredState(this.maxStepsPerStack), null);
         long currentTime = System.currentTimeMillis();
         List<InteractionWiredEffect> selectors = executeSelectors(stack, context);
         applySelectionFilterExtras(stack, context, selectors);
         finalizeSelectors(selectors, context, currentTime);
         // Preserve unconditional calls: an empty selector must not suppress a
         // sibling effect with an explicit furniture selection.
-        executeEffects(stack, effects.stream().filter(effect -> !effect.isSelector()).toList(), context, currentTime);
+        executeEffects(
+                stack, effects.stream().filter(effect -> !effect.isSelector()).toList(), context, currentTime);
     }
 
     /**
@@ -268,7 +283,9 @@ public final class WiredEngine {
         return this.stackExecutor.executeSignalWave(admission);
     }
 
-    long signalExecutionDelay(Room room) { return this.executionGuard.signalExecutionDelay(room.getId()); }
+    long signalExecutionDelay(Room room) {
+        return this.executionGuard.signalExecutionDelay(room.getId());
+    }
 
     void scheduleSignalContinuation(Room room, Runnable work, Runnable inlineFallback, long delayMs) {
         this.signalContinuations.schedule(room, work, inlineFallback, delayMs);
@@ -483,7 +500,7 @@ public final class WiredEngine {
 
         try (var userMovements = WiredUserMovementBatch.begin(ctx.room());
                 WiredInternalVariableSupport.UserMoveBatchScope ignored =
-                WiredInternalVariableSupport.beginUserMoveBatch();
+                        WiredInternalVariableSupport.beginUserMoveBatch();
                 var stateBatch = WiredFurnitureStateBatch.begin();
                 var destinationSnapshot = WiredFurniDestinationSnapshot.begin(ctx, toExecute, true)) {
             // Execute selected effects
@@ -813,7 +830,7 @@ public final class WiredEngine {
 
         try (var userMovements = WiredUserMovementBatch.begin(room);
                 WiredInternalVariableSupport.UserMoveBatchScope ignored =
-                WiredInternalVariableSupport.beginUserMoveBatch();
+                        WiredInternalVariableSupport.beginUserMoveBatch();
                 var stateBatch = WiredFurnitureStateBatch.begin();
                 var destinationSnapshot = WiredFurniDestinationSnapshot.begin(ctx, batch, true)) {
             for (IWiredEffect effect : batch) {

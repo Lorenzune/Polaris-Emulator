@@ -15,8 +15,8 @@ import com.eu.habbo.habbohotel.wired.api.IWiredEffect;
 import com.eu.habbo.habbohotel.wired.api.WiredStack;
 import com.eu.habbo.plugin.events.furniture.wired.WiredStackExecutedEvent;
 import com.eu.habbo.plugin.events.furniture.wired.WiredStackTriggeredEvent;
-import java.util.Collection;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -64,7 +64,9 @@ final class WiredStackExecutor {
     private final LongSupplier clock;
     private final DiagnosticSink diagnostics;
     private final WiredStructuredDiagnostics structuredDiagnostics;
+
     private record SignalBatch(WiredEvent event, List<Runnable> work) {}
+
     private final ThreadLocal<SignalBatch> signalBatch = new ThreadLocal<>();
 
     /** Admit native receivers against the same state before any receiver changes it. */
@@ -80,10 +82,19 @@ final class WiredStackExecutor {
                 try {
                     work.run();
                 } catch (WiredLimitException exception) {
-                    this.diagnostics.log(event != null ? event.getRoom() : null, "Signal receiver execution stopped (limit): {}", exception.getMessage());
+                    this.diagnostics.log(
+                            event != null ? event.getRoom() : null,
+                            "Signal receiver execution stopped (limit): {}",
+                            exception.getMessage());
                 } catch (RuntimeException exception) {
-                    LOGGER.error("Error executing signal receiver in room {}", event != null ? event.getRoom().getId() : 0, exception);
-                    this.diagnostics.log(event != null ? event.getRoom() : null, "Signal receiver execution failed: {}", exception.toString());
+                    LOGGER.error(
+                            "Error executing signal receiver in room {}",
+                            event != null ? event.getRoom().getId() : 0,
+                            exception);
+                    this.diagnostics.log(
+                            event != null ? event.getRoom() : null,
+                            "Signal receiver execution failed: {}",
+                            exception.toString());
                 }
             }
             return triggered;
@@ -171,8 +182,12 @@ final class WiredStackExecutor {
         }
 
         if (stack.triggerItem() != null && room.getRoomSpecialTypes() != null) {
-            for (var extra : room.getRoomSpecialTypes().getExtras(stack.triggerItem().getX(), stack.triggerItem().getY())) {
-                if (extra instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraScanChestFurniByType scanner) scanner.scan(context);
+            for (var extra : room.getRoomSpecialTypes()
+                    .getExtras(stack.triggerItem().getX(), stack.triggerItem().getY())) {
+                if (extra
+                        instanceof
+                        com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraScanChestFurniByType scanner)
+                    scanner.scan(context);
             }
         }
 
@@ -234,19 +249,26 @@ final class WiredStackExecutor {
         }
 
         SignalBatch batch = this.signalBatch.get();
-        boolean deferredNativeReceiver = mode == Mode.EVENT && batch != null
-                && (batch.event() == event || (batch.event() == null
-                        && event.getType() == WiredEvent.Type.SIGNAL_RECEIVED && event.isSignalPayloadExplicit()));
+        boolean deferredNativeReceiver = mode == Mode.EVENT
+                && batch != null
+                && (batch.event() == event
+                        || (batch.event() == null
+                                && event.getType() == WiredEvent.Type.SIGNAL_RECEIVED
+                                && event.isSignalPayloadExplicit()));
         Runnable work = () -> {
             // Admission must not expand when an earlier receiver changes state.
             // Conversely, discard an admitted receiver whose requirements have
             // become stale (for example, a selection animation after placement).
             // A click may intentionally lock its source before a sibling capture
             // stack runs. Its eligibility belongs to the click's admission state.
-            if (deferredNativeReceiver && event.getType() == WiredEvent.Type.SIGNAL_RECEIVED
+            if (deferredNativeReceiver
+                    && event.getType() == WiredEvent.Type.SIGNAL_RECEIVED
                     && !conditionResult.conditions().isEmpty()
-                    && this.conditionEvaluator.outcomeForExecution(stack, context, negateConditions) != conditionsPassed) {
-                this.diagnostics.log(room, "Signal receiver {} invalidated before execution",
+                    && this.conditionEvaluator.outcomeForExecution(stack, context, negateConditions)
+                            != conditionsPassed) {
+                this.diagnostics.log(
+                        room,
+                        "Signal receiver {} invalidated before execution",
                         stack.triggerItem() != null ? stack.triggerItem().getId() : "null");
                 return;
             }

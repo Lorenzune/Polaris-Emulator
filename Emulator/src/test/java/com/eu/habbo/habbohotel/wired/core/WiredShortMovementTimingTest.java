@@ -92,8 +92,8 @@ class WiredShortMovementTimingTest {
         Fixture fixture = fixture(WiredEvent.Type.USER_SAYS, mock(HabboItem.class));
         Set<InteractionWiredExtra> extras = new LinkedHashSet<>();
         for (int i = 0; i < durations.length; i++) {
-            WiredExtraAnimationTime extra = new WiredExtraAnimationTime(
-                    i + 1, 1, mock(com.eu.habbo.habbohotel.items.Item.class), "", 0, 0);
+            WiredExtraAnimationTime extra =
+                    new WiredExtraAnimationTime(i + 1, 1, mock(com.eu.habbo.habbohotel.items.Item.class), "", 0, 0);
             assertTrue(extra.saveData(new WiredSettings(new int[] {durations[i]}, "", new int[0], 0), null));
             extras.add(extra);
         }
@@ -120,7 +120,11 @@ class WiredShortMovementTimingTest {
                 Arguments.of(new int[] {2000, 1500}, 3500),
                 Arguments.of(new int[] {1500, 2000}, 3500),
                 Arguments.of(new int[] {2000, 1500, 50}, 3550),
-                Arguments.of(IntStream.range(0, 1000).map(i -> i % 2 == 0 ? 2000 : 1500).toArray(), 1750000));
+                Arguments.of(
+                        IntStream.range(0, 1000)
+                                .map(i -> i % 2 == 0 ? 2000 : 1500)
+                                .toArray(),
+                        1750000));
     }
 
     @Test

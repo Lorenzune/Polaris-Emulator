@@ -44,6 +44,8 @@ record WiredExecutionLimitSupport(List<WiredExtraExecutionLimit> limits) {
     }
 
     long maxExecutions() {
-        return this.limits.stream().mapToLong(WiredExtraExecutionLimit::getMaxExecutions).sum();
+        return this.limits.stream()
+                .mapToLong(WiredExtraExecutionLimit::getMaxExecutions)
+                .sum();
     }
 }
