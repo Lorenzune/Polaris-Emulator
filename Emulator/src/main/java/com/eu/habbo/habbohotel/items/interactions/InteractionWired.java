@@ -50,6 +50,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class InteractionWired extends InteractionDefault {
     public static final int WIRED_EXTENDED_SETTINGS_MARKER = -2026072509;
+    public static final int WIRED_NATIVE_VARIABLE_SETTINGS_MARKER = -2026100401;
 
     public static String extractWiredDataPayload(ResultSet set) throws SQLException {
         String wiredData = set.getString("wired_data");
@@ -261,6 +262,11 @@ public abstract class InteractionWired extends InteractionDefault {
         int[] userSourceTypes = new int[0];
         int delay = 0;
         int stuffTypeSelectionCode = -1;
+        String[] variableTokens = new String[0];
+        boolean nativeVariableFormat = false;
+        int quantifier = 0;
+        boolean filterExisting = false;
+        boolean invert = false;
 
         if (isEffect) {
             delay = WiredInputGuard.normalizeDelay(packet.readInt());
@@ -276,7 +282,36 @@ public abstract class InteractionWired extends InteractionDefault {
         if (packet.bytesAvailable() >= Integer.BYTES) {
             int firstTrailingInt = packet.readInt();
 
-            if (firstTrailingInt == WIRED_EXTENDED_SETTINGS_MARKER) {
+            if (firstTrailingInt == WIRED_NATIVE_VARIABLE_SETTINGS_MARKER) {
+                nativeVariableFormat = true;
+                furniSourceTypes = WiredInputGuard.readIntArray(packet, 2, "variable furni sources");
+                userSourceTypes = WiredInputGuard.readIntArray(packet, 2, "variable user sources");
+                if (packet.bytesAvailable() < Integer.BYTES)
+                    throw new IllegalArgumentException("Truncated variable token count");
+                int count = packet.readInt();
+                if (count < 0 || count > 2) throw new IllegalArgumentException("Invalid variable token count");
+                variableTokens = new String[count];
+                for (int i = 0; i < count; i++) {
+                    var buffer = packet.getBuffer();
+                    if (buffer.readableBytes() < Short.BYTES)
+                        throw new IllegalArgumentException("Truncated variable token");
+                    int length = buffer.getUnsignedShort(buffer.readerIndex());
+                    if (length > 256 || buffer.readableBytes() < Short.BYTES + length)
+                        throw new IllegalArgumentException("Invalid variable token length");
+                    variableTokens[i] = packet.readString();
+                    if (variableTokens[i].length() > 256) throw new IllegalArgumentException("Invalid variable token");
+                }
+                itemIds2 = WiredInputGuard.readFurniIds(packet);
+                if (packet.bytesAvailable() < 10)
+                    throw new IllegalArgumentException("Truncated native variable settings");
+                quantifier = packet.readInt();
+                filterExisting = packet.readBoolean();
+                invert = packet.readBoolean();
+                stuffTypeSelectionCode = WiredInputGuard.normalizeStuffSelectionCode(packet.readInt());
+                if (quantifier < 0 || quantifier > 1 || packet.bytesAvailable() != 0) {
+                    throw new IllegalArgumentException("Invalid native variable settings");
+                }
+            } else if (firstTrailingInt == WIRED_EXTENDED_SETTINGS_MARKER) {
                 furniSourceTypes = WiredInputGuard.readIntArray(
                         packet, WiredInputGuard.MAX_INT_PARAMS, "wired furni source type count");
                 userSourceTypes = WiredInputGuard.readIntArray(
@@ -305,7 +340,7 @@ public abstract class InteractionWired extends InteractionDefault {
             }
         }
 
-        return new WiredSettings(
+        WiredSettings settings = new WiredSettings(
                 intParams,
                 stringParam,
                 itemIds,
@@ -315,6 +350,12 @@ public abstract class InteractionWired extends InteractionDefault {
                 userSourceTypes,
                 stuffTypeSelectionCode,
                 delay);
+        settings.setNativeVariableFormat(nativeVariableFormat);
+        settings.setVariableTokens(variableTokens);
+        settings.setQuantifier(quantifier);
+        settings.setFilterExisting(filterExisting);
+        settings.setInvert(invert);
+        return settings;
     }
 
     private static int[] readIntArrayAfterCount(ClientMessage packet, int count, int maxCount, String fieldName) {

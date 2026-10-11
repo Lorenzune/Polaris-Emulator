@@ -19,9 +19,8 @@ import org.slf4j.LoggerFactory;
  * Centralized tick service for all wired timing operations.
  *
  * <p>This version keeps a single global tick clock, but distributes room processing
- * across multiple single-threaded shard workers. A room is always processed on the
- * same shard, preserving in-room order while preventing one heavy room from delaying
- * all other rooms.</p>
+ * across independent room turns. Slow rooms use a separate pool after completing
+ * their current turn. The legacy shard scheduler remains available for rollback.</p>
  */
 public final class WiredTickService {
 
@@ -46,6 +45,11 @@ public final class WiredTickService {
     private boolean debugEnabled = false;
     private int threadPriority = Thread.NORM_PRIORITY + 1;
     private int workerCount = DEFAULT_WORKER_COUNT;
+    private boolean roomIsolationEnabled = true;
+    private int slowWorkerCount = 2;
+    private ExecutorService roomWorkers;
+    private ExecutorService slowRoomWorkers;
+    private volatile RoomWiredTickDispatcher roomDispatcher;
 
     /** Global logical tick counter shared by every shard. */
     private final AtomicLong tickCount = new AtomicLong(0);
@@ -78,7 +82,8 @@ public final class WiredTickService {
     }
 
     private void loadConfiguration() {
-        int configuredInterval = Emulator.getConfig().getInt("wired.tick.interval.ms", DEFAULT_TICK_INTERVAL_MS);
+        com.eu.habbo.core.ConfigurationManager config = Emulator.getConfig();
+        int configuredInterval = config.getInt("wired.tick.interval.ms", DEFAULT_TICK_INTERVAL_MS);
         this.tickIntervalMs = Math.max(MIN_TICK_INTERVAL_MS, Math.min(MAX_TICK_INTERVAL_MS, configuredInterval));
 
         if (configuredInterval != this.tickIntervalMs) {
@@ -90,13 +95,17 @@ public final class WiredTickService {
                     this.tickIntervalMs);
         }
 
-        this.debugEnabled = Emulator.getConfig().getBoolean("wired.tick.debug", false);
+        this.debugEnabled = config.getBoolean("wired.tick.debug", false);
+        this.roomIsolationEnabled = config.getBoolean("wired.tick.room.isolation", true);
+        this.slowWorkerCount = Math.max(1, Math.min(MAX_WORKER_COUNT, config.getInt("wired.tick.slow.workers", 2)));
 
-        int configuredPriority = Emulator.getConfig().getInt("wired.tick.thread.priority", Thread.NORM_PRIORITY + 1);
+        int configuredPriority = config.getInt("wired.tick.thread.priority", Thread.NORM_PRIORITY + 1);
         this.threadPriority = Math.max(Thread.MIN_PRIORITY, Math.min(Thread.MAX_PRIORITY, configuredPriority));
 
-        int configuredWorkers = Emulator.getConfig().getInt("wired.tick.workers", DEFAULT_WORKER_COUNT);
+        int configuredWorkers = config.getInt("wired.tick.workers", DEFAULT_WORKER_COUNT);
         this.workerCount = Math.max(MIN_WORKER_COUNT, Math.min(MAX_WORKER_COUNT, configuredWorkers));
+
+        if (roomIsolationEnabled) this.workerCount = Math.max(2, this.workerCount);
 
         if (configuredWorkers != this.workerCount) {
             LOGGER.warn(
@@ -158,7 +167,7 @@ public final class WiredTickService {
         this.shardProcessedTicks = new AtomicLong[workerCount];
         this.shardScheduled = new AtomicBoolean[workerCount];
 
-        for (int i = 0; i < workerCount; i++) {
+        for (int i = 0; !roomIsolationEnabled && i < workerCount; i++) {
             final int shardIndex = i;
             this.shardExecutors[i] = Executors.newSingleThreadExecutor(r -> {
                 Thread t = new Thread(r, "WiredTickShard-" + shardIndex);
@@ -169,6 +178,19 @@ public final class WiredTickService {
             this.shardRequestedTicks[i] = new AtomicLong(0L);
             this.shardProcessedTicks[i] = new AtomicLong(0L);
             this.shardScheduled[i] = new AtomicBoolean(false);
+        }
+
+        if (roomIsolationEnabled) {
+            this.roomWorkers = createRoomWorkers(Math.max(2, workerCount), "WiredRoomWorker");
+            this.slowRoomWorkers = createRoomWorkers(slowWorkerCount, "WiredSlowRoomWorker");
+            this.roomDispatcher = new RoomWiredTickDispatcher(
+                    roomWorkers,
+                    slowRoomWorkers,
+                    this::processIsolatedRoomTick,
+                    (roomId, error) -> LOGGER.error("WIRED room worker failed in room {}", roomId, error),
+                    SLOW_ROOM_THRESHOLD_MS,
+                    System::nanoTime);
+            LOGGER.info("WIRED room isolation enabled: normalWorkers={}, slowWorkers={}", workerCount, slowWorkerCount);
         }
 
         this.tickCount.set(0L);
@@ -196,6 +218,8 @@ public final class WiredTickService {
 
         LOGGER.info("Stopping WiredTickService...");
         running.set(false);
+        RoomWiredTickDispatcher dispatcher = roomDispatcher;
+        if (dispatcher != null) dispatcher.close();
 
         if (coordinator != null) {
             coordinator.shutdown();
@@ -232,6 +256,8 @@ public final class WiredTickService {
             }
         }
 
+        stopRoomWorkers();
+        roomDispatcher = null;
         shardExecutors = null;
         shardRequestedTicks = null;
         shardProcessedTicks = null;
@@ -278,6 +304,8 @@ public final class WiredTickService {
 
             if (tickables.isEmpty()) {
                 shardRoomTickables[shardIndex].remove(roomId);
+                RoomWiredTickDispatcher dispatcher = roomDispatcher;
+                if (dispatcher != null) dispatcher.forget(roomId);
             }
         }
     }
@@ -300,6 +328,8 @@ public final class WiredTickService {
 
             if (tickables.isEmpty()) {
                 shardRoomTickables[shardIndex].remove(roomId);
+                RoomWiredTickDispatcher dispatcher = roomDispatcher;
+                if (dispatcher != null) dispatcher.forget(roomId);
             }
         }
     }
@@ -312,6 +342,8 @@ public final class WiredTickService {
         int roomId = room.getId();
         int shardIndex = getShardIndex(roomId);
         Set<WiredTickable> tickables = shardRoomTickables[shardIndex].remove(roomId);
+        RoomWiredTickDispatcher dispatcher = roomDispatcher;
+        if (dispatcher != null) dispatcher.forget(roomId);
 
         if (tickables != null) {
             for (WiredTickable tickable : tickables) {
@@ -389,6 +421,23 @@ public final class WiredTickService {
         }
 
         long currentTick = tickCount.incrementAndGet();
+        RoomWiredTickDispatcher dispatcher = roomDispatcher;
+        if (dispatcher != null) {
+            if (debugEnabled && currentTick % Math.max(1, 1000 / tickIntervalMs) == 0) {
+                LOGGER.debug(
+                        "WIRED room isolation: activeLanes={}, slowRooms={}, normalWorkers={}, slowWorkers={}",
+                        dispatcher.roomCount(),
+                        dispatcher.slowRoomCount(),
+                        workerCount,
+                        slowWorkerCount);
+            }
+            for (int shard = 0; shard < workerCount; shard++) {
+                for (Integer roomId : shardRoomTickables[shard].keySet()) {
+                    dispatcher.request(roomId, currentTick);
+                }
+            }
+            return;
+        }
 
         for (int shardIndex = 0; shardIndex < workerCount; shardIndex++) {
             shardRequestedTicks[shardIndex].set(currentTick);
@@ -447,80 +496,9 @@ public final class WiredTickService {
                 continue;
             }
 
-            Room room = Emulator.getGameEnvironment().getRoomManager().getRoom(roomId);
-            if (room == null || !room.isLoaded()) {
-                continue;
-            }
-
-            if (room.getCurrentHabbos().isEmpty() && room.getCurrentBots().isEmpty()) {
-                continue;
-            }
-
-            long roomStart = System.currentTimeMillis();
             processedRooms++;
-
-            for (WiredTickable tickable : tickables) {
-                long tickableStart = System.currentTimeMillis();
-
-                if (tickable == null) {
-                    continue;
-                }
-
-                try {
-                    if (tickable.getRoomId() != roomId) {
-                        unregister(roomId, tickable.getId());
-                        continue;
-                    }
-
-                    tickable.onWiredTick(room, currentTick, tickIntervalMs);
-                    processedTickables++;
-
-                    long tickableDuration = System.currentTimeMillis() - tickableStart;
-                    if (tickableDuration > SLOW_TICKABLE_THRESHOLD_MS) {
-                        ThreadPooling pool = Emulator.getThreading();
-                        LOGGER.warn(
-                                "Slow wired tickable: shard={}, room={}, tick={}, tickableId={}, class={}, took={}ms, runtimePoolActive={}, runtimePoolSize={}, runtimeQueue={}, persistenceActive={}, persistenceQueue={}, deferredItemSaves={}",
-                                shardIndex,
-                                roomId,
-                                currentTick,
-                                tickable.getId(),
-                                tickable.getClass().getName(),
-                                tickableDuration,
-                                pool != null ? pool.getScheduledActiveCount() : -1,
-                                pool != null ? pool.getScheduledPoolSize() : -1,
-                                pool != null ? pool.getScheduledQueueDepth() : -1,
-                                pool != null ? pool.getPersistenceActiveCount() : -1,
-                                pool != null ? pool.getPersistenceQueueDepth() : -1,
-                                pool != null ? pool.getDeferredHabboItemPersistenceCount() : -1);
-                    }
-                } catch (Throwable t) {
-                    long tickableDuration = System.currentTimeMillis() - tickableStart;
-                    LOGGER.error(
-                            "Error in wired tick for tickable {} in room {} after {}ms",
-                            tickable.getId(),
-                            roomId,
-                            tickableDuration,
-                            t);
-                }
-            }
-
-            long roomDuration = System.currentTimeMillis() - roomStart;
-            if (roomDuration > SLOW_ROOM_THRESHOLD_MS) {
-                ThreadPooling pool = Emulator.getThreading();
-                LOGGER.warn(
-                        "Slow wired room tick: shard={}, room={}, tick={}, tickables={}, took={}ms, runtimePoolActive={}, runtimePoolSize={}, runtimeQueue={}, persistenceActive={}, persistenceQueue={}, deferredItemSaves={}",
-                        shardIndex,
-                        roomId,
-                        currentTick,
-                        tickables.size(),
-                        roomDuration,
-                        pool != null ? pool.getScheduledActiveCount() : -1,
-                        pool != null ? pool.getScheduledPoolSize() : -1,
-                        pool != null ? pool.getScheduledQueueDepth() : -1,
-                        pool != null ? pool.getPersistenceActiveCount() : -1,
-                        pool != null ? pool.getPersistenceQueueDepth() : -1,
-                        pool != null ? pool.getDeferredHabboItemPersistenceCount() : -1);
-            }
+            processedTickables += tickables.size();
+            processRoomTick(shardIndex, roomId, tickables, currentTick);
         }
 
         long shardDuration = System.currentTimeMillis() - shardStart;
@@ -550,6 +528,119 @@ public final class WiredTickService {
                     processedTickables,
                     shardDuration);
         }
+    }
+
+    private void processIsolatedRoomTick(int roomId, long currentTick) {
+        if (!running.get()) return;
+        int shardIndex = getShardIndex(roomId);
+        Set<WiredTickable> tickables = shardRoomTickables[shardIndex].get(roomId);
+        if (tickables != null && !tickables.isEmpty()) {
+            processRoomTick(shardIndex, roomId, tickables, currentTick);
+        }
+    }
+
+    private void processRoomTick(int shardIndex, int roomId, Set<WiredTickable> tickables, long currentTick) {
+        Room room = Emulator.getGameEnvironment().getRoomManager().getRoom(roomId);
+        if (room == null || !room.isLoaded()) {
+            return;
+        }
+
+        if (room.getCurrentHabbos().isEmpty() && room.getCurrentBots().isEmpty()) {
+            return;
+        }
+
+        long roomStart = System.currentTimeMillis();
+
+        for (WiredTickable tickable : tickables) {
+            long tickableStart = System.currentTimeMillis();
+
+            if (tickable == null) {
+                continue;
+            }
+
+            try {
+                if (tickable.getRoomId() != roomId) {
+                    unregister(roomId, tickable.getId());
+                    continue;
+                }
+
+                tickable.onWiredTick(room, currentTick, tickIntervalMs);
+
+                long tickableDuration = System.currentTimeMillis() - tickableStart;
+                if (tickableDuration > SLOW_TICKABLE_THRESHOLD_MS) {
+                    ThreadPooling pool = Emulator.getThreading();
+                    LOGGER.warn(
+                            "Slow wired tickable: shard={}, room={}, tick={}, tickableId={}, class={}, took={}ms, runtimePoolActive={}, runtimePoolSize={}, runtimeQueue={}, persistenceActive={}, persistenceQueue={}, deferredItemSaves={}",
+                            shardIndex,
+                            roomId,
+                            currentTick,
+                            tickable.getId(),
+                            tickable.getClass().getName(),
+                            tickableDuration,
+                            pool != null ? pool.getScheduledActiveCount() : -1,
+                            pool != null ? pool.getScheduledPoolSize() : -1,
+                            pool != null ? pool.getScheduledQueueDepth() : -1,
+                            pool != null ? pool.getPersistenceActiveCount() : -1,
+                            pool != null ? pool.getPersistenceQueueDepth() : -1,
+                            pool != null ? pool.getDeferredHabboItemPersistenceCount() : -1);
+                }
+            } catch (Throwable t) {
+                long tickableDuration = System.currentTimeMillis() - tickableStart;
+                LOGGER.error(
+                        "Error in wired tick for tickable {} in room {} after {}ms",
+                        tickable.getId(),
+                        roomId,
+                        tickableDuration,
+                        t);
+            }
+        }
+
+        long roomDuration = System.currentTimeMillis() - roomStart;
+        if (roomDuration > SLOW_ROOM_THRESHOLD_MS) {
+            ThreadPooling pool = Emulator.getThreading();
+            LOGGER.warn(
+                    "Slow wired room tick: shard={}, room={}, tick={}, tickables={}, took={}ms, runtimePoolActive={}, runtimePoolSize={}, runtimeQueue={}, persistenceActive={}, persistenceQueue={}, deferredItemSaves={}",
+                    shardIndex,
+                    roomId,
+                    currentTick,
+                    tickables.size(),
+                    roomDuration,
+                    pool != null ? pool.getScheduledActiveCount() : -1,
+                    pool != null ? pool.getScheduledPoolSize() : -1,
+                    pool != null ? pool.getScheduledQueueDepth() : -1,
+                    pool != null ? pool.getPersistenceActiveCount() : -1,
+                    pool != null ? pool.getPersistenceQueueDepth() : -1,
+                    pool != null ? pool.getDeferredHabboItemPersistenceCount() : -1);
+        }
+    }
+
+    private ExecutorService createRoomWorkers(int count, String name) {
+        java.util.concurrent.atomic.AtomicInteger sequence = new java.util.concurrent.atomic.AtomicInteger();
+        return Executors.newFixedThreadPool(count, task -> {
+            Thread thread = new Thread(task, name + "-" + sequence.incrementAndGet());
+            thread.setDaemon(true);
+            thread.setPriority(threadPriority);
+            return thread;
+        });
+    }
+
+    private void stopRoomWorkers() {
+        ExecutorService[] pools = {roomWorkers, slowRoomWorkers};
+        for (ExecutorService pool : pools) if (pool != null) pool.shutdown();
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        for (ExecutorService pool : pools) {
+            if (pool == null) continue;
+            try {
+                if (!pool.awaitTermination(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS)) {
+                    pool.shutdownNow();
+                }
+            } catch (InterruptedException interrupted) {
+                pool.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+        roomWorkers = null;
+        slowRoomWorkers = null;
     }
 
     private int getShardIndex(int roomId) {

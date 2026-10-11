@@ -14,20 +14,20 @@ import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.threading.runnables.games.GameTimer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class InteractionGameTimer extends HabboItem {
     private static final Logger LOGGER = LoggerFactory.getLogger(InteractionGameTimer.class);
 
-    protected int[] TIMER_INTERVAL_STEPS = new int[] { 30, 60, 120, 180, 300, 600 };
+    protected int[] TIMER_INTERVAL_STEPS = new int[] {30, 60, 120, 180, 300, 600};
 
     protected int baseTime = 0;
     protected int timeNow = 0;
+    private int clockHalfSecond = 0;
     protected boolean isRunning = false;
     protected boolean isPaused = false;
     protected boolean threadActive = false;
@@ -70,8 +70,7 @@ public class InteractionGameTimer extends HabboItem {
             if (data.length >= 1) {
                 this.setExtradata(data[0] + "\t0");
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             this.baseTime = TIMER_INTERVAL_STEPS[0];
             this.timeNow = this.baseTime;
         }
@@ -92,7 +91,8 @@ public class InteractionGameTimer extends HabboItem {
                         } catch (NumberFormatException e) {
                             return 0;
                         }
-                    }).toArray();
+                    })
+                    .toArray();
         } catch (Exception e) {
             LOGGER.error("Caught exception", e);
         }
@@ -106,6 +106,8 @@ public class InteractionGameTimer extends HabboItem {
         this.isRunning = false;
         this.isPaused = false;
 
+        if (this instanceof InteractionGameUpCounter) return;
+
         for (Game game : room.getGames()) {
             if (!game.getState().equals(GameState.IDLE) && !(isStart && game instanceof WiredGame)) {
                 game.onEnd();
@@ -115,7 +117,9 @@ public class InteractionGameTimer extends HabboItem {
     }
 
     protected void createNewGame(Room room) {
-        for(Class<? extends Game> gameClass : Emulator.getGameEnvironment().getRoomManager().getGameTypes()) {
+        if (this instanceof InteractionGameUpCounter) return;
+        for (Class<? extends Game> gameClass :
+                Emulator.getGameEnvironment().getRoomManager().getGameTypes()) {
             Game existingGame = room.getGame(gameClass);
 
             if (existingGame != null) {
@@ -133,12 +137,14 @@ public class InteractionGameTimer extends HabboItem {
     }
 
     protected void pause(Room room) {
+        if (this instanceof InteractionGameUpCounter) return;
         for (Game game : room.getGames()) {
             game.pause();
         }
     }
 
     protected void unpause(Room room) {
+        if (this instanceof InteractionGameUpCounter) return;
         for (Game game : room.getGames()) {
             game.unpause();
         }
@@ -202,14 +208,13 @@ public class InteractionGameTimer extends HabboItem {
 
         // if wired triggered it
         if (objects.length >= 2 && objects[1] instanceof WiredEffectType) {
-            if(!(!this.isRunning || this.isPaused))
-                return;
+            if (!(!this.isRunning || this.isPaused)) return;
 
             boolean wasPaused = this.isPaused;
             this.endGame(room, true);
 
-            if(wasPaused) {
-                WiredManager.triggerGameEnds(room);
+            if (wasPaused) {
+                if (!(this instanceof InteractionGameUpCounter)) WiredManager.triggerGameEnds(room);
             }
 
             this.createNewGame(room);
@@ -219,7 +224,8 @@ public class InteractionGameTimer extends HabboItem {
             this.isPaused = false;
 
             room.updateItem(this);
-            WiredManager.triggerGameStarts(room);
+            if (!(this instanceof InteractionGameUpCounter)) WiredManager.triggerGameStarts(room);
+            this.triggerClockStart(room);
 
             if (this.tryActivateTimerThread()) {
                 this.scheduleTimerRunnable(this.getTimerStartDelayMs());
@@ -254,7 +260,8 @@ public class InteractionGameTimer extends HabboItem {
                         room.updateItem(this);
 
                         this.createNewGame(room);
-                        WiredManager.triggerGameStarts(room);
+                        if (!(this instanceof InteractionGameUpCounter)) WiredManager.triggerGameStarts(room);
+                        this.triggerClockStart(room);
 
                         if (this.tryActivateTimerThread()) {
                             this.scheduleTimerRunnable(this.getTimerStartDelayMs());
@@ -269,7 +276,7 @@ public class InteractionGameTimer extends HabboItem {
                     } else if (this.isPaused) {
                         this.endGame(room);
                         this.increaseTimer(room);
-                        WiredManager.triggerGameEnds(room);
+                        if (!(this instanceof InteractionGameUpCounter)) WiredManager.triggerGameEnds(room);
                     }
 
                     break;
@@ -280,10 +287,7 @@ public class InteractionGameTimer extends HabboItem {
     }
 
     @Override
-    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {
-
-    }
-
+    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {}
 
     public void startTimer(Room room) {
         if (!isRunning) {
@@ -294,7 +298,8 @@ public class InteractionGameTimer extends HabboItem {
                 room.updateItem(this);
             }
             this.createNewGame(room);
-            WiredManager.triggerGameStarts(room);
+            if (!(this instanceof InteractionGameUpCounter)) WiredManager.triggerGameStarts(room);
+            this.triggerClockStart(room);
             if (this.tryActivateTimerThread()) {
                 this.scheduleTimerRunnable(this.getTimerStartDelayMs());
             }
@@ -325,8 +330,7 @@ public class InteractionGameTimer extends HabboItem {
     }
 
     protected void increaseTimer(Room room) {
-        if (this.isRunning)
-            return;
+        if (this.isRunning) return;
 
         int baseTime = -1;
 
@@ -360,6 +364,34 @@ public class InteractionGameTimer extends HabboItem {
 
     protected void resetTimeForStart() {
         this.timeNow = this.baseTime;
+        this.clockHalfSecond = 0;
+    }
+
+    private void triggerClockStart(Room room) {
+        if (this instanceof InteractionGameUpCounter) return;
+        this.clockHalfSecond = 0;
+        WiredManager.triggerClockCounter(room, this);
+    }
+
+    /** Keep the legacy countdown/display in seconds while WIRED clocks pulse twice per second. */
+    public boolean advanceClockHalfSecond() {
+        this.clockHalfSecond ^= 1;
+        if (this.clockHalfSecond == 0) this.reduceTime();
+        return this.clockHalfSecond == 0;
+    }
+
+    /** WIRED clock values follow the displayed countdown, including half seconds. */
+    public int getClockTimeInMs() {
+        return Math.max(0, this.timeNow * 1000 - this.clockHalfSecond * 500);
+    }
+
+    /** Clock state is independent of the displayed number of seconds. */
+    public String getWiredClockState() {
+        return this.isRunning ? "1" : "0";
+    }
+
+    public int getElapsedClockTimeInMs() {
+        return Math.max(0, this.baseTime - this.timeNow) * 1000 + this.clockHalfSecond * 500;
     }
 
     protected Runnable createTimerRunnable() {
@@ -367,11 +399,11 @@ public class InteractionGameTimer extends HabboItem {
     }
 
     protected long getTimerStartDelayMs() {
-        return 1000L;
+        return 500L;
     }
 
     protected long getTimerResumeDelayMs() {
-        return 0L;
+        return 500L;
     }
 
     protected void scheduleTimerRunnable(long delayMs) {

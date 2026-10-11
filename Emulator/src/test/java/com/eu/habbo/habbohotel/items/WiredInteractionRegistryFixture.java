@@ -89,6 +89,7 @@ public final class WiredInteractionRegistryFixture {
     }
 
     private static Class<?> resolveType(Map<String, String> imports, String sourceName) throws ClassNotFoundException {
+        if (sourceName.startsWith("com.eu.habbo.")) return Class.forName(sourceName);
         int nestedSeparator = sourceName.indexOf('.');
         String outerName = nestedSeparator < 0 ? sourceName : sourceName.substring(0, nestedSeparator);
         String fullyQualifiedOuter = imports.get(outerName);

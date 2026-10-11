@@ -1,6 +1,7 @@
 package com.eu.habbo.messages.incoming.rooms.users;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.items.interactions.InteractionRoller;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectMoveRotateUser;
 import com.eu.habbo.habbohotel.pets.PetTasks;
 import com.eu.habbo.habbohotel.rooms.BedProfile;
@@ -15,7 +16,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredFreezeUtil;
 import com.eu.habbo.habbohotel.wired.core.WiredUserMovementHelper;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUnitOnRollerComposer;
-import com.eu.habbo.messages.outgoing.rooms.users.RoomUserStatusComposer;
 import com.eu.habbo.plugin.events.users.UserIdleEvent;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -32,6 +32,19 @@ public class RoomUserWalkEvent extends MessageHandler {
     private static final String WALK_LAST_Y_KEY = "__walkLastY";
 
     private static final int MAX_WALKS_PER_SECOND = 15;
+
+    static boolean shouldIgnoreRollerSlideClick(RoomUnit unit, int x, int y, long now) {
+        if (unit == null
+                || unit.getRollerSlideOrigin() == null
+                || now - unit.getLastRollerTime() >= InteractionRoller.DELAY) {
+            return false;
+        }
+
+        RoomTile origin = unit.getRollerSlideOrigin();
+        boolean clickedOrigin = x == origin.x && y == origin.y;
+        boolean clickedDestination = x == unit.getX() && y == unit.getY();
+        return clickedOrigin || clickedDestination;
+    }
 
     @Override
     public int getRatelimit() {
@@ -121,27 +134,23 @@ public class RoomUserWalkEvent extends MessageHandler {
 
                 long now = System.currentTimeMillis();
                 long timeSinceRoller = now - roomUnit.getLastRollerTime();
-                if (timeSinceRoller < 500 && roomUnit.getRollerSlideOrigin() != null) {
-                    RoomTile origin = roomUnit.getRollerSlideOrigin();
-                    if (x == roomUnit.getX() && y == roomUnit.getY()) {
-                        roomUnit.setLastRollerTime(0);
-                        roomUnit.setRollerSlideOrigin(null);
+                if (timeSinceRoller < InteractionRoller.DELAY && roomUnit.getRollerSlideOrigin() != null) {
+                    if (shouldIgnoreRollerSlideClick(roomUnit, x, y, now)) {
                         return;
                     }
 
+                    RoomTile origin = roomUnit.getRollerSlideOrigin();
                     roomUnit.setLocation(origin);
                     roomUnit.setZ(roomUnit.getRollerSlideOriginZ());
                     roomUnit.setPreviousLocationZ(roomUnit.getRollerSlideOriginZ());
                     roomUnit.setLastRollerTime(0);
                     roomUnit.setRollerSlideOrigin(null);
-
-                    if (x == origin.x && y == origin.y) {
-                        room.sendComposer(new RoomUserStatusComposer(roomUnit).compose());
-                        return;
-                    }
                 }
 
                 if (x == roomUnit.getX() && y == roomUnit.getY()) {
+                    if (room.getItemsAt(tile).stream().anyMatch(item -> item instanceof InteractionRoller)) {
+                        room.getRollerManager().requestRoll(roomUnit, tile);
+                    }
                     return;
                 }
 

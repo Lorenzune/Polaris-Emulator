@@ -7,13 +7,12 @@ import com.eu.habbo.habbohotel.users.HabboGender;
 import com.eu.habbo.messages.ISerialize;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.friends.FriendChatMessageComposer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessengerBuddy implements Runnable, ISerialize {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessengerBuddy.class);
@@ -42,7 +41,7 @@ public class MessengerBuddy implements Runnable, ISerialize {
             this.userOne = set.getInt("user_one_id");
             this.inRoom = false;
             if (this.online == 1) {
-                Habbo habbo = Emulator.getGameServer().getGameClientManager().getHabbo(this.username);
+                Habbo habbo = gameServer().getGameClientManager().getHabbo(this.username);
 
                 if (habbo != null) {
                     this.inRoom = habbo.getHabboInfo().getCurrentRoom() != null;
@@ -110,7 +109,7 @@ public class MessengerBuddy implements Runnable, ISerialize {
     }
 
     public int getOnline() {
-        Habbo habbo = Emulator.getGameServer().getGameClientManager().getHabbo(this.id);
+        Habbo habbo = gameServer().getGameClientManager().getHabbo(this.id);
 
         return habbo != null && habbo.getHabboInfo().isOnline() ? 1 : this.online;
     }
@@ -120,7 +119,7 @@ public class MessengerBuddy implements Runnable, ISerialize {
     }
 
     public boolean isVisibleOnline() {
-        Habbo habbo = Emulator.getGameServer().getGameClientManager().getHabbo(this.id);
+        Habbo habbo = gameServer().getGameClientManager().getHabbo(this.id);
 
         return this.getOnline() == 1 && (habbo == null || !habbo.getHabboStats().hideOnline);
     }
@@ -146,12 +145,16 @@ public class MessengerBuddy implements Runnable, ISerialize {
         Emulator.getThreading().run(this);
     }
 
-    public int getCategoryId() { return this.categoryId; }
+    public int getCategoryId() {
+        return this.categoryId;
+    }
 
-    public void setCategoryId(int categoryId) { this.categoryId = categoryId; }
+    public void setCategoryId(int categoryId) {
+        this.categoryId = categoryId;
+    }
 
     public boolean inRoom() {
-        Habbo habbo = Emulator.getGameServer().getGameClientManager().getHabbo(this.id);
+        Habbo habbo = gameServer().getGameClientManager().getHabbo(this.id);
 
         if (habbo != null) {
             return habbo.getHabboInfo().getCurrentRoom() != null;
@@ -165,13 +168,16 @@ public class MessengerBuddy implements Runnable, ISerialize {
     }
 
     public boolean isVisibleInRoom() {
-        return this.isVisibleOnline() && this.inRoom();
+        Habbo habbo = gameServer().getGameClientManager().getHabbo(this.id);
+        return this.isVisibleOnline() && this.inRoom() && (habbo == null || !habbo.getHabboStats().blockFollowing);
     }
 
     @Override
     public void run() {
 
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("UPDATE messenger_friendships SET relation = ? WHERE user_one_id = ? AND user_two_id = ?")) {
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        "UPDATE messenger_friendships SET relation = ? WHERE user_one_id = ? AND user_two_id = ?")) {
             statement.setInt(1, this.relation);
             statement.setInt(2, this.userOne);
             statement.setInt(3, this.id);
@@ -186,17 +192,21 @@ public class MessengerBuddy implements Runnable, ISerialize {
     }
 
     public boolean onMessageReceivedWithDeliveryStatus(Habbo from, String message) {
-        Habbo habbo = Emulator.getGameServer().getGameClientManager().getHabbo(this.id);
+        Habbo habbo = gameServer().getGameClientManager().getHabbo(this.id);
 
         Message chatMessage = new Message(from.getHabboInfo().getId(), this.id, message);
 
         if (WordFilter.ENABLED_FRIENDCHAT) {
-            chatMessage.setMessage(Emulator.getGameEnvironment().getWordFilter().filter(chatMessage.getMessage(), from));
+            chatMessage.setMessage(
+                    Emulator.getGameEnvironment().getWordFilter().filter(chatMessage.getMessage(), from));
         }
 
         Emulator.getThreading().run(chatMessage);
 
-        if (habbo == null || !habbo.isOnline() || habbo.getClient() == null || !habbo.getClient().getChannel().isOpen()) {
+        if (habbo == null
+                || !habbo.isOnline()
+                || habbo.getClient() == null
+                || !habbo.getClient().getChannel().isOpen()) {
             return this.storeOfflineMessage(chatMessage);
         }
 
@@ -229,15 +239,19 @@ public class MessengerBuddy implements Runnable, ISerialize {
         message.appendString(this.username);
         message.appendInt(this.gender.equals(HabboGender.M) ? 0 : 1);
         message.appendBoolean(visibleOnline);
-        message.appendBoolean(visibleOnline && visibleInRoom); //IN ROOM
+        message.appendBoolean(visibleOnline && visibleInRoom); // IN ROOM
         message.appendString(this.look);
         message.appendInt(this.categoryId); // Friends category ID
         message.appendString(this.motto);
-        message.appendString(""); //Last seen as DATETIMESTRING
+        message.appendString(""); // Last seen as DATETIMESTRING
         message.appendString(""); // Realname or Facebookame as String
         message.appendBoolean(true); // Offline messaging.
         message.appendBoolean(false);
         message.appendBoolean(false);
         message.appendShort(this.relation);
+    }
+
+    private static com.eu.habbo.networking.gameserver.GameServer gameServer() {
+        return Emulator.getGameServer();
     }
 }

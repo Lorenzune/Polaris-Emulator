@@ -30,6 +30,10 @@ import org.mockito.Answers;
  * synthetic compatibility matrix, not a replacement for the sanitized real-hotel corpus required
  * by the modernization exit gate.
  *
+ * <p>Review 2026-10-02: wf_act_click_conf now registers WiredActionClickSettings (previously
+ * incorrectly mapped to the user-click trigger). Only the newly registered action is added
+ * to this matrix; existing loader behavior remains unchanged.
+ *
  * <p>Regeneration is an explicit review action:
  *
  * <pre>
@@ -73,7 +77,7 @@ class WiredPersistenceCompatibilityTest {
     @Test
     void matrixCoversEveryRegisteredInteractionWiredClass() throws Exception {
         Set<Class<? extends InteractionWired>> types = WiredInteractionRegistryFixture.wiredTypes();
-        assertEquals(252, types.size(), "Review every added or removed registered wired persistence type");
+        assertEquals(259, types.size(), "Review every added or removed registered wired persistence type");
     }
 
     @Test
@@ -93,19 +97,19 @@ class WiredPersistenceCompatibilityTest {
 
         assertEquals(
                 Map.of(
-                        "blank", 19,
-                        "json-empty", 21,
-                        "json-malformed", 107,
-                        "legacy-zero", 12,
-                        "legacy-tab", 21),
+                        "blank", 18,
+                        "json-empty", 20,
+                        "json-malformed", 98,
+                        "legacy-zero", 13,
+                        "legacy-tab", 18),
                 byPayload,
                 "Review every change against the production-loader boundary and real legacy corpus");
         assertEquals(
                 Map.of(
-                        "java.io.EOFException", 94,
-                        "java.lang.ArrayIndexOutOfBoundsException", 2,
-                        "java.lang.NullPointerException", 64,
-                        "java.lang.NumberFormatException", 20),
+                        "java.io.EOFException", 82,
+                        "java.lang.ArrayIndexOutOfBoundsException", 1,
+                        "java.lang.NullPointerException", 72,
+                        "java.lang.NumberFormatException", 12),
                 byException,
                 "Unexpected failure classes must not enter the persisted-data quarantine boundary");
     }

@@ -2,6 +2,284 @@
   "schemaVersion": 1,
   "contracts": [
     {
+      "name": "AVATAR_LEVEL_REQUEST",
+      "direction": "client_to_server",
+      "header": 9510,
+      "java": {
+        "symbol": "RequestAvatarLevelEvent",
+        "className": "RequestAvatarLevelEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/users/RequestAvatarLevelEvent.java"
+      },
+      "typescript": {
+        "symbol": "AVATAR_LEVEL_REQUEST",
+        "className": "RequestAvatarLevelComposer",
+        "path": "packages/communication/src/messages/outgoing/avatarlevels/RequestAvatarLevelComposer.ts"
+      },
+      "fields": []
+    },
+    {
+      "name": "AVATAR_LEVEL",
+      "direction": "server_to_client",
+      "header": 9510,
+      "java": {
+        "symbol": "AvatarLevelComposer",
+        "className": "AvatarLevelComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/users/AvatarLevelComposer.java"
+      },
+      "typescript": {
+        "symbol": "AVATAR_LEVEL",
+        "className": "AvatarLevelParser",
+        "path": "packages/communication/src/messages/parser/avatarlevels/AvatarLevelParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "userId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "level"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "score"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "highestScore"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "rawAchievements"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "rawBadges"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "rawHosting"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "rawFurni"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "countedAchievements"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "countedBadges"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "countedHosting"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "countedFurni"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "nextLevel"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "nextScore"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "nextReward"
+        }
+      ]
+    },
+    {
+      "name": "REQUEST_WIRED_LABEL_EDITOR",
+      "direction": "client_to_server",
+      "header": 10092,
+      "java": {
+        "symbol": "RequestWiredLabelEditorEvent",
+        "className": "RequestWiredLabelEditorEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/wired/RequestWiredLabelEditorEvent.java"
+      },
+      "typescript": {
+        "symbol": "REQUEST_WIRED_LABEL_EDITOR",
+        "className": "RequestWiredLabelEditorComposer",
+        "path": "packages/communication/src/messages/outgoing/roomevents/RequestWiredLabelEditorComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "roomId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "itemId"
+        }
+      ]
+    },
+    {
+      "name": "SAVE_WIRED_LABEL_CARD",
+      "direction": "client_to_server",
+      "header": 10093,
+      "java": {
+        "symbol": "SaveWiredLabelCardEvent",
+        "className": "SaveWiredLabelCardEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/wired/SaveWiredLabelCardEvent.java"
+      },
+      "typescript": {
+        "symbol": "SAVE_WIRED_LABEL_CARD",
+        "className": "SaveWiredLabelCardComposer",
+        "path": "packages/communication/src/messages/outgoing/roomevents/SaveWiredLabelCardComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "roomId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "itemId"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "text"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "color"
+        }
+      ]
+    },
+    {
+      "name": "WIRED_LABEL_EDITOR",
+      "direction": "server_to_client",
+      "header": 5115,
+      "java": {
+        "symbol": "WiredLabelEditorComposer",
+        "className": "WiredLabelEditorComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/items/WiredLabelEditorComposer.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_LABEL_EDITOR",
+        "className": "WiredLabelEditorMessageParser",
+        "path": "packages/communication/src/messages/parser/room/furniture/WiredLabelEditorMessageParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "roomId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "itemId"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "text"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "state"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "color"
+        }
+      ]
+    },
+    {
+      "name": "SAVE_WIRED_LABEL",
+      "direction": "client_to_server",
+      "header": 10091,
+      "java": {
+        "symbol": "SaveWiredLabelEvent",
+        "className": "SaveWiredLabelEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/wired/SaveWiredLabelEvent.java"
+      },
+      "typescript": {
+        "symbol": "SAVE_WIRED_LABEL",
+        "className": "SaveWiredLabelComposer",
+        "path": "packages/communication/src/messages/outgoing/roomevents/SaveWiredLabelComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "roomId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "itemId"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "text"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "state"
+        }
+      ]
+    },
+    {
+      "name": "CHOOSER_DISABLED_STATE",
+      "direction": "server_to_client",
+      "header": 5114,
+      "java": {
+        "symbol": "ChooserDisabledStateComposer",
+        "className": "ChooserDisabledStateComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/items/ChooserDisabledStateComposer.java"
+      },
+      "typescript": {
+        "symbol": "CHOOSER_DISABLED_STATE",
+        "className": "ChooserDisabledStateMessageParser",
+        "path": "packages/communication/src/messages/parser/room/furniture/ChooserDisabledStateMessageParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "roomId"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "disabled"
+        }
+      ]
+    },
+    {
       "name": "GAME2GETACCOUNTGAMESTATUSMESSAGE",
       "direction": "client_to_server",
       "header": 11,
@@ -3821,6 +4099,17 @@
           "kind": "scalar",
           "type": "int",
           "name": "tradeType"
+        },
+        {
+          "kind": "optional",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "boolean",
+              "name": ""
+            }
+          ],
+          "controller": "bytesAvailable"
         }
       ]
     },
@@ -4174,6 +4463,28 @@
           "kind": "scalar",
           "type": "int",
           "name": "effectId"
+        },
+        {
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "boolean",
+              "name": "keepOnRoomChange"
+            }
+          ]
+        },
+        {
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "int",
+              "name": "selectionType"
+            }
+          ]
         }
       ]
     },
@@ -7640,6 +7951,23 @@
           "kind": "scalar",
           "type": "int",
           "name": "amount"
+        },
+        {
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "list",
+              "countType": "int",
+              "item": [
+                {
+                  "kind": "scalar",
+                  "type": "int",
+                  "name": "itemId"
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -7738,9 +8066,21 @@
         "path": "packages/communication/src/messages/outgoing/user/settings/WiredAccountPreferencesSaveComposer.ts"
       },
       "fields": [
-        { "kind": "scalar", "type": "boolean", "name": "showToolbarButton" },
-        { "kind": "scalar", "type": "boolean", "name": "showInspectButton" },
-        { "kind": "scalar", "type": "boolean", "name": "showSystemNotifications" }
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "showToolbarButton"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "showInspectButton"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "showSystemNotifications"
+        }
       ]
     },
     {
@@ -8181,9 +8521,15 @@
           "name": "spriteId"
         },
         {
-          "kind": "scalar",
-          "type": "string",
-          "name": "itemName"
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "string",
+              "name": "itemName"
+            }
+          ]
         }
       ]
     },
@@ -8414,9 +8760,15 @@
           "name": "catalogMode"
         },
         {
-          "kind": "scalar",
-          "type": "string",
-          "name": "text1"
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "string",
+              "name": "text1"
+            }
+          ]
         }
       ]
     },
@@ -15448,9 +15800,21 @@
         "path": "packages/communication/src/messages/parser/user/data/WiredAccountPreferencesParser.ts"
       },
       "fields": [
-        { "kind": "scalar", "type": "boolean", "name": "showToolbarButton" },
-        { "kind": "scalar", "type": "boolean", "name": "showInspectButton" },
-        { "kind": "scalar", "type": "boolean", "name": "showSystemNotifications" }
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "showToolbarButton"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "showInspectButton"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "showSystemNotifications"
+        }
       ]
     },
     {
@@ -16478,6 +16842,189 @@
           "kind": "scalar",
           "type": "boolean",
           "name": "enabled"
+        }
+      ]
+    },
+    {
+      "name": "WIRED_CLICK_SETTINGS",
+      "direction": "server_to_client",
+      "header": 5113,
+      "java": {
+        "symbol": "WiredClickSettingsComposer",
+        "className": "WiredClickSettingsComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/wired/WiredClickSettingsComposer.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_CLICK_SETTINGS",
+        "className": "WiredClickSettingsParser",
+        "path": "packages/communication/src/messages/parser/roomevents/WiredClickSettingsParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "name": "BUILDERS_CLUB_RECOLOR_FURNI",
+      "direction": "client_to_server",
+      "header": 9480,
+      "java": {
+        "symbol": "BuildersClubRecolorFurniEvent",
+        "className": "BuildersClubRecolorFurniEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/BuildersClubRecolorFurniEvent.java"
+      },
+      "typescript": {
+        "symbol": "BUILDERS_CLUB_RECOLOR_FURNI",
+        "className": "BuildersClubRecolorFurniMessageComposer",
+        "path": "packages/communication/src/messages/outgoing/catalog/BuildersClubRecolorFurniMessageComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "itemId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "colorIndex"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "scope"
+        }
+      ]
+    },
+    {
+      "name": "PET_NEST_BREEDING_SUCCESS",
+      "direction": "server_to_client",
+      "header": 1901,
+      "java": {
+        "symbol": "NestBreedingSuccessComposer",
+        "className": "NestBreedingSuccessComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/pets/breeding/NestBreedingSuccessComposer.java"
+      },
+      "typescript": {
+        "symbol": "PET_NEST_BREEDING_SUCCESS",
+        "className": "NestBreedingSuccessParser",
+        "path": "packages/communication/src/messages/parser/inventory/pets/NestBreedingSuccessParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field0"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field1"
+        }
+      ]
+    },
+    {
+      "name": "PET_BREEDING_RESULT",
+      "direction": "server_to_client",
+      "header": 1553,
+      "java": {
+        "symbol": "UnknownComposer_100",
+        "className": "MonsterplantBreedingResultComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/pets/breeding/MonsterplantBreedingResultComposer.java"
+      },
+      "typescript": {
+        "symbol": "PET_BREEDING_RESULT",
+        "className": "PetBreedingResultParser",
+        "path": "packages/communication/src/messages/parser/room/pet/PetBreedingResultParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field0"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field1"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "field2"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field3"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "field4"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field5"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "field6"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field7"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field8"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "field9"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field10"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "field11"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field12"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "field13"
         }
       ]
     }
@@ -17798,14 +18345,6 @@
     {
       "direction": "server_to_client",
       "side": "typescript",
-      "header": 1553,
-      "symbol": "PET_BREEDING_RESULT",
-      "path": "packages/communication/src/messages/parser/room/pet/PetBreedingResultParser.ts",
-      "reason": "Header is registered only by the Nitro Renderer packet registry"
-    },
-    {
-      "direction": "server_to_client",
-      "side": "typescript",
       "header": 1663,
       "symbol": "HOTEL_MERGE_NAME_CHANGE",
       "path": "packages/communication/src/messages/parser/help/HotelMergeNameChangeParser.ts",
@@ -18324,6 +18863,46 @@
       "reason": "Custom guild badge review result has no paired public Nitro protocol source."
     },
     {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9353,
+      "symbol": "CatalogPageMediaLoadEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogPageMediaLoadEvent.java",
+      "reason": "Custom catalog page editor packet is implemented by the companion Ducket client, outside the public Nitro protocol."
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 9354,
+      "symbol": "CatalogPageMediaDetailsComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/catalog/catalogadmin/CatalogPageMediaDetailsComposer.java",
+      "reason": "Custom catalog page editor packet is implemented by the companion Ducket client, outside the public Nitro protocol."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9355,
+      "symbol": "CatalogPageContentSaveEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogPageContentSaveEvent.java",
+      "reason": "Custom catalog page editor packet is implemented by the companion Ducket client, outside the public Nitro protocol."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9357,
+      "symbol": "CatalogPageAssetUploadEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/catalog/catalogadmin/CatalogPageAssetUploadEvent.java",
+      "reason": "Custom catalog page editor packet is implemented by the companion Ducket client, outside the public Nitro protocol."
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 9358,
+      "symbol": "CatalogPageAssetUploadResultComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/catalog/catalogadmin/CatalogPageAssetUploadResultComposer.java",
+      "reason": "Custom catalog page editor packet is implemented by the companion Ducket client, outside the public Nitro protocol."
+    },
+    {
       "direction": "server_to_client",
       "side": "java",
       "header": 9450,
@@ -18378,6 +18957,46 @@
       "symbol": "CalendarEditorResultComposer",
       "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/events/calendar/CalendarEditorResultComposer.java",
       "reason": "Custom calendar editor result packet has no paired public Nitro protocol source."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9342,
+      "symbol": "ChestCommitDepositEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/rooms/items/ChestCommitDepositEvent.java",
+      "reason": "Polaris extension for quests and chest transactions; custom client integration, not a legacy Habbo packet."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9372,
+      "symbol": "WiredQuestRequestEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/quests/WiredQuestRequestEvent.java",
+      "reason": "Polaris extension for quests and chest transactions; custom client integration, not a legacy Habbo packet."
+    },
+    {
+      "direction": "client_to_server",
+      "side": "java",
+      "header": 9370,
+      "symbol": "WiredContractTransactionEvent",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/rooms/items/WiredContractTransactionEvent.java",
+      "reason": "Polaris extension for quests and chest transactions; custom client integration, not a legacy Habbo packet."
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 9373,
+      "symbol": "WiredQuestStateComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/quests/WiredQuestStateComposer.java",
+      "reason": "Polaris extension for quests and chest transactions; custom client integration, not a legacy Habbo packet."
+    },
+    {
+      "direction": "server_to_client",
+      "side": "java",
+      "header": 9343,
+      "symbol": "ChestDepositResultComposer",
+      "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/items/ChestDepositResultComposer.java",
+      "reason": "Polaris extension for quests and chest transactions; custom client integration, not a legacy Habbo packet."
     }
   ],
   "exemptions": [
@@ -24024,6 +24643,38 @@
         "path": "packages/communication/src/messages/parser/roomevents/WiredFurniCustomColorParser.ts"
       },
       "reason": "The packet dictionary-compresses repeated color values and indexes them from a variable update list, a dependent shape the static analyzer cannot currently model."
+    },
+    {
+      "name": "WIRED_USER_OPACITY",
+      "direction": "server_to_client",
+      "header": 5116,
+      "java": {
+        "symbol": "WiredUserOpacityComposer",
+        "className": "WiredUserOpacityComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/users/WiredUserOpacityComposer.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_USER_OPACITY",
+        "className": "WiredUserOpacityParser",
+        "path": "packages/communication/src/messages/parser/roomevents/WiredUserOpacityParser.ts"
+      },
+      "reason": "Room-scoped count-prefixed avatar opacity collection; dedicated composer/parser regression tests cover bounds and wire format."
+    },
+    {
+      "name": "WIRED_HIGHLIGHT",
+      "direction": "server_to_client",
+      "header": 5117,
+      "java": {
+        "symbol": "WiredHighlightComposer",
+        "className": "WiredHighlightComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/WiredHighlightComposer.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_HIGHLIGHT",
+        "className": "WiredHighlightParser",
+        "path": "packages/communication/src/messages/parser/roomevents/WiredHighlightParser.ts"
+      },
+      "reason": "Bounded room-scoped highlight collection; dedicated tests validate payload bounds, lifecycle and wire format."
     }
   ]
 }

@@ -1,9 +1,9 @@
 package com.eu.habbo.messages.incoming.rooms.users;
 
+import com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboClicksUser;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.users.Habbo;
-import com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboClicksUser;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.users.InClientLinkComposer;
@@ -30,6 +30,7 @@ public class ClickUserEvent extends MessageHandler {
             return;
         }
 
+        room.unIdle(this.client.getHabbo());
         WiredManager.triggerUserClicksUser(room, clickingUser, clickedHabbo.getRoomUnit());
 
         if (WiredTriggerHabboClicksUser.hasPendingIgnoreLook(clickingUser)) {

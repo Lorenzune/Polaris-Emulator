@@ -59,6 +59,23 @@ public class ChestStorage {
         public String userName;
         public int withdrawn;
         public int deposited;
+        public int[] furniTypeIds; // Optional native log filter; absent in legacy records.
+
+        public Integer currencyType;
+        public java.util.Map<Integer, Integer> furniQuantities;
+
+        public LogEntry withCurrency(int currency) {
+            this.currencyType = currency;
+            return this;
+        }
+
+        public void setFurniItems(java.util.stream.Stream<ChestFurniStoredItem> items) {
+            this.furniQuantities = new java.util.LinkedHashMap<>();
+            items.forEach(item -> this.furniQuantities.merge(item.wireTypeId(), 1, Integer::sum));
+            this.furniTypeIds = this.furniQuantities.keySet().stream()
+                    .mapToInt(Integer::intValue)
+                    .toArray();
+        }
 
         public LogEntry() {}
 
@@ -84,6 +101,7 @@ public class ChestStorage {
     private boolean locked = false;
     private boolean autoLock = false;
     private int capacityMax = DEFAULT_CAPACITY;
+    private Integer capacity;
     private int appearanceState = 0; // 0 = open when someone looks inside
     private boolean notifyFull = false;
     private boolean notifyDonation = false;
@@ -92,10 +110,21 @@ public class ChestStorage {
     private boolean notifyWired = false;
     private int notifyMode = 0; // 0 = always
 
-    public synchronized boolean isLocked() { return this.locked; }
-    public synchronized void setLocked(boolean locked) { this.locked = locked; }
-    public synchronized boolean isAutoLock() { return this.autoLock; }
-    public synchronized void setAutoLock(boolean autoLock) { this.autoLock = autoLock; }
+    public synchronized boolean isLocked() {
+        return this.locked;
+    }
+
+    public synchronized void setLocked(boolean locked) {
+        this.locked = locked;
+    }
+
+    public synchronized boolean isAutoLock() {
+        return this.autoLock;
+    }
+
+    public synchronized void setAutoLock(boolean autoLock) {
+        this.autoLock = autoLock;
+    }
 
     /** Defensive snapshot — safe to iterate off-thread; mutate the chest through the dedicated methods. */
     public synchronized List<Entry> entries() {
@@ -124,11 +153,27 @@ public class ChestStorage {
      * capacity, so a concurrent deposit can't push it over the limit. Atomic.
      */
     public synchronized boolean tryDepositFurni(ChestFurniStoredItem item) {
-        if (item == null || this.furniItems.size() >= this.getCapacityMax()) {
+        if (item == null || this.furniItems.size() >= this.getCapacity()) {
             return false;
         }
         this.addFurniItem(item);
         return true;
+    }
+
+    /** Removes actual stored instances in reward order, retaining limited and extra data. */
+    public synchronized List<ChestFurniStoredItem> removeFurniInOrder(int amount, int order) {
+        List<ChestFurniStoredItem> candidates = new ArrayList<>(this.furniItems);
+        if (order == 0) java.util.Collections.shuffle(candidates);
+        if (order == 2) java.util.Collections.reverse(candidates);
+        List<ChestFurniStoredItem> removed = new ArrayList<>();
+        for (ChestFurniStoredItem item : candidates) {
+            if (removed.size() >= Math.max(0, amount)) break;
+            if (this.furniItems.remove(item)) {
+                this.take(KIND_FURNI, item.baseItemId, 1);
+                removed.add(item);
+            }
+        }
+        return removed;
     }
 
     /** Remove every stored furni row and clear aggregate {@link #KIND_FURNI} entries. */
@@ -279,7 +324,7 @@ public class ChestStorage {
         if (amount <= 0) {
             return 0;
         }
-        int capacityLeft = this.getCapacityMax() - this.total(KIND_CURRENCY);
+        int capacityLeft = this.getCapacity() - this.total(KIND_CURRENCY);
         int accepted = Math.min(amount, capacityLeft);
         if (accepted <= 0) {
             return 0;
@@ -381,6 +426,14 @@ public class ChestStorage {
         return this.capacityMax <= 0 ? DEFAULT_CAPACITY : this.capacityMax;
     }
 
+    public synchronized int getCapacity() {
+        return this.capacity == null ? getCapacityMax() : Math.max(0, Math.min(getCapacityMax(), this.capacity));
+    }
+
+    public synchronized void setCapacity(int value) {
+        this.capacity = Math.max(0, Math.min(getCapacityMax(), value));
+    }
+
     public void setCapacityMax(int value) {
         this.capacityMax = Math.max(DEFAULT_CAPACITY, Math.min(MAX_CAPACITY, value));
     }
@@ -448,6 +501,9 @@ public class ChestStorage {
         data.accessOpen = this.accessOpen;
         data.accessDonate = this.accessDonate;
         data.capacityMax = this.capacityMax;
+        data.capacity = this.capacity;
+        data.locked = this.locked ? Boolean.TRUE : null;
+        data.autoLock = this.autoLock ? Boolean.TRUE : null;
         data.appearanceState = this.appearanceState;
         data.notifyFull = this.notifyFull;
         data.notifyDonation = this.notifyDonation;
@@ -482,6 +538,9 @@ public class ChestStorage {
                 chest.accessOpen = data.accessOpen;
                 chest.accessDonate = data.accessDonate;
                 chest.capacityMax = (data.capacityMax <= 0) ? DEFAULT_CAPACITY : data.capacityMax;
+                chest.capacity = data.capacity;
+                chest.locked = Boolean.TRUE.equals(data.locked);
+                chest.autoLock = Boolean.TRUE.equals(data.autoLock);
                 chest.appearanceState = data.appearanceState;
                 chest.notifyFull = data.notifyFull;
                 chest.notifyDonation = data.notifyDonation;
@@ -522,6 +581,9 @@ public class ChestStorage {
         boolean accessOpen = true;
         boolean accessDonate = false;
         int capacityMax = DEFAULT_CAPACITY;
+        Integer capacity;
+        Boolean locked;
+        Boolean autoLock;
         int appearanceState = 0;
         boolean notifyFull = false;
         boolean notifyDonation = false;

@@ -100,7 +100,11 @@ class WiredModernizationQualityGateTest {
         assertEquals(
                 Map.of(
                         "com/eu/habbo/habbohotel/rooms/WiredGravityService.java", 1,
-                        "com/eu/habbo/habbohotel/wired/core/WiredDelayedScheduler.java", 1,
+                        // Delayed effects and native signal frames share this bounded lifecycle owner.
+                        "com/eu/habbo/habbohotel/wired/core/WiredDelayedScheduler.java", 2,
+                        // The engine delegates continuations to the bounded, shutdown-owned scheduler.
+                        "com/eu/habbo/habbohotel/wired/core/WiredEngine.java", 1,
+                        "com/eu/habbo/habbohotel/wired/core/WiredSignalContinuationScheduler.java", 1,
                         "com/eu/habbo/habbohotel/wired/tick/WiredTickService.java", 1),
                 callsBySource,
                 "Every direct scheduler call needs an explicit bounded owner and lifecycle review");

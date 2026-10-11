@@ -10,6 +10,54 @@ import org.junit.jupiter.api.Test;
 class WiredRoomDiagnosticsTest {
 
     @Test
+    void acceptedSignalWaveChargesFullCostAndWaitsForNextWindowWithoutExecutionCapSpam() {
+        WiredRoomDiagnostics diagnostics = new WiredRoomDiagnostics(1000, 100, 100, 50, 150, 70, 5);
+        diagnostics.consumeSignalExecutionBudget(250, 1000L);
+        var snapshot = diagnostics.snapshot(0, 10, 0, 1000L);
+        assertEquals(250, snapshot.getUsageCurrentWindow());
+        assertEquals(
+                0,
+                logsByType(snapshot)
+                        .get(WiredRoomDiagnostics.Type.EXECUTION_CAP)
+                        .getCount());
+        assertEquals(900L, diagnostics.signalExecutionDelay(1100L));
+        assertEquals(0L, diagnostics.signalExecutionDelay(2000L));
+        assertEquals(0, diagnostics.snapshot(0, 10, 0, 2000L).getUsageCurrentWindow());
+    }
+
+    @Test
+    void historySurvivesLimitAndCounterReset() {
+        WiredRoomDiagnostics diagnostics = new WiredRoomDiagnostics(1_000, 100, 1, 50, 150, 70, 5);
+        for (int i = 0; i < 250; i++)
+            diagnostics.recordWiredLog("message " + i, 42, WiredRoomDiagnostics.Severity.INFO);
+        diagnostics.recordKilled(System.currentTimeMillis(), "system event", "fixture", 7);
+        diagnostics.clearLogs();
+        var history = diagnostics.snapshot(0, 10, 0, System.currentTimeMillis()).getHistory();
+        assertEquals(251, history.size());
+        assertEquals("system event", history.getFirst().getReason());
+        assertEquals("message 0", history.getLast().getReason());
+        assertEquals(WiredRoomDiagnostics.Severity.INFO, history.getLast().getSeverity());
+        assertEquals(42, history.getLast().getSourceId());
+    }
+
+    @Test
+    void clearingMonitorCountersKeepsRoomHistory() {
+        WiredRoomDiagnostics diagnostics = new WiredRoomDiagnostics(1_000, 100, 1, 50, 150, 70, 5);
+
+        diagnostics.recordKilled(1_000L, "first event", "fixture", 7);
+        diagnostics.clearLogs();
+
+        WiredRoomDiagnostics.Snapshot snapshot = diagnostics.snapshot(0, 10, 0L, 1_001L);
+        assertEquals(
+                0, logsByType(snapshot).get(WiredRoomDiagnostics.Type.KILLED).getCount());
+        assertEquals(1, snapshot.getHistory().size());
+        assertEquals("first event", snapshot.getHistory().get(0).getReason());
+
+        diagnostics.recordKilled(1_002L, "second event", "fixture", 7);
+        assertEquals(2, diagnostics.snapshot(0, 10, 0L, 1_003L).getHistory().size());
+    }
+
+    @Test
     void rejectedDelayedAdmissionRollsBackAndRecoversAfterAcceptedWorkCompletes() {
         WiredRoomDiagnostics diagnostics = new WiredRoomDiagnostics(1_000, 100, 1, 50, 150, 70, 5);
 

@@ -1,14 +1,13 @@
 package com.eu.habbo.messages.outgoing.rooms.users;
 
-import com.eu.habbo.habbohotel.wired.core.WiredMoveCarryHelper;
-import com.eu.habbo.habbohotel.wired.core.WiredUserMovementHelper;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.rooms.RoomUnitStatus;
 import com.eu.habbo.habbohotel.users.Habbo;
+import com.eu.habbo.habbohotel.wired.core.WiredMoveCarryHelper;
+import com.eu.habbo.habbohotel.wired.core.WiredUserMovementHelper;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -19,6 +18,7 @@ public class RoomUserStatusComposer extends MessageComposer {
     private Collection<Habbo> habbos;
     private Collection<RoomUnit> roomUnits;
     private double overrideZ = -1;
+    private boolean currentStateSnapshot;
 
     public RoomUserStatusComposer(RoomUnit roomUnit) {
         this.roomUnits = Collections.singletonList(roomUnit);
@@ -27,6 +27,12 @@ public class RoomUserStatusComposer extends MessageComposer {
     public RoomUserStatusComposer(RoomUnit roomUnit, double overrideZ) {
         this(roomUnit);
         this.overrideZ = overrideZ;
+    }
+
+    public static RoomUserStatusComposer currentStateSnapshot(RoomUnit roomUnit) {
+        RoomUserStatusComposer composer = new RoomUserStatusComposer(roomUnit);
+        composer.currentStateSnapshot = true;
+        return composer;
     }
 
     public RoomUserStatusComposer(Collection<RoomUnit> roomUnits, boolean value) {
@@ -45,8 +51,9 @@ public class RoomUserStatusComposer extends MessageComposer {
 
             for (RoomUnit roomUnit : this.roomUnits) {
                 if (roomUnit == null
-                        || WiredMoveCarryHelper.shouldSuppressStatusComposer(roomUnit)
-                        || WiredUserMovementHelper.shouldSuppressStatusComposer(roomUnit)) {
+                        || (!this.currentStateSnapshot
+                                && (WiredMoveCarryHelper.shouldSuppressStatusComposer(roomUnit)
+                                        || WiredUserMovementHelper.shouldSuppressStatusComposer(roomUnit)))) {
                     continue;
                 }
 
@@ -56,21 +63,35 @@ public class RoomUserStatusComposer extends MessageComposer {
             this.response.appendInt(roomUnits.size());
             for (RoomUnit roomUnit : roomUnits) {
                 this.response.appendInt(roomUnit.getId());
-                this.response.appendInt(roomUnit.getPreviousLocation().x);
-                this.response.appendInt(roomUnit.getPreviousLocation().y);
-                this.response.appendString((this.overrideZ != -1 ? this.overrideZ : roomUnit.getPreviousLocationZ()) + "");
-
+                var location =
+                        this.currentStateSnapshot ? roomUnit.getCurrentLocation() : roomUnit.getPreviousLocation();
+                this.response.appendInt(location.x);
+                this.response.appendInt(location.y);
+                this.response.appendString((this.overrideZ != -1
+                                ? this.overrideZ
+                                : (this.currentStateSnapshot ? roomUnit.getZ() : roomUnit.getPreviousLocationZ()))
+                        + "");
 
                 this.response.appendInt(roomUnit.getHeadRotation().getValue());
                 this.response.appendInt(roomUnit.getBodyRotation().getValue());
 
                 StringBuilder status = new StringBuilder("/");
-                for (Map.Entry<RoomUnitStatus, String> entry : roomUnit.getStatusMap().entrySet()) {
-                    status.append(entry.getKey()).append(" ").append(entry.getValue()).append("/");
+                for (Map.Entry<RoomUnitStatus, String> entry :
+                        roomUnit.getStatusMap().entrySet()) {
+                    if (this.currentStateSnapshot && entry.getKey() == RoomUnitStatus.MOVE) {
+                        continue;
+                    }
+
+                    status.append(entry.getKey())
+                            .append(" ")
+                            .append(entry.getValue())
+                            .append("/");
                 }
 
                 this.response.appendString(status.toString());
-                roomUnit.setPreviousLocation(roomUnit.getCurrentLocation());
+                if (!this.currentStateSnapshot) {
+                    roomUnit.setPreviousLocation(roomUnit.getCurrentLocation());
+                }
             }
         } else {
             synchronized (this.habbos) {
@@ -94,14 +115,19 @@ public class RoomUserStatusComposer extends MessageComposer {
                     this.response.appendInt(habbo.getRoomUnit().getPreviousLocation().y);
                     this.response.appendString(habbo.getRoomUnit().getPreviousLocationZ() + "");
 
-
-                    this.response.appendInt(habbo.getRoomUnit().getHeadRotation().getValue());
-                    this.response.appendInt(habbo.getRoomUnit().getBodyRotation().getValue());
+                    this.response.appendInt(
+                            habbo.getRoomUnit().getHeadRotation().getValue());
+                    this.response.appendInt(
+                            habbo.getRoomUnit().getBodyRotation().getValue());
 
                     StringBuilder status = new StringBuilder("/");
 
-                    for (Map.Entry<RoomUnitStatus, String> entry : habbo.getRoomUnit().getStatusMap().entrySet()) {
-                        status.append(entry.getKey()).append(" ").append(entry.getValue()).append("/");
+                    for (Map.Entry<RoomUnitStatus, String> entry :
+                            habbo.getRoomUnit().getStatusMap().entrySet()) {
+                        status.append(entry.getKey())
+                                .append(" ")
+                                .append(entry.getValue())
+                                .append("/");
                     }
                     this.response.appendString(status.toString());
                     habbo.getRoomUnit().setPreviousLocation(habbo.getRoomUnit().getCurrentLocation());

@@ -4,6 +4,7 @@ import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeTimerSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
@@ -35,8 +36,7 @@ public class WiredEffectResetTimers extends InteractionWiredEffect {
         message.appendInt(this.getBaseItem().getSpriteId());
         message.appendInt(this.getId());
         message.appendString("");
-        message.appendInt(1);
-        message.appendInt(this.getDelay());
+        message.appendInt(0);
         message.appendInt(0);
         message.appendInt(this.getType().code);
         message.appendInt(this.getDelay());
@@ -59,6 +59,10 @@ public class WiredEffectResetTimers extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
+        settings = WiredNativeTimerSettings.normalize(this, settings);
+        if (settings.getDelay() < 0
+                || settings.getDelay() > com.eu.habbo.Emulator.getConfig().getInt("hotel.wired.max_delay", 20))
+            return false;
         this.setDelay(settings.getDelay());
         return true;
     }

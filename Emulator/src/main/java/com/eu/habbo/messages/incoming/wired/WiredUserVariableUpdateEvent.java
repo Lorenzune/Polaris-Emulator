@@ -25,6 +25,12 @@ public class WiredUserVariableUpdateEvent extends MessageHandler {
 
     @Override
     public void handle() throws Exception {
+        try (var ignored = com.eu.habbo.habbohotel.wired.core.WiredVariableChangeOrigin.begin(4)) {
+            handleInspection();
+        }
+    }
+
+    private void handleInspection() throws Exception {
         Room room = currentRoom();
 
         if (room == null) {
@@ -52,7 +58,9 @@ public class WiredUserVariableUpdateEvent extends MessageHandler {
             if (targetType == TARGET_USER) {
                 RoomUnit roomUnit = resolveRoomUnit(room, targetId);
 
-                if (WiredUserInspectMovePolicy.canMove(room, this.client.getHabbo(), roomUnit)) {
+                if (roomUnit != null
+                        && ("@opacity".equals(internalKey)
+                                || WiredUserInspectMovePolicy.canMove(room, this.client.getHabbo(), roomUnit))) {
                     WiredInternalVariableSupport.writeUserValue(room, roomUnit, internalKey, value);
                 }
             } else {
@@ -92,7 +100,7 @@ public class WiredUserVariableUpdateEvent extends MessageHandler {
     }
 
     private RoomUnit resolveRoomUnit(Room room, int roomUnitId) {
-        if (room == null || roomUnitId <= 0) {
+        if (room == null || roomUnitId < 0) {
             return null;
         }
 
@@ -112,6 +120,7 @@ public class WiredUserVariableUpdateEvent extends MessageHandler {
                 case INTERNAL_USER_POSITION_X -> "@position_x";
                 case INTERNAL_USER_POSITION_Y -> "@position_y";
                 case INTERNAL_USER_DIRECTION -> "@direction";
+                case -1016 -> "@opacity";
                 default -> null;
             };
         }

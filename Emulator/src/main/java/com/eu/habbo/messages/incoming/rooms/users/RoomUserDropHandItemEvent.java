@@ -15,9 +15,11 @@ public class RoomUserDropHandItemEvent extends MessageHandler {
         }
 
         this.client.getHabbo().getRoomUnit().setHandItem(0);
+        this.client.getHabbo().setRetainedHandItem(0);
         if (room != null) {
             room.unIdle(this.client.getHabbo());
-            room.sendComposer(new RoomUserHandItemComposer(this.client.getHabbo().getRoomUnit()).compose());
+            room.sendComposer(
+                    new RoomUserHandItemComposer(this.client.getHabbo().getRoomUnit()).compose());
         }
     }
 }

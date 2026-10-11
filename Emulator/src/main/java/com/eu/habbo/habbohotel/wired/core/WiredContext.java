@@ -43,6 +43,24 @@ import java.util.Optional;
  * @see WiredTargets
  */
 public final class WiredContext {
+    private boolean resolvingSelectors;
+
+    public boolean isResolvingSelectors() {
+        return resolvingSelectors;
+    }
+
+    public void setResolvingSelectors(boolean value) {
+        resolvingSelectors = value;
+    }
+
+    WiredContext selectorContext(HabboItem item, boolean keepStack) {
+        var context = new WiredContext(event, item, keepStack ? stack : null, services, state, legacySettings);
+        context.activeActor = activeActor;
+        context.contextVariables = contextVariables.copy();
+        context.setIncludeWiredSelectorItems(includeWiredSelectorItems());
+        context.resolvingSelectors = true;
+        return context;
+    }
 
     private final WiredEvent event;
     private final WiredServices services;

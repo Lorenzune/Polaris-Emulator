@@ -1,9 +1,6 @@
 package com.eu.habbo.core;
 
 import com.eu.habbo.Emulator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -12,6 +9,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DatabaseLogger {
 
@@ -23,7 +22,7 @@ public class DatabaseLogger {
         this.loggables.add(loggable);
     }
 
-    public void save() {
+    public synchronized void save() {
         if (Emulator.getDatabase() == null || Emulator.getDatabase().getDataSource() == null) {
             return;
         }
@@ -60,13 +59,15 @@ public class DatabaseLogger {
                     statement.executeBatch();
                 } catch (SQLException e) {
                     // One bad group shouldn't prevent other groups from flushing.
-                    LOGGER.error("Exception caught while saving loggable group of size {}: {}",
-                            entries.size(), group.getKey(), e);
+                    LOGGER.error(
+                            "Exception caught while saving loggable group of size {}: {}",
+                            entries.size(),
+                            group.getKey(),
+                            e);
                 }
             }
         } catch (SQLException e) {
             LOGGER.error("Exception caught while saving loggables to database.", e);
         }
     }
-
 }

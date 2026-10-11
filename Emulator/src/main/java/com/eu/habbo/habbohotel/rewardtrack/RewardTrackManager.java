@@ -546,7 +546,7 @@ public class RewardTrackManager {
                     task.addProperty("progress", currentProgress);
                     task.addProperty("target", firstLevelTarget(levels));
                     task.addProperty("points", firstLevelPoints(levels));
-                    task.addProperty("complete", firstLevelComplete(levels));
+                    task.addProperty("complete", allLevelsComplete(levels));
                     task.add("levels", levels);
                     tasks.add(task);
                 }
@@ -885,7 +885,10 @@ public class RewardTrackManager {
     private static int completedTaskCount(JsonArray tasks) {
         int count = 0;
         for (int index = 0; index < tasks.size(); index++) {
-            if (tasks.get(index).getAsJsonObject().get("complete").getAsBoolean()) count++;
+            JsonArray levels = tasks.get(index).getAsJsonObject().getAsJsonArray("levels");
+            for (int levelIndex = 0; levelIndex < levels.size(); levelIndex++) {
+                if (levels.get(levelIndex).getAsJsonObject().get("complete").getAsBoolean()) count++;
+            }
         }
         return count;
     }
@@ -906,9 +909,14 @@ public class RewardTrackManager {
         return levels.size() > 0 ? levels.get(0).getAsJsonObject().get("points").getAsInt() : 10;
     }
 
-    private static boolean firstLevelComplete(JsonArray levels) {
-        return levels.size() > 0
-                && levels.get(0).getAsJsonObject().get("complete").getAsBoolean();
+    private static boolean allLevelsComplete(JsonArray levels) {
+        if (levels.size() == 0) return false;
+
+        for (int index = 0; index < levels.size(); index++) {
+            if (!levels.get(index).getAsJsonObject().get("complete").getAsBoolean()) return false;
+        }
+
+        return true;
     }
 
     private static Track mapTrack(ResultSet set) throws SQLException {

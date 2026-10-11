@@ -11,7 +11,6 @@ import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedHashSet;
@@ -63,13 +62,15 @@ public class WiredEffectUsersByName extends InteractionWiredEffect {
                 .filter(habbo -> habbo != null && habbo.getRoomUnit() != null)
                 .map(Habbo::getRoomUnit)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        result = this.applySelectorModifiers(result, availableUsers, ctx.targets().users(), this.filterExisting, this.invert);
+        result = this.applySelectorModifiers(
+                result, availableUsers, ctx.targets().users(), this.filterExisting, this.invert);
 
         ctx.targets().setUsers(result);
     }
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
+        settings = WiredNativeSelectorSettings.normalize(this, settings);
         int[] params = settings.getIntParams();
 
         this.namesText = this.normalizeNamesText(settings.getStringParam());
@@ -97,7 +98,8 @@ public class WiredEffectUsersByName extends InteractionWiredEffect {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(this.namesText, this.filterExisting, this.invert, this.getDelay()));
+        return WiredManager.getGson()
+                .toJson(new JsonData(this.namesText, this.filterExisting, this.invert, this.getDelay()));
     }
 
     @Override

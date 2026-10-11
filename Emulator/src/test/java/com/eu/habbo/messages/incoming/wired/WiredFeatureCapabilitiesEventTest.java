@@ -26,6 +26,15 @@ import org.junit.jupiter.api.Test;
 class WiredFeatureCapabilitiesEventTest {
 
     @Test
+    void remembersColorSupportBeforeRoomEntryCompletes() throws Exception {
+        Fixture fixture = fixture();
+        when(fixture.client.getHabbo().getHabboInfo().getCurrentRoom()).thenReturn(null);
+        event(fixture, 3, GameClient.WIRED_FEATURE_CUSTOM_COLOR).handle();
+        assertEquals(true, fixture.client.supportsWiredFeature(3, GameClient.WIRED_FEATURE_CUSTOM_COLOR));
+        verify(fixture.client, never()).sendResponse(any(MessageComposer.class));
+    }
+
+    @Test
     void supportedClientReceivesItsAuthoritativeRoomSnapshot() throws Exception {
         Fixture fixture = fixture();
         when(fixture.runtime.opacitySnapshot(77)).thenReturn(List.of(new WiredOpacityState(901, false, 35, true)));
@@ -71,6 +80,15 @@ class WiredFeatureCapabilitiesEventTest {
 
         verify(fixture.client, never()).setWiredFeatureCapabilities(1, 0);
         verify(fixture.runtime, never()).opacitySnapshot(anyInt());
+    }
+
+    @Test
+    void roomInitializationResendsActiveHighlights() throws Exception {
+        Fixture fixture = fixture();
+        when(fixture.runtime.highlightSnapshot())
+                .thenReturn(List.of(new com.eu.habbo.habbohotel.rooms.WiredHighlightState(10, 901, 4, 0xff5500)));
+        event(fixture, 3, 0).handle();
+        verify(fixture.client).sendResponse(any(com.eu.habbo.messages.outgoing.rooms.WiredHighlightComposer.class));
     }
 
     private static WiredFeatureCapabilitiesEvent event(Fixture fixture, int version, int capabilities) {

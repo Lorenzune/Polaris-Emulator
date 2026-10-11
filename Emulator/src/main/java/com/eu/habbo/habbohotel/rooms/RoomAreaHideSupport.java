@@ -9,7 +9,6 @@ import com.eu.habbo.messages.outgoing.rooms.items.AddWallItemComposer;
 import com.eu.habbo.messages.outgoing.rooms.items.AreaHideComposer;
 import com.eu.habbo.messages.outgoing.rooms.items.RemoveFloorItemComposer;
 import com.eu.habbo.messages.outgoing.rooms.items.RemoveWallItemComposer;
-
 import java.awt.Rectangle;
 import java.util.HashSet;
 import java.util.Map;
@@ -19,17 +18,43 @@ import java.util.WeakHashMap;
 public final class RoomAreaHideSupport {
     private static final Map<Room, HiddenItems> HIDDEN_ITEMS_BY_ROOM = new WeakHashMap<>();
 
-    private RoomAreaHideSupport() {
-    }
+    private RoomAreaHideSupport() {}
 
     public static boolean isControllerItem(HabboItem item) {
         return item instanceof InteractionAreaHideControl
-            || hasInteractionName(item, "wf_conf_area_hide")
-            || hasInteractionName(item, "conf_area_hide");
+                || hasInteractionName(item, "wf_conf_area_hide")
+                || hasInteractionName(item, "conf_area_hide");
+    }
+
+    static boolean isRoomVisibilityController(HabboItem item) {
+        return isControllerItem(item) || RoomConfInvisSupport.isControllerItem(item);
     }
 
     public static boolean isControllerActive(HabboItem item) {
         return isControllerItem(item) && getState(item) == 1;
+    }
+
+    public static boolean isTileHidden(Room room, int x, int y) {
+        if (room == null) {
+            return false;
+        }
+
+        for (HabboItem controller : room.getFloorItems()) {
+            if (!isControllerActive(controller) || getWidth(controller) <= 0 || getLength(controller) <= 0) {
+                continue;
+            }
+
+            boolean insideArea = x >= getRootX(controller)
+                    && x < getRootX(controller) + getWidth(controller)
+                    && y >= getRootY(controller)
+                    && y < getRootY(controller) + getLength(controller);
+
+            if (isInverted(controller) ? !insideArea : insideArea) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static int getState(HabboItem item) {
@@ -162,7 +187,7 @@ public final class RoomAreaHideSupport {
         if (!isFloorItem(item)
                 || controller == null
                 || item == controller
-                || isControllerItem(item)
+                || isRoomVisibilityController(item)
                 || !isControllerActive(controller)
                 || getWidth(controller) <= 0
                 || getLength(controller) <= 0) {
@@ -170,18 +195,13 @@ public final class RoomAreaHideSupport {
         }
 
         Rectangle itemBounds = RoomLayout.getRectangle(
-            item.getX(),
-            item.getY(),
-            item.getBaseItem().getWidth(),
-            item.getBaseItem().getLength(),
-            item.getRotation()
-        );
-        Rectangle hiddenArea = new Rectangle(
-            getRootX(controller),
-            getRootY(controller),
-            getWidth(controller),
-            getLength(controller)
-        );
+                item.getX(),
+                item.getY(),
+                item.getBaseItem().getWidth(),
+                item.getBaseItem().getLength(),
+                item.getRotation());
+        Rectangle hiddenArea =
+                new Rectangle(getRootX(controller), getRootY(controller), getWidth(controller), getLength(controller));
         boolean intersects = itemBounds.intersects(hiddenArea);
 
         return isInverted(controller) ? !intersects : intersects;
@@ -189,15 +209,13 @@ public final class RoomAreaHideSupport {
 
     static boolean shouldHideWallItem(HabboItem item, HabboItem controller) {
         return isWallItem(item)
-            && controller != null
-            && isControllerActive(controller)
-            && includesWallItems(controller);
+                && controller != null
+                && isControllerActive(controller)
+                && includesWallItems(controller);
     }
 
     static boolean shouldHideController(HabboItem item, boolean confInvisControlActive) {
-        return isControllerItem(item)
-            && isInvisibilityEnabled(item)
-            && confInvisControlActive;
+        return isControllerItem(item) && isInvisibilityEnabled(item) && confInvisControlActive;
     }
 
     private static HiddenItems calculateHiddenItems(Room room) {
@@ -224,13 +242,15 @@ public final class RoomAreaHideSupport {
 
         for (HabboItem item : room.getFloorItems()) {
             if (shouldHideController(item, confInvisControlActive)) {
-                hiddenFloorItemIds.add(item.getId());
+                // Keep hidden controllers in the room object collection so :furni can still list them.
                 continue;
             }
 
             for (HabboItem controller : controllers) {
                 if (shouldHideFloorItem(item, controller)) {
-                    hiddenFloorItemIds.add(item.getId());
+                    if (!isRoomVisibilityController(item)) {
+                        hiddenFloorItemIds.add(item.getId());
+                    }
                     break;
                 }
             }
@@ -255,15 +275,11 @@ public final class RoomAreaHideSupport {
     }
 
     private static boolean isFloorItem(HabboItem item) {
-        return item != null
-            && item.getBaseItem() != null
-            && item.getBaseItem().getType() == FurnitureType.FLOOR;
+        return item != null && item.getBaseItem() != null && item.getBaseItem().getType() == FurnitureType.FLOOR;
     }
 
     private static boolean isWallItem(HabboItem item) {
-        return item != null
-            && item.getBaseItem() != null
-            && item.getBaseItem().getType() == FurnitureType.WALL;
+        return item != null && item.getBaseItem() != null && item.getBaseItem().getType() == FurnitureType.WALL;
     }
 
     private static String getOwnerName(Room room, HabboItem item) {
@@ -292,11 +308,11 @@ public final class RoomAreaHideSupport {
 
     private static boolean hasInteractionName(HabboItem item, String interactionName) {
         return item != null
-            && item.getBaseItem() != null
-            && item.getBaseItem().getType() == FurnitureType.FLOOR
-            && item.getBaseItem().getInteractionType() != null
-            && item.getBaseItem().getInteractionType().getName() != null
-            && item.getBaseItem().getInteractionType().getName().equalsIgnoreCase(interactionName);
+                && item.getBaseItem() != null
+                && item.getBaseItem().getType() == FurnitureType.FLOOR
+                && item.getBaseItem().getInteractionType() != null
+                && item.getBaseItem().getInteractionType().getName() != null
+                && item.getBaseItem().getInteractionType().getName().equalsIgnoreCase(interactionName);
     }
 
     private record HiddenItems(Set<Integer> floorItemIds, Set<Integer> wallItemIds) {

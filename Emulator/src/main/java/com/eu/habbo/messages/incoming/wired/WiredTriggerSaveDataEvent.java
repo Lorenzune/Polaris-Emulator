@@ -43,7 +43,7 @@ public class WiredTriggerSaveDataEvent extends MessageHandler {
                             this.client.sendResponse(
                                     new UpdateFailedComposer("There was an error while saving that trigger"));
                         }
-                    } catch (WiredTriggerSaveException e) {
+                    } catch (WiredTriggerSaveException | IllegalArgumentException e) {
                         this.client.sendResponse(new UpdateFailedComposer(e.getMessage()));
                     }
                 }

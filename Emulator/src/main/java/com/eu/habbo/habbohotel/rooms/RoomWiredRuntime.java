@@ -18,7 +18,51 @@ public final class RoomWiredRuntime {
     private static final Logger LOGGER = LoggerFactory.getLogger(RoomWiredRuntime.class);
 
     private final Room room;
+    private final Map<String, WiredHighlightState> highlights = new HashMap<>();
+
+    private boolean currentHighlight(WiredHighlightState state) {
+        if (state.category() == 100)
+            return room.getRoomUnits().stream().anyMatch(unit -> unit.getId() == state.id() && !unit.isInvisible());
+        HabboItem item = room.getHabboItem(state.id());
+        return item != null
+                && item.getRoomId() == room.getId()
+                && (item.getBaseItem().getType() == com.eu.habbo.habbohotel.items.FurnitureType.WALL ? 20 : 10)
+                        == state.category();
+    }
+
+    public synchronized void applyHighlights(List<WiredHighlightState> requested) {
+        highlights.values().removeIf(state -> !currentHighlight(state));
+        Map<String, WiredHighlightState> applied = new java.util.LinkedHashMap<>();
+        for (var state : requested) {
+            if (!currentHighlight(state)) continue;
+            String key = state.category() + ":" + state.id();
+            if (state.style() == 0) highlights.remove(key);
+            else if (highlights.containsKey(key) || highlights.size() < 512) highlights.put(key, state);
+            else continue;
+            applied.put(key, state);
+            if (applied.size() >= 512) break;
+        }
+        if (!applied.isEmpty())
+            room.sendComposer(new com.eu.habbo.messages.outgoing.rooms.WiredHighlightComposer(
+                            room.getId(), List.copyOf(applied.values()))
+                    .compose());
+    }
+
+    public synchronized List<WiredHighlightState> highlightSnapshot() {
+        highlights.values().removeIf(state -> !currentHighlight(state));
+        return List.copyOf(highlights.values());
+    }
+
+    private final com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor variableMonitor =
+            new com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor();
+
+    public com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor getVariableMonitor() {
+        return variableMonitor;
+    }
+
     private final AtomicLong cacheGeneration = new AtomicLong();
+    private long blockColorWindow;
+    private int blockColorsInWindow;
     private final WiredGravityService gravity;
     private final WiredOpacityService opacity;
     private final RoomOpacityPersistence visualStatePersistence;
@@ -61,11 +105,21 @@ public final class RoomWiredRuntime {
         return this.gravity.isEnabled(item);
     }
 
+    /** Schedule a projectile sample through the room-owned runtime. */
+    public void scheduleProjectileUpdate(Runnable sample, int delayMs) {
+        this.room.threading().run(sample, Math.max(1, delayMs));
+    }
+
     public void markFurnitureMoving(HabboItem item, int durationMs) {
         this.gravity.markMoving(item, durationMs);
     }
 
     void onFurnitureTopologyChanged(HabboItem item, boolean moved) {
+        if (moved) {
+            com.eu.habbo.habbohotel.wired.core.WiredProjectileSupport.cancelItem(this.room, item);
+            if (item instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraProjectile projectile)
+                com.eu.habbo.habbohotel.wired.core.WiredProjectileSupport.cancelExtra(projectile);
+        }
         if (moved && item instanceof InteractionWired) {
             advanceCacheGeneration();
         }
@@ -94,6 +148,31 @@ public final class RoomWiredRuntime {
 
     public List<WiredOpacityState> opacitySnapshot(int userId) {
         return this.opacity.snapshot(userId);
+    }
+
+    /** Modern block RGB shared by the palette and Octane's color variables. */
+    public int buildersBlockColor(HabboItem item) {
+        return BuildersClubRecolorService.colorValue(
+                item == null ? null : this.opacity.globalCustomColor(item.getId()));
+    }
+
+    /** Room-owned admission bound; persistence uses the existing asynchronous visual-state queue. */
+    public synchronized boolean writeBuildersBlockColor(HabboItem item, String key, int value) {
+        if (!BuildersClubPalette.hasColor(item)
+                || !BuildersClubPalette.validValue(key, value)
+                || !item.isBuildersClubItem()
+                || this.room.getHabboItem(item.getId()) != item) return false;
+        long now = System.nanoTime();
+        if (blockColorWindow == 0L || now - blockColorWindow >= 1_000_000_000L) {
+            blockColorWindow = now;
+            blockColorsInWindow = 0;
+        }
+        if (blockColorsInWindow >= 100) return false;
+        blockColorsInWindow++;
+        int rgb = BuildersClubPalette.withComponent(buildersBlockColor(item), key, value);
+        return !setGlobalCustomColorForItems(
+                        this.room, List.of(item), BuildersClubRecolorService.colorConfiguration(rgb))
+                .isEmpty();
     }
 
     /** Room-wide opacity for one item, ignoring per-user overlays. Used by the {@code @opacity} variable. */
@@ -248,7 +327,43 @@ public final class RoomWiredRuntime {
         return this.opacity.customColorSnapshot();
     }
 
+    /** Additive BC palette path; existing WIRED mutations retain their established behavior. */
+    public boolean setBuildersBlockColor(Collection<HabboItem> items, String customColor) throws SQLException {
+        String normalized = WiredFurnitureCustomColor.normalize(customColor);
+        Set<Integer> ids = items.stream().map(HabboItem::getId).collect(java.util.stream.Collectors.toSet());
+        List<WiredOpacityState> applied;
+        synchronized (this.opacity) {
+            var previous = this.opacity.createSnapshot(ids);
+            applied = this.opacity.applyGlobalCustomColor(items, normalized);
+            if (applied.size() != ids.size()) {
+                this.opacity.restoreSnapshot(previous, ids);
+                return false;
+            }
+            try {
+                this.visualStatePersistence.saveBuildersBlockColors(
+                        applied,
+                        items.stream()
+                                .collect(java.util.stream.Collectors.toMap(
+                                        HabboItem::getId,
+                                        item -> item.getBaseItem().getId())));
+            } catch (SQLException | RuntimeException failure) {
+                this.opacity.restoreSnapshot(previous, ids);
+                throw failure;
+            }
+        }
+        WiredFurniCustomColorBroadcaster.broadcast(this.room, applied);
+        return true;
+    }
+
+    public synchronized void forgetHighlight(int category, int id) {
+        highlights.remove(category + ":" + id);
+    }
+
     void forgetOpacity(HabboItem item) {
+        if (item != null) {
+            forgetHighlight(10, item.getId());
+            forgetHighlight(20, item.getId());
+        }
         this.opacity.forgetItem(item);
     }
 
@@ -257,11 +372,14 @@ public final class RoomWiredRuntime {
     }
 
     void dispose() {
+        highlights.clear();
+        variableMonitor.clear();
         this.gravity.dispose();
         this.opacity.dispose();
     }
 
     void resetForRoomLoad() {
+        highlights.clear();
         this.gravity.dispose();
         this.opacity.resetForRoomLoad();
     }

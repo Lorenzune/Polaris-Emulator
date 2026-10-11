@@ -3,12 +3,12 @@ package com.eu.habbo.habbohotel.wired.core;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraFurniVariable;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraRoomVariable;
+import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraTimeUtilities;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraUserVariable;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableLevelUpSystem;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraVariableReference;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.WiredVariableDefinitionInfo;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,15 +27,15 @@ public final class WiredVariableLevelSystemSupport {
     private static final int SYNTHETIC_ROOM_OFFSET = 900_000_000;
     private static final int SYNTHETIC_STRIDE = 16;
 
-    private WiredVariableLevelSystemSupport() {
-    }
+    private WiredVariableLevelSystemSupport() {}
 
     public static WiredExtraVariableLevelUpSystem getLevelSystem(Room room, InteractionWiredExtra definition) {
         if (room == null || definition == null || room.getRoomSpecialTypes() == null) {
             return null;
         }
 
-        Collection<InteractionWiredExtra> extras = room.getRoomSpecialTypes().getExtras(definition.getX(), definition.getY());
+        Collection<InteractionWiredExtra> extras =
+                room.getRoomSpecialTypes().getExtras(definition.getX(), definition.getY());
         if (extras == null || extras.isEmpty()) {
             return null;
         }
@@ -58,12 +58,15 @@ public final class WiredVariableLevelSystemSupport {
             return null;
         }
 
-        Collection<InteractionWiredExtra> extras = room.getRoomSpecialTypes().getExtras(definition.getX(), definition.getY());
+        Collection<InteractionWiredExtra> extras =
+                room.getRoomSpecialTypes().getExtras(definition.getX(), definition.getY());
         if (extras == null || extras.isEmpty()) {
             return null;
         }
 
         for (InteractionWiredExtra extra : WiredExecutionOrderUtil.sort(extras)) {
+            if (extra instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraQuestBase quest
+                    && quest.isNativeConfiguration()) continue;
             if (extra instanceof WiredExtraVariableLevelUpSystem || extra instanceof WiredDerivedVariableBox) {
                 return extra;
             }
@@ -89,30 +92,39 @@ public final class WiredVariableLevelSystemSupport {
         return getSubvariableKey(subType);
     }
 
-    public static List<WiredVariableDefinitionInfo> getDerivedDefinitions(Room room, int targetType, InteractionWiredExtra definitionExtra, WiredVariableDefinitionInfo baseDefinition) {
-        if (room == null || definitionExtra == null || baseDefinition == null || !baseDefinition.hasValue()) {
+    public static List<WiredVariableDefinitionInfo> getDerivedDefinitions(
+            Room room,
+            int targetType,
+            InteractionWiredExtra definitionExtra,
+            WiredVariableDefinitionInfo baseDefinition) {
+        if (room == null || definitionExtra == null || baseDefinition == null) {
             return Collections.emptyList();
         }
 
         InteractionWiredExtra box = getDerivedBox(room, definitionExtra);
-        if (box == null) {
+        if (box == null
+                || (!baseDefinition.hasValue()
+                        && (!(box instanceof WiredExtraTimeUtilities time) || time.getSourceMode() == 0))) {
             return Collections.emptyList();
         }
 
         List<WiredVariableDefinitionInfo> result = new ArrayList<>();
 
         for (int subvariableType : boxSubvariables(box)) {
+            if (box instanceof WiredExtraTimeUtilities && baseDefinition.getItemId() >= 9_375_000) continue;
             result.add(new WiredVariableDefinitionInfo(
-                createSyntheticItemId(targetType, baseDefinition.getItemId(), subvariableType),
-                baseDefinition.getName() + "." + boxSubvariableKey(box, subvariableType),
-                true,
-                baseDefinition.getAvailability(),
-                false,
-                true
-            ));
+                    box instanceof WiredExtraTimeUtilities
+                            ? createTimeSyntheticItemId(targetType, baseDefinition.getItemId(), subvariableType)
+                            : createSyntheticItemId(targetType, baseDefinition.getItemId(), subvariableType),
+                    baseDefinition.getName() + "." + boxSubvariableKey(box, subvariableType),
+                    true,
+                    baseDefinition.getAvailability(),
+                    false,
+                    true));
         }
 
-        result.sort(Comparator.comparing(WiredVariableDefinitionInfo::getName, String.CASE_INSENSITIVE_ORDER).thenComparingInt(WiredVariableDefinitionInfo::getItemId));
+        result.sort(Comparator.comparing(WiredVariableDefinitionInfo::getName, String.CASE_INSENSITIVE_ORDER)
+                .thenComparingInt(WiredVariableDefinitionInfo::getItemId));
         return result;
     }
 
@@ -124,17 +136,29 @@ public final class WiredVariableLevelSystemSupport {
         }
 
         return new WiredVariableDefinitionInfo(
-            derived.syntheticItemId,
-            derived.variableName,
-            true,
-            derived.baseDefinition.getAvailability(),
-            false,
-            true
-        );
+                derived.syntheticItemId,
+                derived.variableName,
+                true,
+                derived.baseDefinition.getAvailability(),
+                false,
+                true);
     }
 
     public static DerivedDefinition resolveDerivedDefinition(Room room, int targetType, int syntheticItemId) {
-        DecodedSyntheticId decoded = decodeSyntheticId(syntheticItemId);
+        // Preserve legacy room IDs even if a large item ID reaches the newer time namespace.
+        if (targetType == TARGET_ROOM && syntheticItemId >= 1_000_000_000) {
+            DerivedDefinition legacy = resolveDecodedDefinition(
+                    room,
+                    targetType,
+                    syntheticItemId,
+                    decodeSyntheticId(syntheticItemId, TARGET_ROOM, SYNTHETIC_ROOM_OFFSET));
+            if (legacy != null) return legacy;
+        }
+        return resolveDecodedDefinition(room, targetType, syntheticItemId, decodeSyntheticId(syntheticItemId));
+    }
+
+    private static DerivedDefinition resolveDecodedDefinition(
+            Room room, int targetType, int syntheticItemId, DecodedSyntheticId decoded) {
         if (decoded == null || decoded.targetType != targetType || room == null || room.getRoomSpecialTypes() == null) {
             return null;
         }
@@ -145,23 +169,41 @@ public final class WiredVariableLevelSystemSupport {
         }
 
         WiredVariableDefinitionInfo baseDefinition = createBaseDefinitionInfo(room, baseExtra, targetType);
-        if (baseDefinition == null || !baseDefinition.hasValue()) {
+        if (baseDefinition == null) {
             return null;
         }
 
         InteractionWiredExtra box = getDerivedBox(room, baseExtra);
-        if (box == null || !boxHasSubvariable(box, decoded.subvariableType)) {
+        if (box == null
+                || !boxHasSubvariable(box, decoded.subvariableType)
+                || (!baseDefinition.hasValue()
+                        && (!(box instanceof WiredExtraTimeUtilities time) || time.getSourceMode() == 0))) {
             return null;
         }
 
+        int expectedId = box instanceof WiredExtraTimeUtilities
+                ? createTimeSyntheticItemId(targetType, decoded.baseDefinitionItemId, decoded.subvariableType)
+                : createSyntheticItemId(targetType, decoded.baseDefinitionItemId, decoded.subvariableType);
+        if (expectedId != syntheticItemId) return null;
         return new DerivedDefinition(
-            syntheticItemId,
-            decoded.baseDefinitionItemId,
-            decoded.subvariableType,
-            baseDefinition.getName() + "." + boxSubvariableKey(box, decoded.subvariableType),
-            baseDefinition,
-            box
-        );
+                syntheticItemId,
+                decoded.baseDefinitionItemId,
+                decoded.subvariableType,
+                baseDefinition.getName() + "." + boxSubvariableKey(box, decoded.subvariableType),
+                baseDefinition,
+                box);
+    }
+
+    public static Integer getDerivedValue(
+            InteractionWiredExtra box, int sub, Integer value, int createdAt, int updatedAt) {
+        if (box instanceof WiredExtraTimeUtilities time) {
+            return switch (time.getSourceMode()) {
+                case 1 -> createdAt == 0 ? null : time.deriveTime(sub, createdAt * 1000L);
+                case 2 -> updatedAt == 0 ? null : time.deriveTime(sub, updatedAt * 1000L);
+                default -> time.derive(sub, value);
+            };
+        }
+        return getDerivedValue(box, sub, value);
     }
 
     public static Integer getDerivedValue(InteractionWiredExtra box, int subvariableType, Integer baseValue) {
@@ -196,7 +238,14 @@ public final class WiredVariableLevelSystemSupport {
             return Collections.emptyList();
         }
 
-        return buildThresholdEntries(levelSystem);
+        var anchors = parseAnchors(levelSystem.getInterpolationText());
+        int maxLevel = levelSystem.getMode() == WiredExtraVariableLevelUpSystem.MODE_MANUAL
+                ? anchors.keySet().stream().mapToInt(Integer::intValue).max().orElse(1)
+                : levelSystem.getMaxLevel();
+        var result = new ArrayList<LevelEntry>();
+        for (int level : new int[] {1, 2, 3, 5, 10, 20})
+            if (level <= maxLevel) result.add(new LevelEntry(level, xpForLevel(levelSystem, anchors, level)));
+        return result;
     }
 
     private static boolean matchesTarget(InteractionWiredExtra extra, int targetType) {
@@ -206,14 +255,19 @@ public final class WiredVariableLevelSystemSupport {
 
         return switch (targetType) {
             case TARGET_FURNI -> extra instanceof WiredExtraFurniVariable;
-            case TARGET_ROOM -> (extra instanceof WiredExtraRoomVariable)
-                || (extra instanceof WiredExtraVariableReference && ((WiredExtraVariableReference) extra).isRoomReference());
-            default -> (extra instanceof WiredExtraUserVariable)
-                || (extra instanceof WiredExtraVariableReference && ((WiredExtraVariableReference) extra).isUserReference());
+            case TARGET_ROOM ->
+                (extra instanceof WiredExtraRoomVariable)
+                        || (extra instanceof WiredExtraVariableReference
+                                && ((WiredExtraVariableReference) extra).isRoomReference());
+            default ->
+                (extra instanceof WiredExtraUserVariable)
+                        || (extra instanceof WiredExtraVariableReference
+                                && ((WiredExtraVariableReference) extra).isUserReference());
         };
     }
 
-    private static WiredVariableDefinitionInfo createBaseDefinitionInfo(Room room, InteractionWiredExtra extra, int targetType) {
+    private static WiredVariableDefinitionInfo createBaseDefinitionInfo(
+            Room room, InteractionWiredExtra extra, int targetType) {
         if (room == null || extra == null) {
             return null;
         }
@@ -221,31 +275,36 @@ public final class WiredVariableLevelSystemSupport {
         if (targetType == TARGET_FURNI && extra instanceof WiredExtraFurniVariable) {
             WiredExtraFurniVariable definition = (WiredExtraFurniVariable) extra;
             return new WiredVariableDefinitionInfo(
-                definition.getId(),
-                definition.getVariableName(),
-                definition.hasValue(),
-                definition.getAvailability(),
-                WiredVariableTextConnectorSupport.isTextConnected(room, definition),
-                false
-            );
+                    definition.getId(),
+                    definition.getVariableName(),
+                    definition.hasValue(),
+                    definition.getAvailability(),
+                    WiredVariableTextConnectorSupport.isTextConnected(room, definition),
+                    false);
         }
 
         if (targetType == TARGET_USER) {
             if (extra instanceof WiredExtraUserVariable) {
                 WiredExtraUserVariable definition = (WiredExtraUserVariable) extra;
                 return new WiredVariableDefinitionInfo(
-                    definition.getId(),
-                    definition.getVariableName(),
-                    definition.hasValue(),
-                    definition.getAvailability(),
-                    WiredVariableTextConnectorSupport.isTextConnected(room, definition),
-                    false
-                );
+                        definition.getId(),
+                        definition.getVariableName(),
+                        definition.hasValue(),
+                        definition.getAvailability(),
+                        WiredVariableTextConnectorSupport.isTextConnected(room, definition),
+                        false);
             }
 
-            if (extra instanceof WiredExtraVariableReference && ((WiredExtraVariableReference) extra).isUserReference()) {
+            if (extra instanceof WiredExtraVariableReference
+                    && ((WiredExtraVariableReference) extra).isUserReference()) {
                 WiredExtraVariableReference reference = (WiredExtraVariableReference) extra;
-                return new WiredVariableDefinitionInfo(reference.getId(), reference.getVariableName(), reference.hasValue(), reference.getAvailability(), false, reference.isReadOnly());
+                return new WiredVariableDefinitionInfo(
+                        reference.getId(),
+                        reference.getVariableName(),
+                        reference.hasValue(),
+                        reference.getAvailability(),
+                        false,
+                        reference.isReadOnly());
             }
         }
 
@@ -253,18 +312,24 @@ public final class WiredVariableLevelSystemSupport {
             if (extra instanceof WiredExtraRoomVariable) {
                 WiredExtraRoomVariable definition = (WiredExtraRoomVariable) extra;
                 return new WiredVariableDefinitionInfo(
-                    definition.getId(),
-                    definition.getVariableName(),
-                    definition.hasValue(),
-                    definition.getAvailability(),
-                    WiredVariableTextConnectorSupport.isTextConnected(room, definition),
-                    false
-                );
+                        definition.getId(),
+                        definition.getVariableName(),
+                        definition.hasValue(),
+                        definition.getAvailability(),
+                        WiredVariableTextConnectorSupport.isTextConnected(room, definition),
+                        false);
             }
 
-            if (extra instanceof WiredExtraVariableReference && ((WiredExtraVariableReference) extra).isRoomReference()) {
+            if (extra instanceof WiredExtraVariableReference
+                    && ((WiredExtraVariableReference) extra).isRoomReference()) {
                 WiredExtraVariableReference reference = (WiredExtraVariableReference) extra;
-                return new WiredVariableDefinitionInfo(reference.getId(), reference.getVariableName(), reference.hasValue(), reference.getAvailability(), false, reference.isReadOnly());
+                return new WiredVariableDefinitionInfo(
+                        reference.getId(),
+                        reference.getVariableName(),
+                        reference.hasValue(),
+                        reference.getAvailability(),
+                        false,
+                        reference.isReadOnly());
             }
         }
 
@@ -272,16 +337,31 @@ public final class WiredVariableLevelSystemSupport {
     }
 
     private static int createSyntheticItemId(int targetType, int baseDefinitionItemId, int subvariableType) {
-        int offset = switch (targetType) {
-            case TARGET_FURNI -> SYNTHETIC_FURNI_OFFSET;
-            case TARGET_ROOM -> SYNTHETIC_ROOM_OFFSET;
-            default -> SYNTHETIC_USER_OFFSET;
-        };
+        int offset =
+                switch (targetType) {
+                    case TARGET_FURNI -> SYNTHETIC_FURNI_OFFSET;
+                    case TARGET_ROOM -> SYNTHETIC_ROOM_OFFSET;
+                    default -> SYNTHETIC_USER_OFFSET;
+                };
 
         return offset + (baseDefinitionItemId * SYNTHETIC_STRIDE) + (subvariableType + 1);
     }
 
+    private static int createTimeSyntheticItemId(int target, int base, int sub) {
+        int offset = target == TARGET_USER ? 1_000_000_000 : target == TARGET_FURNI ? 1_300_000_000 : 1_600_000_000;
+        if (base <= 0 || base >= 9_375_000) return 0;
+        return offset + base * 32 + sub;
+    }
+
     private static DecodedSyntheticId decodeSyntheticId(int syntheticItemId) {
+        if (syntheticItemId >= 1_000_000_000 && syntheticItemId < 1_900_000_000) {
+            int target = syntheticItemId >= 1_600_000_000
+                    ? TARGET_ROOM
+                    : syntheticItemId >= 1_300_000_000 ? TARGET_FURNI : TARGET_USER;
+            int offset = target == TARGET_USER ? 1_000_000_000 : target == TARGET_FURNI ? 1_300_000_000 : 1_600_000_000;
+            int local = syntheticItemId - offset;
+            return local / 32 > 0 ? new DecodedSyntheticId(target, local / 32, local % 32) : null;
+        }
         if (syntheticItemId >= SYNTHETIC_ROOM_OFFSET) {
             return decodeSyntheticId(syntheticItemId, TARGET_ROOM, SYNTHETIC_ROOM_OFFSET);
         }
@@ -307,7 +387,9 @@ public final class WiredVariableLevelSystemSupport {
         int baseDefinitionItemId = localValue / SYNTHETIC_STRIDE;
         int subvariableType = encodedSubvariable - 1;
 
-        if (baseDefinitionItemId <= 0 || subvariableType < 0 || subvariableType >= WiredExtraVariableLevelUpSystem.SUBVARIABLE_COUNT) {
+        if (baseDefinitionItemId <= 0
+                || subvariableType < 0
+                || subvariableType >= WiredExtraVariableLevelUpSystem.SUBVARIABLE_COUNT) {
             return null;
         }
 
@@ -328,142 +410,58 @@ public final class WiredVariableLevelSystemSupport {
         };
     }
 
-    private static LevelProgress calculateProgress(WiredExtraVariableLevelUpSystem levelSystem, int rawBaseValue) {
-        int currentXp = Math.max(0, rawBaseValue);
-        List<LevelEntry> entries = buildThresholdEntries(levelSystem);
-
-        if (entries.isEmpty()) {
-            entries = new ArrayList<>();
-            entries.add(new LevelEntry(1, 0));
+    private static LevelProgress calculateProgress(WiredExtraVariableLevelUpSystem config, int rawValue) {
+        var anchors = config.getMode() == WiredExtraVariableLevelUpSystem.MODE_MANUAL
+                ? parseAnchors(config.getInterpolationText())
+                : new LinkedHashMap<Integer, Integer>();
+        anchors.putIfAbsent(1, 0);
+        int maxLevel = config.getMode() == WiredExtraVariableLevelUpSystem.MODE_MANUAL
+                ? anchors.keySet().stream().mapToInt(Integer::intValue).max().orElse(1)
+                : config.getMaxLevel();
+        int maxXp = config.getMode() == WiredExtraVariableLevelUpSystem.MODE_LINEAR
+                ? clamp((long) maxLevel * config.getStepSize())
+                : xpForLevel(config, anchors, maxLevel);
+        int currentXp = Math.min(Math.max(0, rawValue), maxXp);
+        int low = 1, high = maxLevel;
+        while (low < high) {
+            int middle = low + (int) (((long) high - low + 1) / 2);
+            if (currentXp >= xpForLevel(config, anchors, middle)) low = middle;
+            else high = middle - 1;
         }
-
-        int maxLevel = entries.get(entries.size() - 1).level;
-        int currentLevel = 1;
-        int currentThreshold = 0;
-        int nextThreshold = 0;
-
-        for (int index = 0; index < entries.size(); index++) {
-            LevelEntry entry = entries.get(index);
-
-            if (currentXp >= entry.requiredXp) {
-                currentLevel = entry.level;
-                currentThreshold = entry.requiredXp;
-                nextThreshold = (index + 1 < entries.size()) ? entries.get(index + 1).requiredXp : entry.requiredXp;
-                continue;
-            }
-
-            nextThreshold = entry.requiredXp;
-            break;
-        }
-
-        boolean isAtMax = currentLevel >= maxLevel;
-
-        if (isAtMax) {
-            nextThreshold = currentThreshold;
-        }
-
-        int progressXp = Math.max(0, currentXp - currentThreshold);
-        int progressPercent;
-
-        if (isAtMax) {
-            progressPercent = 100;
-        } else {
-            int delta = Math.max(0, nextThreshold - currentThreshold);
-            progressPercent = (delta <= 0) ? 100 : Math.max(0, Math.min(100, (int) Math.floor((progressXp * 100D) / delta)));
-        }
-
-        int totalXpRequired = isAtMax ? currentThreshold : nextThreshold;
-        int xpRemaining = Math.max(0, totalXpRequired - currentXp);
-
-        return new LevelProgress(currentLevel, currentXp, progressXp, progressPercent, totalXpRequired, xpRemaining, isAtMax, maxLevel);
+        boolean maxed = low >= maxLevel;
+        int threshold = xpForLevel(config, anchors, low);
+        int next = maxed ? threshold : xpForLevel(config, anchors, low + 1);
+        int progress = maxed ? 0 : Math.max(0, currentXp - threshold);
+        int required = maxed ? 0 : Math.max(0, next - threshold);
+        int percentage = maxed ? 0 : required == 0 ? 100 : (int) ((progress * 100L) / required);
+        return new LevelProgress(
+                low, currentXp, progress, percentage, required, maxed ? 0 : next - currentXp, maxed, maxLevel);
     }
 
-    private static List<LevelEntry> buildThresholdEntries(WiredExtraVariableLevelUpSystem levelSystem) {
-        return switch (levelSystem.getMode()) {
-            case WiredExtraVariableLevelUpSystem.MODE_EXPONENTIAL -> buildExponentialEntries(levelSystem);
-            case WiredExtraVariableLevelUpSystem.MODE_MANUAL -> buildManualEntries(levelSystem);
-            default -> buildLinearEntries(levelSystem);
-        };
-    }
-
-    private static List<LevelEntry> buildLinearEntries(WiredExtraVariableLevelUpSystem levelSystem) {
-        List<LevelEntry> entries = new ArrayList<>();
-        int maxLevel = Math.max(1, levelSystem.getMaxLevel());
-        int stepSize = Math.max(0, levelSystem.getStepSize());
-
-        for (int level = 1; level <= maxLevel; level++) {
-            entries.add(new LevelEntry(level, clamp((long) (level - 1) * stepSize)));
+    private static int xpForLevel(WiredExtraVariableLevelUpSystem config, Map<Integer, Integer> anchors, int level) {
+        if (level <= 1) return 0;
+        if (config.getMode() == WiredExtraVariableLevelUpSystem.MODE_LINEAR)
+            return clamp((long) (level - 1) * config.getStepSize());
+        if (config.getMode() == WiredExtraVariableLevelUpSystem.MODE_EXPONENTIAL) {
+            double strength = config.getIncreaseFactor() / 100D;
+            double threshold = strength == 0
+                    ? (double) config.getFirstLevelXp() * (level - 1)
+                    : config.getFirstLevelXp() * ((Math.pow(1 + strength, level - 1) - 1 + 1e-9) / strength);
+            return clamp((long) threshold);
         }
-
-        return entries;
-    }
-
-    private static List<LevelEntry> buildExponentialEntries(WiredExtraVariableLevelUpSystem levelSystem) {
-        List<LevelEntry> entries = new ArrayList<>();
-        int maxLevel = Math.max(1, levelSystem.getMaxLevel());
-        int currentIncrement = Math.max(0, levelSystem.getFirstLevelXp());
-        int factor = Math.max(0, levelSystem.getIncreaseFactor());
-        long threshold = 0L;
-
-        entries.add(new LevelEntry(1, 0));
-
-        for (int level = 2; level <= maxLevel; level++) {
-            threshold += currentIncrement;
-            entries.add(new LevelEntry(level, clamp(threshold)));
-            currentIncrement = clamp(Math.round(currentIncrement * (100D + factor) / 100D));
-        }
-
-        return entries;
-    }
-
-    private static List<LevelEntry> buildManualEntries(WiredExtraVariableLevelUpSystem levelSystem) {
-        LinkedHashMap<Integer, Integer> anchors = parseAnchors(levelSystem.getInterpolationText());
-        if (!anchors.containsKey(1)) {
-            anchors.put(1, 0);
-        }
-
-        List<Map.Entry<Integer, Integer>> sortedAnchors = new ArrayList<>(anchors.entrySet());
-        sortedAnchors.sort(Map.Entry.comparingByKey());
-
-        if (sortedAnchors.isEmpty()) {
-            return Collections.singletonList(new LevelEntry(1, 0));
-        }
-
-        LinkedHashMap<Integer, Integer> result = new LinkedHashMap<>();
-
-        for (int index = 0; index < sortedAnchors.size(); index++) {
-            Map.Entry<Integer, Integer> current = sortedAnchors.get(index);
-            int currentLevel = Math.max(1, current.getKey());
-            int currentXp = Math.max(0, current.getValue());
-
-            result.put(currentLevel, currentXp);
-
-            if (index + 1 >= sortedAnchors.size()) {
-                continue;
+        var entries = new ArrayList<>(anchors.entrySet());
+        entries.sort(Map.Entry.comparingByKey());
+        int previousLevel = 1, previousXp = 0;
+        for (var entry : entries) {
+            if (entry.getKey() == level) return entry.getValue();
+            if (entry.getKey() > level) {
+                double step = (entry.getValue() - previousXp) / (double) (entry.getKey() - previousLevel);
+                return clamp(previousXp + (long) (step * (level - previousLevel)));
             }
-
-            Map.Entry<Integer, Integer> next = sortedAnchors.get(index + 1);
-            int nextLevel = Math.max(currentLevel, next.getKey());
-            int nextXp = Math.max(0, next.getValue());
-
-            if (nextLevel <= currentLevel) {
-                continue;
-            }
-
-            for (int level = currentLevel + 1; level < nextLevel; level++) {
-                double ratio = (double) (level - currentLevel) / (double) (nextLevel - currentLevel);
-                int interpolatedXp = clamp(Math.round(currentXp + ((nextXp - currentXp) * ratio)));
-                result.put(level, interpolatedXp);
-            }
+            previousLevel = entry.getKey();
+            previousXp = entry.getValue();
         }
-
-        List<LevelEntry> entries = new ArrayList<>();
-        for (Map.Entry<Integer, Integer> entry : result.entrySet()) {
-            entries.add(new LevelEntry(entry.getKey(), entry.getValue()));
-        }
-
-        entries.sort(Comparator.comparingInt(levelEntry -> levelEntry.level));
-        return entries;
+        return previousXp;
     }
 
     private static LinkedHashMap<Integer, Integer> parseAnchors(String interpolationText) {
@@ -532,7 +530,13 @@ public final class WiredVariableLevelSystemSupport {
         private final WiredVariableDefinitionInfo baseDefinition;
         private final InteractionWiredExtra levelSystem;
 
-        public DerivedDefinition(int syntheticItemId, int baseDefinitionItemId, int subvariableType, String variableName, WiredVariableDefinitionInfo baseDefinition, InteractionWiredExtra levelSystem) {
+        public DerivedDefinition(
+                int syntheticItemId,
+                int baseDefinitionItemId,
+                int subvariableType,
+                String variableName,
+                WiredVariableDefinitionInfo baseDefinition,
+                InteractionWiredExtra levelSystem) {
             this.syntheticItemId = syntheticItemId;
             this.baseDefinitionItemId = baseDefinitionItemId;
             this.subvariableType = subvariableType;
@@ -586,7 +590,15 @@ public final class WiredVariableLevelSystemSupport {
         private final boolean isAtMax;
         private final int maxLevel;
 
-        private LevelProgress(int currentLevel, int currentXp, int progressXp, int progressPercent, int totalXpRequired, int xpRemaining, boolean isAtMax, int maxLevel) {
+        private LevelProgress(
+                int currentLevel,
+                int currentXp,
+                int progressXp,
+                int progressPercent,
+                int totalXpRequired,
+                int xpRemaining,
+                boolean isAtMax,
+                int maxLevel) {
             this.currentLevel = currentLevel;
             this.currentXp = currentXp;
             this.progressXp = progressXp;

@@ -41,6 +41,18 @@ final class RoomItemOwnershipService {
         if (item == null) {
             return;
         }
+        this.add(item, BuildersClubRoomSupport.isTrackedItem(item.getId()), true);
+    }
+
+    /**
+     * Adds an item whose Builders Club tracking is already known. A room load passes the tracking it
+     * read in one query and no name lookup, so it never asks the pool for a second connection.
+     */
+    void add(HabboItem item, boolean trackedBuildersClub, boolean lookUpOwnerName) {
+        if (item == null) {
+            return;
+        }
+        item.setBuildersClubItem(trackedBuildersClub);
 
         synchronized (this.index.items()) {
             try {
@@ -52,8 +64,7 @@ final class RoomItemOwnershipService {
             }
         }
 
-        if (BuildersClubRoomSupport.isTrackedItem(item.getId())
-                && item.getUserId() != BuildersClubRoomSupport.VIRTUAL_OWNER_ID) {
+        if (trackedBuildersClub && item.getUserId() != BuildersClubRoomSupport.VIRTUAL_OWNER_ID) {
             item.setVirtualUserId(BuildersClubRoomSupport.VIRTUAL_OWNER_ID);
             item.needsUpdate(true);
         }
@@ -66,7 +77,7 @@ final class RoomItemOwnershipService {
 
         synchronized (this.index.ownerNames()) {
             if (!this.index.ownerNames().containsKey(item.getUserId())) {
-                this.addOwnerName(item);
+                this.addOwnerName(item, trackedBuildersClub, lookUpOwnerName);
             }
         }
 
@@ -92,6 +103,9 @@ final class RoomItemOwnershipService {
             this.index.unregisterIncarnation(removed);
             this.removeOwnerIndex(removed);
             this.registry.unregister(item);
+            if (RoomChooserDisableSupport.isControllerItem(removed)) {
+                RoomChooserDisableSupport.sendState(this.room);
+            }
         }
 
         if (trackedBuildersClubItem) {
@@ -243,14 +257,13 @@ final class RoomItemOwnershipService {
         }
     }
 
-    private void addOwnerName(HabboItem item) {
-        if (item.getUserId() == BuildersClubRoomSupport.VIRTUAL_OWNER_ID
-                && BuildersClubRoomSupport.isTrackedItem(item.getId())) {
+    private void addOwnerName(HabboItem item, boolean trackedBuildersClub, boolean lookUp) {
+        if (item.getUserId() == BuildersClubRoomSupport.VIRTUAL_OWNER_ID && trackedBuildersClub) {
             this.index.ownerNames().put(item.getUserId(), BuildersClubRoomSupport.DISPLAY_OWNER_NAME);
             return;
         }
 
-        HabboInfo owner = HabboManager.getOfflineHabboInfo(item.getUserId());
+        HabboInfo owner = lookUp ? HabboManager.getOfflineHabboInfo(item.getUserId()) : null;
         if (owner != null) {
             this.index.ownerNames().put(item.getUserId(), owner.getUsername());
         } else {

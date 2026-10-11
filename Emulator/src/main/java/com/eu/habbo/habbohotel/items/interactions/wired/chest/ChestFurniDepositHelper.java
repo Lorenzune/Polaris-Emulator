@@ -23,10 +23,11 @@ public final class ChestFurniDepositHelper {
         if (room == null) return false;
 
         ChestStorage contents = chest.getContents();
-        if (!contents.isAccessDonate() && !room.hasRights(habbo)) return false;
+        if (!(chest instanceof InteractionWiredChestFurni) || !chest.canDeposit(habbo, room)) return false;
 
         Item baseItem = inventoryItem.getBaseItem();
-        if (baseItem == null || baseItem.getType() != FurnitureType.FLOOR) return false;
+        if (baseItem == null || (baseItem.getType() != FurnitureType.FLOOR && baseItem.getType() != FurnitureType.WALL))
+            return false;
 
         HabboItem removed = habbo.getInventory().getItemsComponent().getHabboItem(inventoryItem.getId());
         if (removed == null) return false;
@@ -39,15 +40,17 @@ public final class ChestFurniDepositHelper {
             habbo.getInventory().getItemsComponent().addItem(removed);
             return false;
         }
-        contents.addLog(new ChestStorage.LogEntry(
-                "deposit", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), 0, 1));
+        ChestStorage.LogEntry log = new ChestStorage.LogEntry(
+                "deposit", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), 0, 1);
+        log.setFurniItems(java.util.stream.Stream.of(stored));
+        contents.addLog(log);
         chest.persistContents(room);
 
         habbo.getClient().sendResponse(new RemoveHabboItemComposer(removed.getGiftAdjustedId()));
         habbo.getClient().sendResponse(new InventoryRefreshComposer());
         Emulator.getThreading().runPersistence(new QueryDeleteHabboItems(List.of(removed)));
 
-        habbo.getClient().sendResponse(new ChestDataComposer(chest));
+        habbo.getClient().sendResponse(new ChestDataComposer(chest, habbo));
         ChestFurniPackets.sendDelta(habbo.getClient(), chest.getId(), List.of(), List.of(stored));
         return true;
     }

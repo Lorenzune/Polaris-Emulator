@@ -1,6 +1,11 @@
 package com.eu.habbo.messages.outgoing;
 
 public class Outgoing {
+    public static final int WiredHighlightComposer = 5117;
+    public static final int WiredUserOpacityComposer = 5116;
+    public static final int WiredLabelEditorComposer = 5115;
+    public static final int WiredQuestStateComposer = 9373;
+    public static final int WiredContractTransactionComposer = 9371;
     public static final int PetStatusUpdateComposer = 1907; // error 404
 
     public static final int CfhTopicsMessageComposer = 325;
@@ -9,11 +14,14 @@ public class Outgoing {
     public static final int ChestLogComposer = 9319;
     public static final int ChestFurniChunkComposer = 9322;
     public static final int ChestFurniDeltaComposer = 9323;
+    public static final int ChestDepositResultComposer = 9343;
     public static final int ChestOpenComposer = 9327;
     public static final int ChestRoomLogComposer = 9340;
     public static final int RoomVoiceSignalComposer = 9346;
     public static final int GuildCustomBadgeSavedComposer = 9348;
     public static final int GuildCustomBadgeRequestsComposer = 9350;
+    public static final int CatalogPageMediaDetailsComposer = 9354;
+    public static final int CatalogPageAssetUploadResultComposer = 9358;
     public static final int GuildCustomBadgeReviewResultComposer = 9352;
     public static final int FavoriteRoomsCountComposer = 151;
     public static final int UserCurrencyComposer = 2018;
@@ -132,10 +140,12 @@ public class Outgoing {
     public static final int HallOfFameComposer = 3005; // PRODUCTION-201611291003-338511768
     public static final int WiredSavedComposer = 1155; // PRODUCTION-201611291003-338511768
     public static final int WiredMonitorDataComposer = 5101; // CUSTOM
+    public static final int WiredClickSettingsComposer = 5113; // CUSTOM, room-scoped click configuration
     public static final int WiredRoomSettingsDataComposer = 5102; // CUSTOM
     public static final int WiredUserVariablesDataComposer = 5103; // CUSTOM
     public static final int WiredAccountPreferencesDataComposer = 5111; // CUSTOM
     public static final int ConfInvisStateComposer = 5104; // CUSTOM
+    public static final int ChooserDisabledStateComposer = 5114; // CUSTOM, room-scoped user chooser restriction
     public static final int TranslationLanguagesComposer = 5106; // CUSTOM
     public static final int TranslationResultComposer = 5107; // CUSTOM
     public static final int AreaHideComposer = 6001; // CUSTOM
@@ -393,6 +403,7 @@ public class Outgoing {
     public static final int SimpleAlertComposer = 5100; // PRODUCTION-201611291003-338511768
     public static final int MessengerErrorComposer = 896; // PRODUCTION-201611291003-338511768
     public static final int CameraPriceComposer = 3878; // PRODUCTION-201611291003-338511768
+    public static final int NestBreedingSuccessComposer = 1901;
     public static final int PetBreedingCompleted = 2527; // PRODUCTION-201611291003-338511768
     public static final int RoomUserUnbannedComposer = 3429; // PRODUCTION-201611291003-338511768
     public static final int HotelViewCommunityGoalComposer = 2525; // PRODUCTION-201611291003-338511768
@@ -628,6 +639,7 @@ public class Outgoing {
     public static final int WheelAdminPrizesComposer = 9404;
     public static final int SoundboardSettingsComposer = 9405;
     public static final int SoundboardPlayComposer = 9406;
+    public static final int AvatarLevelComposer = 9510;
     public static final int EarningsCenterComposer = 9407;
     public static final int EarningsClaimResultComposer = 9408;
     public static final int HotelViewLandingComposer = 9409;

@@ -19,6 +19,38 @@ import org.junit.jupiter.api.Test;
 class WiredEventDispatcherTest {
 
     @Test
+    void explicitNativeSignalsAndFurnitureClicksUseBatchAdmission() {
+        Room room = room(84, true);
+        WiredStack stack = stack(item(8401), mock(IWiredTrigger.class));
+        List<String> calls = new ArrayList<>();
+        WiredStackIndex index = (candidate, type) -> List.of(stack);
+        WiredExecutionGuard guard = guard();
+        WiredEventDispatcher dispatcher = new WiredEventDispatcher(
+                guard,
+                new WiredStackRepository(index),
+                (candidate, event, time, negate) -> {
+                    calls.add("stack");
+                    return true;
+                },
+                (candidate, format, arguments) -> {},
+                (event, admission) -> {
+                    assertTrue(guard.recursionDepth(room.getId()) > 0);
+                    calls.add("batch");
+                    return admission.get();
+                });
+        assertTrue(dispatcher.dispatch(event(room, WiredEvent.Type.CUSTOM), false));
+        assertTrue(dispatcher.dispatch(event(room, WiredEvent.Type.SIGNAL_RECEIVED), false));
+        assertTrue(dispatcher.dispatch(
+                WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
+                        .signalPayloadExplicit(true)
+                        .build(),
+                false));
+        assertTrue(dispatcher.dispatch(event(room, WiredEvent.Type.USER_CLICKS_FURNI), false));
+        assertEquals(List.of("stack", "stack", "batch", "stack", "batch", "stack"), calls);
+        assertEquals(0, guard.recursionDepth(room.getId()));
+    }
+
+    @Test
     void rejectsInvalidEntryWithoutLookupOrRetainedRecursion() {
         Room room = room(81, false);
         List<String> calls = new ArrayList<>();

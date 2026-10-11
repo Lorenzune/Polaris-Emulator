@@ -5,11 +5,17 @@ import com.eu.habbo.database.backup.MariaDbMigrationBackup;
 import com.eu.habbo.database.backup.MigrationBackup;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationInfo;
 import org.flywaydb.core.api.MigrationInfoService;
+import org.flywaydb.core.api.MigrationState;
+import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.output.MigrateResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +44,9 @@ public final class MigrationRunner {
     public static final String BASELINE_VERSION = "20260518000000";
 
     private static final String KEY_ON_STARTUP = "db.migrate.on_startup";
+    private static final String AVATAR_INITIAL_VERSION = "20261011120000";
+    private static final String AVATAR_COUNTS_VERSION = "20261011150000";
+    private static final Set<String> AVATAR_BACKFILL_VERSIONS = Set.of(AVATAR_INITIAL_VERSION, AVATAR_COUNTS_VERSION);
 
     private MigrationRunner() {}
 
@@ -58,7 +67,10 @@ public final class MigrationRunner {
         // The runtime datasource rewrites legacy plugin SQL. Migrations require an
         // unwrapped pool so their DDL cannot be silently translated.
         try (HikariDataSource rawMigrationDataSource = rawMigrationDataSource(runtimeDataSource)) {
-            return migrate(rawMigrationDataSource, MariaDbMigrationBackup.resolve(config, rawMigrationDataSource));
+            return migrate(
+                    rawMigrationDataSource,
+                    MariaDbMigrationBackup.resolve(config, rawMigrationDataSource),
+                    MariaDbMigrationBackup.resolveRequired(config, rawMigrationDataSource));
         }
     }
 
@@ -92,20 +104,30 @@ public final class MigrationRunner {
     }
 
     static MigrateResult migrate(DataSource dataSource, MigrationBackup migrationBackup) {
-        SchemaPreflight.State state = SchemaPreflight.detect(dataSource);
-        Flyway flyway = flyway(dataSource);
+        return migrate(dataSource, migrationBackup, migrationBackup);
+    }
 
+    private static MigrateResult migrate(
+            DataSource dataSource, MigrationBackup migrationBackup, MigrationBackup recoveryBackup) {
+        SchemaPreflight.State state = SchemaPreflight.detect(dataSource);
         LOGGER.info("[migrate] Detected schema state: {}", state);
         try {
+            Flyway flyway = flyway(dataSource);
+            AvatarRepairMigrationRecovery.Plan recovery = AvatarRepairMigrationRecovery.plan(flyway);
             if (state != SchemaPreflight.State.EMPTY && state != SchemaPreflight.State.UNKNOWN) {
-                java.util.List<String> pending = java.util.Arrays.stream(
-                                flyway.info().pending())
+                List<String> pending = Arrays.stream(flyway.info().pending())
                         .filter(migration -> !isBaselineSkippedDuringAdoption(state, migration))
                         .map(migration -> migration.getVersion() == null
                                 ? migration.getDescription()
                                 : migration.getVersion().getVersion())
                         .toList();
-                if (!pending.isEmpty()) migrationBackup.beforeMigrations(pending);
+                if (recovery != null) {
+                    var recoveryVersions = new TreeSet<>(pending);
+                    recoveryVersions.add(AvatarRepairMigrationRecovery.VERSION);
+                    recoveryBackup.beforeMigrations(List.copyOf(recoveryVersions));
+                    AvatarRepairMigrationRecovery.apply(dataSource, recovery);
+                    flyway = flyway(dataSource);
+                } else if (!pending.isEmpty()) migrationBackup.beforeMigrations(pending);
             }
             MigrateResult result =
                     switch (state) {
@@ -153,7 +175,12 @@ public final class MigrationRunner {
         try {
             Flyway flyway = flyway(dataSource);
             if (state == SchemaPreflight.State.MANAGED) {
-                flyway.validate();
+                // Status must validate installed migrations while reporting unapplied upgrades.
+                Flyway.configure()
+                        .configuration(flyway.getConfiguration())
+                        .ignoreMigrationPatterns("*:future", "*:pending")
+                        .load()
+                        .validate();
             }
 
             MigrationInfoService info = flyway.info();
@@ -237,7 +264,7 @@ public final class MigrationRunner {
 
     /** Package-visible so the contract generator can use the production Flyway configuration. */
     static Flyway flyway(DataSource dataSource) {
-        return Flyway.configure()
+        var configuration = Flyway.configure()
                 .dataSource(dataSource)
                 .locations(MIGRATION_LOCATION)
                 .baselineOnMigrate(false)
@@ -246,8 +273,44 @@ public final class MigrationRunner {
                 .validateOnMigrate(true)
                 .outOfOrder(false)
                 // Reference data contains literal ${...} client template strings.
-                .placeholderReplacement(false)
-                .load();
+                .placeholderReplacement(false);
+        Flyway strict = configuration.load();
+        if (!permitsAvatarBackfill(strict.info())) return strict;
+        LOGGER.warn(
+                "[migrate] Eligible for controlled avatar backfill before the pending avatar repairs. "
+                        + "Only V{} and V{} may be backfilled; checksum validation and the configured backup policy are preserved.",
+                AVATAR_INITIAL_VERSION,
+                AVATAR_COUNTS_VERSION);
+        return configuration.outOfOrder(true).load();
+    }
+
+    static boolean permitsAvatarBackfill(MigrationInfoService info) {
+        MigrationInfo current = info.current();
+        if (current == null
+                || current.getVersion() == null
+                || current.getVersion().compareTo(MigrationVersion.fromVersion("20261011153000")) > 0) {
+            return false;
+        }
+        List<MigrationInfo> ignored = Arrays.stream(info.all())
+                .filter(migration -> migration.getState() == MigrationState.IGNORED)
+                .toList();
+        if (ignored.isEmpty()
+                || ignored.stream()
+                        .anyMatch(migration -> migration.getVersion() == null
+                                || !AVATAR_BACKFILL_VERSIONS.contains(
+                                        migration.getVersion().getVersion()))) {
+            return false;
+        }
+        boolean initialMissing = ignored.stream()
+                .anyMatch(migration ->
+                        AVATAR_INITIAL_VERSION.equals(migration.getVersion().getVersion()));
+        // Never run the legacy Pantheon reset after the counts/triggers were installed.
+        return !initialMissing
+                || Arrays.stream(info.all())
+                        .noneMatch(migration -> migration.getVersion() != null
+                                && AVATAR_COUNTS_VERSION.equals(
+                                        migration.getVersion().getVersion())
+                                && migration.getState().isApplied());
     }
 
     private static HikariDataSource rawMigrationDataSource(HikariDataSource runtime) {

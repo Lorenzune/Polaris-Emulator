@@ -16,8 +16,8 @@ public class FrontPageFeaturedLayout extends CatalogPage {
     @Override
     public void serialize(ServerMessage message) {
         message.appendString("frontpage_featured");
-        String[] teaserImages = super.getTeaserImage().split(";");
-        String[] specialImages = super.getSpecialImage().split(";");
+        String[] teaserImages = splitImages(super.getTeaserImage());
+        String[] specialImages = splitImages(super.getSpecialImage());
 
         message.appendInt(1 + teaserImages.length + specialImages.length);
         message.appendString(super.getHeaderImage());
@@ -32,6 +32,12 @@ public class FrontPageFeaturedLayout extends CatalogPage {
         message.appendString(super.getTextOne());
         message.appendString(super.getTextDetails());
         message.appendString(super.getTextTeaser());
+    }
+
+    private static String[] splitImages(String images) {
+        // These catalog fields are nullable in existing databases. Keep the
+        // empty-field protocol shape while avoiding a startup/runtime NPE.
+        return images == null ? new String[] {""} : images.split(";");
     }
 
     public void serializeExtra(ServerMessage message) {

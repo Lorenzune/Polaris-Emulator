@@ -1,82 +1,67 @@
 package com.eu.habbo.habbohotel.wired.core;
 
-/** Bounds signal fan-out within one synchronous WIRED event chain. */
+import java.util.function.LongSupplier;
+
+/** Slice limits yield work; the independent admission guard bounds runaway feedback. */
 final class WiredSignalChainBudget {
     private final int maximumEvents;
     private final long maximumDurationNanos;
-    private final long startedAtNanos = System.nanoTime();
+    private final int maximumTotalEvents;
+    private final LongSupplier clock;
+    private long startedAtNanos;
     private int admittedEvents;
+    private int processedInSlice;
     private boolean limitReported;
-    private boolean aborted;
+    private boolean signalSeen;
 
     WiredSignalChainBudget(int maximumEvents, int maximumDurationMs) {
+        this(maximumEvents, maximumDurationMs, 100_000, System::nanoTime);
+    }
+
+    WiredSignalChainBudget(int maximumEvents, int maximumDurationMs, int maximumTotalEvents, LongSupplier clock) {
         this.maximumEvents = maximumEvents;
-        this.maximumDurationNanos = maximumDurationMs > 0 ? maximumDurationMs * 1_000_000L : 0L;
+        this.maximumDurationNanos = Math.max(0L, maximumDurationMs) * 1_000_000L;
+        this.maximumTotalEvents = maximumTotalEvents;
+        this.clock = clock;
+        beginSlice();
     }
 
     boolean tryAdmit() {
-        if (this.isDurationExceeded()) {
-            this.aborted = true;
-            return false;
-        }
-
-        if (this.aborted) {
-            return false;
-        }
-
-        if (this.maximumEvents <= 0) {
-            return true;
-        }
-
-        if (this.admittedEvents >= this.maximumEvents) {
-            this.aborted = true;
-            return false;
-        }
-
-        this.admittedEvents++;
+        if (maximumTotalEvents > 0 && admittedEvents >= maximumTotalEvents) return false;
+        admittedEvents++;
         return true;
+    }
+
+    void markSignal() {
+        signalSeen = true;
+    }
+
+    void beginSlice() {
+        startedAtNanos = clock.getAsLong();
+        processedInSlice = 0;
+    }
+
+    void processed(int count) {
+        processedInSlice += count;
+    }
+
+    boolean shouldYield() {
+        return signalSeen
+                && ((maximumEvents > 0 && processedInSlice >= maximumEvents)
+                        || (maximumDurationNanos > 0 && clock.getAsLong() - startedAtNanos >= maximumDurationNanos));
     }
 
     boolean markLimitReported() {
-        if (this.limitReported) {
-            return false;
-        }
-
-        this.limitReported = true;
+        if (limitReported) return false;
+        limitReported = true;
         return true;
     }
 
-    int maximumEvents() {
-        return this.maximumEvents;
-    }
-
     int admittedEvents() {
-        return this.admittedEvents;
-    }
-
-    boolean isExhausted() {
-        return this.aborted || (this.maximumEvents > 0 && this.admittedEvents >= this.maximumEvents);
-    }
-
-    boolean isAborted() {
-        return this.aborted;
-    }
-
-    boolean abortIfDurationExceeded() {
-        if (this.admittedEvents > 0 && !this.aborted && this.isDurationExceeded()) {
-            this.aborted = true;
-        }
-        return this.aborted;
+        return admittedEvents;
     }
 
     String limitReason() {
-        if (this.maximumEvents > 0 && this.admittedEvents >= this.maximumEvents) {
-            return "event limit " + this.maximumEvents;
-        }
-        return "duration limit " + (this.maximumDurationNanos / 1_000_000L) + "ms";
-    }
-
-    private boolean isDurationExceeded() {
-        return this.maximumDurationNanos > 0 && System.nanoTime() - this.startedAtNanos >= this.maximumDurationNanos;
+        return "chain admission limit " + maximumTotalEvents;
     }
 }

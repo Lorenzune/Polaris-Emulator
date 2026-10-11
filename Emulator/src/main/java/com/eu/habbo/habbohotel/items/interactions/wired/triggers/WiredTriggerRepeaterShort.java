@@ -2,6 +2,7 @@ package com.eu.habbo.habbohotel.items.interactions.wired.triggers;
 
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeTimerSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredTimerInputGuard;
 import com.eu.habbo.habbohotel.rooms.Room;
@@ -16,7 +17,7 @@ import java.util.List;
 public class WiredTriggerRepeaterShort extends WiredTriggerRepeater {
     public static final WiredTriggerType type = WiredTriggerType.PERIODICALLY_SHORT;
     public static final int STEP_MS = 50;
-    public static final int DEFAULT_DELAY = 10 * STEP_MS;
+    public static final int DEFAULT_DELAY = STEP_MS;
     public static final int MIN_DELAY = STEP_MS;
     public static final int MAX_DELAY = 10 * STEP_MS;
 
@@ -33,23 +34,26 @@ public class WiredTriggerRepeaterShort extends WiredTriggerRepeater {
 
     @Override
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
-        String wiredData = set.getString("wired_data");
-
-        if (wiredData != null && wiredData.startsWith("{")) {
-            JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
-            this.repeatTime = (data != null) ? data.repeatTime : DEFAULT_DELAY;
-        } else if (wiredData != null && wiredData.length() >= 1) {
-            this.repeatTime = Integer.parseInt(wiredData);
-        } else {
+        try {
+            String wiredData = set.getString("wired_data");
+            Integer stored = null;
+            if (wiredData != null && wiredData.startsWith("{")) {
+                JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
+                if (data != null) stored = data.repeatTime;
+            } else if (wiredData != null && !wiredData.isEmpty()) {
+                stored = Integer.valueOf(wiredData);
+            }
+            this.repeatTime = WiredTimerInputGuard.normalizeStoredMillis(stored, MIN_DELAY, DEFAULT_DELAY, MAX_DELAY);
+        } catch (RuntimeException ignored) {
             this.repeatTime = DEFAULT_DELAY;
         }
-
-        this.repeatTime = clampRepeatTime(this.repeatTime);
+        this.resetTimer();
     }
 
     @Override
     public void onPickUp() {
         this.repeatTime = DEFAULT_DELAY;
+        this.resetTimer();
     }
 
     @Override
@@ -88,41 +92,30 @@ public class WiredTriggerRepeaterShort extends WiredTriggerRepeater {
 
     @Override
     public boolean saveData(WiredSettings settings) {
+        settings = WiredNativeTimerSettings.normalize(this, settings);
         if (settings.getIntParams().length < 1) return false;
 
         this.repeatTime =
                 WiredTimerInputGuard.fromClientUnits(settings.getIntParams()[0], STEP_MS, MIN_DELAY, MAX_DELAY);
 
+        this.resetTimer();
         return true;
     }
 
     @Override
     public void onWiredTick(Room room, long tickCount, int tickIntervalMs) {
-        long elapsedMs = tickCount * tickIntervalMs;
-
-        if (elapsedMs % this.repeatTime == 0) {
-            long currentTime = System.currentTimeMillis();
-            if (this.getRoomId() != 0
-                    && room.isLoaded()
-                    && WiredManager.isTriggerExecutionAllowed(room, this, currentTime)) {
-                WiredManager.triggerTimerRepeatShort(room, this);
-            }
+        if (this.getRoomId() == 0 || !room.isLoaded()) return;
+        if (this.timerClock.poll(
+                tickCount,
+                tickIntervalMs,
+                this.repeatTime,
+                true,
+                () -> WiredManager.isTriggerExecutionAllowed(room, this, System.currentTimeMillis()))) {
+            WiredManager.triggerTimerRepeatShort(room, this);
         }
     }
 
     public int getRepeatTimeMs() {
         return this.repeatTime;
-    }
-
-    private int clampRepeatTime(int repeatTime) {
-        if (repeatTime < MIN_DELAY) {
-            return DEFAULT_DELAY;
-        }
-
-        if (repeatTime > MAX_DELAY) {
-            return MAX_DELAY;
-        }
-
-        return repeatTime;
     }
 }

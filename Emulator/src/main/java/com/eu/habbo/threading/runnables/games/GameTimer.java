@@ -28,12 +28,15 @@ public class GameTimer implements Runnable {
             return;
         }
 
-        timer.reduceTime();
+        boolean wholeSecond = timer.advanceClockHalfSecond();
         if (timer.getTimeNow() < 0) timer.setTimeNow(0);
+        WiredManager.triggerClockCounter(room, timer);
+
+        if (!timer.isRunning() || timer.isPaused()) return;
 
         if (timer.getTimeNow() > 0) {
             if (timer.tryActivateTimerThread()) {
-                Emulator.getThreading().run(this, 1000);
+                Emulator.getThreading().run(this, 500);
             }
         } else {
             timer.setTimeNow(0);
@@ -41,6 +44,6 @@ public class GameTimer implements Runnable {
             WiredManager.triggerGameEnds(room);
         }
 
-        room.updateItem(timer);
+        if (wholeSecond) room.updateItem(timer);
     }
 }

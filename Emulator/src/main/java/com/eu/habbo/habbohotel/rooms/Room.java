@@ -92,7 +92,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     public static volatile String PREFIX_FORMAT = "[<font color=\"%color%\">%prefix%</font>] ";
     public static volatile int ROLLERS_MAXIMUM_ROLL_AVATARS = 1;
     public static volatile boolean MUTEAREA_CAN_WHISPER = false;
-    public static double MAXIMUM_FURNI_HEIGHT = 40d;
+    public static double MAXIMUM_FURNI_HEIGHT = 80d;
     public static final int WIRED_ACCESS_EVERYONE = 1;
     public static final int WIRED_ACCESS_USERS_WITH_RIGHTS = 2;
     public static final int WIRED_ACCESS_GROUP_MEMBERS = 4;
@@ -213,6 +213,7 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     private int rollerSpeed;
     private volatile Integer transientRollerSpeedOverride;
     private int lastTimerReset = Emulator.getIntUnixTimestamp();
+    private volatile long lastTimerResetMillis = System.currentTimeMillis();
     private volatile boolean muted;
     private volatile RoomSpecialTypes roomSpecialTypes;
     private TraxManager traxManager;
@@ -1544,8 +1545,18 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         return this.lastTimerReset;
     }
 
+    public long getLastTimerResetMillis() {
+        return this.lastTimerResetMillis;
+    }
+
+    public void resetLastTimerReset() {
+        this.lastTimerResetMillis = System.currentTimeMillis();
+        this.lastTimerReset = (int) (this.lastTimerResetMillis / 1000L);
+    }
+
     public void setLastTimerReset(int lastTimerReset) {
         this.lastTimerReset = lastTimerReset;
+        this.lastTimerResetMillis = lastTimerReset * 1000L;
     }
 
     public void addToQueue(Habbo habbo) {
@@ -1720,7 +1731,9 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     }
 
     public void removeHabbo(Habbo habbo) {
-        this.cleanupYoutubeWatcher(habbo);
+        RoomPetBreedingLifecycle.leaving(this, habbo);
+        this.media.removeWatcher(habbo);
+        this.itemManager.closeLeavingChestViews(habbo);
         if (habbo != null && habbo.getHabboInfo() != null) {
             if (this.voiceUsers.remove(habbo.getHabboInfo().getId())) {
                 SearchRoomsEvent.invalidateCachedResults();
@@ -1731,7 +1744,9 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     }
 
     public void removeHabbo(Habbo habbo, boolean sendRemovePacket) {
-        this.cleanupYoutubeWatcher(habbo);
+        RoomPetBreedingLifecycle.leaving(this, habbo);
+        this.media.removeWatcher(habbo);
+        this.itemManager.closeLeavingChestViews(habbo);
         if (habbo != null && habbo.getHabboInfo() != null) {
             if (this.voiceUsers.remove(habbo.getHabboInfo().getId())) {
                 SearchRoomsEvent.invalidateCachedResults();
@@ -1759,10 +1774,6 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         if (hasMusicPartyMedia) this.clearMusicPartyVideo();
         this.getYoutubeWatchers().clear();
         SearchRoomsEvent.invalidateCachedResults();
-    }
-
-    private void cleanupYoutubeWatcher(Habbo habbo) {
-        this.media.removeWatcher(habbo);
     }
 
     public void addBot(Bot bot) {

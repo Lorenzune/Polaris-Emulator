@@ -23,7 +23,7 @@ public class ChestStartDepositEvent extends MessageHandler {
         int chestItemId = this.packet.readInt();
         HabboItem item = room.getHabboItem(chestItemId);
         if (!(item instanceof InteractionWiredChest chest)) return;
-        if (!chest.getContents().isAccessDonate() && !room.hasRights(habbo)) return;
+        if (!chest.canDeposit(habbo, room)) return;
 
         ChestDepositSession.start(habbo.getHabboInfo().getId(), chestItemId);
     }

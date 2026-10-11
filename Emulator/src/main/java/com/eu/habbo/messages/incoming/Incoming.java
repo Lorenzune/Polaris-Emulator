@@ -1,6 +1,11 @@
 package com.eu.habbo.messages.incoming;
 
 public class Incoming {
+    public static final int SaveWiredLabelEvent = 10091;
+    public static final int RequestWiredLabelEditorEvent = 10092;
+    public static final int SaveWiredLabelCardEvent = 10093;
+    public static final int WiredQuestRequestEvent = 9372;
+    public static final int WiredContractTransactionEvent = 9370;
     public static final int PongEvent = 2596;
     // Player-facing wired chest (Scrigno)
     public static final int ChestDepositEvent = 9313;
@@ -17,11 +22,15 @@ public class Incoming {
     public static final int ChestOpenEvent = 9327; // Open wired chest (official Nod)
     public static final int ChestBatchLockEvent = 9328;
     public static final int ChestRequestRoomLogsEvent = 9329;
+    public static final int ChestCommitDepositEvent = 9342;
     public static final int ChestCloseEvent = 9341;
     public static final int RoomVoiceSignalEvent = 9345;
     public static final int GuildUploadCustomBadgeEvent = 9347;
     public static final int GuildCustomBadgeRequestsEvent = 9349;
     public static final int GuildCustomBadgeReviewEvent = 9351;
+    public static final int CatalogPageMediaLoadEvent = 9353;
+    public static final int CatalogPageContentSaveEvent = 9355;
+    public static final int CatalogPageAssetUploadEvent = 9357;
     public static final int ChangeNameCheckUsernameEvent = 3950;
     public static final int ConfirmChangeNameEvent = 2977;
     public static final int ActivateEffectEvent = 2959;
@@ -107,6 +116,7 @@ public class Incoming {
     public static int RequestCatalogIndexEvent = 2529;
     public static final int BuildersClubQueryFurniCountEvent = 2529;
     public static final int BuildersClubPlaceRoomItemEvent = 1051;
+    public static final int BuildersClubRecolorFurniEvent = 9480;
     public static final int BuildersClubPlaceWallItemEvent = 462;
     public static final int RequestInventoryPetsEvent = 3095;
     public static final int ModToolRequestRoomVisitsEvent = 3526;
@@ -558,6 +568,7 @@ public class Incoming {
     public static final int WheelAdminSavePrizesEvent = 9305;
     public static final int SoundboardPlayEvent = 9306;
     public static final int SoundboardSetEnabledEvent = 9307;
+    public static final int RequestAvatarLevelEvent = 9510;
     public static final int RequestEarningsCenterEvent = 9308;
     public static final int ClaimEarningsRewardEvent = 9309;
     public static final int ClaimAllEarningsRewardsEvent = 9310;

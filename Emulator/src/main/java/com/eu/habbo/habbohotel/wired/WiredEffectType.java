@@ -92,7 +92,9 @@ public enum WiredEffectType {
     OVERRIDE_HEIGHT(2053),
     CLICK_SETTINGS(2054),
     PROGRESS_REWARD_TRACK(2058),
-    RESET_REWARD_TRACK(2059);
+    RESET_REWARD_TRACK(2059),
+    SET_VISIBILITY(2060),
+    SET_HIGHLIGHT(2061);
 
     public final int code;
 

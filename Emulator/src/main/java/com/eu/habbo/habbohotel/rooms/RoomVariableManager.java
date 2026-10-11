@@ -72,7 +72,11 @@ public class RoomVariableManager {
                         int updatedAt = normalizeTimestamp(set.getInt("updated_at"), 0);
 
                         this.activeAssignmentsByDefinitionId.put(
-                                definitionItemId, new VariableAssignment(set.getInt("value"), 0, updatedAt));
+                                definitionItemId,
+                                new VariableAssignment(
+                                        set.getInt("value"),
+                                        normalizeTimestamp(set.getInt("created_at"), 0),
+                                        updatedAt));
                     }
                 }
             } catch (SQLException e) {
@@ -96,7 +100,11 @@ public class RoomVariableManager {
         if (derivedDefinition != null) {
             Integer baseValue = this.getRawValue(derivedDefinition.getBaseDefinitionItemId());
             Integer derivedValue = WiredVariableLevelSystemSupport.getDerivedValue(
-                    derivedDefinition.getLevelSystem(), derivedDefinition.getSubvariableType(), baseValue);
+                    derivedDefinition.getLevelSystem(),
+                    derivedDefinition.getSubvariableType(),
+                    baseValue,
+                    this.getCreatedAt(derivedDefinition.getBaseDefinitionItemId()),
+                    this.getUpdatedAt(derivedDefinition.getBaseDefinitionItemId()));
             return (derivedValue != null) ? derivedValue : 0;
         }
 
@@ -197,6 +205,8 @@ public class RoomVariableManager {
         }
 
         Integer previousValue = definitionInfo.hasValue() ? this.getCurrentValue(definitionItemId) : null;
+        int previousCreatedAt = this.getCreatedAt(definitionItemId);
+        int previousUpdatedAt = this.getUpdatedAt(definitionItemId);
 
         if (extra instanceof WiredExtraVariableEcho) {
             boolean changed = ((WiredExtraVariableEcho) extra).updateValue(this.room, this.room.getId(), value);
@@ -205,7 +215,8 @@ public class RoomVariableManager {
 
             if (shouldEmit) {
                 Integer currentValue = definitionInfo.hasValue() ? this.getCurrentValue(definitionItemId) : null;
-                this.emitVariableChangedEvents(extra, definitionInfo, previousValue, currentValue);
+                this.emitVariableChangedEvents(
+                        extra, definitionInfo, previousValue, currentValue, previousCreatedAt, previousUpdatedAt);
             }
 
             if (changed) {
@@ -226,7 +237,8 @@ public class RoomVariableManager {
 
             if (shouldEmit) {
                 Integer currentValue = definitionInfo.hasValue() ? this.getCurrentValue(definitionItemId) : null;
-                this.emitVariableChangedEvents(extra, definitionInfo, previousValue, currentValue);
+                this.emitVariableChangedEvents(
+                        extra, definitionInfo, previousValue, currentValue, previousCreatedAt, previousUpdatedAt);
             }
 
             if (changed) {
@@ -242,10 +254,12 @@ public class RoomVariableManager {
         VariableAssignment assignment = this.activeAssignmentsByDefinitionId.get(definitionItemId);
 
         if (assignment == null) {
-            assignment = new VariableAssignment(value, 0, Emulator.getIntUnixTimestamp());
+            int now = Emulator.getIntUnixTimestamp();
+            assignment = new VariableAssignment(value, now, now);
             this.activeAssignmentsByDefinitionId.put(definitionItemId, assignment);
         } else if (assignment.getValue() == value) {
-            this.emitVariableChangedEvents(extra, definitionInfo, previousValue, assignment.getValue());
+            this.emitVariableChangedEvents(
+                    extra, definitionInfo, previousValue, assignment.getValue(), previousCreatedAt, previousUpdatedAt);
             return false;
         } else {
             assignment.setValue(value, Emulator.getIntUnixTimestamp());
@@ -264,7 +278,8 @@ public class RoomVariableManager {
             WiredVariableReferenceSupport.clearSharedRoomDefinition(this.room.getId(), definitionItemId);
         }
 
-        this.emitVariableChangedEvents(extra, definitionInfo, previousValue, assignment.getValue());
+        this.emitVariableChangedEvents(
+                extra, definitionInfo, previousValue, assignment.getValue(), previousCreatedAt, previousUpdatedAt);
         if (extra != null) {
             WiredVariableBoxUpdateScope.activate(extra, this.room);
         }
@@ -285,6 +300,8 @@ public class RoomVariableManager {
         }
 
         Integer previousValue = definitionInfo.hasValue() ? this.getCurrentValue(definitionItemId) : null;
+        int previousCreatedAt = this.getCreatedAt(definitionItemId);
+        int previousUpdatedAt = this.getUpdatedAt(definitionItemId);
 
         InteractionWiredExtra extra = this.getDefinitionExtra(definitionItemId);
         if (extra instanceof WiredExtraVariableEcho) {
@@ -292,7 +309,8 @@ public class RoomVariableManager {
 
             if (changed) {
                 Integer currentValue = definitionInfo.hasValue() ? this.getCurrentValue(definitionItemId) : null;
-                this.emitVariableChangedEvents(extra, definitionInfo, previousValue, currentValue);
+                this.emitVariableChangedEvents(
+                        extra, definitionInfo, previousValue, currentValue, previousCreatedAt, previousUpdatedAt);
             }
 
             if (changed) {
@@ -308,7 +326,8 @@ public class RoomVariableManager {
 
             if (changed) {
                 Integer currentValue = definitionInfo.hasValue() ? this.getCurrentValue(definitionItemId) : null;
-                this.emitVariableChangedEvents(extra, definitionInfo, previousValue, currentValue);
+                this.emitVariableChangedEvents(
+                        extra, definitionInfo, previousValue, currentValue, previousCreatedAt, previousUpdatedAt);
             }
 
             if (changed) {
@@ -328,7 +347,8 @@ public class RoomVariableManager {
 
         if (removed != null) {
             Integer currentValue = definitionInfo.hasValue() ? this.getCurrentValue(definitionItemId) : null;
-            this.emitVariableChangedEvents(extra, definitionInfo, previousValue, currentValue);
+            this.emitVariableChangedEvents(
+                    extra, definitionInfo, previousValue, currentValue, previousCreatedAt, previousUpdatedAt);
             this.broadcastSnapshot();
             return true;
         }
@@ -739,7 +759,9 @@ public class RoomVariableManager {
             InteractionWiredExtra definitionExtra,
             WiredVariableDefinitionInfo definitionInfo,
             Integer previousValue,
-            Integer currentValue) {
+            Integer currentValue,
+            int previousCreatedAt,
+            int previousUpdatedAt) {
         if (definitionInfo == null) {
             return;
         }
@@ -758,9 +780,17 @@ public class RoomVariableManager {
             }
 
             Integer derivedPreviousValue = WiredVariableLevelSystemSupport.getDerivedValue(
-                    resolvedDefinition.getLevelSystem(), resolvedDefinition.getSubvariableType(), previousValue);
+                    resolvedDefinition.getLevelSystem(),
+                    resolvedDefinition.getSubvariableType(),
+                    previousValue,
+                    previousCreatedAt,
+                    previousUpdatedAt);
             Integer derivedCurrentValue = WiredVariableLevelSystemSupport.getDerivedValue(
-                    resolvedDefinition.getLevelSystem(), resolvedDefinition.getSubvariableType(), currentValue);
+                    resolvedDefinition.getLevelSystem(),
+                    resolvedDefinition.getSubvariableType(),
+                    currentValue,
+                    this.getCreatedAt(definitionInfo.getItemId()),
+                    this.getUpdatedAt(definitionInfo.getItemId()));
 
             this.emitVariableChangedEvent(
                     derivedDefinition.getItemId(), true, derivedPreviousValue, derivedCurrentValue);
@@ -805,7 +835,7 @@ public class RoomVariableManager {
             statement.setInt(3, (assignment != null) ? assignment.getValue() : 0);
 
             int now = Emulator.getIntUnixTimestamp();
-            statement.setInt(4, 0);
+            statement.setInt(4, (assignment != null) ? assignment.getCreatedAt() : now);
             statement.setInt(5, (assignment != null) ? assignment.getUpdatedAt() : now);
             statement.executeUpdate();
         } catch (SQLException e) {

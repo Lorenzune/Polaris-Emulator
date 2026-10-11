@@ -59,7 +59,7 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
     private int userId;
     private int databaseUserId;
     private int roomId;
-    private Item baseItem;
+    private volatile Item baseItem;
     private String wallPosition;
     private short x;
     private short y;
@@ -191,6 +191,16 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
         return this.userId;
     }
 
+    private boolean buildersClubItem;
+
+    public boolean isBuildersClubItem() {
+        return buildersClubItem;
+    }
+
+    public void setBuildersClubItem(boolean tracked) {
+        this.buildersClubItem = tracked;
+    }
+
     public int getDatabaseUserId() {
         return this.databaseUserId;
     }
@@ -214,6 +224,10 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
 
     public Item getBaseItem() {
         return this.baseItem;
+    }
+
+    public void setBaseItem(Item baseItem) {
+        if (baseItem != null) this.baseItem = baseItem;
     }
 
     public String getWallPosition() {
@@ -281,12 +295,23 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
         return this.extradata;
     }
 
+    private boolean pendingWiredStateChange;
+
     public void setExtradata(String extradata) {
+        if (!java.util.Objects.equals(this.extradata, extradata)) this.pendingWiredStateChange = true;
         this.extradata = extradata;
     }
 
+    public boolean consumeWiredStateChange() {
+        boolean changed = this.pendingWiredStateChange;
+        this.pendingWiredStateChange = false;
+        return changed;
+    }
+
     public boolean needsUpdate() {
-        return this.needsUpdate;
+        synchronized (this) {
+            return this.needsUpdate;
+        }
     }
 
     public boolean needsDelete() {
@@ -294,9 +319,11 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
     }
 
     public void needsUpdate(boolean value) {
-        this.needsUpdate = value;
-        if (value) {
-            this.persistenceRevision.incrementAndGet();
+        synchronized (this) {
+            this.needsUpdate = value;
+            if (value) {
+                this.persistenceRevision.incrementAndGet();
+            }
         }
     }
 
@@ -326,6 +353,7 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
 
     @Override
     public void run() {
+        long savedRevision = this.getPersistenceRevision();
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
             if (this.needsDelete) {
                 this.needsUpdate = false;
@@ -335,7 +363,7 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
                     statement.setInt(1, this.getId());
                     statement.execute();
                 }
-            } else if (this.needsUpdate) {
+            } else if (this.needsUpdate()) {
                 try (PreparedStatement statement = connection.prepareStatement(
                         "UPDATE items SET user_id = ?, room_id = ?, wall_pos = ?, x = ?, y = ?, z = ?, rot = ?, extra_data = ?, limited_data = ? WHERE id = ?")) {
                     statement.setInt(1, this.databaseUserId);
@@ -355,7 +383,10 @@ public abstract class HabboItem implements Runnable, IEventTriggers {
                     LOGGER.error("SQLException trying to save HabboItem: {}", this.toString());
                 }
 
-                this.needsUpdate = false;
+                synchronized (this) {
+                    // An older write must not acknowledge a movement made during JDBC.
+                    this.needsUpdate = this.getPersistenceRevision() != savedRevision;
+                }
             }
 
         } catch (SQLException e) {

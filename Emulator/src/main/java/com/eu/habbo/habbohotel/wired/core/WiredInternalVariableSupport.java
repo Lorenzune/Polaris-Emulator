@@ -79,7 +79,8 @@ public final class WiredInternalVariableSupport {
         String normalized = normalizeKey(key);
 
         return switch (normalized) {
-            case "@index",
+            case "@opacity",
+                    "@index",
                     "@type",
                     "@level",
                     "@achievement_score",
@@ -144,6 +145,11 @@ public final class WiredInternalVariableSupport {
             case "@wallitem_offset" -> item.getBaseItem().getType() == FurnitureType.WALL;
             case "@gravity" -> item.getBaseItem().getType() == FurnitureType.FLOOR;
             case "@opacity", "@scaling" -> true;
+            case "~recolorable_furni.color.rgb",
+                    "~recolorable_furni.color.rgb.r",
+                    "~recolorable_furni.color.rgb.g",
+                    "~recolorable_furni.color.rgb.b" ->
+                com.eu.habbo.habbohotel.catalog.BuildersBlocksCatalogAccessPage.isRecolorableBlock(item.getBaseItem());
             case "@is_stackable" -> item.getBaseItem().allowStack();
             case "@can_stand_on" -> item.getBaseItem().allowWalk();
             case "@can_sit_on" -> item.getBaseItem().allowSit();
@@ -167,6 +173,7 @@ public final class WiredInternalVariableSupport {
         String normalized = normalizeKey(key);
 
         return switch (normalized) {
+            case "@opacity" -> roomUnit.getWiredOpacity();
             case "@index" -> roomUnit.getId();
             case "@type" -> getUserTypeValue(habbo, bot, pet);
             case "@gender" -> getGenderValue(habbo, bot);
@@ -229,6 +236,17 @@ public final class WiredInternalVariableSupport {
 
     public static boolean writeUserValue(
             Room room, RoomUnit roomUnit, String key, int value, int animationDuration, boolean noAnimation) {
+        Integer previous = hasUserValue(room, roomUnit, key) ? readUserValue(room, roomUnit, key) : null;
+        boolean result = writeUserValueImpl(room, roomUnit, key, value, animationDuration, noAnimation);
+        if (result && room != null && roomUnit != null && room.getWiredRuntime() != null) {
+            Integer next = hasUserValue(room, roomUnit, key) ? readUserValue(room, roomUnit, key) : null;
+            room.getWiredRuntime().getVariableMonitor().changed(room, 0, roomUnit, null, key, previous, next);
+        }
+        return result;
+    }
+
+    private static boolean writeUserValueImpl(
+            Room room, RoomUnit roomUnit, String key, int value, int animationDuration, boolean noAnimation) {
         if (room == null || roomUnit == null) {
             return false;
         }
@@ -240,6 +258,15 @@ public final class WiredInternalVariableSupport {
         }
 
         return switch (normalized) {
+            case "@opacity" -> {
+                if (value < 0 || value > 100 || !room.getRoomUnits().contains(roomUnit)) yield false;
+                if (roomUnit.getWiredOpacity() == value) yield true;
+                roomUnit.setWiredOpacity(value);
+                room.sendComposer(new com.eu.habbo.messages.outgoing.rooms.users.WiredUserOpacityComposer(
+                                room.getId(), java.util.List.of(roomUnit))
+                        .compose());
+                yield true;
+            }
             case "@handitem_id" -> {
                 int handItemId = Math.max(0, Math.min(MAX_HAND_ITEM_ID, value));
                 room.getUnitManager().giveHandItem(roomUnit, handItemId);
@@ -338,11 +365,35 @@ public final class WiredInternalVariableSupport {
             case "@gravity" -> room.getWiredRuntime().isGravityEnabled(item) ? 1 : 0;
             case "@opacity" -> room.getWiredRuntime().globalOpacity(item);
             case "@scaling" -> room.getWiredRuntime().globalScaling(item);
+            case "~recolorable_furni.color.rgb",
+                    "~recolorable_furni.color.rgb.r",
+                    "~recolorable_furni.color.rgb.g",
+                    "~recolorable_furni.color.rgb.b" -> {
+                if (!hasFurniValue(item, normalized)) yield null;
+                int rgb = room.getWiredRuntime().buildersBlockColor(item);
+                yield switch (normalized) {
+                    case "~recolorable_furni.color.rgb.r" -> (rgb >>> 16) & 255;
+                    case "~recolorable_furni.color.rgb.g" -> (rgb >>> 8) & 255;
+                    case "~recolorable_furni.color.rgb.b" -> rgb & 255;
+                    default -> rgb;
+                };
+            }
             default -> null;
         };
     }
 
     public static boolean writeFurniValue(Room room, HabboItem item, String key, int value) {
+        Integer previous =
+                room != null && item != null && hasFurniValue(item, key) ? readFurniValue(room, item, key) : null;
+        boolean result = writeFurniValueImpl(room, item, key, value);
+        if (result && room != null && item != null && room.getWiredRuntime() != null)
+            room.getWiredRuntime()
+                    .getVariableMonitor()
+                    .changed(room, 1, null, item, key, previous, readFurniValue(room, item, key));
+        return result;
+    }
+
+    private static boolean writeFurniValueImpl(Room room, HabboItem item, String key, int value) {
         if (room == null || item == null) {
             return false;
         }
@@ -361,6 +412,9 @@ public final class WiredInternalVariableSupport {
         }
         if ("@scaling".equals(normalized)) {
             return room.getWiredRuntime().setGlobalScaling(room, item, value);
+        }
+        if (com.eu.habbo.habbohotel.rooms.BuildersClubPalette.isKey(normalized)) {
+            return com.eu.habbo.habbohotel.rooms.BuildersClubPalette.write(room, item, normalized, value);
         }
 
         if (item.getBaseItem() == null || item.getBaseItem().getType() != FurnitureType.FLOOR) {
@@ -426,6 +480,10 @@ public final class WiredInternalVariableSupport {
         String normalized = normalizeKey(key);
 
         return switch (normalized) {
+            case "@event.transaction_failed.reason" ->
+                ctx.event().getType() == WiredEvent.Type.TRANSACTION_FAIL
+                        ? ctx.event().getActionParameter()
+                        : null;
             case "@selector_furni_count" ->
                 countIterable(ctx.targets() != null ? ctx.targets().items() : null);
             case "@selector_user_count" ->

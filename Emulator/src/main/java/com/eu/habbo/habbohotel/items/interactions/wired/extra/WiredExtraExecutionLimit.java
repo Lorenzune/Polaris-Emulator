@@ -9,7 +9,6 @@ import com.eu.habbo.habbohotel.rooms.RoomTile;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayDeque;
@@ -20,7 +19,7 @@ public class WiredExtraExecutionLimit extends InteractionWiredExtra {
     public static final int MIN_EXECUTIONS = 1;
     public static final int MAX_EXECUTIONS = 100;
     public static final int DEFAULT_EXECUTIONS = 1;
-    public static final int MIN_TIME_WINDOW_MS = 1000;
+    public static final int MIN_TIME_WINDOW_MS = 500;
     public static final int MAX_TIME_WINDOW_MS = 10000;
     public static final int DEFAULT_TIME_WINDOW_MS = 1000;
     public static final int TIME_WINDOW_STEP_MS = 500;
@@ -33,7 +32,8 @@ public class WiredExtraExecutionLimit extends InteractionWiredExtra {
         super(set, baseItem);
     }
 
-    public WiredExtraExecutionLimit(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredExtraExecutionLimit(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -120,9 +120,7 @@ public class WiredExtraExecutionLimit extends InteractionWiredExtra {
     }
 
     @Override
-    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {
-
-    }
+    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {}
 
     @Override
     public void onMove(Room room, RoomTile oldLocation, RoomTile newLocation) {

@@ -8,8 +8,7 @@ import com.eu.habbo.messages.outgoing.rooms.WiredFurniOpacityComposer;
 public class WiredFeatureCapabilitiesEvent extends MessageHandler {
     @Override
     public void handle() throws Exception {
-        Room room = currentRoom();
-        if (room == null || this.packet.bytesAvailable() < 8) {
+        if (this.client == null || this.client.getHabbo() == null || this.packet.bytesAvailable() < 8) {
             return;
         }
 
@@ -17,12 +16,25 @@ public class WiredFeatureCapabilitiesEvent extends MessageHandler {
         int capabilities = this.packet.readInt();
         this.client.setWiredFeatureCapabilities(protocolVersion, capabilities);
 
+        // The room engine can initialize before the server commits room entry.
+        // Capabilities belong to the connection and must survive that interval.
+        Room room = currentRoom();
+        if (room == null) {
+            return;
+        }
+
         int opacityProtocolVersion = WiredOpacityBroadcaster.opacityProtocolVersion(this.client.getHabbo());
         if (opacityProtocolVersion > 0) {
             int userId = this.client.getHabbo().getHabboInfo().getId();
             this.client.sendResponse(new WiredFurniOpacityComposer(
                     opacityProtocolVersion, room.getId(), room.getWiredRuntime().opacitySnapshot(userId), 0, 0));
         }
+        // Resend after client room initialization: the entry snapshot can arrive
+        // before its room UI has subscribed to the highlight stream.
+        var highlights = room.getWiredRuntime().highlightSnapshot();
+        if (!highlights.isEmpty())
+            this.client.sendResponse(
+                    new com.eu.habbo.messages.outgoing.rooms.WiredHighlightComposer(room.getId(), highlights));
         WiredOpacityBroadcaster.sendCustomColorSnapshot(
                 this.client.getHabbo(), room.getId(), room.getWiredRuntime().customColorSnapshot());
     }

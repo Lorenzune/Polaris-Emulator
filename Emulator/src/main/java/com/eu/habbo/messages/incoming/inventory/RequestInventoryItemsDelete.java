@@ -22,7 +22,36 @@ public class RequestInventoryItemsDelete extends MessageHandler {
         int itemId = this.packet.readInt();
         int amount = this.packet.readInt();
 
-        if (amount <= 0 || amount > MAX_DELETE_AMOUNT) return;
+        boolean batch = this.packet.bytesAvailable() >= 4;
+        if (amount <= 0 || amount > MAX_DELETE_AMOUNT) {
+            if (!batch || amount <= 0 || amount > 10000) return;
+        }
+        if (batch) {
+            int count = this.packet.readInt();
+            if (count <= 0 || count > 10000 || count != amount || this.packet.bytesAvailable() != count * 4) return;
+            Habbo habbo = this.client.getHabbo();
+            if (habbo == null) return;
+            if (habbo.getRoomUnit().hasStatus(com.eu.habbo.habbohotel.rooms.RoomUnitStatus.TRADING)) return;
+            Map<Integer, HabboItem> selected = new HashMap<>();
+            for (int i = 0; i < count; i++) {
+                HabboItem selectedItem =
+                        habbo.getInventory().getItemsComponent().getHabboItem(this.packet.readInt());
+                if (selectedItem != null) selected.put(selectedItem.getId(), selectedItem);
+            }
+            Map<Integer, HabboItem> removed = new HashMap<>();
+            for (HabboItem selectedItem : selected.values()) {
+                habbo.getInventory().getItemsComponent().removeHabboItem(selectedItem);
+                if (habbo.getInventory().getItemsComponent().getHabboItem(selectedItem.getId()) == null) {
+                    removed.put(selectedItem.getId(), selectedItem);
+                    habbo.getClient().sendResponse(new RemoveHabboItemComposer(selectedItem.getGiftAdjustedId()));
+                }
+            }
+            if (!removed.isEmpty()) {
+                habbo.getClient().sendResponse(new InventoryRefreshComposer());
+                persistDeleted(removed.values());
+            }
+            return;
+        }
 
         HabboItem habboItem =
                 this.client.getHabbo().getInventory().getItemsComponent().getHabboItem(itemId);
@@ -42,7 +71,7 @@ public class RequestInventoryItemsDelete extends MessageHandler {
             habbo.getClient().sendResponse(new RemoveHabboItemComposer(object.getGiftAdjustedId()));
         });
         habbo.getClient().sendResponse(new InventoryRefreshComposer());
-        Emulator.getThreading().runPersistence(new QueryDeleteHabboItems(toRemove.values()));
+        persistDeleted(toRemove.values());
     }
 
     private boolean hasFurnitureInInventory(Habbo habbo, Item item, Integer amount) {
@@ -51,5 +80,9 @@ public class RequestInventoryItemsDelete extends MessageHandler {
             if (habboItem.getBaseItem().getId() == item.getId()) count++;
         }
         return count >= amount;
+    }
+
+    private void persistDeleted(java.util.Collection<HabboItem> items) {
+        Emulator.getThreading().runPersistence(new QueryDeleteHabboItems(items));
     }
 }

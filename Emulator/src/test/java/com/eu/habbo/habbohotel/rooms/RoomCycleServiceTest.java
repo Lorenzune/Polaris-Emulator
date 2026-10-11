@@ -30,7 +30,7 @@ class RoomCycleServiceTest {
     }
 
     @Test
-    void aSlowRoomDoesNotBlockARoomOnAnotherWorker() throws Exception {
+    void aSlowRoomDoesNotBlockARoomFromTheSameLegacyWorker() throws Exception {
         RoomCycleService service = new RoomCycleService(2, 250);
         CountDownLatch slowRoomStarted = new CountDownLatch(1);
         CountDownLatch releaseSlowRoom = new CountDownLatch(1);
@@ -50,7 +50,7 @@ class RoomCycleServiceTest {
                     .run();
 
             Room fastRoom = mock(Room.class);
-            when(fastRoom.getId()).thenReturn(1);
+            when(fastRoom.getId()).thenReturn(2);
             doAnswer(invocation -> {
                         fastRoomRan.countDown();
                         return null;
@@ -108,6 +108,82 @@ class RoomCycleServiceTest {
             doThrow(new StackOverflowError()).when(room).run();
 
             service.runCycle(room);
+        } finally {
+            service.dispose();
+        }
+    }
+
+    @Test
+    void slowRoomMovesToDedicatedPoolWithoutOverlappingOrChangingCycleCount() throws Exception {
+        java.util.concurrent.atomic.AtomicLong clock = new java.util.concurrent.atomic.AtomicLong();
+        RoomCycleService service = new RoomCycleService(2, 1, clock::get);
+        java.util.List<String> threads = new java.util.concurrent.CopyOnWriteArrayList<>();
+        CountDownLatch second = new CountDownLatch(1), release = new CountDownLatch(1);
+        AtomicInteger active = new AtomicInteger(), maximum = new AtomicInteger();
+        ScheduledFuture<?> future = null;
+        try {
+            Room room = mock(Room.class);
+            when(room.getId()).thenReturn(8);
+            doAnswer(invocation -> {
+                        maximum.accumulateAndGet(active.incrementAndGet(), Math::max);
+                        try {
+                            threads.add(Thread.currentThread().getName());
+                            if (threads.size() == 1) clock.addAndGet(2_000_000);
+                            else {
+                                second.countDown();
+                                release.await(5, TimeUnit.SECONDS);
+                            }
+                        } finally {
+                            active.decrementAndGet();
+                        }
+                        return null;
+                    })
+                    .when(room)
+                    .run();
+            future = service.schedule(room);
+            assertTrue(second.await(3, TimeUnit.SECONDS));
+            assertEquals(2, threads.size());
+            assertTrue(threads.get(0).startsWith("RoomCycleIndependent-"));
+            assertTrue(threads.get(1).startsWith("RoomCycleSlow-"));
+            assertEquals(1, maximum.get());
+            assertTrue(future.cancel(false));
+            org.junit.jupiter.api.Assertions.assertFalse(future.cancel(false));
+            org.junit.jupiter.api.Assertions.assertThrows(
+                    java.util.concurrent.CancellationException.class, future::get);
+        } finally {
+            release.countDown();
+            if (future != null) future.cancel(false);
+            service.dispose();
+        }
+        assertEquals(2, threads.size());
+    }
+
+    @Test
+    void cancellingBeforeFirstCyclePreventsExecutionAndDisposalCancelsOutstandingFutures() {
+        RoomCycleService service = new RoomCycleService(2, 250);
+        Room room = mock(Room.class);
+        when(room.getId()).thenReturn(10);
+        ScheduledFuture<?> cancelled = service.schedule(room);
+        assertTrue(cancelled.cancel(false));
+        ScheduledFuture<?> pending = service.schedule(room);
+        service.dispose();
+        assertTrue(pending.isCancelled());
+        org.mockito.Mockito.verify(room, org.mockito.Mockito.never()).run();
+    }
+
+    @Test
+    void legacySchedulerRemainsAvailableFromConfiguration() {
+        com.eu.habbo.core.ConfigurationManager config = mock(com.eu.habbo.core.ConfigurationManager.class);
+        when(config.getInt(RoomCycleService.WORKERS_SETTING, 0)).thenReturn(1);
+        when(config.getBoolean("room.cycle.room.isolation", true)).thenReturn(false);
+        RoomCycleService service = RoomCycleService.fromConfig(config);
+        try {
+            assertEquals(1, service.workerCount());
+            Room room = mock(Room.class);
+            when(room.getId()).thenReturn(10);
+            ScheduledFuture<?> future = service.schedule(room);
+            assertTrue(future.cancel(false));
+            org.junit.jupiter.api.Assertions.assertFalse(future.cancel(false));
         } finally {
             service.dispose();
         }

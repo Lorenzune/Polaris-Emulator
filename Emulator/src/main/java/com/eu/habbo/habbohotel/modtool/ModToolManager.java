@@ -49,6 +49,12 @@ public class ModToolManager {
     private final Map<Integer, ModToolIssue> tickets;
     private final Int2ObjectMap<CfhCategory> cfhCategories;
 
+    private Runnable chatlogFlusher = () -> {};
+
+    public void setChatlogFlusher(Runnable flusher) {
+        this.chatlogFlusher = java.util.Objects.requireNonNull(flusher);
+    }
+
     public ModToolManager() {
         long millis = System.currentTimeMillis();
         this.category = Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>());
@@ -232,6 +238,7 @@ public class ModToolManager {
     }
 
     public ArrayList<ModToolChatLog> getRoomChatlog(int roomId) {
+        this.chatlogFlusher.run();
         ArrayList<ModToolChatLog> chatlogs = new ArrayList<>();
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
@@ -304,10 +311,11 @@ public class ModToolManager {
     }
 
     public ArrayList<ModToolRoomVisit> getUserRoomVisitsAndChatlogs(int userId) {
+        this.chatlogFlusher.run();
         ArrayList<ModToolRoomVisit> chatlogs = new ArrayList<>();
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement(
-                        "SELECT rooms.name, users.username, room_enter_log.timestamp AS enter_timestamp, room_enter_log.exit_timestamp, chatlogs_room.* FROM room_enter_log INNER JOIN rooms ON room_enter_log.room_id = rooms.id INNER JOIN users ON room_enter_log.user_id = users.id LEFT JOIN chatlogs_room ON room_enter_log.user_id = chatlogs_room.user_from_id AND room_enter_log.room_id = chatlogs_room.room_id AND chatlogs_room.timestamp >= room_enter_log.timestamp AND chatlogs_room.timestamp < room_enter_log.exit_timestamp WHERE chatlogs_room.user_from_id = ? ORDER BY room_enter_log.timestamp DESC LIMIT 500")) {
+                        "SELECT rooms.name, users.username, room_enter_log.timestamp AS enter_timestamp, room_enter_log.exit_timestamp, chatlogs_room.* FROM room_enter_log INNER JOIN rooms ON room_enter_log.room_id = rooms.id INNER JOIN users ON room_enter_log.user_id = users.id LEFT JOIN chatlogs_room ON room_enter_log.user_id = chatlogs_room.user_from_id AND room_enter_log.room_id = chatlogs_room.room_id AND chatlogs_room.timestamp >= room_enter_log.timestamp AND (room_enter_log.exit_timestamp IS NULL OR room_enter_log.exit_timestamp = 0 OR chatlogs_room.timestamp <= room_enter_log.exit_timestamp) WHERE chatlogs_room.user_from_id = ? ORDER BY room_enter_log.timestamp DESC LIMIT 500")) {
             statement.setInt(1, userId);
             try (ResultSet set = statement.executeQuery()) {
                 int userid = 0;

@@ -3,6 +3,7 @@ package com.eu.habbo.habbohotel.items.interactions.wired.triggers;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeTimerSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredTimerInputGuard;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredTriggerReset;
@@ -12,9 +13,10 @@ import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.WiredTriggerType;
 import com.eu.habbo.habbohotel.wired.core.WiredEvent;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
+import com.eu.habbo.habbohotel.wired.tick.WiredTickService;
 import com.eu.habbo.habbohotel.wired.tick.WiredTickable;
+import com.eu.habbo.habbohotel.wired.tick.WiredTimerClock;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -24,23 +26,18 @@ import java.util.List;
  * One-shot timer wired trigger that fires once after a set time.
  * <p>
  * Uses the new 50ms tick system via {@link WiredTickable} for accurate
- * timing. After firing, the timer automatically resets and starts again.
+ * timing. After firing, the timer waits for an explicit reset.
  * </p>
  */
 public class WiredTriggerAtSetTime extends InteractionWiredTrigger implements WiredTickable, WiredTriggerReset {
     public static final WiredTriggerType type = WiredTriggerType.AT_GIVEN_TIME;
     private static final int STEP_MS = 500;
     private static final int MIN_DELAY = STEP_MS;
-    private static final int LEGACY_FALLBACK_DELAY = 20 * STEP_MS;
 
     /** The time in milliseconds until the trigger fires */
-    public int executeTime;
-    
-    /** Accumulated time since last reset (in milliseconds) */
-    private long accumulatedTime = 0;
-    
-    /** Whether the timer has fired and is waiting for reset */
-    private boolean hasFired = false;
+    public volatile int executeTime = MIN_DELAY;
+
+    private final WiredTimerClock timerClock = new WiredTimerClock();
 
     public WiredTriggerAtSetTime(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -83,18 +80,16 @@ public class WiredTriggerAtSetTime extends InteractionWiredTrigger implements Wi
             storedExecuteTime = null;
         }
 
-        this.executeTime = WiredTimerInputGuard.normalizeStoredMillis(storedExecuteTime, MIN_DELAY, LEGACY_FALLBACK_DELAY);
-        
+        this.executeTime = WiredTimerInputGuard.normalizeStoredMillis(storedExecuteTime, MIN_DELAY, MIN_DELAY);
+
         // Initialize for tick system - will be registered by RoomItemManager
-        this.accumulatedTime = 0;
-        this.hasFired = false;
+        this.resetTimer();
     }
 
     @Override
     public void onPickUp() {
-        this.executeTime = 0;
-        this.accumulatedTime = 0;
-        this.hasFired = false;
+        this.executeTime = MIN_DELAY;
+        this.resetTimer();
     }
 
     @Override
@@ -133,6 +128,7 @@ public class WiredTriggerAtSetTime extends InteractionWiredTrigger implements Wi
 
     @Override
     public boolean saveData(WiredSettings settings) {
+        settings = WiredNativeTimerSettings.normalize(this, settings);
         if (settings.getIntParams().length < 1) return false;
         this.executeTime = WiredTimerInputGuard.fromClientUnits(settings.getIntParams()[0], STEP_MS, MIN_DELAY);
 
@@ -145,49 +141,30 @@ public class WiredTriggerAtSetTime extends InteractionWiredTrigger implements Wi
 
     @Override
     public void onWiredTick(Room room, long tickCount, int tickIntervalMs) {
-        // Don't tick if already fired (waiting for manual reset)
-        if (this.hasFired) {
-            return;
-        }
-        
-        // Add fixed tick interval
-        this.accumulatedTime += tickIntervalMs;
-        
-        // Check if enough time has passed
-        if (this.accumulatedTime >= this.executeTime) {
-            if (this.getRoomId() != 0 && room.isLoaded()) {
-                long currentTime = System.currentTimeMillis();
-                if (!WiredManager.isTriggerExecutionAllowed(room, this, currentTime)) {
-                    return;
-                }
-
-                this.hasFired = true;
-                this.accumulatedTime = 0;
-                WiredManager.triggerTimerTick(room, this);
-                return;
-            }
-
-            this.hasFired = true;
-            this.accumulatedTime = 0;
+        if (this.getRoomId() == 0 || !room.isLoaded()) return;
+        if (this.timerClock.poll(
+                tickCount,
+                tickIntervalMs,
+                this.executeTime,
+                false,
+                () -> WiredManager.isTriggerExecutionAllowed(room, this, System.currentTimeMillis()))) {
+            WiredManager.triggerTimerTick(room, this);
         }
     }
 
     @Override
     public void resetTimer() {
-        this.accumulatedTime = 0;
-        this.hasFired = false;
+        this.timerClock.reset(WiredTickService.getInstance().getTickCount());
     }
 
     @Override
     public void onRegistered(Room room, long currentTimeMillis) {
-        this.accumulatedTime = 0;
-        this.hasFired = false;
+        this.resetTimer();
     }
 
     @Override
     public void onUnregistered(Room room) {
-        this.accumulatedTime = 0;
-        this.hasFired = false;
+        this.resetTimer();
     }
 
     @Override

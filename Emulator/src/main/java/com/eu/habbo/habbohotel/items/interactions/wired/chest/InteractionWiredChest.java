@@ -5,7 +5,8 @@ import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
-
+import com.eu.habbo.habbohotel.users.Habbo;
+import com.eu.habbo.messages.outgoing.rooms.items.ChestDataComposer;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Set;
@@ -21,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public abstract class InteractionWiredChest extends InteractionWiredExtra {
     protected ChestStorage contents = new ChestStorage();
     private final Set<Integer> activeViewers = ConcurrentHashMap.newKeySet();
+    private ChestStorage.LogEntry lastNotifiedLog;
 
     protected InteractionWiredChest(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -29,6 +31,9 @@ public abstract class InteractionWiredChest extends InteractionWiredExtra {
             if (wiredData != null && !wiredData.isEmpty()) {
                 this.contents = ChestStorage.fromJson(wiredData);
                 resolveLegacySpriteIds(this.contents);
+                this.lastNotifiedLog = this.contents.getLog().isEmpty()
+                        ? null
+                        : this.contents.getLog().get(0);
             }
         } catch (SQLException ignored) {
             // Legacy rows/schema variants without wired_data retain the same empty-storage fallback.
@@ -36,13 +41,84 @@ public abstract class InteractionWiredChest extends InteractionWiredExtra {
         }
     }
 
-    protected InteractionWiredChest(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    protected InteractionWiredChest(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
+    }
+
+    public boolean canManage(Habbo habbo) {
+        return habbo != null
+                && (getUserId() == habbo.getHabboInfo().getId() || habbo.hasPermission("acc_anyroomowner"));
+    }
+
+    public boolean canEdit(Habbo habbo, Room room) {
+        return canManage(habbo) || (habbo != null && room != null && room.canModifyWired(habbo));
+    }
+
+    public boolean canRead(Habbo habbo, Room room) {
+        return canManage(habbo) || (habbo != null && room != null && room.canInspectWired(habbo));
+    }
+
+    public boolean canWithdraw(Habbo habbo, Room room) {
+        return canEdit(habbo, room) && (!contents.isLocked() || canManage(habbo));
+    }
+
+    public boolean canDeposit(Habbo habbo, Room room) {
+        return canManage(habbo) || (!contents.isLocked() && (canEdit(habbo, room) || contents.isAccessDonate()));
+    }
+
+    private void refreshViewers(Room room) {
+        if (room == null) return;
+        for (Integer id : activeViewers) {
+            Habbo viewer = room.getHabbo(id);
+            if (viewer == null || viewer.getClient() == null) {
+                activeViewers.remove(id);
+                continue;
+            }
+            viewer.getClient().sendResponse(new ChestDataComposer(this, viewer));
+            if (this instanceof InteractionWiredChestFurni) {
+                ChestFurniPackets.sendFullChunks(viewer.getClient(), getId(), contents);
+            }
+        }
+    }
+
+    private synchronized void notifyOwner(Room room) {
+        var log = contents.getLog();
+        if (log.isEmpty() || log.get(0) == lastNotifiedLog) return;
+        var entry = log.get(0);
+        lastNotifiedLog = entry;
+        if (contents.getNotifyMode() == 2 || (entry.withdrawn <= 0 && entry.deposited <= 0)) return;
+        int used = this instanceof InteractionWiredChestFurni
+                ? contents.furniItemCount()
+                : contents.total(ChestStorage.KIND_CURRENCY);
+        boolean enabled = (entry.deposited > 0 && contents.isNotifyDonation())
+                || (entry.withdrawn > 0 && contents.isNotifyWithdraw())
+                || (entry.type != null && entry.type.startsWith("wired") && contents.isNotifyWired())
+                || (entry.deposited > 0 && used >= contents.getCapacity() && contents.isNotifyFull())
+                || (entry.withdrawn > 0 && used == 0 && contents.isNotifyEmpty());
+        if (!enabled) return;
+        var environment = Emulator.getGameEnvironment();
+        if (environment == null || environment.getHabboManager() == null) return;
+        Habbo owner = environment.getHabboManager().getHabbo(getUserId());
+        if (owner == null || owner.getClient() == null) return;
+        if (contents.getNotifyMode() == 1 && owner.getHabboInfo().getCurrentRoom() != room) return;
+        String label = contents.getName().isBlank() ? "Scrigno #" + getId() : contents.getName();
+        String text = label + ": " + entry.userName
+                + (entry.deposited > 0 ? " ha depositato " + entry.deposited : " ha prelevato " + entry.withdrawn);
+        if (entry.deposited > 0 && contents.isNotifyDonation()) ChestNotifications.send(owner, "donation", text);
+        if (entry.withdrawn > 0 && contents.isNotifyWithdraw()) ChestNotifications.send(owner, "withdraw", text);
+        if (entry.type != null && entry.type.startsWith("wired") && contents.isNotifyWired())
+            ChestNotifications.send(owner, "wired_transaction", text);
+        if (entry.deposited > 0 && used >= contents.getCapacity() && contents.isNotifyFull())
+            ChestNotifications.send(owner, "full", label + ": lo scrigno è pieno.");
+        if (entry.withdrawn > 0 && used == 0 && contents.isNotifyEmpty())
+            ChestNotifications.send(owner, "empty", label + ": lo scrigno è vuoto.");
     }
 
     public boolean hasContents() {
         if (this instanceof InteractionWiredChestFurni) {
-            return this.contents.furniItemCount() > 0 || !this.contents.entries().isEmpty();
+            return this.contents.furniItemCount() > 0
+                    || !this.contents.entries().isEmpty();
         } else {
             for (ChestStorage.Entry entry : this.contents.entries()) {
                 if (entry.quantity > 0) return true;
@@ -63,8 +139,9 @@ public abstract class InteractionWiredChest extends InteractionWiredExtra {
 
     public void updateAppearanceState(Room room) {
         if (room == null && this.getRoomId() > 0) {
-            if (Emulator.getGameEnvironment() != null && Emulator.getGameEnvironment().getRoomManager() != null) {
-                room = Emulator.getGameEnvironment().getRoomManager().getRoom(this.getRoomId());
+            var environment = Emulator.getGameEnvironment();
+            if (environment != null && environment.getRoomManager() != null) {
+                room = environment.getRoomManager().getRoom(this.getRoomId());
             }
         }
         if (room == null) return;
@@ -83,10 +160,17 @@ public abstract class InteractionWiredChest extends InteractionWiredExtra {
         if (!isOpen) {
             targetExtra = "0"; // Closed
         } else {
-            targetExtra = this.hasContents() ? "2" : "1"; // 2 = Open with items/coins, 1 = Open empty
+            if (this instanceof InteractionWiredChestCurrency) {
+                int credits = this.contents.total(ChestStorage.KIND_CURRENCY);
+                // Native currency assets: closed, empty, low, medium, high.
+                targetExtra = credits >= 100 ? "4" : credits >= 20 ? "3" : credits >= 1 ? "2" : "1";
+            } else {
+                // Every native furni chest variant has only closed/open states.
+                targetExtra = "1";
+            }
         }
 
-        if (!targetExtra.equals(this.getExtradata())) {
+        if (!targetExtra.equals(this.getExtradata()) || this instanceof InteractionWiredChestFurni) {
             this.setExtradata(targetExtra);
             room.updateItem(this);
         }
@@ -113,6 +197,8 @@ public abstract class InteractionWiredChest extends InteractionWiredExtra {
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
         this.contents = ChestStorage.fromJson(set.getString("wired_data"));
         resolveLegacySpriteIds(this.contents);
+        this.lastNotifiedLog =
+                this.contents.getLog().isEmpty() ? null : this.contents.getLog().get(0);
         this.updateAppearanceState(room);
     }
 
@@ -122,12 +208,13 @@ public abstract class InteractionWiredChest extends InteractionWiredExtra {
      * next persist writes it out permanently.
      */
     private static void resolveLegacySpriteIds(ChestStorage contents) {
-        if (Emulator.getGameEnvironment() == null || Emulator.getGameEnvironment().getItemManager() == null) return;
+        var environment = Emulator.getGameEnvironment();
+        if (environment == null || environment.getItemManager() == null) return;
 
         for (ChestFurniStoredItem stored : contents.furniItems()) {
             if (stored.spriteId > 0) continue;
 
-            Item base = Emulator.getGameEnvironment().getItemManager().getItem(stored.baseItemId);
+            Item base = environment.getItemManager().getItem(stored.baseItemId);
             if (base != null) stored.spriteId = base.getSpriteId();
         }
     }
@@ -141,9 +228,7 @@ public abstract class InteractionWiredChest extends InteractionWiredExtra {
     }
 
     @Override
-    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {
-
-    }
+    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {}
 
     @Override
     public boolean hasConfiguration() {
@@ -157,10 +242,15 @@ public abstract class InteractionWiredChest extends InteractionWiredExtra {
     public void persistContents(Room room) {
         this.updateAppearanceState(room);
         this.needsUpdate(true);
+        this.refreshViewers(room);
+        this.notifyOwner(room);
     }
 
     public void persistContents() {
-        this.updateAppearanceState(null);
-        this.needsUpdate(true);
+        var environment = Emulator.getGameEnvironment();
+        Room room = environment == null || environment.getRoomManager() == null
+                ? null
+                : environment.getRoomManager().getRoom(getRoomId());
+        this.persistContents(room);
     }
 }

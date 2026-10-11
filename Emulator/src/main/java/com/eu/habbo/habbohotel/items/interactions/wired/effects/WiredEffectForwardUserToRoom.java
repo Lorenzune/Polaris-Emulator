@@ -3,8 +3,10 @@ package com.eu.habbo.habbohotel.items.interactions.wired.effects;
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
+import com.eu.habbo.habbohotel.items.interactions.InteractionRoomLinker;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeMovementSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomManager;
@@ -15,27 +17,16 @@ import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
-import com.eu.habbo.messages.outgoing.rooms.ForwardToRoomComposer;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Forwards the resolved user(s) to another room, identified by a numeric room id stored in the
- * single text field of the {@link WiredEffectType#SHOW_MESSAGE} client dialog (text field = target
- * room id + a user-source selector), so it needs no new client dialog.
- * <p>
- * The room-change itself is performed exactly as the proven RCON {@code ForwardUser} handler does it:
- * leave the current room (if any), send {@link ForwardToRoomComposer}, then
- * {@link RoomManager#enterRoom(Habbo, int, String, boolean)} with checks overridden. This is a faithful
- * implementation of the {@code wf_act_forward_user_to_room} behaviour (navigate a user to a room),
- * not a URL/in-client link.
- */
+/** Transfers users through the normal teleport room-entry flow. The selected endpoint resolves its paired destination at execution time. */
 public class WiredEffectForwardUserToRoom extends InteractionWiredEffect {
     public static final WiredEffectType type = WiredEffectType.TELEPORT_TO_ROOM;
 
-    private String roomIdText = "";
+    private List<Integer> linkerIds = new ArrayList<>();
     private int userSource = WiredSourceUtil.SOURCE_TRIGGER;
 
     public WiredEffectForwardUserToRoom(ResultSet set, Item baseItem) throws SQLException {
@@ -50,11 +41,12 @@ public class WiredEffectForwardUserToRoom extends InteractionWiredEffect {
     @Override
     public void serializeWiredData(ServerMessage message, Room room) {
         message.appendBoolean(false);
-        message.appendInt(0);
-        message.appendInt(0);
+        message.appendInt(1);
+        message.appendInt(this.linkerIds.size());
+        for (int id : this.linkerIds) message.appendInt(id);
         message.appendInt(this.getBaseItem().getSpriteId());
         message.appendInt(this.getId());
-        message.appendString(this.roomIdText);
+        message.appendString("");
         message.appendInt(1);
         message.appendInt(this.userSource);
         message.appendInt(0);
@@ -79,20 +71,14 @@ public class WiredEffectForwardUserToRoom extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
-        String value = settings.getStringParam();
-        if (value == null || value.trim().isEmpty()) {
-            return false;
+        settings = WiredNativeMovementSettings.normalize(this, settings);
+        int[] selected = settings.getFurniIds();
+        if (selected == null || selected.length != 1 || selected[0] <= 0) return false;
+        if (gameClient != null) {
+            Room room = gameClient.getHabbo().getHabboInfo().getCurrentRoom();
+            if (room == null || !(room.getHabboItem(selected[0]) instanceof InteractionRoomLinker)) return false;
         }
-
-        String trimmed = value.trim();
-        try {
-            if (Integer.parseInt(trimmed) <= 0) {
-                return false;
-            }
-        } catch (NumberFormatException e) {
-            return false;
-        }
-        this.roomIdText = trimmed;
+        this.linkerIds = new ArrayList<>(List.of(selected[0]));
 
         int[] params = settings.getIntParams();
         this.userSource = (params.length > 0) ? params[0] : WiredSourceUtil.SOURCE_TRIGGER;
@@ -111,37 +97,43 @@ public class WiredEffectForwardUserToRoom extends InteractionWiredEffect {
     public void execute(WiredContext ctx) {
         Room room = ctx.room();
 
-        int targetRoomId;
-        try {
-            targetRoomId = Integer.parseInt(this.roomIdText.trim());
-        } catch (NumberFormatException e) {
-            return;
-        }
-        if (targetRoomId <= 0) {
-            return;
-        }
-
+        if (room == null || Emulator.getGameEnvironment() == null || linkerIds.size() != 1) return;
+        if (!(room.getHabboItem(linkerIds.getFirst()) instanceof InteractionRoomLinker source)) return;
+        var environment = Emulator.getGameEnvironment();
+        int[] pair = environment.getItemManager().getTargetTeleportRoomId(source);
+        if (pair == null || pair.length < 2 || pair[0] <= 0 || pair[1] <= 0) return;
+        int targetRoomId = pair[0];
+        RoomManager roomManager = environment.getRoomManager();
+        Room targetRoom = targetRoomId == room.getId() ? room : roomManager.loadRoom(targetRoomId, true);
+        if (targetRoom == null || !targetRoom.isLoaded()) return;
+        if (!(targetRoom.getHabboItem(pair[1]) instanceof InteractionRoomLinker destination)) return;
+        if (targetRoom.getLayout() == null) return;
+        var tile = targetRoom.getLayout().getTile(destination.getX(), destination.getY());
+        if (tile == null) return;
+        var transferred = new java.util.HashSet<Integer>();
         for (RoomUnit unit : WiredSourceUtil.resolveUsers(ctx, this.userSource)) {
             Habbo habbo = room.getHabbo(unit);
-            if (habbo == null || habbo.getClient() == null) continue;
-
-            Room currentRoom = habbo.getHabboInfo().getCurrentRoom();
-            if (currentRoom != null && currentRoom.getId() == targetRoomId) {
-                continue;
+            if (habbo == null
+                    || habbo.getClient() == null
+                    || !transferred.add(habbo.getHabboInfo().getId())) continue;
+            synchronized (habbo) {
+                Room currentRoom = habbo.getHabboInfo().getCurrentRoom();
+                // A previous effect or an in-flight transfer already owns this user's room change.
+                if (currentRoom != room
+                        || habbo.getHabboInfo().getLoadingRoom() != 0
+                        || (habbo.getRoomUnit() != null && habbo.getRoomUnit().isTeleporting)) continue;
+                if (currentRoom == targetRoom) {
+                    currentRoom.teleportHabboToItem(habbo, destination);
+                    continue;
+                }
+                RoomLinkerTransfer.start(
+                        roomManager,
+                        habbo,
+                        currentRoom,
+                        targetRoom,
+                        tile,
+                        recovery -> Emulator.getThreading().run(recovery, 15000));
             }
-
-            RoomManager roomManager = Emulator.getGameEnvironment().getRoomManager();
-
-            if (roomManager.loadRoom(targetRoomId) == null) {
-                continue;
-            }
-
-            if (currentRoom != null) {
-                roomManager.leaveRoom(habbo, currentRoom);
-            }
-
-            habbo.getClient().sendResponse(new ForwardToRoomComposer(targetRoomId));
-            roomManager.enterRoom(habbo, targetRoomId, "", true);
         }
     }
 
@@ -153,28 +145,40 @@ public class WiredEffectForwardUserToRoom extends InteractionWiredEffect {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(this.roomIdText, this.getDelay(), this.userSource));
+        return WiredManager.getGson().toJson(new JsonData(this.linkerIds, this.getDelay(), this.userSource));
     }
 
     @Override
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
-        String wiredData = set.getString("wired_data");
+        this.onPickUp();
+        try {
+            String wiredData = set.getString("wired_data");
+            if (wiredData == null) return;
 
-        if (wiredData != null && wiredData.startsWith("{")) {
-            JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
-            this.roomIdText = data.roomIdText == null ? "" : data.roomIdText;
-            this.setDelay(data.delay);
-            this.userSource = data.userSource;
-        } else {
-            this.roomIdText = "";
-            this.userSource = WiredSourceUtil.SOURCE_TRIGGER;
-            this.setDelay(0);
+            if (wiredData != null && wiredData.startsWith("{")) {
+                JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
+                this.linkerIds = data.linkerIds == null
+                        ? new ArrayList<>()
+                        : new ArrayList<>(data.linkerIds.stream()
+                                .filter(id -> id != null && id > 0)
+                                .distinct()
+                                .limit(1)
+                                .toList());
+                this.setDelay(data.delay);
+                this.userSource = data.userSource;
+            } else {
+                this.linkerIds.clear();
+                this.userSource = WiredSourceUtil.SOURCE_TRIGGER;
+                this.setDelay(0);
+            }
+        } catch (RuntimeException malformed) {
+            this.onPickUp();
         }
     }
 
     @Override
     public void onPickUp() {
-        this.roomIdText = "";
+        this.linkerIds.clear();
         this.userSource = WiredSourceUtil.SOURCE_TRIGGER;
         this.setDelay(0);
     }
@@ -185,12 +189,12 @@ public class WiredEffectForwardUserToRoom extends InteractionWiredEffect {
     }
 
     static class JsonData {
-        String roomIdText;
+        List<Integer> linkerIds;
         int delay;
         int userSource;
 
-        public JsonData(String roomIdText, int delay, int userSource) {
-            this.roomIdText = roomIdText;
+        public JsonData(List<Integer> linkerIds, int delay, int userSource) {
+            this.linkerIds = linkerIds;
             this.delay = delay;
             this.userSource = userSource;
         }

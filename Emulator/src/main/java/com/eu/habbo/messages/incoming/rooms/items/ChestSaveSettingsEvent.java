@@ -35,7 +35,7 @@ public class ChestSaveSettingsEvent extends MessageHandler {
 
         HabboItem item = room.getHabboItem(itemId);
         if (!(item instanceof InteractionWiredChest chest)) return;
-        if (!room.hasRights(habbo)) return;
+        if (!chest.canManage(habbo)) return;
 
         ChestStorage c = chest.getContents();
         c.setName(bound(name, 60));
@@ -43,10 +43,15 @@ public class ChestSaveSettingsEvent extends MessageHandler {
         c.setAccessOpen(accessOpen);
         c.setAccessDonate(accessDonate);
         c.setAppearanceState(appearanceState);
+        if (this.packet.bytesAvailable() >= 6) {
+            c.setLocked(this.packet.readBoolean());
+            c.setAutoLock(this.packet.readBoolean());
+            c.setCapacity(this.packet.readInt());
+        }
         chest.updateAppearanceState(room);
         chest.persistContents();
 
-        this.client.sendResponse(new ChestDataComposer(chest));
+        this.client.sendResponse(new ChestDataComposer(chest, habbo));
     }
 
     private static String bound(String value, int max) {

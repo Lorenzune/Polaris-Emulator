@@ -23,12 +23,90 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /** Verifies the packaged migration chain against a real MariaDB. */
 class MigrationRunnerIT {
+
+    @Test
+    void petReleaseWithoutAvatarMigrationsBackfillsBeforeRepairs(@TempDir Path legacyPackage) throws Exception {
+        requireDocker();
+        try (var ds = TestDatabase.freshDatabase("mig_pet_avatar_backfill")) {
+            verifyPetReleaseAvatarBackfill(ds, legacyPackage);
+        }
+    }
+
+    static void verifyPetReleaseAvatarBackfill(HikariDataSource ds, Path legacyPackage) throws Exception {
+        Set<String> avatarFiles = Set.of(
+                "V20261011120000__avatar_level_progression.sql",
+                "V20261011150000__durable_avatar_level_counts.sql",
+                "V20261011170000__repair_and_reconcile_avatar_levels.sql",
+                "V20261011180000__unique_achievement_progress.sql");
+        try (var files = Files.list(Path.of("src/main/resources/db/migration"))) {
+            for (Path file : files.toList()) {
+                if (Files.isRegularFile(file)
+                        && !avatarFiles.contains(file.getFileName().toString())) {
+                    Files.copy(file, legacyPackage.resolve(file.getFileName()));
+                }
+            }
+        }
+        Flyway.configure()
+                .dataSource(ds)
+                .locations("filesystem:" + legacyPackage)
+                .javaMigrations(new db.migration.V20260518000400__normalize_legacy_permissions())
+                .target("20261011153000")
+                .placeholderReplacement(false)
+                .load()
+                .migrate();
+        assertEquals(
+                "20261011153000",
+                stringValue(ds, "SELECT version FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 1"));
+        try (var connection = ds.getConnection();
+                var sql = connection.createStatement()) {
+            sql.executeUpdate("INSERT INTO users_achievements (user_id, achievement_name, progress) "
+                    + "VALUES (920003, 'Profile_Pantheon_', 37), "
+                    + "(920003, 'duck_avcheck_rollout', 10), (920003, 'duck_avcheck_rollout', 20)");
+            sql.executeUpdate(
+                    "UPDATE flyway_schema_history SET checksum = checksum + 1 " + "WHERE version = '20261011140000'");
+        }
+        assertThrows(
+                MigrationException.class,
+                () -> MigrationRunner.migrate(ds),
+                "controlled backfill must still reject checksum mismatches");
+        assertTrue(!tableExists(ds, "users_avatar_levels"));
+        try (var connection = ds.getConnection();
+                var sql = connection.createStatement()) {
+            sql.executeUpdate(
+                    "UPDATE flyway_schema_history SET checksum = checksum - 1 " + "WHERE version = '20261011140000'");
+        }
+        assertTrue(MigrationRunner.status(ds).contains("Pending migrations: 4"));
+        assertTrue(!tableExists(ds, "users_avatar_levels"), "status must remain read-only");
+        AtomicReference<List<String>> backedUp = new AtomicReference<>();
+        MigrationRunner.migrate(ds, pending -> {
+            try {
+                assertTrue(!tableExists(ds, "users_avatar_levels"), "backup precedes every avatar DDL");
+            } catch (Exception exception) {
+                throw new AssertionError("Could not inspect schema before backup", exception);
+            }
+            backedUp.set(pending);
+        });
+        assertEquals(List.of("20261011120000", "20261011150000", "20261011170000", "20261011180000"), backedUp.get());
+        assertEquals(37, intValue(ds, "SELECT progress FROM users_pantheon_legacy_progress WHERE user_id = 920003"));
+        assertEquals(
+                20,
+                intValue(
+                        ds,
+                        "SELECT progress FROM users_achievements "
+                                + "WHERE user_id = 920003 AND achievement_name = 'duck_avcheck_rollout'"));
+        MigrationRunner.migrate(ds);
+        assertEquals(37, intValue(ds, "SELECT progress FROM users_pantheon_legacy_progress WHERE user_id = 920003"));
+        assertTrue(MigrationRunner.status(ds).contains("Pending migrations: 0"));
+    }
 
     /** Local builds may skip without Docker; CI must fail if its DB tests cannot run. */
     private static void requireDocker() {

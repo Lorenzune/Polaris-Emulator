@@ -9,16 +9,15 @@ import org.testcontainers.utility.DockerImageName;
 public final class TestDatabase {
 
     /** CI overrides the pinned default for the supported-version matrix. */
-    public static final String MARIADB_IMAGE =
-            System.getenv().getOrDefault(
+    public static final String MARIADB_IMAGE = System.getenv()
+            .getOrDefault(
                     "POLARIS_TEST_MARIADB_IMAGE",
                     "mariadb:11.4.12@sha256:a794d9eb009e20de605858a11f32f63b4075cbd197c650436f0e3b457e4caed7");
 
     private static volatile MariaDBContainer<?> container;
     private static volatile HikariDataSource dataSource;
 
-    private TestDatabase() {
-    }
+    private TestDatabase() {}
 
     /** Returns whether Testcontainers can reach a Docker daemon. */
     public static boolean dockerAvailable() {
@@ -33,8 +32,7 @@ public final class TestDatabase {
         if (dataSource != null) {
             return dataSource;
         }
-        DockerImageName image = DockerImageName.parse(MARIADB_IMAGE)
-                .asCompatibleSubstituteFor("mariadb");
+        DockerImageName image = DockerImageName.parse(MARIADB_IMAGE).asCompatibleSubstituteFor("mariadb");
         MariaDBContainer<?> c = new MariaDBContainer<>(image)
                 .withDatabaseName("habbo_test")
                 .withUsername("polaris")
@@ -56,8 +54,18 @@ public final class TestDatabase {
     public static synchronized HikariDataSource freshDatabase(String label) {
         HikariDataSource shared = sharedDataSource();
         try (var connection = shared.getConnection();
-             var statement = connection.createStatement()) {
+                var statement = connection.createStatement()) {
             statement.execute("SET FOREIGN_KEY_CHECKS = 0");
+            java.util.List<String[]> routines = new java.util.ArrayList<>();
+            try (var rs = statement.executeQuery(
+                    "SELECT ROUTINE_TYPE, ROUTINE_NAME FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE()")) {
+                while (rs.next()) routines.add(new String[] {rs.getString(1), rs.getString(2)});
+            }
+            for (String[] routine : routines) {
+                String type = routine[0];
+                if (!type.equals("PROCEDURE") && !type.equals("FUNCTION")) throw new IllegalStateException(type);
+                statement.execute("DROP " + type + " IF EXISTS `" + routine[1].replace("`", "``") + "`");
+            }
             java.util.List<String> views = new java.util.ArrayList<>();
             try (var rs = statement.executeQuery(
                     "SELECT TABLE_NAME FROM information_schema.VIEWS WHERE TABLE_SCHEMA = DATABASE()")) {

@@ -11,6 +11,7 @@ import com.eu.habbo.habbohotel.pets.Pet;
 import com.eu.habbo.habbohotel.users.DanceType;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.habbohotel.users.levels.AvatarLevelPlatform;
 import com.eu.habbo.habbohotel.wired.core.WiredMoveCarryHelper;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.rooms.RoomAccessDeniedComposer;
@@ -37,6 +38,15 @@ public class RoomCycleManager {
     private long cycleTimestamp;
     private final ConcurrentHashMap<Integer, Long> hostingVisitorLastCountedAt;
     private final ConcurrentHashMap<Integer, TimeSpentSession> timeSpentSessions;
+    private final ConcurrentHashMap<Integer, Long> avatarHostingLastCountedAt = new ConcurrentHashMap<>();
+    private final java.util.Map<Integer, AvatarHostingCheckpoint> avatarHostingCheckpoints = new java.util.HashMap<>();
+
+    private static final class AvatarHostingCheckpoint {
+        final String sessionId = java.util.UUID.randomUUID().toString();
+        long cumulativeMillis;
+        long queuedMillis;
+    }
+
     private long rollerCycle = System.currentTimeMillis();
 
     public RoomCycleManager(Room room) {
@@ -58,6 +68,8 @@ public class RoomCycleManager {
     public void cycle() {
         try (GameClientFlushBatch ignored = GameClientFlushBatch.open()) {
             this.cycleWithCoalescedFlushes();
+            if (room.isLoaded() && room.getWiredRuntime() != null)
+                room.getWiredRuntime().getVariableMonitor().poll(room);
         }
     }
 
@@ -72,6 +84,7 @@ public class RoomCycleManager {
             processScheduledTasks();
             processCycleTasks();
             processDecoHosting();
+            processAvatarHosting();
             processTimeSpentRoomAchievements();
 
             if (!this.room.getCurrentHabbos().isEmpty()) {
@@ -185,6 +198,11 @@ public class RoomCycleManager {
 
     /** Flushes the exact completed minutes for a visitor before the room removes them. */
     void flushDecoHostingVisitor(Habbo visitor) {
+        if (visitor != null) {
+            countAvatarHostingVisitor(visitor, System.nanoTime() / 1_000_000L);
+            this.avatarHostingLastCountedAt.remove(visitor.getHabboInfo().getId());
+            flushAvatarHosting();
+        }
         if (!Emulator.getConfig().getBoolean("hotel.rooms.deco_hosting")
                 || visitor == null
                 || visitor.getHabboInfo().getId() == this.room.getOwnerId()) return;
@@ -201,6 +219,42 @@ public class RoomCycleManager {
                     Math.toIntExact(Math.min(minutes, Integer.MAX_VALUE)));
         }
         this.hostingVisitorLastCountedAt.remove(visitorId);
+    }
+
+    private synchronized void processAvatarHosting() {
+        long now = System.nanoTime() / 1_000_000L;
+        Set<Integer> visitors = new HashSet<>();
+        for (Habbo visitor : this.room.getCurrentHabbos().values()) {
+            visitors.add(visitor.getHabboInfo().getId());
+            countAvatarHostingVisitor(visitor, now);
+        }
+        this.avatarHostingLastCountedAt.keySet().removeIf(id -> !visitors.contains(id));
+        flushAvatarHosting();
+    }
+
+    synchronized void countAvatarHostingVisitor(Habbo visitor, long now) {
+        int visitorId = visitor.getHabboInfo().getId();
+        if (visitorId == this.room.getOwnerId() || !visitor.isOnline()) return;
+        var manager = AvatarLevelPlatform.game().getAvatarLevelManager();
+        if (manager == null) return;
+        Long previous = this.avatarHostingLastCountedAt.put(visitorId, now);
+        if (previous != null && now > previous) {
+            var checkpoint = avatarHostingCheckpoints.computeIfAbsent(
+                    this.room.getOwnerId(), ignored -> new AvatarHostingCheckpoint());
+            checkpoint.cumulativeMillis += (now - previous) * manager.getCachedLevel(visitorId);
+        }
+    }
+
+    synchronized void flushAvatarHosting() {
+        var manager = AvatarLevelPlatform.game().getAvatarLevelManager();
+        if (manager == null) return;
+        for (var entry : avatarHostingCheckpoints.entrySet()) {
+            var checkpoint = entry.getValue();
+            if (checkpoint.cumulativeMillis > checkpoint.queuedMillis
+                    && manager.recordHosting(entry.getKey(), checkpoint.sessionId, checkpoint.cumulativeMillis)) {
+                checkpoint.queuedMillis = checkpoint.cumulativeMillis;
+            }
+        }
     }
 
     private void processTimeSpentRoomAchievements() {
@@ -473,6 +527,9 @@ public class RoomCycleManager {
             this.room.getRollerManager().processRollerCycle(updatedUnit, this.cycleTimestamp);
         } else {
             this.rollerCycle++;
+            if (this.room.getRollerManager().hasPendingRollRequests()) {
+                this.room.getRollerManager().processPendingRollRequests(updatedUnit);
+            }
         }
     }
 

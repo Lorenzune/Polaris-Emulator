@@ -3,14 +3,18 @@ package com.eu.habbo.habbohotel.wired.core;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredCondition;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraOrEval;
 import com.eu.habbo.habbohotel.rooms.Room;
+import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.WiredConditionOperator;
 import com.eu.habbo.habbohotel.wired.api.IWiredCondition;
 import com.eu.habbo.habbohotel.wired.api.WiredStack;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Internal owner of WIRED condition grouping, evaluation modes and negation.
@@ -37,7 +41,7 @@ final class WiredConditionEvaluator {
     }
 
     EvaluationResult evaluateForExecution(WiredStack stack, WiredContext context, boolean negateConditions) {
-        if (!stack.hasConditions()) {
+        if (!stack.hasConditions() && referencedGroups(stack, context).isEmpty()) {
             return new EvaluationResult(!negateConditions, List.of());
         }
 
@@ -48,8 +52,101 @@ final class WiredConditionEvaluator {
     }
 
     private EvaluationResult evaluate(WiredStack stack, WiredContext context) {
+        List<WiredExtraOrEval> groups = referencedGroups(stack, context);
+        if (!groups.isEmpty()) return evaluateGroups(stack, context, groups);
         return evaluateByMode(
                 stack.conditions(), context, stack.conditionEvaluationMode(), stack.conditionEvaluationValue());
+    }
+
+    private List<WiredExtraOrEval> referencedGroups(WiredStack stack, WiredContext context) {
+        HabboItem trigger = stack.triggerItem();
+        if (trigger == null || context.room().getRoomSpecialTypes() == null) return List.of();
+        var extras = context.room().getRoomSpecialTypes().getExtras(trigger.getX(), trigger.getY());
+        if (extras == null) return List.of();
+        return extras.stream()
+                .filter(WiredExtraOrEval.class::isInstance)
+                .map(WiredExtraOrEval.class::cast)
+                .filter(WiredExtraOrEval::hasReferencedConditions)
+                .sorted(java.util.Comparator.comparingInt(HabboItem::getId))
+                .toList();
+    }
+
+    private EvaluationResult evaluateGroups(WiredStack stack, WiredContext context, List<WiredExtraOrEval> groups) {
+        GroupEvaluation graph = new GroupEvaluation(context);
+        Set<HabboItem> referenced = new HashSet<>();
+        for (WiredExtraOrEval group : groups) graph.collect(group, referenced, new HashSet<>());
+        List<WiredExtraOrEval> roots =
+                groups.stream().filter(group -> !referenced.contains(group)).toList();
+        boolean passed = !roots.isEmpty();
+        for (WiredExtraOrEval root : roots) passed &= graph.evaluate(root, new HashSet<>());
+        List<IWiredCondition> remaining = stack.conditions().stream()
+                .filter(condition -> !(condition instanceof HabboItem item) || !referenced.contains(item))
+                .toList();
+        EvaluationResult outside =
+                evaluateByMode(remaining, context, stack.conditionEvaluationMode(), stack.conditionEvaluationValue());
+        graph.results.addAll(outside.conditions());
+        return new EvaluationResult(passed && outside.passed() && graph.valid, List.copyOf(graph.results));
+    }
+
+    /** Selected AND/OR groups form a graph; referenced children are not independent stack requirements. */
+    private final class GroupEvaluation {
+        private final WiredContext context;
+        private final Map<HabboItem, Boolean> cache = new IdentityHashMap<>();
+        private final Map<WiredExtraOrEval, List<HabboItem>> children = new IdentityHashMap<>();
+        private final List<ConditionResult> results = new ArrayList<>();
+        private boolean valid = true;
+        private final Set<HabboItem> collected = new HashSet<>();
+
+        private GroupEvaluation(WiredContext context) {
+            this.context = context;
+        }
+
+        private List<HabboItem> children(WiredExtraOrEval group) {
+            return children.computeIfAbsent(group, key -> List.copyOf(key.resolveConditions(context)));
+        }
+
+        private void collect(WiredExtraOrEval group, Set<HabboItem> referenced, Set<HabboItem> path) {
+            if (path.size() >= 64 || path.contains(group)) {
+                valid = false;
+                return;
+            }
+            if (!collected.add(group)) return;
+            path.add(group);
+            for (HabboItem child : children(group)) {
+                referenced.add(child);
+                if (child instanceof WiredExtraOrEval nested) collect(nested, referenced, path);
+                else if (!(child instanceof IWiredCondition)) valid = false;
+            }
+            path.remove(group);
+        }
+
+        private boolean evaluate(HabboItem item, Set<HabboItem> path) {
+            if (path.size() >= 64 || !path.add(item)) {
+                valid = false;
+                return false;
+            }
+            Boolean previous = cache.get(item);
+            if (previous != null) {
+                path.remove(item);
+                return previous;
+            }
+            context.state().step();
+            boolean passed = false;
+            if (item instanceof WiredExtraOrEval group) {
+                int matched = 0;
+                List<HabboItem> selected = children(group);
+                for (HabboItem child : selected) if (evaluate(child, path)) matched++;
+                passed = !selected.isEmpty()
+                        && WiredExtraOrEval.matchesMode(
+                                group.getEvaluationMode(), matched, selected.size(), group.getCompareValue());
+            } else if (item instanceof IWiredCondition condition) {
+                passed = condition.evaluate(context);
+                results.add(new ConditionResult(condition, passed));
+            } else valid = false;
+            path.remove(item);
+            cache.put(item, passed);
+            return passed;
+        }
     }
 
     private EvaluationResult evaluateByMode(

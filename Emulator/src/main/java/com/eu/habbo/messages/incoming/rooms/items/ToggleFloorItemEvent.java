@@ -1,14 +1,15 @@
 package com.eu.habbo.messages.incoming.rooms.items;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.commands.FurniDataCommand;
 import com.eu.habbo.habbohotel.dailytasks.DailyTaskActionMatcher;
-import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
 import com.eu.habbo.habbohotel.items.interactions.InteractionDice;
 import com.eu.habbo.habbohotel.items.interactions.pets.InteractionMonsterPlantSeed;
 import com.eu.habbo.habbohotel.pets.MonsterplantPet;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.habbohotel.wired.core.WiredFurnitureStateEvents;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.rooms.items.RemoveFloorItemComposer;
@@ -27,7 +28,17 @@ public class ToggleFloorItemEvent extends MessageHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(ToggleFloorItemEvent.class);
 
     private static HashSet<String> PET_BOXES = new HashSet<>(Arrays.asList(
-            "val11_present", "gnome_box", "leprechaun_box", "velociraptor_egg", "pterosaur_egg", "petbox_epic"));
+            "val11_present",
+            "gnome_box",
+            "leprechaun_box",
+            "velociraptor_egg",
+            "pterosaur_egg",
+            "petbox_epic",
+            "cowbox",
+            "cowbox_gold",
+            "newbie_cat_package",
+            "newbie_crocodile_package",
+            "newbie_present_2014"));
 
     @Override
     public int getRatelimit() {
@@ -154,14 +165,19 @@ public class ToggleFloorItemEvent extends MessageHandler {
                 return;
             }
 
-            item.onClick(this.client, room, new Object[] {state});
+            WiredFurnitureStateEvents.use(
+                    room,
+                    this.client.getHabbo().getRoomUnit(),
+                    item,
+                    () -> item.onClick(this.client, room, new Object[] {state}));
             AchievementInteractions.progress(this.client.getHabbo(), "HabboExplorer");
             if (item.getBaseItem().getName().toLowerCase(Locale.ROOT).startsWith("hween_c18_lab")) {
                 AchievementInteractions.progress(this.client.getHabbo(), "InfectedLab");
             }
             DailyTaskActionMatcher.addFurniUseProgress(this.client.getHabbo(), item);
             DailyTaskActionMatcher.addProgress(this.client.getHabbo(), DailyTaskActionMatcher.SWITCH_ITEM_STATE, 1);
-            Emulator.getGameEnvironment().getRewardTrackManager()
+            Emulator.getGameEnvironment()
+                    .getRewardTrackManager()
                     .addProgress(this.client.getHabbo().getHabboInfo().getId(), "toggle_floor_item", 1);
         } catch (Exception e) {
             LOGGER.error("Caught exception", e);

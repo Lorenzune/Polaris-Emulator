@@ -4,7 +4,6 @@ import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.threading.runnables.games.GameUpCounter;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -21,14 +20,15 @@ public class InteractionGameUpCounter extends InteractionGameTimer {
         this.normalizeCounterState();
     }
 
-    public InteractionGameUpCounter(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public InteractionGameUpCounter(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
         this.normalizeCounterState();
     }
 
     @Override
     protected void parseCustomParams(Item baseItem) {
-        this.TIMER_INTERVAL_STEPS = new int[] { MAX_UPCOUNTER_TIME };
+        this.TIMER_INTERVAL_STEPS = new int[] {MAX_UPCOUNTER_TIME};
     }
 
     private void normalizeCounterState() {
@@ -74,7 +74,6 @@ public class InteractionGameUpCounter extends InteractionGameTimer {
 
         if (this.isRunning) {
             this.endGame(room);
-            WiredManager.triggerGameEnds(room);
         }
 
         this.baseTime = MAX_UPCOUNTER_TIME;
@@ -97,6 +96,16 @@ public class InteractionGameUpCounter extends InteractionGameTimer {
         return this.getNextTickDelayMs();
     }
 
+    @Override
+    public void startTimer(Room room) {
+        if (this.isRunning) return;
+        this.isRunning = true;
+        this.isPaused = false;
+        this.applyCounterState(room, true);
+        if (this.getCurrentTimeInMs() == 0) WiredManager.triggerClockCounter(room, this);
+        if (this.tryActivateTimerThread()) this.scheduleTimerRunnable(this.getTimerStartDelayMs());
+    }
+
     public int getCurrentTimeInMs() {
         return (this.timeNow * ONE_SECOND_MS) + this.subSecondOffsetMs;
     }
@@ -111,7 +120,7 @@ public class InteractionGameUpCounter extends InteractionGameTimer {
     }
 
     public long getNextTickDelayMs() {
-        return (this.subSecondOffsetMs > 0) ? HALF_SECOND_MS : ONE_SECOND_MS;
+        return HALF_SECOND_MS;
     }
 
     public void setCurrentTimeInMs(int totalMs) {
@@ -151,7 +160,6 @@ public class InteractionGameUpCounter extends InteractionGameTimer {
 
         if (wasActive) {
             this.endGame(room);
-            WiredManager.triggerGameEnds(room);
         }
 
         this.setCurrentTimeInMs(0);
@@ -161,26 +169,14 @@ public class InteractionGameUpCounter extends InteractionGameTimer {
     }
 
     public void stopCounter(Room room) {
-        boolean wasActive = this.isRunning || this.isPaused;
-
         this.endGame(room);
         this.applyCounterState(room, true);
-
-        if (wasActive) {
-            WiredManager.triggerGameEnds(room);
-        }
     }
 
     public void resetCounter(Room room) {
-        boolean wasActive = this.isRunning || this.isPaused;
-
         this.endGame(room);
         this.setCurrentTimeInMs(0);
         this.applyCounterState(room, true);
-
-        if (wasActive) {
-            WiredManager.triggerGameEnds(room);
-        }
     }
 
     public void pauseCounter(Room room) {

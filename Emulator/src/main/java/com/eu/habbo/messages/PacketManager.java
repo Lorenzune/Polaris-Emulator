@@ -56,6 +56,9 @@ import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminSavePageI
 import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminSavePageImagesEvent;
 import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminSetPageEnabledEvent;
 import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogAdminSetPageVisibleEvent;
+import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogPageAssetUploadEvent;
+import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogPageContentSaveEvent;
+import com.eu.habbo.messages.incoming.catalog.catalogadmin.CatalogPageMediaLoadEvent;
 import com.eu.habbo.messages.incoming.catalog.marketplace.BuyItemEvent;
 import com.eu.habbo.messages.incoming.catalog.marketplace.RequestCreditsEvent;
 import com.eu.habbo.messages.incoming.catalog.marketplace.RequestItemInfoEvent;
@@ -460,6 +463,9 @@ import com.eu.habbo.messages.incoming.users.UserActivityEvent;
 import com.eu.habbo.messages.incoming.users.UserNuxEvent;
 import com.eu.habbo.messages.incoming.users.UserSaveLookEvent;
 import com.eu.habbo.messages.incoming.users.UserWearBadgeEvent;
+import com.eu.habbo.messages.incoming.wired.RequestWiredLabelEditorEvent;
+import com.eu.habbo.messages.incoming.wired.SaveWiredLabelCardEvent;
+import com.eu.habbo.messages.incoming.wired.SaveWiredLabelEvent;
 import com.eu.habbo.messages.incoming.wired.WiredAccountPreferencesRequestEvent;
 import com.eu.habbo.messages.incoming.wired.WiredAccountPreferencesSaveEvent;
 import com.eu.habbo.messages.incoming.wired.WiredApplySetConditionsEvent;
@@ -705,6 +711,9 @@ public class PacketManager {
         this.registerHandler(Incoming.RequestCatalogModeEvent, RequestCatalogModeEvent.class);
         this.registerHandler(Incoming.BuildersClubQueryFurniCountEvent, BuildersClubQueryFurniCountEvent.class);
         this.registerHandler(Incoming.BuildersClubPlaceRoomItemEvent, BuildersClubPlaceRoomItemEvent.class);
+        this.registerHandler(
+                Incoming.BuildersClubRecolorFurniEvent,
+                com.eu.habbo.messages.incoming.catalog.BuildersClubRecolorFurniEvent.class);
         this.registerHandler(Incoming.BuildersClubPlaceWallItemEvent, BuildersClubPlaceWallItemEvent.class);
         this.registerHandler(Incoming.RequestCatalogPageEvent, RequestCatalogPageEvent.class);
         this.registerHandler(Incoming.CatalogBuyItemAsGiftEvent, CatalogBuyItemAsGiftEvent.class);
@@ -765,6 +774,9 @@ public class PacketManager {
         this.registerHandler(Incoming.CatalogAdminSetPageVisibleEvent, CatalogAdminSetPageVisibleEvent.class);
         this.registerHandler(Incoming.CatalogAdminReorderOffersEvent, CatalogAdminReorderOffersEvent.class);
         this.registerHandler(Incoming.CatalogAdminMoveOfferToPageEvent, CatalogAdminMoveOfferToPageEvent.class);
+        this.registerHandler(Incoming.CatalogPageMediaLoadEvent, CatalogPageMediaLoadEvent.class);
+        this.registerHandler(Incoming.CatalogPageContentSaveEvent, CatalogPageContentSaveEvent.class);
+        this.registerHandler(Incoming.CatalogPageAssetUploadEvent, CatalogPageAssetUploadEvent.class);
         this.registerHandler(Incoming.RecyclerAdminRequestEvent, RecyclerAdminRequestEvent.class);
         this.registerHandler(Incoming.RecyclerAdminSaveEvent, RecyclerAdminSaveEvent.class);
     }
@@ -959,6 +971,9 @@ public class PacketManager {
 
     void registerRooms() throws Exception {
         this.registerHandler(Incoming.RequestMentionsEvent, RequestMentionsEvent.class);
+        this.registerHandler(4806, com.eu.habbo.messages.incoming.mentions.MentionSettingsEvent.class);
+        this.registerHandler(4807, com.eu.habbo.messages.incoming.mentions.FollowMentionEvent.class);
+        this.registerHandler(4808, com.eu.habbo.messages.incoming.rooms.InformationPageEvent.class);
         this.registerHandler(Incoming.MarkMentionsReadEvent, MarkMentionsReadEvent.class);
         this.registerHandler(Incoming.DeleteMentionEvent, DeleteMentionEvent.class);
         this.registerHandler(Incoming.RequestRoomLoadEvent, RequestRoomLoadEvent.class);
@@ -984,6 +999,14 @@ public class PacketManager {
         this.registerHandler(Incoming.ChestWithdrawFurniEvent, ChestWithdrawFurniEvent.class);
         this.registerHandler(Incoming.ChestDepositFurniEvent, ChestDepositFurniEvent.class);
         this.registerHandler(Incoming.ChestStartDepositEvent, ChestStartDepositEvent.class);
+        this.registerHandler(
+                Incoming.WiredQuestRequestEvent, com.eu.habbo.messages.incoming.quests.WiredQuestRequestEvent.class);
+        this.registerHandler(
+                Incoming.WiredContractTransactionEvent,
+                com.eu.habbo.messages.incoming.rooms.items.WiredContractTransactionEvent.class);
+        this.registerHandler(
+                Incoming.ChestCommitDepositEvent,
+                com.eu.habbo.messages.incoming.rooms.items.ChestCommitDepositEvent.class);
         this.registerHandler(Incoming.ChestDepositInventoryItemEvent, ChestDepositInventoryItemEvent.class);
         this.registerHandler(Incoming.ChestWithdrawAllFurniEvent, ChestWithdrawAllFurniEvent.class);
         this.registerHandler(Incoming.ChestOpenEvent, ChestOpenEvent.class);
@@ -1214,6 +1237,9 @@ public class PacketManager {
         this.registerHandler(Incoming.WiredFurniRuntimeStateRequestEvent, WiredFurniRuntimeStateRequestEvent.class);
         this.registerHandler(Incoming.WiredFurniOpacityBatchEvent, WiredFurniOpacityBatchEvent.class);
         this.registerHandler(Incoming.WiredFurniCustomColorBatchEvent, WiredFurniCustomColorBatchEvent.class);
+        this.registerHandler(Incoming.SaveWiredLabelEvent, SaveWiredLabelEvent.class);
+        this.registerHandler(Incoming.RequestWiredLabelEditorEvent, RequestWiredLabelEditorEvent.class);
+        this.registerHandler(Incoming.SaveWiredLabelCardEvent, SaveWiredLabelCardEvent.class);
         this.registerHandler(Incoming.WiredFeatureCapabilitiesEvent, WiredFeatureCapabilitiesEvent.class);
         this.registerHandler(Incoming.WiredRoomRollbackEvent, WiredRoomRollbackEvent.class);
     }
@@ -1467,6 +1493,8 @@ public class PacketManager {
     }
 
     void registerEarnings() throws Exception {
+        this.registerHandler(
+                Incoming.RequestAvatarLevelEvent, com.eu.habbo.messages.incoming.users.RequestAvatarLevelEvent.class);
         this.registerHandler(Incoming.RequestEarningsCenterEvent, RequestEarningsCenterEvent.class);
         this.registerHandler(Incoming.ClaimEarningsRewardEvent, ClaimEarningsRewardEvent.class);
         this.registerHandler(Incoming.ClaimAllEarningsRewardsEvent, ClaimAllEarningsRewardsEvent.class);

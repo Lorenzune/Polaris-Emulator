@@ -15,8 +15,17 @@ final class WiredFurniRuntimeStatePolicy {
     private static final String GAME_AWARE_KEY = "~clock.is_game_aware";
     private static final String PULSE_COUNT_KEY = "~clock.pulse_count";
     private static final String CLOCK_STATE_KEY = "~clock.state";
-    private static final Set<String> ALLOWED_KEYS =
-            Set.of(GRAVITY_KEY, OPACITY_KEY, SCALING_KEY, GAME_AWARE_KEY, PULSE_COUNT_KEY, CLOCK_STATE_KEY);
+    private static final Set<String> ALLOWED_KEYS = Set.of(
+            GRAVITY_KEY,
+            OPACITY_KEY,
+            SCALING_KEY,
+            GAME_AWARE_KEY,
+            PULSE_COUNT_KEY,
+            CLOCK_STATE_KEY,
+            com.eu.habbo.habbohotel.rooms.BuildersClubPalette.RGB,
+            com.eu.habbo.habbohotel.rooms.BuildersClubPalette.RED,
+            com.eu.habbo.habbohotel.rooms.BuildersClubPalette.GREEN,
+            com.eu.habbo.habbohotel.rooms.BuildersClubPalette.BLUE);
 
     private WiredFurniRuntimeStatePolicy() {}
 
@@ -61,6 +70,9 @@ final class WiredFurniRuntimeStatePolicy {
 
     /** Gravity is a flag; opacity and scale percentages have bounded ranges. */
     private static boolean isValueInRange(String normalizedKey, int value) {
+        if (com.eu.habbo.habbohotel.rooms.BuildersClubPalette.isKey(normalizedKey)) {
+            return com.eu.habbo.habbohotel.rooms.BuildersClubPalette.validValue(normalizedKey, value);
+        }
         if (OPACITY_KEY.equals(normalizedKey)) {
             return value >= 0 && value <= 100;
         }

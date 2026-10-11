@@ -1,0 +1,48 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/C:/Users/Loren/.m2/wrapper/dists/apache-maven-3.9.11/03d7e36a140982eea48e22c1dcac01d8862b2550b2939e09a0809bbc5182a5bc/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------< com.eu.habbo:Polaris >------------------------
+[INFO] Building Polaris 4.2.67
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- enforcer:3.6.3:enforce (enforce-build-environment) @ Polaris ---
+[INFO] Rule 0: org.apache.maven.enforcer.rules.version.RequireJavaVersion passed
+[INFO] Rule 1: org.apache.maven.enforcer.rules.version.RequireMavenVersion passed
+[INFO] Rule 2: org.apache.maven.enforcer.rules.dependency.DependencyConvergence passed
+[INFO] Rule 3: org.apache.maven.enforcer.rules.RequirePluginVersions passed
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ Polaris ---
+[INFO] Copying 153 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.16.0:compile (default-compile) @ Polaris ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 2893 source files with javac [debug parameters release 25] to target\classes
+[INFO] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/main/java/com/eu/habbo/Emulator.java: Some input files use or override a deprecated API.
+[INFO] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/main/java/com/eu/habbo/Emulator.java: Recompile with -Xlint:deprecation for details.
+[INFO] Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/main/java/com/eu/habbo/habbohotel/wired/core/WiredProjectileSupport.java:[111,55] incompatible types: com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer cannot be converted to com.eu.habbo.messages.ServerMessage
+[INFO] 1 error
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  16.365 s
+[INFO] Finished at: 2026-10-02T05:31:49+02:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.16.0:compile (default-compile) on project Polaris: Compilation failure
+[ERROR] /D:/ducket/Arcturus-Morningstar-Extended/Emulator/src/main/java/com/eu/habbo/habbohotel/wired/core/WiredProjectileSupport.java:[111,55] incompatible types: com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer cannot be converted to com.eu.habbo.messages.ServerMessage
+[ERROR] 
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

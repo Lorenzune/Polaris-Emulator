@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS collectible_shop_cooldowns (user_id INT NOT NULL PRIMARY KEY, available_at BIGINT NOT NULL, CONSTRAINT fk_collectible_shop_cooldown_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

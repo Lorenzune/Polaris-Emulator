@@ -179,11 +179,14 @@ final class WiredExecutionGuard {
 
     private boolean tryEnter(int roomId, Room room, WiredEvent.Type eventType, EntryKind kind, boolean publishDepth) {
         long now = this.clock.getAsLong();
-        if (isRoomBanned(roomId, now)) {
+        boolean queuedSignal = eventType == WiredEvent.Type.SIGNAL_RECEIVED && WiredSignalExecutionScope.active();
+        if (!queuedSignal && isRoomBanned(roomId, now)) {
             return false;
         }
 
-        if (isRateLimited(roomId, room, eventType, now)) {
+        if (queuedSignal) {
+            recordQueuedSignal(roomId, now);
+        } else if (isRateLimited(roomId, room, eventType, now)) {
             return false;
         }
 
@@ -244,7 +247,8 @@ final class WiredExecutionGuard {
     }
 
     WiredRoomDiagnostics diagnostics(int roomId) {
-        return this.roomDiagnostics.computeIfAbsent(roomId, ignored -> newDiagnostics(currentLimits()));
+        return this.roomDiagnostics.computeIfAbsent(
+                roomId, id -> newDiagnostics(currentLimits()).attachRepository(id, WiredManager.logRepository()));
     }
 
     WiredRoomDiagnostics.Snapshot snapshot(int roomId) {
@@ -393,6 +397,29 @@ final class WiredExecutionGuard {
             this.rateLimitSink.onLimit(room, eventType, eventCount, currentLimits(), banned);
         }
         return limited;
+    }
+
+    long signalExecutionDelay(int roomId) {
+        long now = clock.getAsLong();
+        long delay = Math.max(0L, bannedRooms.getOrDefault(roomId, 0L) - now);
+        EventRateTracker tracker = eventRateLimiters.get(roomId + ":" + WiredEvent.Type.SIGNAL_RECEIVED.name());
+        if (tracker != null && maxEventsPerWindow() > 0) {
+            delay = Math.max(delay, tracker.delayUntilAvailable(now, rateLimitWindowMs(), maxEventsPerWindow()));
+        }
+        WiredRoomDiagnostics diagnostics = roomDiagnostics.get(roomId);
+        return diagnostics == null ? delay : Math.max(delay, diagnostics.signalExecutionDelay(now));
+    }
+
+    private void recordQueuedSignal(int roomId, long now) {
+        if (maxEventsPerWindow() <= 0) return;
+        String key = roomId + ":" + WiredEvent.Type.SIGNAL_RECEIVED.name();
+        EventRateTracker tracker = eventRateLimiters.get(key);
+        if (tracker == null) {
+            EventRateTracker previous = eventRateLimiters.putIfAbsent(key, new EventRateTracker(now));
+            if (previous == null) return;
+            tracker = previous;
+        }
+        tracker.recordEventAndCheckLimit(now, rateLimitWindowMs(), maxEventsPerWindow());
     }
 
     private LimitSource currentLimits() {
@@ -587,6 +614,12 @@ final class WiredExecutionGuard {
 
         private synchronized int eventCount() {
             return this.eventCount;
+        }
+
+        private synchronized long delayUntilAvailable(long now, long windowMs, int maximumEvents) {
+            return eventCount >= maximumEvents && now - windowStart <= windowMs
+                    ? Math.max(1L, windowStart + windowMs + 1L - now)
+                    : 0L;
         }
     }
 }

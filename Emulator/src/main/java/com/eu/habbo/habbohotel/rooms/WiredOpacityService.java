@@ -210,6 +210,11 @@ final class WiredOpacityService {
     }
 
     /** Current room-wide opacity for one item, ignoring per-user overlays. */
+    synchronized String globalCustomColor(int itemId) {
+        VisualState state = this.globalStates.get(itemId);
+        return state == null ? null : state.customColor();
+    }
+
     synchronized int globalOpacity(int itemId) {
         VisualState state = this.globalStates.get(itemId);
         return state == null ? VisualState.DEFAULT.opacity() : state.opacity();

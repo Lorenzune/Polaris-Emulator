@@ -6,6 +6,7 @@ import com.eu.habbo.habbohotel.LatencyTracker;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.ServerMessageFrame;
+import com.eu.habbo.messages.WiredMovementMessage;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.monitoring.EmulatorNetworkStats;
@@ -215,7 +216,9 @@ public class GameClient {
     }
 
     private void writeResponse(ServerMessage response, boolean sharedBroadcastAllowed, boolean useVoidPromise) {
-        if (!sharedBroadcastAllowed || !ServerMessageFrame.isBroadcastPrepared(response)) {
+        if (response instanceof WiredMovementMessage
+                || !sharedBroadcastAllowed
+                || !ServerMessageFrame.isBroadcastPrepared(response)) {
             if (useVoidPromise) {
                 this.channel.write(response, this.channel.voidPromise());
             } else {

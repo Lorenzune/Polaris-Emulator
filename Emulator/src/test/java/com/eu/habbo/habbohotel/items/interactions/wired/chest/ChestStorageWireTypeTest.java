@@ -1,10 +1,9 @@
 package com.eu.habbo.habbohotel.items.interactions.wired.chest;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
 
 /**
  * The chest wire carries the client-facing sprite id (furnidata classId), not the emulator's
@@ -12,6 +11,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * same id back on withdraw. These tests pin that mapping at the storage level.
  */
 class ChestStorageWireTypeTest {
+    @Test
+    void persistsExactGroupedLogContentsAndCurrency() {
+        var storage = new ChestStorage();
+        var furni = new ChestStorage.LogEntry("deposit", 123, "Loren", 0, 3);
+        furni.setFurniItems(java.util.stream.Stream.of(storedItem(1, 88), storedItem(1, 88), storedItem(2, 99)));
+        storage.addLog(furni);
+        storage.addLog(new ChestStorage.LogEntry("deposit", 124, "Loren", 0, 10).withCurrency(5));
+        var restored = ChestStorage.fromJson(storage.toJson()).getLog();
+        assertEquals(5, restored.getFirst().currencyType);
+        assertEquals(java.util.Map.of(88, 2, 99, 1), restored.get(1).furniQuantities);
+    }
 
     private static ChestFurniStoredItem storedItem(int baseItemId, int spriteId) {
         ChestFurniStoredItem item = new ChestFurniStoredItem();

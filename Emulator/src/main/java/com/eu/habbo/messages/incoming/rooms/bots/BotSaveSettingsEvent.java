@@ -115,7 +115,7 @@ public class BotSaveSettingsEvent extends MessageHandler {
                 int chatSpeed = 7;
 
                 try {
-                    chatSpeed = Integer.parseInt(data[data.length - 2]);
+                    chatSpeed = clampChatSpeed(Integer.parseInt(data[data.length - 2]));
                     if (chatSpeed < BotManager.MINIMUM_CHAT_SPEED) {
                         chatSpeed = BotManager.MINIMUM_CHAT_SPEED;
                     }
@@ -135,7 +135,7 @@ public class BotSaveSettingsEvent extends MessageHandler {
 
                 bot.setChatAuto(chatEvent.autoChat);
                 bot.setChatRandom(chatEvent.randomChat);
-                bot.setChatDelay((short) chatEvent.chatDelay);
+                bot.setChatDelay((short) clampChatSpeed(chatEvent.chatDelay));
                 bot.clearChat();
                 bot.addChatLines(chat);
                 bot.needsUpdate(true);
@@ -321,5 +321,11 @@ public class BotSaveSettingsEvent extends MessageHandler {
                 return result.next();
             }
         }
+    }
+
+    static int clampChatSpeed(int value) {
+        int maximum = Math.max(1, Math.min(BotManager.MAXIMUM_CHAT_SPEED, Short.MAX_VALUE));
+        int minimum = Math.max(1, Math.min(BotManager.MINIMUM_CHAT_SPEED, maximum));
+        return Math.max(minimum, Math.min(maximum, value));
     }
 }

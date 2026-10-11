@@ -29,9 +29,7 @@ public class GameUpCounter implements Runnable {
 
         int tickDelayMs = (int) timer.getNextTickDelayMs();
         timer.advanceCounterInMs(tickDelayMs);
-        if (timer.getCurrentTimeInMs() % 1000 == 0) {
-            WiredManager.triggerClockCounter(room, timer);
-        }
+        WiredManager.triggerClockCounter(room, timer);
 
         if (timer.tryActivateTimerThread()) {
             Emulator.getThreading().run(this, timer.getNextTickDelayMs());

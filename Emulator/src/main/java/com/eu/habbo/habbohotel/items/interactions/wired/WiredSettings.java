@@ -10,32 +10,75 @@ public class WiredSettings {
     private int[] userSourceTypes;
     private int stuffTypeSelectionCode;
     private int delay;
+    private boolean nativeVariableFormat;
+    private String[] variableTokens = new String[0];
+    private int quantifier;
+    private boolean filterExisting;
+    private boolean invert;
 
-    public WiredSettings(int[] intParams, String stringParam, int[] furniIds, int stuffTypeSelectionCode, int delay)
-    {
+    public boolean isNativeVariableFormat() {
+        return nativeVariableFormat;
+    }
+
+    public void setNativeVariableFormat(boolean value) {
+        nativeVariableFormat = value;
+    }
+
+    public String[] getVariableTokens() {
+        return variableTokens;
+    }
+
+    public void setVariableTokens(String[] value) {
+        variableTokens = value;
+    }
+
+    public int getQuantifier() {
+        return quantifier;
+    }
+
+    public void setQuantifier(int value) {
+        quantifier = value;
+    }
+
+    public boolean isFilterExisting() {
+        return filterExisting;
+    }
+
+    public void setFilterExisting(boolean value) {
+        filterExisting = value;
+    }
+
+    public boolean isInvert() {
+        return invert;
+    }
+
+    public void setInvert(boolean value) {
+        invert = value;
+    }
+
+    public WiredSettings(int[] intParams, String stringParam, int[] furniIds, int stuffTypeSelectionCode, int delay) {
         this(
-            intParams,
-            stringParam,
-            furniIds,
-            new int[0],
-            new int[0],
-            new int[0],
-            new int[0],
-            stuffTypeSelectionCode,
-            delay);
+                intParams,
+                stringParam,
+                furniIds,
+                new int[0],
+                new int[0],
+                new int[0],
+                new int[0],
+                stuffTypeSelectionCode,
+                delay);
     }
 
     public WiredSettings(
-        int[] intParams,
-        String stringParam,
-        int[] furniIds,
-        int[] furniIds2,
-        int[] variableIds,
-        int[] furniSourceTypes,
-        int[] userSourceTypes,
-        int stuffTypeSelectionCode,
-        int delay)
-    {
+            int[] intParams,
+            String stringParam,
+            int[] furniIds,
+            int[] furniIds2,
+            int[] variableIds,
+            int[] furniSourceTypes,
+            int[] userSourceTypes,
+            int stuffTypeSelectionCode,
+            int delay) {
         this.furniIds = furniIds;
         this.furniIds2 = furniIds2;
         this.variableIds = variableIds;
@@ -47,8 +90,7 @@ public class WiredSettings {
         this.delay = delay;
     }
 
-    public WiredSettings(int[] intParams, String stringParam, int[] furniIds, int stuffTypeSelectionCode)
-    {
+    public WiredSettings(int[] intParams, String stringParam, int[] furniIds, int stuffTypeSelectionCode) {
         this(intParams, stringParam, furniIds, stuffTypeSelectionCode, 0);
     }
 

@@ -167,9 +167,10 @@ public class NavigatorManager {
                 rooms = Emulator.getGameEnvironment().getRoomManager().getPublicRooms();
                 break;
             case "popular":
-                rooms = Emulator.getGameEnvironment()
-                        .getRoomManager()
-                        .getPopularRooms(Emulator.getConfig().getInt("hotel.navigator.popular.amount"));
+                // "All rooms" lists every occupied room, including publics.
+                // Popular-list limits and the legacy public toggle must not
+                // make active rooms disappear from this navigator overview.
+                rooms = Emulator.getGameEnvironment().getRoomManager().getOccupiedRooms();
                 break;
             case "categories":
                 rooms = Emulator.getGameEnvironment().getRoomManager().getRoomsPromoted();

@@ -25,6 +25,8 @@ class WiredGravityInternalVariableTest {
     void readAndWriteDelegateToRoomOwnedSessionState() {
         Room room = mock(Room.class);
         RoomWiredRuntime runtime = mock(RoomWiredRuntime.class);
+        when(runtime.getVariableMonitor())
+                .thenReturn(mock(com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor.class));
         when(room.getWiredRuntime()).thenReturn(runtime);
         HabboItem item = floorItem();
         when(runtime.setGravityEnabled(item, true)).thenReturn(true);

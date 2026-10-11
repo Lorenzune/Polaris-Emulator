@@ -11,20 +11,13 @@ class WalletMutationContractTest {
     void creditsAndCurrenciesUseCheckedArithmeticUnderTheWalletLock() throws Exception {
         String info = Files.readString(Path.of("src/main/java/com/eu/habbo/habbohotel/users/HabboInfo.java"));
 
-        int tryCredits = info.indexOf("boolean tryAddCredits(int credits)");
-        int creditLock = info.indexOf("synchronized (this.currencyLock)", tryCredits);
-        int creditMath = info.indexOf("WalletBalanceMath.checkedBalance(this.credits, credits)", creditLock);
-
-        int tryCurrency = info.indexOf("boolean tryAddCurrencyAmount(int type, int amount)");
-        int currencyLock = info.indexOf("synchronized (this.currencyLock)", tryCurrency);
-        int currencyMath = info.indexOf("WalletBalanceMath.checkedBalance(current, amount)", currencyLock);
-
-        assertTrue(
-                creditLock > tryCredits && creditMath > creditLock,
-                "credit read-modify-write must be checked while holding the wallet lock");
-        assertTrue(
-                currencyLock > tryCurrency && currencyMath > currencyLock,
-                "currency read-modify-write must be checked while holding the wallet lock");
+        String mutation =
+                Files.readString(Path.of("src/main/java/com/eu/habbo/habbohotel/users/LegacyWalletMutation.java"));
+        assertTrue(info.contains("applyLegacyWallet("));
+        assertTrue(mutation.contains("synchronized (info.ledgerMutationLock())"));
+        assertTrue(mutation.contains("WalletBalanceMath.checkedBalance(before, change.value())"));
+        assertTrue(mutation.contains("FOR UPDATE"));
+        assertTrue(mutation.indexOf("connection.commit()") < mutation.indexOf("info.applyPersistedCredits"));
     }
 
     @Test

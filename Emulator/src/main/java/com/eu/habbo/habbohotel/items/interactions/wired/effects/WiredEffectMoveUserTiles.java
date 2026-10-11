@@ -96,7 +96,8 @@ public class WiredEffectMoveUserTiles extends InteractionWiredEffect {
                         targetHeadRotation,
                         animationDuration,
                         noAnimation,
-                        movementPhysics)) {
+                        movementPhysics,
+                        WiredMoveCarryHelper.resolveUserMovementCurve(room, this, ctx))) {
                     break;
                 }
 

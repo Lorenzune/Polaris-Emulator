@@ -28,9 +28,9 @@ class EconomyAuditCoverageContractTest {
         }
 
         assertEquals(
-                Set.of("EconomyLedger.java", "HabboInfo.java", "RegistrationSupport.java"),
+                Set.of("EconomyLedger.java", "RegistrationSupport.java"),
                 owners,
-                "new durable wallet mutations must use EconomyLedger; only snapshot persistence and account bootstrap bypass it");
+                "new durable wallet mutations must use EconomyLedger; only account bootstrap bypasses it");
     }
 
     @Test

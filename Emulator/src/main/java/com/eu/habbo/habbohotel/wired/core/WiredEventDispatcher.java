@@ -5,6 +5,7 @@ import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.wired.api.WiredStack;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,22 +24,38 @@ final class WiredEventDispatcher {
         void log(Room room, String format, Object... arguments);
     }
 
+    @FunctionalInterface
+    interface SignalBatchProcessor {
+        boolean process(WiredEvent event, Supplier<Boolean> admission);
+    }
+
     private final WiredExecutionGuard guard;
     private final WiredStackIndex eventIndex;
     private final WiredStackRepository repository;
     private final StackProcessor stackProcessor;
     private final DiagnosticSink diagnostics;
+    private final SignalBatchProcessor signalBatchProcessor;
 
     WiredEventDispatcher(
             WiredExecutionGuard guard,
             WiredStackRepository repository,
             StackProcessor stackProcessor,
             DiagnosticSink diagnostics) {
+        this(guard, repository, stackProcessor, diagnostics, (event, admission) -> admission.get());
+    }
+
+    WiredEventDispatcher(
+            WiredExecutionGuard guard,
+            WiredStackRepository repository,
+            StackProcessor stackProcessor,
+            DiagnosticSink diagnostics,
+            SignalBatchProcessor signalBatchProcessor) {
         this.guard = Objects.requireNonNull(guard, "guard");
         this.repository = Objects.requireNonNull(repository, "repository");
         this.eventIndex = repository.eventIndex();
         this.stackProcessor = Objects.requireNonNull(stackProcessor, "stackProcessor");
         this.diagnostics = Objects.requireNonNull(diagnostics, "diagnostics");
+        this.signalBatchProcessor = Objects.requireNonNull(signalBatchProcessor, "signalBatchProcessor");
     }
 
     boolean dispatch(WiredEvent event, boolean negateConditions) {
@@ -59,7 +76,9 @@ final class WiredEventDispatcher {
 
         boolean published = false;
         try {
-            List<WiredStack> stacks = this.eventIndex.getStacks(room, event.getType());
+            List<WiredStack> stacks = event.getType() == WiredEvent.Type.SIGNAL_RECEIVED
+                    ? this.repository.getSignalStacks(room, event.getSignalChannel())
+                    : this.eventIndex.getStacks(room, event.getType());
             if (stacks.isEmpty()) {
                 return false;
             }
@@ -102,6 +121,16 @@ final class WiredEventDispatcher {
     }
 
     private boolean process(
+            WiredEvent event, Room room, List<WiredStack> stacks, boolean negateConditions, int sourceItemId) {
+        if ((event.getType() == WiredEvent.Type.SIGNAL_RECEIVED && event.isSignalPayloadExplicit())
+                || event.getType() == WiredEvent.Type.USER_CLICKS_FURNI) {
+            return this.signalBatchProcessor.process(
+                    event, () -> processStacks(event, room, stacks, negateConditions, sourceItemId));
+        }
+        return processStacks(event, room, stacks, negateConditions, sourceItemId);
+    }
+
+    private boolean processStacks(
             WiredEvent event, Room room, List<WiredStack> stacks, boolean negateConditions, int sourceItemId) {
         if (stacks.isEmpty()) {
             return false;

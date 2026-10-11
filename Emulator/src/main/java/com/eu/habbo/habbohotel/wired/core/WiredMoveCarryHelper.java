@@ -65,14 +65,41 @@ public final class WiredMoveCarryHelper {
             int rotation,
             WiredContext ctx,
             boolean checkForUnitCollision) {
+        return movementError(room, stackItem, movingItem, targetTile, rotation, ctx, checkForUnitCollision, true);
+    }
+
+    /** Dry run uses the same physics without emitting collision triggers. */
+    public static FurnitureMovementError getSimulationMovementError(
+            Room room,
+            HabboItem stackItem,
+            HabboItem movingItem,
+            RoomTile targetTile,
+            int rotation,
+            WiredContext ctx,
+            boolean checkForUnitCollision) {
+        return movementError(room, stackItem, movingItem, targetTile, rotation, ctx, checkForUnitCollision, false);
+    }
+
+    private static FurnitureMovementError movementError(
+            Room room,
+            HabboItem stackItem,
+            HabboItem movingItem,
+            RoomTile targetTile,
+            int rotation,
+            WiredContext ctx,
+            boolean checkForUnitCollision,
+            boolean notifyCollision) {
         if (room == null || movingItem == null || targetTile == null) {
             return FurnitureMovementError.INVALID_MOVE;
         }
 
+        WiredProjectileSupport.Plan projectile = WiredProjectileSupport.resolve(
+                room, stackItem, movingItem, targetTile, null, rotation, defaultMovementDuration(ctx), ctx);
+        if (projectile != null) rotation = projectile.rotation();
         if (!hasMovementBehaviorExtra(room, stackItem)) {
             FurnitureMovementError movementError =
                     room.furnitureFitsAt(targetTile, movingItem, rotation, checkForUnitCollision);
-            if (checkForUnitCollision) {
+            if (checkForUnitCollision && notifyCollision) {
                 triggerCollisionsForMovementError(
                         room, movingItem, targetTile, rotation, null, WiredMovementPhysics.NONE, movementError);
             }
@@ -85,7 +112,7 @@ public final class WiredMoveCarryHelper {
                 targetTile, movingItem, rotation, checkForUnitCollision && !carryContext.active, movementPhysics);
 
         if (movementError != FurnitureMovementError.NONE) {
-            if (checkForUnitCollision) {
+            if (checkForUnitCollision && notifyCollision) {
                 triggerCollisionsForMovementError(
                         room, movingItem, targetTile, rotation, carryContext, movementPhysics, movementError);
             }
@@ -98,7 +125,7 @@ public final class WiredMoveCarryHelper {
 
         movementError = getBlockingUnitError(room, movingItem, targetTile, rotation, carryContext, movementPhysics);
         if (movementError != FurnitureMovementError.NONE) {
-            if (checkForUnitCollision) {
+            if (checkForUnitCollision && notifyCollision) {
                 triggerCollisionsForMovementError(
                         room, movingItem, targetTile, rotation, carryContext, movementPhysics, movementError);
             }
@@ -262,6 +289,22 @@ public final class WiredMoveCarryHelper {
             return FurnitureMovementError.INVALID_MOVE;
         }
 
+        WiredProjectileSupport.Plan projectile = WiredProjectileSupport.resolve(
+                room,
+                stackItem,
+                movingItem,
+                targetTile,
+                z,
+                rotation,
+                animationDurationOverride != null
+                        ? Math.max(1, animationDurationOverride)
+                        : getAnimationDuration(room, stackItem, defaultMovementDuration(ctx)),
+                ctx);
+        if (projectile != null) {
+            rotation = projectile.rotation();
+            animationDurationOverride = projectile.duration();
+        }
+
         if (!hasMovementBehaviorExtra(room, stackItem)) {
             int duration = animationDurationOverride != null
                     ? Math.max(50, animationDurationOverride)
@@ -273,7 +316,7 @@ public final class WiredMoveCarryHelper {
                     rotation,
                     z,
                     actor,
-                    sendUpdates,
+                    false,
                     checkForUnitCollision,
                     duration,
                     animationElapsedOverride != null ? Math.max(0, animationElapsedOverride) : 0,
@@ -312,7 +355,7 @@ public final class WiredMoveCarryHelper {
 
         boolean useWiredMovements = !hasNoAnimationExtra(room, stackItem);
         int animationDuration = animationDurationOverride != null
-                ? Math.max(50, animationDurationOverride)
+                ? Math.max(projectile == null ? 50 : 1, animationDurationOverride)
                 : getAnimationDuration(room, stackItem, defaultMovementDuration(ctx));
         Set<Integer> previousSuppressedRoomUnitIds = SUPPRESSED_STATUS_ROOM_UNIT_IDS.get();
 
@@ -362,6 +405,7 @@ public final class WiredMoveCarryHelper {
         }
 
         if (result == FurnitureMovementError.NONE) {
+            WiredProjectileSupport.cancelItem(room, movingItem);
             if (checkForUnitCollision && room.getLayout() != null) {
                 Collection<RoomTile> targetOccupiedTiles = room.getLayout()
                         .getTilesAt(
@@ -373,10 +417,13 @@ public final class WiredMoveCarryHelper {
             }
 
             if (!useWiredMovements) {
+                // The movement service invalidates older animations before publishing the refresh.
                 applyInstantCarryState(room, movingItem, targetTile, rotation, carryContext);
             } else if (oldLocation != null) {
                 room.getWiredRuntime().markFurnitureMoving(movingItem, animationDuration);
-                sendMoveStyleHint(room, stackItem, movingItem);
+                Integer curveStrength = projectile != null && projectile.curve() != null
+                        ? projectile.curve()
+                        : resolveMovementCurve(room, stackItem, ctx, movingItem);
                 sendAnimatedMove(
                         room,
                         movingItem,
@@ -388,7 +435,32 @@ public final class WiredMoveCarryHelper {
                         animationDuration,
                         (animationElapsedOverride != null) ? Math.max(0, animationElapsedOverride) : 0,
                         anchorType,
-                        anchorId);
+                        anchorId,
+                        curveStrength,
+                        projectile == null ? null : projectile.overshoot());
+            }
+            if (projectile != null && oldLocation != null) {
+                Integer curve = projectile.curve() != null
+                        ? projectile.curve()
+                        : resolveMovementCurve(room, stackItem, ctx, movingItem);
+                room.getWiredRuntime()
+                        .markFurnitureMoving(
+                                movingItem,
+                                Math.max(
+                                        1,
+                                        animationDuration
+                                                + (projectile.overshoot() == null ? 0 : projectile.overshoot())));
+                WiredProjectileSupport.begin(
+                        room,
+                        movingItem,
+                        oldLocation,
+                        oldZ,
+                        targetTile,
+                        projectile,
+                        curve,
+                        animationElapsedOverride == null ? 0 : animationElapsedOverride,
+                        ctx,
+                        useWiredMovements);
             }
         }
 
@@ -435,19 +507,22 @@ public final class WiredMoveCarryHelper {
             List<WiredMovementsComposer.MovementData> collectedMovements = COLLECTED_MOVEMENTS.get();
 
             if (collectedMovements != null) {
-                collectedMovements.add(WiredMovementsComposer.furniMovement(
+                WiredMovementCollection.addFurniture(
+                        collectedMovements,
                         movingItem.getId(),
-                        oldLocation.x,
-                        oldLocation.y,
-                        targetTile.x,
-                        targetTile.y,
-                        oldZ,
-                        movingItem.getZ(),
-                        movingItem.getRotation(),
-                        animationDuration,
-                        animationElapsed,
-                        anchorType,
-                        anchorId));
+                        WiredMovementsComposer.furniMovement(
+                                movingItem.getId(),
+                                oldLocation.x,
+                                oldLocation.y,
+                                targetTile.x,
+                                targetTile.y,
+                                oldZ,
+                                movingItem.getZ(),
+                                movingItem.getRotation(),
+                                animationDuration,
+                                animationElapsed,
+                                anchorType,
+                                anchorId));
             } else if (animationDuration != WiredMovementsComposer.DEFAULT_DURATION
                     || animationElapsed != 0
                     || anchorType != WiredMovementsComposer.FURNI_ANCHOR_NONE
@@ -522,11 +597,18 @@ public final class WiredMoveCarryHelper {
         SUPPRESSED_STATUS_COMPOSER_UNTIL.remove(roomUnit.getId());
     }
 
+    /** Successful instant writes supersede this furniture's pending animations on every thread. */
+    public static void discardCollectedFurnitureMovements(int itemId) {
+        WiredFurnitureAnimationState.invalidate(itemId);
+        WiredMovementCollection.invalidateFurniture(itemId);
+        WiredMovementsComposer.discardFurnitureMovements(COLLECTED_MOVEMENTS.get(), itemId);
+    }
+
     public static void beginMovementCollection() {
         Integer currentDepth = MOVEMENT_COLLECTION_DEPTH.get();
 
         if (currentDepth == null || currentDepth <= 0) {
-            COLLECTED_MOVEMENTS.set(new ArrayList<>());
+            COLLECTED_MOVEMENTS.set(new WiredMovementCollection());
             COLLECTED_TILE_UPDATES.set(new LinkedHashMap<>());
             MOVEMENT_COLLECTION_DEPTH.set(1);
             return;
@@ -549,15 +631,16 @@ public final class WiredMoveCarryHelper {
         COLLECTED_TILE_UPDATES.remove();
         MOVEMENT_COLLECTION_DEPTH.remove();
 
-        if (tileUpdates != null) {
-            tileUpdates.forEach(WiredMoveCarryHelper::sendTileUpdates);
+        try {
+            if (tileUpdates != null) {
+                tileUpdates.forEach(WiredMoveCarryHelper::sendTileUpdates);
+            }
+            if (movements instanceof WiredMovementCollection collection) collection.discardInvalidated();
+            if (movements == null || movements.isEmpty()) return null;
+            return new WiredMovementsComposer(movements).compose();
+        } finally {
+            if (movements instanceof WiredMovementCollection collection) collection.release();
         }
-
-        if (movements == null || movements.isEmpty()) {
-            return null;
-        }
-
-        return new WiredMovementsComposer(movements).compose();
     }
 
     /** Tile physics is updated immediately; only duplicate client notifications wait for the batch end. */
@@ -590,6 +673,7 @@ public final class WiredMoveCarryHelper {
     }
 
     static void clearThreadLocalsForCurrentThread() {
+        if (COLLECTED_MOVEMENTS.get() instanceof WiredMovementCollection collection) collection.release();
         SUPPRESSED_STATUS_ROOM_UNIT_IDS.remove();
         COLLECTED_MOVEMENTS.remove();
         COLLECTED_TILE_UPDATES.remove();
@@ -772,8 +856,20 @@ public final class WiredMoveCarryHelper {
     }
 
     public static int getAnimationDuration(Room room, HabboItem stackItem, int fallbackDuration) {
-        WiredExtraAnimationTime extra = getAnimationTimeExtra(room, stackItem);
-        return (extra != null) ? extra.getDurationMs() : fallbackDuration;
+        Collection<InteractionWiredExtra> extras = getMovementExtras(room, stackItem);
+        if (extras == null) {
+            return fallbackDuration;
+        }
+
+        long durationMs = 0;
+        for (InteractionWiredExtra extra : extras) {
+            if (extra instanceof WiredExtraAnimationTime animationTime) {
+                durationMs += animationTime.getDurationMs();
+            }
+        }
+
+        // The movement packet carries a signed int; only its range limits the sum.
+        return durationMs > 0 ? (int) Math.min(durationMs, Integer.MAX_VALUE) : fallbackDuration;
     }
 
     private static int defaultMovementDuration(WiredContext ctx) {
@@ -791,6 +887,12 @@ public final class WiredMoveCarryHelper {
         }
 
         return getMovementPhysics(room, stackItem, null, ctx);
+    }
+
+    public static WiredMovementPhysics getFurniMovementPhysics(
+            Room room, HabboItem stackItem, HabboItem movingItem, WiredContext ctx) {
+        if (room == null || stackItem == null) return WiredMovementPhysics.NONE;
+        return getMovementPhysics(room, stackItem, movingItem, ctx);
     }
 
     public static int resolveMoveStepElapsed(RoomUnit roomUnit) {
@@ -961,7 +1063,9 @@ public final class WiredMoveCarryHelper {
             if (extra instanceof WiredExtraMoveCarryUsers
                     || extra instanceof WiredExtraMoveNoAnimation
                     || extra instanceof WiredExtraAnimationTime
-                    || extra instanceof WiredExtraMovePhysics) {
+                    || extra instanceof WiredExtraMovePhysics
+                    || extra instanceof WiredExtraMovementCurve
+                    || extra instanceof com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraProjectile) {
                 return true;
             }
         }
@@ -1232,7 +1336,9 @@ public final class WiredMoveCarryHelper {
             int animationDuration,
             int animationElapsed,
             int anchorType,
-            int anchorId) {
+            int anchorId,
+            Integer curveStrength,
+            Integer overshoot) {
         List<CarriedUnitMove> carriedMoves = getCarriedUnitMoves(room, movingItem, targetTile, rotation, carryContext);
         List<WiredMovementsComposer.MovementData> movements = new ArrayList<>();
         movements.add(WiredMovementsComposer.furniMovement(
@@ -1247,7 +1353,9 @@ public final class WiredMoveCarryHelper {
                 animationDuration,
                 animationElapsed,
                 anchorType,
-                anchorId));
+                anchorId,
+                overshoot,
+                curveStrength));
 
         for (CarriedUnitMove carriedMove : carriedMoves) {
             suppressStatusComposer(carriedMove.roomUnit, animationDuration);
@@ -1261,13 +1369,15 @@ public final class WiredMoveCarryHelper {
                     carriedMove.newZ,
                     carriedMove.roomUnit.getBodyRotation().getValue(),
                     carriedMove.roomUnit.getHeadRotation().getValue(),
-                    animationDuration));
+                    animationDuration,
+                    curveStrength));
         }
 
         List<WiredMovementsComposer.MovementData> collectedMovements = COLLECTED_MOVEMENTS.get();
 
         if (collectedMovements != null) {
-            collectedMovements.addAll(movements);
+            WiredMovementCollection.addFurniture(collectedMovements, movingItem.getId(), movements.getFirst());
+            collectedMovements.addAll(movements.subList(1, movements.size()));
         } else {
             room.sendComposer(new WiredMovementsComposer(movements).compose());
         }
@@ -1426,21 +1536,6 @@ public final class WiredMoveCarryHelper {
         return null;
     }
 
-    private static WiredExtraAnimationTime getAnimationTimeExtra(Room room, HabboItem stackItem) {
-        Collection<InteractionWiredExtra> extras = getMovementExtras(room, stackItem);
-        if (extras == null || extras.isEmpty()) {
-            return null;
-        }
-
-        for (InteractionWiredExtra extra : extras) {
-            if (extra instanceof WiredExtraAnimationTime) {
-                return (WiredExtraAnimationTime) extra;
-            }
-        }
-
-        return null;
-    }
-
     private static WiredMovementPhysics getMovementPhysics(
             Room room, HabboItem stackItem, HabboItem movingItem, WiredContext ctx) {
         WiredExtraMovePhysics extra = getMovementPhysicsExtra(room, stackItem);
@@ -1548,20 +1643,18 @@ public final class WiredMoveCarryHelper {
         return null;
     }
 
-    private static void sendMoveStyleHint(Room room, HabboItem stackItem, HabboItem movingItem) {
-        Collection<InteractionWiredExtra> extras = getMovementExtras(room, stackItem);
-        if (extras == null) {
-            return;
-        }
+    public static Integer resolveUserMovementCurve(Room room, HabboItem stackItem, WiredContext ctx) {
+        return resolveMovementCurve(room, stackItem, ctx, null);
+    }
 
-        for (InteractionWiredExtra extra : extras) {
-            if (extra instanceof WiredExtraMovementCurve curve
-                    && curve.getCurveType() != WiredExtraMovementCurve.CURVE_LINEAR) {
-                WiredMoveStyleHelper.broadcast(
-                        room, List.of(movingItem.getId()), curve.getCurveType(), curve.getIntensity());
-                return;
+    private static Integer resolveMovementCurve(
+            Room room, HabboItem stackItem, WiredContext ctx, HabboItem movingItem) {
+        Collection<InteractionWiredExtra> extras = getMovementExtras(room, stackItem);
+        if (extras != null)
+            for (InteractionWiredExtra extra : extras) {
+                if (extra instanceof WiredExtraMovementCurve curve) return curve.resolveCurveStrength(ctx, movingItem);
             }
-        }
+        return null;
     }
 
     private static Collection<InteractionWiredExtra> getMovementExtras(Room room, HabboItem stackItem) {

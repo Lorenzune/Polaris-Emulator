@@ -4,7 +4,6 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.google.gson.Gson;
 import jakarta.validation.constraints.Positive;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,8 +16,8 @@ public class SetRank extends RCONMessage<SetRank.JSONSetRank> {
 
     @Override
     public void handle(Gson gson, JSONSetRank object) {
-        int maxRank = SetRankRequestGuard.parseMaxRank(
-                Emulator.getConfig().getValue("rcon.setrank.max_rank", String.valueOf(SetRankRequestGuard.DEFAULT_MAX_RANK)));
+        int maxRank = SetRankRequestGuard.parseMaxRank(Emulator.getConfig()
+                .getValue("rcon.setrank.max_rank", String.valueOf(SetRankRequestGuard.DEFAULT_MAX_RANK)));
         String validationError = SetRankRequestGuard.validate(
                 object.user_id,
                 object.rank,
@@ -37,7 +36,12 @@ public class SetRank extends RCONMessage<SetRank.JSONSetRank> {
         }
 
         try {
-            Emulator.getGameEnvironment().getHabboManager().setRank(object.user_id, object.rank);
+            Emulator.getGameEnvironment()
+                    .getHabboManager()
+                    .setRank(
+                            object.user_id,
+                            object.rank,
+                            com.eu.habbo.habbohotel.permissions.PermissionAuditLog.Actor.system("rcon"));
         } catch (Exception e) {
             this.status = RCONMessage.SYSTEM_ERROR;
             this.message = "invalid rank";
@@ -60,7 +64,8 @@ public class SetRank extends RCONMessage<SetRank.JSONSetRank> {
         }
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT id FROM users WHERE id = ? LIMIT 1")) {
+                PreparedStatement statement =
+                        connection.prepareStatement("SELECT id FROM users WHERE id = ? LIMIT 1")) {
             statement.setInt(1, userId);
             try (ResultSet set = statement.executeQuery()) {
                 return set.next();
@@ -74,7 +79,6 @@ public class SetRank extends RCONMessage<SetRank.JSONSetRank> {
 
         @Positive(message = "invalid user")
         public int user_id;
-
 
         @Positive(message = "invalid rank")
         public int rank;

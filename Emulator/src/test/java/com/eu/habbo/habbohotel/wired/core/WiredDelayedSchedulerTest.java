@@ -2,6 +2,7 @@ package com.eu.habbo.habbohotel.wired.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -25,6 +26,285 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class WiredDelayedSchedulerTest {
+
+    @Test
+    void delayedFurnitureResetCompletesAfterLastPlayerLeavesLoadedRoom() {
+        Room room = occupiedRoom(267);
+        List<Runnable> tasks = new ArrayList<>();
+        AtomicInteger executions = new AtomicInteger();
+        var scheduler = new WiredDelayedScheduler(
+                (task, delay) -> {
+                    tasks.add(task);
+                    return () -> true;
+                },
+                () -> 1000L,
+                (candidate, format, arguments) -> {},
+                ignored -> room);
+        var monitoring = diagnostics();
+        var effect = mock(com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectMatchFurni.class);
+        when(effect.getId()).thenReturn(11584);
+        when(effect.getRoomId()).thenReturn(267);
+        when(room.getHabboItem(11584)).thenReturn(effect);
+        scheduler.scheduleEffect(
+                effect,
+                context(room, null),
+                6,
+                1000L,
+                monitoring,
+                "fixture",
+                11584,
+                restored -> executions.incrementAndGet());
+        when(room.getHabbos()).thenReturn(List.of());
+        tasks.getFirst().run();
+        assertEquals(1, executions.get(), "The delayed board reset must complete while the room remains loaded");
+        assertEquals(0, pending(monitoring, 1000L));
+    }
+
+    @Test
+    void delayedFurnitureResetIsDiscardedAfterRoomUnloadsOrReloads() {
+        for (boolean unload : new boolean[] {true, false}) {
+            Room room = occupiedRoom(267);
+            List<Runnable> tasks = new ArrayList<>();
+            AtomicInteger executions = new AtomicInteger();
+            var scheduler = new WiredDelayedScheduler(
+                    (task, delay) -> {
+                        tasks.add(task);
+                        return () -> true;
+                    },
+                    () -> 1000L,
+                    (candidate, format, arguments) -> {},
+                    ignored -> room);
+            var monitoring = diagnostics();
+            scheduler.scheduleEffect(
+                    ignored -> {},
+                    context(room, null),
+                    6,
+                    1000L,
+                    monitoring,
+                    "fixture",
+                    11584,
+                    executions::incrementAndGet);
+            when(room.getHabbos()).thenReturn(List.of());
+            if (unload) when(room.isLoaded()).thenReturn(false);
+            else when(room.getLifecycleGeneration()).thenReturn(2L);
+            tasks.getFirst().run();
+            assertEquals(0, executions.get());
+            assertEquals(0, pending(monitoring, 1000L));
+        }
+    }
+
+    @Test
+    void failedNativeFrameRoomResolutionReleasesEveryPendingTask() {
+        Room room = occupiedRoom(85);
+        List<Runnable> tasks = new ArrayList<>();
+        AtomicInteger executions = new AtomicInteger();
+        var scheduler = new WiredDelayedScheduler(
+                (task, delay) -> {
+                    tasks.add(task);
+                    return () -> true;
+                },
+                () -> 1000L,
+                (candidate, format, arguments) -> {},
+                ignored -> {
+                    throw new IllegalStateException("room unavailable");
+                });
+        var context = new WiredContext(
+                WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
+                        .signalPayloadExplicit(true)
+                        .build(),
+                null,
+                mock(WiredServices.class),
+                new WiredState(100));
+        var monitoring = diagnostics();
+        var sender = mock(com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSendSignal.class);
+        when(sender.isNativeSignal()).thenReturn(true);
+        for (int attempt = 0; attempt < 2; attempt++)
+            scheduler.scheduleEffect(
+                    sender, context, 1, 1000L, monitoring, "fixture", 17, restored -> executions.incrementAndGet());
+        tasks.getFirst().run();
+        assertEquals(0, executions.get());
+        assertEquals(0, monitoring.snapshot(0, 10, 0L, 1000L).getDelayedEventsPending());
+        assertEquals(0, scheduler.shutdown());
+    }
+
+    @Test
+    void nearbyNativeSignalsShareAFrameWithoutDroppingTheirPayloads() {
+        Room room = occupiedRoom(84);
+        List<Runnable> tasks = new ArrayList<>();
+        List<Long> delays = new ArrayList<>();
+        AtomicInteger executions = new AtomicInteger();
+        var scheduler = new WiredDelayedScheduler(
+                (task, delay) -> {
+                    tasks.add(task);
+                    delays.add(delay);
+                    return () -> true;
+                },
+                () -> 1000L,
+                (candidate, format, arguments) -> {},
+                ignored -> room);
+        var event = WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
+                .signalPayloadExplicit(true)
+                .build();
+        var context = new WiredContext(event, null, mock(WiredServices.class), new WiredState(100));
+        var monitoring = diagnostics();
+        for (int effectId : new int[] {17, 18}) {
+            var sender = mock(com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSendSignal.class);
+            when(sender.getId()).thenReturn(effectId);
+            when(sender.getRoomId()).thenReturn(84);
+            when(sender.isNativeSignal()).thenReturn(true);
+            when(room.getHabboItem(effectId)).thenReturn(sender);
+            scheduler.scheduleEffect(
+                    sender,
+                    context,
+                    1,
+                    1000L,
+                    monitoring,
+                    "fixture",
+                    effectId,
+                    restored -> executions.incrementAndGet());
+        }
+        assertEquals(1, tasks.size());
+        assertEquals(525L, delays.getFirst());
+        try (var manager = org.mockito.Mockito.mockStatic(WiredManager.class)) {
+            manager.when(() -> WiredManager.runDelayedSignalWave(
+                            org.mockito.ArgumentMatchers.eq(room), org.mockito.ArgumentMatchers.anyList()))
+                    .thenAnswer(invocation -> {
+                        ((List<Runnable>) invocation.getArgument(1)).forEach(Runnable::run);
+                        return null;
+                    });
+            tasks.getFirst().run();
+        }
+        assertEquals(2, executions.get());
+        assertEquals(0, scheduler.shutdown());
+    }
+
+    @Test
+    void identicalNativeSelfFeedbackKeepsOnePendingContinuationAndReleasesItsSlot() {
+        Room room = occupiedRoom(81);
+        var sender = mock(com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSendSignal.class);
+        when(sender.getId()).thenReturn(17);
+        when(sender.getRoomId()).thenReturn(81);
+        when(room.getHabboItem(17)).thenReturn(sender);
+        when(sender.isNativeSelfFeedback(any())).thenReturn(true);
+        List<Runnable> tasks = new ArrayList<>();
+        AtomicInteger executed = new AtomicInteger();
+        var scheduler = new WiredDelayedScheduler(
+                (task, delay) -> {
+                    tasks.add(task);
+                    return () -> true;
+                },
+                () -> 1000L,
+                (candidate, format, arguments) -> {},
+                ignored -> room);
+        var monitoring = diagnostics();
+        var event = WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
+                .signalPayloadExplicit(true)
+                .build();
+        var context = new WiredContext(event, null, mock(WiredServices.class), new WiredState(100));
+        for (int attempt = 0; attempt < 20; attempt++) {
+            scheduler.scheduleEffect(
+                    sender, context, 1, 1000L, monitoring, "fixture", 17, restored -> executed.incrementAndGet());
+        }
+        assertEquals(1, tasks.size());
+        tasks.getFirst().run();
+        assertEquals(1, executed.get());
+        scheduler.scheduleEffect(
+                sender, context, 1, 1000L, monitoring, "fixture", 17, restored -> executed.incrementAndGet());
+        assertEquals(2, tasks.size());
+        assertEquals(1, scheduler.shutdown());
+    }
+
+    @Test
+    void ordinaryDelayedSignalsRemainIndependent() {
+        Room room = occupiedRoom(82);
+        var sender = mock(com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSendSignal.class);
+        List<Runnable> tasks = new ArrayList<>();
+        var scheduler = new WiredDelayedScheduler(
+                (task, delay) -> {
+                    tasks.add(task);
+                    return () -> true;
+                },
+                () -> 1000L,
+                (candidate, format, arguments) -> {},
+                ignored -> room);
+        var event = WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
+                .signalPayloadExplicit(true)
+                .build();
+        var context = new WiredContext(event, null, mock(WiredServices.class), new WiredState(100));
+        for (int attempt = 0; attempt < 2; attempt++) {
+            scheduler.scheduleEffect(sender, context, 1, 1000L, diagnostics(), "fixture", 17, () -> {});
+        }
+        assertEquals(2, tasks.size());
+        assertEquals(2, scheduler.shutdown());
+    }
+
+    @Test
+    void selfFeedbackForDifferentPiecesKeepsSeparateContinuations() {
+        Room room = occupiedRoom(83);
+        var sender = mock(com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSendSignal.class);
+        when(sender.isNativeSelfFeedback(any())).thenReturn(true);
+        List<Runnable> tasks = new ArrayList<>();
+        var scheduler = new WiredDelayedScheduler(
+                (task, delay) -> {
+                    tasks.add(task);
+                    return () -> true;
+                },
+                () -> 1000L,
+                (candidate, format, arguments) -> {},
+                ignored -> room);
+        for (int pieceId : new int[] {31, 32}) {
+            var piece = mock(com.eu.habbo.habbohotel.users.HabboItem.class);
+            when(piece.getId()).thenReturn(pieceId);
+            when(piece.getRoomId()).thenReturn(83);
+            var event = WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
+                    .sourceItem(piece)
+                    .signalSourceItems(List.of(piece))
+                    .signalPayloadExplicit(true)
+                    .build();
+            var context = new WiredContext(event, null, mock(WiredServices.class), new WiredState(100));
+            scheduler.scheduleEffect(sender, context, 1, 1000L, diagnostics(), "fixture", 17, () -> {});
+        }
+        assertEquals(2, tasks.size());
+        assertEquals(2, scheduler.shutdown());
+    }
+
+    @Test
+    void delayedSignalStartsANewCallStackChainWithoutChangingCapturedMetadata() {
+        Room room = occupiedRoom(80);
+        WiredEvent event = WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
+                .callStackDepth(15)
+                .signalChannel(123)
+                .signalPayloadExplicit(true)
+                .createdAtMs(1000L)
+                .build();
+        WiredContext context = new WiredContext(event, null, mock(WiredServices.class), new WiredState(100));
+        IWiredEffect effect = ignored -> {};
+        List<Runnable> tasks = new ArrayList<>();
+        AtomicReference<WiredEvent> resumed = new AtomicReference<>();
+        WiredDelayedScheduler scheduler = new WiredDelayedScheduler(
+                (task, delay) -> {
+                    tasks.add(task);
+                    return () -> true;
+                },
+                () -> 1000L,
+                (candidate, format, arguments) -> {},
+                ignoredId -> room);
+        scheduler.scheduleEffect(
+                effect,
+                context,
+                1,
+                1000L,
+                diagnostics(),
+                "fixture",
+                17,
+                resolved -> resumed.set(resolved.context().event()));
+        tasks.getFirst().run();
+        assertEquals(0, resumed.get().getCallStackDepth());
+        assertEquals(123, resumed.get().getSignalChannel());
+        assertTrue(resumed.get().isSignalPayloadExplicit());
+        assertEquals(1000L, resumed.get().getCreatedAtMs());
+        assertEquals(15, context.event().getCallStackDepth());
+    }
 
     @Test
     void preservesFiveHundredMillisecondTimingAndCompletionAccounting() {

@@ -3,6 +3,7 @@ package com.eu.habbo.habbohotel.items.interactions.wired.triggers;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeTimerSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredTimerInputGuard;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredTriggerReset;
@@ -12,9 +13,10 @@ import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.WiredTriggerType;
 import com.eu.habbo.habbohotel.wired.core.WiredEvent;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
+import com.eu.habbo.habbohotel.wired.tick.WiredTickService;
 import com.eu.habbo.habbohotel.wired.tick.WiredTickable;
+import com.eu.habbo.habbohotel.wired.tick.WiredTimerClock;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -28,20 +30,22 @@ import java.util.List;
  * </p>
  */
 public class WiredTriggerRepeaterLong extends InteractionWiredTrigger implements WiredTickable, WiredTriggerReset {
-    public static final int DEFAULT_DELAY = 10 * 5000; // 50 seconds default
+    public static final int DEFAULT_DELAY = 5000; // SWF default: one 5-second step
     private static final int STEP_MS = 5000;
     private static final int MIN_DELAY = STEP_MS;
-    private static final int LEGACY_FALLBACK_DELAY = 20 * STEP_MS;
     private static final WiredTriggerType type = WiredTriggerType.PERIODICALLY_LONG;
-    
+
+    protected final WiredTimerClock timerClock = new WiredTimerClock();
+
     /** The interval in milliseconds between triggers */
-    private int repeatTime = DEFAULT_DELAY;
+    private volatile int repeatTime = DEFAULT_DELAY;
 
     public WiredTriggerRepeaterLong(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
     }
 
-    public WiredTriggerRepeaterLong(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredTriggerRepeaterLong(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -78,12 +82,13 @@ public class WiredTriggerRepeaterLong extends InteractionWiredTrigger implements
             storedRepeatTime = null;
         }
 
-        this.repeatTime = WiredTimerInputGuard.normalizeStoredMillis(storedRepeatTime, MIN_DELAY, LEGACY_FALLBACK_DELAY);
+        this.repeatTime = WiredTimerInputGuard.normalizeStoredMillis(storedRepeatTime, MIN_DELAY, MIN_DELAY);
     }
 
     @Override
     public void onPickUp() {
         this.repeatTime = DEFAULT_DELAY;
+        this.resetTimer();
     }
 
     @Override
@@ -122,9 +127,10 @@ public class WiredTriggerRepeaterLong extends InteractionWiredTrigger implements
 
     @Override
     public boolean saveData(WiredSettings settings) {
+        settings = WiredNativeTimerSettings.normalize(this, settings);
         if (settings.getIntParams().length < 1) return false;
         this.repeatTime = WiredTimerInputGuard.fromClientUnits(settings.getIntParams()[0], STEP_MS, MIN_DELAY);
-        // No accumulated time reset needed - using global tick count
+        this.resetTimer();
         return true;
     }
 
@@ -132,33 +138,30 @@ public class WiredTriggerRepeaterLong extends InteractionWiredTrigger implements
 
     @Override
     public void onWiredTick(Room room, long tickCount, int tickIntervalMs) {
-        // Use global tick counter - all repeaters with same interval fire together
-        // This ensures perfect synchronization regardless of when they were registered
-        long elapsedMs = tickCount * tickIntervalMs;
-        
-        // Fire when elapsed time is a multiple of repeat time
-        if (elapsedMs % this.repeatTime == 0) {
-            long currentTime = System.currentTimeMillis();
-            if (this.getRoomId() != 0 && room.isLoaded()
-                    && WiredManager.isTriggerExecutionAllowed(room, this, currentTime)) {
-                WiredManager.triggerTimerRepeatLong(room, this);
-            }
+        if (this.getRoomId() == 0 || !room.isLoaded()) return;
+        if (this.timerClock.poll(
+                tickCount,
+                tickIntervalMs,
+                this.repeatTime,
+                true,
+                () -> WiredManager.isTriggerExecutionAllowed(room, this, System.currentTimeMillis()))) {
+            WiredManager.triggerTimerRepeatLong(room, this);
         }
     }
 
     @Override
     public void resetTimer() {
-        // No-op - using global tick count for synchronization
+        this.timerClock.reset(WiredTickService.getInstance().getTickCount());
     }
 
     @Override
     public void onRegistered(Room room, long currentTimeMillis) {
-        // No-op - using global tick count
+        this.timerClock.reset(WiredTickService.getInstance().getTickCount());
     }
 
     @Override
     public void onUnregistered(Room room) {
-        // No-op - using global tick count
+        this.timerClock.reset(WiredTickService.getInstance().getTickCount());
     }
 
     @Override

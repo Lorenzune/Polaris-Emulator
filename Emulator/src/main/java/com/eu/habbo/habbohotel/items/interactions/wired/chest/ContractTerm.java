@@ -25,6 +25,9 @@ public class ContractTerm {
     public static final int STRIDE_V2 = 5;
     public static final int STRIDE_V1 = 3;
 
+    /** Furnidata sprite id for client icons; baseItemId remains the database identity. */
+    public int spriteId;
+
     public final int direction;
     public final int kind;
     public final int currencyType;

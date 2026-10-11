@@ -108,7 +108,7 @@ jobs:
       - name: Verify migrations against ${{ matrix.mariadb }}
         env:
           POLARIS_TEST_MARIADB_IMAGE: ${{ matrix.mariadb }}
-        run: ./mvnw -B test-compile failsafe:integration-test failsafe:verify -Dit.test=MigrationRunnerIT
+        run: ./mvnw -B test-compile failsafe:integration-test failsafe:verify -Dit.test=MigrationRunnerIT,AvatarLevelMigrationIT
 
   backup-restore:
     name: Migration backup + restore

@@ -1,0 +1,12 @@
+{
+  "name": "ducket-tested-presets-transfer",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Trasferimento dei preset corretti Katso Merta, Dama, Cake e Scacchi",
+  "dependencies": {
+    "mysql2": "3.24.2"
+  },
+  "scripts": {
+    "test": "node --test transfer.test.cjs"
+  }
+}

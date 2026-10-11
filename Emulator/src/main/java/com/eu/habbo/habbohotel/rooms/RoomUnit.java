@@ -68,6 +68,16 @@ public class RoomUnit {
     private double z;
     private int tilesWalked;
     private boolean inRoom;
+    private volatile boolean entrySnapshotReady;
+
+    public boolean isEntrySnapshotReady() {
+        return entrySnapshotReady;
+    }
+
+    public void setEntrySnapshotReady(boolean ready) {
+        entrySnapshotReady = ready;
+    }
+
     private boolean canWalk;
     private boolean fastWalk = false;
     private boolean statusUpdate = false;
@@ -92,6 +102,16 @@ public class RoomUnit {
     private int idleTimer;
     private boolean idle;
     private Room room;
+    private volatile int wiredOpacity = 100;
+
+    public int getWiredOpacity() {
+        return wiredOpacity;
+    }
+
+    public void setWiredOpacity(int value) {
+        wiredOpacity = Math.max(0, Math.min(100, value));
+    }
+
     private RoomRightLevels rightsLevel = RoomRightLevels.NONE;
     private Set<Integer> overridableTiles;
 
@@ -661,6 +681,11 @@ public class RoomUnit {
     }
 
     public void setPathFinderRoom(Room room) {
+        if (this.room != room) {
+            if (this.room != null && this.room.getWiredRuntime() != null)
+                this.room.getWiredRuntime().forgetHighlight(100, getId());
+            wiredOpacity = 100;
+        }
         this.room = room;
     }
 
@@ -943,6 +968,11 @@ public class RoomUnit {
     }
 
     public void setRoom(Room room) {
+        if (this.room != room) {
+            if (this.room != null && this.room.getWiredRuntime() != null)
+                this.room.getWiredRuntime().forgetHighlight(100, getId());
+            wiredOpacity = 100;
+        }
         this.room = room;
     }
 
@@ -957,6 +987,11 @@ public class RoomUnit {
 
         int tileIndex = (tile.x & 0xFF) | (tile.y << 12);
         return this.overridableTiles.contains(tileIndex);
+    }
+
+    /** Whether tiles were granted to this unit to walk on whatever their state. */
+    public boolean hasOverrideTiles() {
+        return !this.overridableTiles.isEmpty();
     }
 
     public void addOverrideTile(RoomTile tile) {

@@ -10,17 +10,18 @@ import com.eu.habbo.messages.outgoing.camera.CameraURLComposer;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.stream.ImageInputStream;
-import java.awt.*;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Iterator;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CameraRoomPictureEvent extends MessageHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(CameraRoomPictureEvent.class);
@@ -32,6 +33,7 @@ public class CameraRoomPictureEvent extends MessageHandler {
     public static int MAX_DAILY_RENDERS = 50;
 
     private ByteBuf image = null;
+    private boolean responseSent = false;
 
     @Override
     public void handle() {
@@ -41,6 +43,7 @@ public class CameraRoomPictureEvent extends MessageHandler {
             if (this.image != null) {
                 this.image.release();
             }
+            if (!this.responseSent) this.client.sendResponse(new CameraURLComposer(""));
         }
     }
 
@@ -58,14 +61,10 @@ public class CameraRoomPictureEvent extends MessageHandler {
         if (habboStats.cache.containsKey("camera_render_cooldown")) {
             int cameraTimestamp = (Integer) habboStats.cache.get("camera_render_cooldown");
             if (timestamp - cameraTimestamp < CAMERA_RENDER_DELAY) {
-                String alertMessage = Emulator.getTexts().getValue("camera.wait").replace("%seconds%", Integer.toString(CAMERA_RENDER_DELAY - (timestamp - cameraTimestamp)));
+                String alertMessage = Emulator.getTexts()
+                        .getValue("camera.wait")
+                        .replace("%seconds%", Integer.toString(CAMERA_RENDER_DELAY - (timestamp - cameraTimestamp)));
                 habbo.alert(alertMessage);
-                if (habboInfo.getPhotoURL() != null) {
-                    String[] splittedPhotoURL = habboInfo.getPhotoURL().split("/");
-                    if (splittedPhotoURL.length > 0) {
-                        this.client.sendResponse(new CameraURLComposer(splittedPhotoURL[splittedPhotoURL.length - 1]));
-                    }
-                }
                 return;
             }
         }
@@ -73,14 +72,13 @@ public class CameraRoomPictureEvent extends MessageHandler {
         // Daily render quota check
         int dailyRenderCount = getDailyRenderCount(habboStats, timestamp);
         if (dailyRenderCount >= MAX_DAILY_RENDERS) {
-            habbo.alert(Emulator.getTexts().getValue("camera.daily.limit", "You have reached the daily photo limit. Try again tomorrow."));
+            habbo.alert(Emulator.getTexts()
+                    .getValue("camera.daily.limit", "You have reached the daily photo limit. Try again tomorrow."));
             return;
         }
-        incrementDailyRenderCount(habboStats, timestamp, dailyRenderCount);
-
-        habboStats.cache.put("camera_render_cooldown", timestamp);
         Room room = habboInfo.getCurrentRoom();
         if (room == null) return;
+        habboStats.cache.put("camera_render_cooldown", timestamp);
 
         int count = this.packet.readInt();
 
@@ -110,9 +108,13 @@ public class CameraRoomPictureEvent extends MessageHandler {
             return;
         }
 
-        if (dimensions == null || dimensions[0] <= 0 || dimensions[1] <= 0
-                || dimensions[0] > MAX_IMAGE_WIDTH || dimensions[1] > MAX_IMAGE_HEIGHT) {
-            LOGGER.warn("User {} attempted camera upload with invalid dimensions: {}x{}",
+        if (dimensions == null
+                || dimensions[0] <= 0
+                || dimensions[1] <= 0
+                || dimensions[0] > MAX_IMAGE_WIDTH
+                || dimensions[1] > MAX_IMAGE_HEIGHT) {
+            LOGGER.warn(
+                    "User {} attempted camera upload with invalid dimensions: {}x{}",
                     habboInfo.getUsername(),
                     dimensions != null ? dimensions[0] : "null",
                     dimensions != null ? dimensions[1] : "null");
@@ -136,7 +138,11 @@ public class CameraRoomPictureEvent extends MessageHandler {
 
         // Double-check decoded dimensions match expectations
         if (theImage.getWidth() > MAX_IMAGE_WIDTH || theImage.getHeight() > MAX_IMAGE_HEIGHT) {
-            LOGGER.warn("User {} decoded image exceeds dimension limits: {}x{}", habboInfo.getUsername(), theImage.getWidth(), theImage.getHeight());
+            LOGGER.warn(
+                    "User {} decoded image exceeds dimension limits: {}x{}",
+                    habboInfo.getUsername(),
+                    theImage.getWidth(),
+                    theImage.getHeight());
             handleImageProcessingError(habbo);
             return;
         }
@@ -145,34 +151,45 @@ public class CameraRoomPictureEvent extends MessageHandler {
         String URL = fileName + ".png";
         String URLsmall = fileName + "_small.png";
         String base = Emulator.getConfig().getValue("camera.url");
-        String json = Emulator.getConfig().getValue("camera.extradata")
+        String json = Emulator.getConfig()
+                .getValue("camera.extradata")
                 .replace("%timestamp%", Integer.toString(timestamp))
                 .replace("%room_id%", Integer.toString(room.getId()))
                 .replace("%url%", base + URL);
-        habboInfo.setPhotoURL(base + URL);
-        habboInfo.setPhotoTimestamp(timestamp);
-        habboInfo.setPhotoRoomId(room.getId());
-        habboInfo.setPhotoJSON(json);
-
-        File imageFile = new File(Emulator.getConfig().getValue("imager.location.output.camera") + URL);
-        File smallImageFile = new File(Emulator.getConfig().getValue("imager.location.output.camera") + URLsmall);
-
+        File outputDirectory = new File(Emulator.getConfig().getValue("imager.location.output.camera"));
         try {
-            ImageIO.write(theImage, "png", imageFile);
-            int smallWidth = theImage.getWidth(null) / 2;
-            int smallHeight = theImage.getHeight(null) / 2;
-            BufferedImage bi = new BufferedImage(smallWidth, smallHeight, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D graphics2D = bi.createGraphics();
-            graphics2D.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
-            graphics2D.drawImage(theImage, 0, 0, smallWidth, smallHeight, null);
-            graphics2D.dispose();
-            ImageIO.write(bi, "png", smallImageFile);
+            writeImages(theImage, outputDirectory, URL, URLsmall);
         } catch (IOException e) {
+            LOGGER.error("Unable to save camera image to {}", outputDirectory, e);
             handleImageProcessingError(habbo);
             return;
         }
 
+        habboInfo.setPhotoURL(base + URL);
+        habboInfo.setPhotoTimestamp(timestamp);
+        habboInfo.setPhotoRoomId(room.getId());
+        habboInfo.setPhotoJSON(json);
+        incrementDailyRenderCount(habboStats, timestamp, dailyRenderCount);
         this.client.sendResponse(new CameraURLComposer(URL));
+        this.responseSent = true;
+    }
+
+    static void writeImages(BufferedImage image, File directory, String fullName, String smallName) throws IOException {
+        Files.createDirectories(directory.toPath());
+        if (!ImageIO.write(image, "png", new File(directory, fullName)))
+            throw new IOException("PNG writer unavailable");
+        int width = Math.max(1, image.getWidth() / 2);
+        int height = Math.max(1, image.getHeight() / 2);
+        BufferedImage small = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = small.createGraphics();
+        try {
+            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            graphics.drawImage(image, 0, 0, width, height, null);
+        } finally {
+            graphics.dispose();
+        }
+        if (!ImageIO.write(small, "png", new File(directory, smallName)))
+            throw new IOException("PNG writer unavailable");
     }
 
     private boolean isPNG(byte[] bytes) {
@@ -194,7 +211,7 @@ public class CameraRoomPictureEvent extends MessageHandler {
                     reader.setInput(iis);
                     int width = reader.getWidth(0);
                     int height = reader.getHeight(0);
-                    return new int[]{width, height};
+                    return new int[] {width, height};
                 } finally {
                     reader.dispose();
                 }

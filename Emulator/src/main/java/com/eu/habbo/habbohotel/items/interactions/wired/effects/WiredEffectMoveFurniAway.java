@@ -4,6 +4,7 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeMovementSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.FurnitureMovementError;
 import com.eu.habbo.habbohotel.rooms.Room;
@@ -50,7 +51,7 @@ public class WiredEffectMoveFurniAway extends InteractionWiredEffect {
         Room room = ctx.room();
         if (room.getLayout() == null) return;
 
-        List<HabboItem> effectiveItems = WiredSourceUtil.resolveItems(ctx, this.furniSource, this.items);
+        List<HabboItem> effectiveItems = WiredMovementTargets.items(ctx, this.furniSource, this.items);
         if (this.furniSource == WiredSourceUtil.SOURCE_SELECTED) {
             Set<HabboItem> toRemove = new HashSet<>();
             for (HabboItem item : effectiveItems) {
@@ -126,10 +127,11 @@ public class WiredEffectMoveFurniAway extends InteractionWiredEffect {
 
     @Override
     public boolean simulate(WiredContext ctx, WiredSimulation simulation) {
+        if (ctx == null || ctx.room() == null || ctx.room().getLayout() == null) return false;
         Room room = ctx.room();
-        if (room.getLayout() == null) return true;
+        if (room.getLayout() == null) return false;
 
-        List<HabboItem> effectiveItems = WiredSourceUtil.resolveItems(ctx, this.furniSource, this.items);
+        List<HabboItem> effectiveItems = WiredMovementTargets.items(ctx, this.furniSource, this.items);
         for (HabboItem item : effectiveItems) {
             if (item == null) continue;
 
@@ -158,11 +160,7 @@ public class WiredEffectMoveFurniAway extends InteractionWiredEffect {
                 short newX = (short) (currentPos.x + x);
                 short newY = (short) (currentPos.y + y);
 
-                if (!simulation.isTileValidForItem(newX, newY, item, true)) {
-                    return false;
-                }
-
-                if (!simulation.moveItem(item, newX, newY, currentPos.z, currentPos.rotation, true)) {
+                if (!simulation.moveItem(ctx, this, item, newX, newY, currentPos.z, currentPos.rotation, true)) {
                     return false;
                 }
             }
@@ -266,6 +264,7 @@ public class WiredEffectMoveFurniAway extends InteractionWiredEffect {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
+        settings = WiredNativeMovementSettings.normalize(this, settings);
         int[] params = settings.getIntParams();
         this.furniSource = (params.length > 0) ? params[0] : WiredSourceUtil.SOURCE_TRIGGER;
 
@@ -297,7 +296,7 @@ public class WiredEffectMoveFurniAway extends InteractionWiredEffect {
 
         int delay = settings.getDelay();
 
-        if (delay > Emulator.getConfig().getInt("hotel.wired.max_delay", 20))
+        if (delay < 0 || delay > Emulator.getConfig().getInt("hotel.wired.max_delay", 20))
             throw new WiredSaveException("Delay too long");
 
         this.items.clear();

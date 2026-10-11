@@ -14,7 +14,7 @@ class WiredInternalVariableRegistryCompatibilityTest {
     @Test
     void everyCurrentCapabilitySetIsFrozenExactly() {
         assertEquals(
-                Set.of("@handitem_id", "@position_x", "@position_y", "@direction"),
+                Set.of("@handitem_id", "@position_x", "@position_y", "@direction", "@opacity"),
                 keys(WiredInternalVariableRegistry.Capability.USER_DESTINATION));
         assertEquals(
                 Set.of(
@@ -25,7 +25,11 @@ class WiredInternalVariableRegistryCompatibilityTest {
                         "@altitude",
                         "@gravity",
                         "@opacity",
-                        "@scaling"),
+                        "@scaling",
+                        "~recolorable_furni.color.rgb",
+                        "~recolorable_furni.color.rgb.r",
+                        "~recolorable_furni.color.rgb.g",
+                        "~recolorable_furni.color.rgb.b"),
                 keys(WiredInternalVariableRegistry.Capability.FURNI_DESTINATION));
         assertEquals(
                 Set.of(
@@ -52,6 +56,7 @@ class WiredInternalVariableRegistryCompatibilityTest {
                         "@position_x",
                         "@position_y",
                         "@direction",
+                        "@opacity",
                         "@altitude",
                         "@favourite_group_id",
                         "@room_entry.method",
@@ -87,7 +92,11 @@ class WiredInternalVariableRegistryCompatibilityTest {
                         "@dimensions.y",
                         "@gravity",
                         "@opacity",
-                        "@scaling"),
+                        "@scaling",
+                        "~recolorable_furni.color.rgb",
+                        "~recolorable_furni.color.rgb.r",
+                        "~recolorable_furni.color.rgb.g",
+                        "~recolorable_furni.color.rgb.b"),
                 keys(WiredInternalVariableRegistry.Capability.FURNI_REFERENCE));
         assertEquals(
                 Set.of(
@@ -126,7 +135,8 @@ class WiredInternalVariableRegistryCompatibilityTest {
                         "@signal_user_count",
                         "@antenna_id",
                         "@chat_type",
-                        "@chat_style"),
+                        "@chat_style",
+                        "@event.transaction_failed.reason"),
                 keys(WiredInternalVariableRegistry.Capability.CONTEXT_REFERENCE));
     }
 

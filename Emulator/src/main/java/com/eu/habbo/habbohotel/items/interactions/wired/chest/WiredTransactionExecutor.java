@@ -1,201 +1,221 @@
 package com.eu.habbo.habbohotel.items.interactions.wired.chest;
 
+import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.items.FurnitureType;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.Habbo;
-
+import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.messages.outgoing.inventory.AddHabboItemComposer;
+import com.eu.habbo.messages.outgoing.inventory.InventoryRefreshComposer;
+import com.eu.habbo.messages.outgoing.inventory.RemoveHabboItemComposer;
+import com.eu.habbo.threading.runnables.QueryDeleteHabboItems;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
-/**
- * Validates and applies wired contract terms atomically for {@code WiredEffectInitTransaction}.
- */
+/** All requirements are reserved cumulatively; no reward is minted without chest stock. */
 public final class WiredTransactionExecutor {
-    private WiredTransactionExecutor() {
+    private WiredTransactionExecutor() {}
+
+    public record Entry(InteractionWiredChest chest, ContractTerm term) {}
+
+    public static boolean execute(Habbo user, Room room, List<InteractionWiredContract> contracts) {
+        List<Entry> entries = new ArrayList<>();
+        for (var contract : contracts)
+            for (var term : contract.getTerms()) entries.add(new Entry(contract.resolveLinkedChest(room), term));
+        return executeEntries(user, entries);
     }
 
-    public static boolean execute(Habbo habbo, Room room, List<InteractionWiredContract> contracts) {
-        if (habbo == null || room == null) {
+    public static boolean executeEntries(Habbo user, List<Entry> entries) {
+        return executeEntries(user, entries, false);
+    }
+
+    public static boolean validateEntries(Habbo user, List<Entry> entries) {
+        return executeEntries(user, entries, true);
+    }
+
+    private static boolean executeEntries(Habbo user, List<Entry> entries, boolean dryRun) {
+        if (user == null || user.getClient() == null || entries.isEmpty()) return false;
+        synchronized (user) {
+            var chests = entries.stream()
+                    .map(Entry::chest)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .sorted(Comparator.comparingInt(InteractionWiredChest::getId))
+                    .toList();
+            return lockChests(user, entries, chests, 0, dryRun);
+        }
+    }
+
+    private static boolean lockChests(
+            Habbo user, List<Entry> entries, List<InteractionWiredChest> chests, int index, boolean dryRun) {
+        if (index == chests.size()) {
+            synchronized (user.getInventory().getItemsComponent().getItems()) {
+                return apply(user, entries, dryRun);
+            }
+        }
+        synchronized (chests.get(index).getContents()) {
+            return lockChests(user, entries, chests, index + 1, dryRun);
+        }
+    }
+
+    private record FurniMove(Entry entry, HabboItem item, ChestFurniStoredItem stored) {}
+
+    private static boolean apply(Habbo user, List<Entry> entries, boolean dryRun) {
+        Map<Integer, Long> pay = new HashMap<>(), receive = new HashMap<>();
+        Map<InteractionWiredChest, Map<Integer, Long>> take = new HashMap<>();
+        Map<InteractionWiredChest, Long> space = new HashMap<>();
+        Set<Integer> reservedInventory = new HashSet<>();
+        Set<ChestFurniStoredItem> reservedChest = Collections.newSetFromMap(new IdentityHashMap<>());
+        List<FurniMove> deposits = new ArrayList<>(), rewards = new ArrayList<>();
+        for (Entry entry : entries) {
+            var chest = entry.chest();
+            var term = entry.term();
+            if (chest == null
+                    || term == null
+                    || term.amount <= 0
+                    || chest.getContents().isLocked()) return false;
+            boolean payment = term.direction == ContractTerm.DIR_PAY;
+            space.merge(chest, payment ? (long) term.amount : -(long) term.amount, Long::sum);
+            if (term.isCurrency()) {
+                if (!(chest instanceof InteractionWiredChestCurrency) || !currency(term.currencyType)) return false;
+                (payment ? pay : receive).merge(term.currencyType, (long) term.amount, Long::sum);
+                if (!payment)
+                    take.computeIfAbsent(chest, c -> new HashMap<>())
+                            .merge(term.currencyType, (long) term.amount, Long::sum);
+            } else {
+                if (!(chest instanceof InteractionWiredChestFurni) || term.baseItemId <= 0) return false;
+                int found = 0;
+                if (payment) {
+                    for (var item : user.getInventory().getItemsComponent().getItemsAsValueCollection()) {
+                        if (found == term.amount) break;
+                        if (item.getBaseItem() == null
+                                || item.getRoomId() != 0
+                                || item.getBaseItem().getId() != term.baseItemId
+                                || !item.getBaseItem().allowTrade()
+                                || (item.getBaseItem().getType() == FurnitureType.WALL) != term.wallItem
+                                || (!poster(term).isEmpty() && !poster(term).equals(item.getExtradata()))
+                                || !reservedInventory.add(item.getId())) continue;
+                        deposits.add(
+                                new FurniMove(entry, item, ChestFurniStoredItem.fromHabboItem(item, item.getId())));
+                        found++;
+                    }
+                } else {
+                    for (var stored : chest.getContents().furniItems()) {
+                        if (found == term.amount) break;
+                        if (stored.baseItemId != term.baseItemId
+                                || stored.wallItem != term.wallItem
+                                || (!poster(term).isEmpty() && !poster(term).equals(stored.extradata))
+                                || !reservedChest.add(stored)) continue;
+                        rewards.add(new FurniMove(entry, null, stored));
+                        found++;
+                    }
+                }
+                if (found != term.amount) return false;
+            }
+        }
+        for (var amount : pay.entrySet())
+            if (amount.getValue() > ChestWiredCurrencyUtil.getBalance(user, amount.getKey())) return false;
+        for (var amount : receive.entrySet())
+            if ((long) ChestWiredCurrencyUtil.getBalance(user, amount.getKey())
+                            - pay.getOrDefault(amount.getKey(), 0L)
+                            + amount.getValue()
+                    > Integer.MAX_VALUE) return false;
+        for (var chest : take.entrySet())
+            for (var amount : chest.getValue().entrySet())
+                if (amount.getValue() > chest.getKey().getContents().count(ChestStorage.KIND_CURRENCY, amount.getKey()))
+                    return false;
+        for (var delta : space.entrySet()) {
+            var contents = delta.getKey().getContents();
+            long used = delta.getKey() instanceof InteractionWiredChestCurrency
+                    ? contents.total(ChestStorage.KIND_CURRENCY)
+                    : contents.furniItemCount();
+            if (used + delta.getValue() > contents.getCapacity()) return false;
+        }
+        if (dryRun) return true;
+        // Prepare every reward instance before charging; creation failures cannot consume payment.
+        List<HabboItem> created = new ArrayList<>(), removed = new ArrayList<>();
+        try {
+            for (var reward : rewards) {
+                var base = Emulator.getGameEnvironment().getItemManager().getItem(reward.stored().baseItemId);
+                if (base == null) throw new IllegalStateException("Missing reward furniture");
+                var stored = reward.stored();
+                var item = Emulator.getGameEnvironment()
+                        .getItemManager()
+                        .createItem(
+                                user.getHabboInfo().getId(),
+                                base,
+                                stored.limitedStack,
+                                stored.limitedSells,
+                                stored.extradata);
+                if (item == null) throw new IllegalStateException("Reward creation failed");
+                created.add(item);
+            }
+            for (var deposit : deposits) {
+                user.getInventory().getItemsComponent().removeHabboItem(deposit.item());
+                if (user.getInventory()
+                                .getItemsComponent()
+                                .getHabboItem(deposit.item().getId())
+                        != null) throw new IllegalStateException("Payment removal cancelled");
+                removed.add(deposit.item());
+            }
+            if (!ChestWiredCurrencyUtil.exchange(user, pay, receive))
+                throw new IllegalStateException("Wallet exchange failed");
+        } catch (RuntimeException failure) {
+            for (var item : removed) user.getInventory().getItemsComponent().addItem(item);
+            if (!created.isEmpty()) Emulator.getThreading().runPersistence(new QueryDeleteHabboItems(created));
             return false;
         }
-        if (contracts == null || contracts.isEmpty()) {
-            return true;
-        }
-
-        List<PendingChange> pending = new ArrayList<>();
-
-        for (InteractionWiredContract contract : contracts) {
-            if (contract == null) {
-                continue;
+        for (var reward : rewards)
+            reward.entry()
+                    .chest()
+                    .getContents()
+                    .removeFurniByType(
+                            reward.stored().wallItem, reward.stored().baseItemId, reward.stored().extradata, 1);
+        for (var deposit : deposits) deposit.entry().chest().getContents().addFurniItem(deposit.stored());
+        for (var entry : entries) {
+            var term = entry.term();
+            var contents = entry.chest().getContents();
+            boolean payment = term.direction == ContractTerm.DIR_PAY;
+            if (term.isCurrency()) {
+                if (payment) contents.add(ChestStorage.KIND_CURRENCY, term.currencyType, term.amount);
+                else contents.take(ChestStorage.KIND_CURRENCY, term.currencyType, term.amount);
             }
-            InteractionWiredChest chest = contract.resolveLinkedChest(room);
-
-            for (ContractTerm term : contract.getTerms()) {
-                if (term.amount <= 0) {
-                    continue;
-                }
-
-                if (term.isCurrency()) {
-                    if (!validateCurrency(habbo, chest, term, pending)) {
-                        return false;
-                    }
-                } else if (term.isFurni()) {
-                    if (!validateFurni(habbo, chest, term, pending)) {
-                        return false;
-                    }
-                }
-            }
+            var log = new ChestStorage.LogEntry(
+                    payment ? "wired_deposit" : "wired_withdraw",
+                    System.currentTimeMillis(),
+                    user.getHabboInfo().getUsername(),
+                    payment ? 0 : term.amount,
+                    payment ? term.amount : 0);
+            if (term.isCurrency()) log.withCurrency(term.currencyType);
+            else
+                log.setFurniItems((payment ? deposits : rewards)
+                        .stream().filter(move -> move.entry() == entry).map(FurniMove::stored));
+            contents.addLog(log);
         }
-
-        for (PendingChange change : pending) {
-            change.apply();
+        for (var item : created) {
+            user.getInventory().getItemsComponent().addItem(item);
+            user.getClient().sendResponse(new AddHabboItemComposer(item));
         }
-
-        for (InteractionWiredContract contract : contracts) {
-            InteractionWiredChest chest = contract.resolveLinkedChest(room);
-            if (chest != null) {
-                chest.persistContents();
-            }
-        }
-
+        for (var item : removed) user.getClient().sendResponse(new RemoveHabboItemComposer(item.getGiftAdjustedId()));
+        if (!removed.isEmpty()) Emulator.getThreading().runPersistence(new QueryDeleteHabboItems(removed));
+        if (!removed.isEmpty() || !created.isEmpty()) user.getClient().sendResponse(new InventoryRefreshComposer());
+        entries.stream().map(Entry::chest).distinct().forEach(InteractionWiredChest::persistContents);
         return true;
     }
 
-    private static boolean validateCurrency(Habbo habbo, InteractionWiredChest chest, ContractTerm term, List<PendingChange> pending) {
-        if (term.direction == ContractTerm.DIR_PAY) {
-            if (!ChestWiredCurrencyUtil.has(habbo, term.currencyType, term.amount)) {
-                return false;
-            }
-            if (chest != null) {
-                pending.add(PendingChange.chestAdd(chest, term.currencyType, term.amount));
-            }
-            pending.add(PendingChange.userTake(habbo, term.currencyType, term.amount));
-            return true;
-        }
-
-        if (chest != null) {
-            if (chest.getContents().count(ChestStorage.KIND_CURRENCY, term.currencyType) < term.amount) {
-                return false;
-            }
-            pending.add(PendingChange.chestTake(chest, term.currencyType, term.amount));
-        }
-        pending.add(PendingChange.userGive(habbo, term.currencyType, term.amount));
-        return true;
+    private static boolean currency(int type) {
+        return type == -1 || type == 0 || type == 5;
     }
 
-    private static boolean validateFurni(Habbo habbo, InteractionWiredChest chest, ContractTerm term, List<PendingChange> pending) {
-        if (term.baseItemId <= 0) {
-            return false;
-        }
-
-        if (term.direction == ContractTerm.DIR_PAY) {
-            if (ChestWiredFurniUtil.countInInventory(habbo, term.wallItem, term.baseItemId, term.legacyPosterId) < term.amount) {
-                return false;
-            }
-            pending.add(PendingChange.userFurniTake(habbo, chest, term));
-            return true;
-        }
-
-        if (chest != null) {
-            if (chest.getContents().count(ChestStorage.KIND_FURNI, term.baseItemId) < term.amount) {
-                return false;
-            }
-            pending.add(PendingChange.chestFurniGive(habbo, chest, term));
-            return true;
-        }
-
-        pending.add(PendingChange.userFurniMint(habbo, term));
-        return true;
-    }
-
-    private static final class PendingChange {
-        private enum Kind {
-            USER_TAKE, USER_GIVE, CHEST_TAKE, CHEST_ADD,
-            USER_FURNI_TAKE, CHEST_FURNI_GIVE, USER_FURNI_MINT
-        }
-
-        private final Kind kind;
-        private final Habbo habbo;
-        private final InteractionWiredChest chest;
-        private final int currencyType;
-        private final int amount;
-        private final ContractTerm furniTerm;
-        private List<ChestFurniStoredItem> furniItems;
-
-        private PendingChange(Kind kind, Habbo habbo, InteractionWiredChest chest, int currencyType, int amount, ContractTerm furniTerm) {
-            this.kind = kind;
-            this.habbo = habbo;
-            this.chest = chest;
-            this.currencyType = currencyType;
-            this.amount = amount;
-            this.furniTerm = furniTerm;
-        }
-
-        static PendingChange userTake(Habbo habbo, int currencyType, int amount) {
-            return new PendingChange(Kind.USER_TAKE, habbo, null, currencyType, amount, null);
-        }
-
-        static PendingChange userGive(Habbo habbo, int currencyType, int amount) {
-            return new PendingChange(Kind.USER_GIVE, habbo, null, currencyType, amount, null);
-        }
-
-        static PendingChange chestTake(InteractionWiredChest chest, int currencyType, int amount) {
-            return new PendingChange(Kind.CHEST_TAKE, null, chest, currencyType, amount, null);
-        }
-
-        static PendingChange chestAdd(InteractionWiredChest chest, int currencyType, int amount) {
-            return new PendingChange(Kind.CHEST_ADD, null, chest, currencyType, amount, null);
-        }
-
-        static PendingChange userFurniTake(Habbo habbo, InteractionWiredChest chest, ContractTerm term) {
-            return new PendingChange(Kind.USER_FURNI_TAKE, habbo, chest, 0, 0, term);
-        }
-
-        static PendingChange chestFurniGive(Habbo habbo, InteractionWiredChest chest, ContractTerm term) {
-            return new PendingChange(Kind.CHEST_FURNI_GIVE, habbo, chest, 0, 0, term);
-        }
-
-        static PendingChange userFurniMint(Habbo habbo, ContractTerm term) {
-            return new PendingChange(Kind.USER_FURNI_MINT, habbo, null, 0, 0, term);
-        }
-
-        void apply() {
-            switch (this.kind) {
-                case USER_TAKE:
-                    ChestWiredCurrencyUtil.take(this.habbo, this.currencyType, this.amount);
-                    break;
-                case USER_GIVE:
-                    ChestWiredCurrencyUtil.give(this.habbo, this.currencyType, this.amount);
-                    break;
-                case CHEST_TAKE:
-                    this.chest.getContents().take(ChestStorage.KIND_CURRENCY, this.currencyType, this.amount);
-                    break;
-                case CHEST_ADD:
-                    this.chest.getContents().add(ChestStorage.KIND_CURRENCY, this.currencyType, this.amount);
-                    break;
-                case USER_FURNI_TAKE:
-                    this.furniItems = ChestWiredFurniUtil.takeFromInventory(
-                            this.habbo, this.furniTerm.wallItem, this.furniTerm.baseItemId,
-                            this.furniTerm.legacyPosterId, this.furniTerm.amount);
-                    if (this.chest != null && this.furniItems != null && !this.furniItems.isEmpty()) {
-                        ChestWiredFurniUtil.depositToChest(this.chest, this.furniItems);
-                    }
-                    break;
-                case CHEST_FURNI_GIVE:
-                    if (this.furniTerm != null) {
-                        ChestWiredFurniUtil.giveFromChestByType(
-                                this.habbo, this.chest, this.furniTerm.wallItem, this.furniTerm.baseItemId,
-                                this.furniTerm.legacyPosterId, this.furniTerm.amount);
-                    }
-                    break;
-                case USER_FURNI_MINT:
-                    if (this.furniTerm != null) {
-                        ChestWiredFurniUtil.mintToInventory(
-                                this.habbo, this.furniTerm.wallItem, this.furniTerm.baseItemId, this.furniTerm.amount);
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
+    private static String poster(ContractTerm term) {
+        return term.legacyPosterId == null ? "" : term.legacyPosterId;
     }
 }

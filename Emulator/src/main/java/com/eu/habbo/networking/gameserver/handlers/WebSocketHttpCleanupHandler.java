@@ -29,16 +29,19 @@ public class WebSocketHttpCleanupHandler extends ChannelInboundHandlerAdapter {
         "emuStatsHttpHandler",
         "rewardTrackHttpHandler",
         "dailyTaskHttpHandler",
+        "collectibleHttpHandler",
     };
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof WebSocketServerProtocolHandler.HandshakeComplete) {
-            WebSocketServerProtocolHandler.HandshakeComplete handshake = (WebSocketServerProtocolHandler.HandshakeComplete) evt;
+            WebSocketServerProtocolHandler.HandshakeComplete handshake =
+                    (WebSocketServerProtocolHandler.HandshakeComplete) evt;
             String userAgent = handshake.requestHeaders().get(HttpHeaderNames.USER_AGENT);
             if (userAgent != null && !userAgent.isEmpty()) {
                 ctx.channel().attr(GameServerAttributes.USER_AGENT).set(userAgent);
-                GameClient client = ctx.channel().attr(GameServerAttributes.CLIENT).get();
+                GameClient client =
+                        ctx.channel().attr(GameServerAttributes.CLIENT).get();
                 if (client != null) {
                     client.setUserAgent(userAgent);
                 }

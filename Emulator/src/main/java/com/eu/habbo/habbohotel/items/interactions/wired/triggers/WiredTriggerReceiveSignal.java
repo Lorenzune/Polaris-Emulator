@@ -32,6 +32,7 @@ public class WiredTriggerReceiveSignal extends InteractionWiredTrigger {
     private static final String ANTENNA_INTERACTION = "antenna";
     private static final String REQUIRE_ANTENNA_ERROR = "You can only select antenna furni.";
 
+    private boolean nativeSignal;
     private int channel = 0; // signal channel (0-based)
     private Set<HabboItem> items;
     private int furniSource = WiredSourceUtil.SOURCE_SELECTED;
@@ -54,17 +55,35 @@ public class WiredTriggerReceiveSignal extends InteractionWiredTrigger {
         List<HabboItem> resolvedAntennas =
                 WiredTriggerSourceUtil.resolveItems(this, event, this.furniSource, this.items).stream()
                         .filter(this::isAntennaItem)
+                        .filter(item -> !nativeSignal || event.getRoom().getHabboItem(item.getId()) == item)
                         .collect(Collectors.toList());
 
         if (!resolvedAntennas.isEmpty()) {
             return resolvedAntennas.stream().anyMatch(item -> item != null && item.getId() == event.getSignalChannel());
         }
 
-        return this.channel > 0 && event.getSignalChannel() == this.channel;
+        return !nativeSignal && this.channel > 0 && event.getSignalChannel() == this.channel;
     }
 
     public int getChannel() {
         return channel;
+    }
+
+    /** Null means runtime selectors must still be evaluated. IDs are a routing
+     * superset; matches() remains authoritative for presence and antenna type. */
+    public Set<Integer> getStaticSignalChannels() {
+        if (furniSource != WiredSourceUtil.SOURCE_SELECTED) return null;
+        Set<Integer> channels = new HashSet<>();
+        for (HabboItem item : items) if (item != null) channels.add(item.getId());
+        if (!nativeSignal && channel > 0) channels.add(channel);
+        return Set.copyOf(channels);
+    }
+
+    public boolean listensToPickedAntenna(HabboItem antenna) {
+        return this.nativeSignal
+                && this.furniSource == WiredSourceUtil.SOURCE_SELECTED
+                && antenna != null
+                && this.items.contains(antenna);
     }
 
     public boolean unlinkAntenna(int antennaItemId) {
@@ -187,6 +206,8 @@ public class WiredTriggerReceiveSignal extends InteractionWiredTrigger {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
+        if (settings.isNativeVariableFormat()) return saveNativeSignal(settings);
+        this.nativeSignal = false;
         this.items.clear();
 
         Room room = Emulator.getGameEnvironment().getRoomManager().getRoom(this.getRoomId());
@@ -230,21 +251,29 @@ public class WiredTriggerReceiveSignal extends InteractionWiredTrigger {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson()
-                .toJson(new JsonData(
-                        channel,
-                        furniSource,
-                        this.items.stream().map(HabboItem::getId).collect(Collectors.toList())));
+        JsonData data = new JsonData(
+                channel, furniSource, this.items.stream().map(HabboItem::getId).collect(Collectors.toList()));
+        data.nativeSignal = nativeSignal;
+        return WiredManager.getGson().toJson(data);
     }
 
     @Override
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
         this.items = new LinkedHashSet<>();
+        this.channel = 0;
+        this.nativeSignal = false;
         String wiredData = set.getString("wired_data");
         this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
 
         if (wiredData != null && wiredData.startsWith("{")) {
-            JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
+            JsonData data;
+            try {
+                data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
+            } catch (RuntimeException invalid) {
+                return;
+            }
+            if (data == null) return;
+            this.nativeSignal = data.nativeSignal;
             this.channel = data.channel;
             this.furniSource = this.normalizeFurniSource(data.furniSource);
             if (data.itemIds != null) {
@@ -265,12 +294,14 @@ public class WiredTriggerReceiveSignal extends InteractionWiredTrigger {
     @Override
     public void onPickUp() {
         this.channel = 0;
+        this.nativeSignal = false;
         this.items.clear();
         this.furniSource = WiredSourceUtil.SOURCE_SELECTED;
     }
 
     static class JsonData {
         int channel;
+        boolean nativeSignal;
         int furniSource;
         List<Integer> itemIds;
 
@@ -281,6 +312,29 @@ public class WiredTriggerReceiveSignal extends InteractionWiredTrigger {
             this.furniSource = furniSource;
             this.itemIds = itemIds;
         }
+    }
+
+    private boolean saveNativeSignal(WiredSettings settings) {
+        int[] sources = settings.getFurniSourceTypes();
+        if (settings.getIntParams().length != 0 || sources.length != 1 || (sources[0] != 100 && sources[0] != 200))
+            throw new WiredTriggerSaveException("Invalid receive signal fields");
+        Room room = Emulator.getGameEnvironment().getRoomManager().getRoom(getRoomId());
+        if (room == null) throw new WiredTriggerSaveException("Room not found");
+        if (settings.getFurniIds().length > Emulator.getConfig().getInt("hotel.wired.furni.selection.count"))
+            throw new WiredTriggerSaveException("Too many furni selected");
+        Set<HabboItem> selected = new LinkedHashSet<>();
+        if (sources[0] == 100)
+            for (int id : settings.getFurniIds()) {
+                HabboItem item = room.getHabboItem(id);
+                if (!isAntennaItem(item)) throw new WiredTriggerSaveException(REQUIRE_ANTENNA_ERROR);
+                selected.add(item);
+            }
+        this.items.clear();
+        this.items.addAll(selected);
+        this.furniSource = sources[0];
+        this.channel = selected.isEmpty() ? 0 : selected.iterator().next().getId();
+        this.nativeSignal = true;
+        return true;
     }
 
     private int normalizeFurniSource(int value) {

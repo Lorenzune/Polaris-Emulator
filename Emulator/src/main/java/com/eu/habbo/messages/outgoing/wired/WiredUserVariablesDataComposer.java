@@ -221,7 +221,44 @@ public class WiredUserVariablesDataComposer extends MessageComposer {
             this.response.appendString(achievementName);
         }
 
+        List<int[]> capabilities = new ArrayList<>();
+        if (currentRoom != null) {
+            if (userSnapshot != null)
+                for (var definition : userSnapshot.getDefinitions()) {
+                    addCapabilities(
+                            capabilities,
+                            0,
+                            currentRoom.getUserVariableManager().getDefinitionInfo(definition.getItemId()));
+                }
+            if (furniSnapshot != null)
+                for (var definition : furniSnapshot.getDefinitions()) {
+                    addCapabilities(
+                            capabilities,
+                            1,
+                            currentRoom.getFurniVariableManager().getDefinitionInfo(definition.getItemId()));
+                }
+            if (roomSnapshot != null)
+                for (var definition : roomSnapshot.getDefinitions()) {
+                    addCapabilities(
+                            capabilities,
+                            3,
+                            currentRoom.getRoomVariableManager().getDefinitionInfo(definition.getItemId()));
+                }
+            for (var definition : contextDefinitions) addCapabilities(capabilities, 2, definition);
+        }
+        this.response.appendInt(-2026100402);
+        this.response.appendInt(capabilities.size());
+        for (int[] capability : capabilities) for (int value : capability) this.response.appendInt(value);
+
         return this.response;
+    }
+
+    private static void addCapabilities(List<int[]> capabilities, int target, WiredVariableDefinitionInfo info) {
+        if (info == null) return;
+        int mask = (target != 3 && info.canCreateAndDelete() ? 1 : 0)
+                | (target != 3 && info.canReadCreationTime() ? 2 : 0)
+                | (info.canReadLastUpdateTime() ? 4 : 0);
+        capabilities.add(new int[] {target, info.getItemId(), mask});
     }
 
     private static List<String> resolveEnabledAchievements(Room room) {

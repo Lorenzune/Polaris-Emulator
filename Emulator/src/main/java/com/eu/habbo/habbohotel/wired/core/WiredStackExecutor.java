@@ -5,7 +5,6 @@ import com.eu.habbo.habbohotel.items.interactions.InteractionWiredCondition;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
-import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraExecutionLimit;
 import com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboClicksUser;
 import com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboSaysKeyword;
 import com.eu.habbo.habbohotel.rooms.Room;
@@ -16,6 +15,7 @@ import com.eu.habbo.habbohotel.wired.api.IWiredEffect;
 import com.eu.habbo.habbohotel.wired.api.WiredStack;
 import com.eu.habbo.plugin.events.furniture.wired.WiredStackExecutedEvent;
 import com.eu.habbo.plugin.events.furniture.wired.WiredStackTriggeredEvent;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -24,9 +24,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Internal owner of one-stack WIRED orchestration and legacy plugin callbacks. */
 final class WiredStackExecutor {
+    private static final Logger LOGGER = LoggerFactory.getLogger(WiredStackExecutor.class);
 
     interface Hooks {
         List<InteractionWiredEffect> executeSelectors(WiredStack stack, WiredContext context);
@@ -60,6 +64,49 @@ final class WiredStackExecutor {
     private final LongSupplier clock;
     private final DiagnosticSink diagnostics;
     private final WiredStructuredDiagnostics structuredDiagnostics;
+
+    private record SignalBatch(WiredEvent event, List<Runnable> work) {}
+
+    private final ThreadLocal<SignalBatch> signalBatch = new ThreadLocal<>();
+
+    /** Admit native receivers against the same state before any receiver changes it. */
+    boolean executeSignalBatch(WiredEvent event, Supplier<Boolean> admission) {
+        SignalBatch previous = this.signalBatch.get();
+        if (previous != null && previous.event() == null) return admission.get();
+        SignalBatch batch = new SignalBatch(event, new ArrayList<>());
+        this.signalBatch.set(batch);
+        try {
+            boolean triggered = admission.get();
+            this.signalBatch.remove();
+            for (Runnable work : batch.work()) {
+                try {
+                    work.run();
+                } catch (WiredLimitException exception) {
+                    this.diagnostics.log(
+                            event != null ? event.getRoom() : null,
+                            "Signal receiver execution stopped (limit): {}",
+                            exception.getMessage());
+                } catch (RuntimeException exception) {
+                    LOGGER.error(
+                            "Error executing signal receiver in room {}",
+                            event != null ? event.getRoom().getId() : 0,
+                            exception);
+                    this.diagnostics.log(
+                            event != null ? event.getRoom() : null,
+                            "Signal receiver execution failed: {}",
+                            exception.toString());
+                }
+            }
+            return triggered;
+        } finally {
+            if (previous == null) this.signalBatch.remove();
+            else this.signalBatch.set(previous);
+        }
+    }
+
+    boolean executeSignalWave(Supplier<Boolean> admission) {
+        return executeSignalBatch(null, admission);
+    }
 
     WiredStackExecutor(
             WiredServices services,
@@ -134,6 +181,16 @@ final class WiredStackExecutor {
             return false;
         }
 
+        if (stack.triggerItem() != null && room.getRoomSpecialTypes() != null) {
+            for (var extra : room.getRoomSpecialTypes()
+                    .getExtras(stack.triggerItem().getX(), stack.triggerItem().getY())) {
+                if (extra
+                        instanceof
+                        com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraScanChestFurniByType scanner)
+                    scanner.scan(context);
+            }
+        }
+
         WiredConditionEvaluator.EvaluationResult conditionResult =
                 this.conditionEvaluator.evaluateForExecution(stack, context, negateConditions);
         boolean conditionsPassed = conditionResult.passed();
@@ -144,16 +201,18 @@ final class WiredStackExecutor {
             return false;
         }
 
-        WiredExtraExecutionLimit executionLimitExtra = executionLimitExtra(room, stack);
-        if (executionLimitExtra != null && !executionLimitExtra.tryAcquireExecutionSlot(currentTime)) {
+        WiredExecutionLimitSupport executionLimits = WiredExecutionLimitSupport.forStack(room, stack.triggerItem());
+        // Negative effects are the condition-failure branch; a recent successful
+        // execution must not prevent that branch from completing a signal loop.
+        if (conditionsPassed && !executionLimits.tryAcquireExecutionSlot(currentTime)) {
             this.diagnostics.log(
                     room,
                     mode == Mode.DIRECT
-                            ? "Execution limit blocked direct stack {} (max {} in {} ms)"
-                            : "Execution limit blocked stack {} (max {} in {} ms)",
+                            ? "Execution limit blocked direct stack {} (max {} across {} accessories)"
+                            : "Execution limit blocked stack {} (max {} across {} accessories)",
                     stack.triggerItem() != null ? stack.triggerItem().getId() : "null",
-                    executionLimitExtra.getMaxExecutions(),
-                    executionLimitExtra.getTimeWindowMs());
+                    executionLimits.maxExecutions(),
+                    executionLimits.limits().size());
             return false;
         }
 
@@ -165,7 +224,10 @@ final class WiredStackExecutor {
 
         // Preserve the pre-Duckie monitor contract: every stack, including
         // Send/Receive Signal feedback, contributes to and respects WIRED usage.
-        if (!roomDiagnostics.tryConsumeExecutionBudget(
+        boolean queuedSignal = WiredSignalExecutionScope.active() && event.getType() == WiredEvent.Type.SIGNAL_RECEIVED;
+        if (queuedSignal) {
+            roomDiagnostics.consumeSignalExecutionBudget(stackCost, this.clock.getAsLong());
+        } else if (!roomDiagnostics.tryConsumeExecutionBudget(
                 stackCost,
                 currentTime,
                 monitorSourceLabel,
@@ -186,25 +248,49 @@ final class WiredStackExecutor {
             activateExtras(room, stack.triggerItem(), actor, currentTime);
         }
 
-        if (!executableEffects.isEmpty()) {
-            this.hooks.executeEffects(stack, executableEffects, context, currentTime);
-        }
-
-        fireExecutedEvent(stack, event);
-        long elapsedMs = state.elapsedMs();
-        roomDiagnostics.recordExecution(
-                elapsedMs,
-                this.clock.getAsLong(),
-                monitorSourceLabel,
-                monitorSourceId,
-                executionMonitorReason(stack, elapsedMs));
-        this.structuredDiagnostics.execution(
-                room.getId(),
-                monitorSourceId,
-                event.getType(),
-                executableEffects.size(),
-                elapsedMs,
-                WiredStructuredDiagnostics.Outcome.EXECUTED);
+        SignalBatch batch = this.signalBatch.get();
+        boolean deferredNativeReceiver = mode == Mode.EVENT
+                && batch != null
+                && (batch.event() == event
+                        || (batch.event() == null
+                                && event.getType() == WiredEvent.Type.SIGNAL_RECEIVED
+                                && event.isSignalPayloadExplicit()));
+        Runnable work = () -> {
+            // Admission must not expand when an earlier receiver changes state.
+            // Conversely, discard an admitted receiver whose requirements have
+            // become stale (for example, a selection animation after placement).
+            // A click may intentionally lock its source before a sibling capture
+            // stack runs. Its eligibility belongs to the click's admission state.
+            if (deferredNativeReceiver
+                    && event.getType() == WiredEvent.Type.SIGNAL_RECEIVED
+                    && !conditionResult.conditions().isEmpty()
+                    && this.conditionEvaluator.outcomeForExecution(stack, context, negateConditions)
+                            != conditionsPassed) {
+                this.diagnostics.log(
+                        room,
+                        "Signal receiver {} invalidated before execution",
+                        stack.triggerItem() != null ? stack.triggerItem().getId() : "null");
+                return;
+            }
+            if (!executableEffects.isEmpty()) this.hooks.executeEffects(stack, executableEffects, context, currentTime);
+            fireExecutedEvent(stack, event);
+            long elapsedMs = state.elapsedMs();
+            roomDiagnostics.recordExecution(
+                    elapsedMs,
+                    this.clock.getAsLong(),
+                    monitorSourceLabel,
+                    monitorSourceId,
+                    executionMonitorReason(stack, elapsedMs));
+            this.structuredDiagnostics.execution(
+                    room.getId(),
+                    monitorSourceId,
+                    event.getType(),
+                    executableEffects.size(),
+                    elapsedMs,
+                    WiredStructuredDiagnostics.Outcome.EXECUTED);
+        };
+        if (deferredNativeReceiver) batch.work().add(work);
+        else work.run();
         return true;
     }
 
@@ -331,11 +417,6 @@ final class WiredStackExecutor {
                 extra.activateBox(room, roomUnit, currentTime);
             }
         }
-    }
-
-    private static WiredExtraExecutionLimit executionLimitExtra(Room room, WiredStack stack) {
-        InteractionWiredExtra extra = stackExtra(room, stack, WiredExtraExecutionLimit.class);
-        return extra instanceof WiredExtraExecutionLimit limit ? limit : null;
     }
 
     private static <T extends InteractionWiredExtra> InteractionWiredExtra stackExtra(

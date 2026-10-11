@@ -52,6 +52,8 @@ public class Permission {
     public static String ACC_FLOORPLAN_EDITOR = "acc_floorplan_editor";
     public static final String ACC_CRAFTING_EDITOR = "acc_crafting_editor";
     public static final String ACC_CRACKABLE_EDITOR = "acc_crackable_editor";
+    public static final String ACC_QUEST_EDITOR = "acc_quest_editor";
+    public static final String ACC_COLLECTIBLES_EDITOR = "acc_collectibles_editor";
     public static final String ACC_ACHIEVEMENT_EDITOR = "acc_achievement_editor";
     public static final String ACC_NAVIGATOR_ROOM_ORDER = "acc_navigator_room_order";
     public static final String ACC_CALENDAR_EDITOR = "acc_calendar_editor";

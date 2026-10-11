@@ -12,6 +12,12 @@ public class WiredUserVariableManageEvent extends MessageHandler {
 
     @Override
     public void handle() throws Exception {
+        try (var ignored = com.eu.habbo.habbohotel.wired.core.WiredVariableChangeOrigin.begin(8)) {
+            handleManagement();
+        }
+    }
+
+    private void handleManagement() throws Exception {
         Room room = currentRoom();
 
         if (room == null) {

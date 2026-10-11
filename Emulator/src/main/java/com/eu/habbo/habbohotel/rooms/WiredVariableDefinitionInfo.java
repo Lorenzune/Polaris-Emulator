@@ -7,14 +7,41 @@ public class WiredVariableDefinitionInfo {
     private final int availability;
     private final boolean textConnected;
     private final boolean readOnly;
+    private boolean canCreateAndDelete;
+    private boolean canReadCreationTime;
+    private boolean canReadLastUpdateTime;
 
-    public WiredVariableDefinitionInfo(int itemId, String name, boolean hasValue, int availability, boolean textConnected, boolean readOnly) {
+    public WiredVariableDefinitionInfo(
+            int itemId, String name, boolean hasValue, int availability, boolean textConnected, boolean readOnly) {
         this.itemId = itemId;
         this.name = name;
         this.hasValue = hasValue;
         this.availability = availability;
         this.textConnected = textConnected;
         this.readOnly = readOnly;
+        this.canCreateAndDelete = !readOnly;
+        this.canReadCreationTime = true;
+        this.canReadLastUpdateTime = hasValue;
+    }
+
+    public WiredVariableDefinitionInfo withCapabilities(
+            boolean createDelete, boolean creationTime, boolean updateTime) {
+        this.canCreateAndDelete = createDelete;
+        this.canReadCreationTime = creationTime;
+        this.canReadLastUpdateTime = updateTime;
+        return this;
+    }
+
+    public boolean canCreateAndDelete() {
+        return canCreateAndDelete;
+    }
+
+    public boolean canReadCreationTime() {
+        return canReadCreationTime;
+    }
+
+    public boolean canReadLastUpdateTime() {
+        return canReadLastUpdateTime;
     }
 
     public int getItemId() {

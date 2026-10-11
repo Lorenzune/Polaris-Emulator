@@ -14,7 +14,6 @@ import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomTile;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserStatusComposer;
-import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -42,7 +41,12 @@ public class HabboInfo implements Runnable {
     private String ipLogin;
     private int id;
     private int accountCreated;
-    private Rank rank;
+    private volatile Rank rank;
+
+    private record RankSnapshot(
+            Rank current, Rank previous, long expiresAt, java.util.function.IntFunction<Rank> resolver) {}
+
+    private volatile RankSnapshot rankSnapshot;
     private int credits;
     private int lastOnline;
     private int homeRoom;
@@ -58,7 +62,8 @@ public class HabboInfo implements Runnable {
     private int profileDirection = 2;
     private int profileHeadDirection = 2;
     private String profileAction = "std";
-    private int loadingRoom;
+    private volatile int loadingRoom;
+    private volatile long loadingRoomStartedAt;
     private Room currentRoom;
     private String roomEntryMethod = "door";
     private int roomEntryTeleportId = 0;
@@ -66,10 +71,8 @@ public class HabboInfo implements Runnable {
     private RideablePet riding;
     private Class<? extends Game> currentGame;
     private Int2IntOpenHashMap currencies;
-    // Serializes credits + currencies read-modify-write and the saveCurrencies
-    // snapshot so the credit-roller thread and purchase/trade handler threads
-    // can't lose updates or rehash the Trove map mid-iteration. Never held
-    // across run()'s DB I/O.
+    // Serializes in-memory wallet reads and writes. Durable wallet changes are
+    // committed through EconomyLedger and then published to this snapshot.
     private final Object currencyLock = new Object();
     private final Object ledgerMutationLock = new Object();
     private GamePlayer gamePlayer;
@@ -171,32 +174,6 @@ public class HabboInfo implements Runnable {
         }
     }
 
-    private void saveCurrencies() {
-        // Snapshot under the lock so a concurrent adjustOrPutValue/put can't
-        // rehash the Trove map while we iterate; do the DB batch off-lock.
-        List<int[]> entries;
-        synchronized (this.currencyLock) {
-            entries = new ArrayList<>(this.currencies.size());
-            for (Int2IntMap.Entry entry : this.currencies.int2IntEntrySet()) {
-                entries.add(new int[] {entry.getIntKey(), entry.getIntValue()});
-            }
-        }
-
-        try {
-            SqlQueries.batchUpdate(
-                    "INSERT INTO users_currency (user_id, type, amount) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE amount = ?",
-                    entries,
-                    (ps, e) -> {
-                        ps.setInt(1, this.id);
-                        ps.setInt(2, e[0]);
-                        ps.setInt(3, e[1]);
-                        ps.setInt(4, e[1]);
-                    });
-        } catch (SqlQueries.DataAccessException ex) {
-            LOGGER.error("Caught SQL exception", ex);
-        }
-    }
-
     private void loadSavedSearches() {
         try {
             this.savedSearches = SqlQueries.query(
@@ -213,7 +190,7 @@ public class HabboInfo implements Runnable {
     public void addSavedSearch(NavigatorSavedSearch search) {
         this.savedSearches.add(search);
 
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = databaseSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement(
                         "INSERT INTO users_saved_searches (search_code, filter, user_id) VALUES (?, ?, ?)",
                         Statement.RETURN_GENERATED_KEYS)) {
@@ -263,7 +240,7 @@ public class HabboInfo implements Runnable {
     public void addMessengerCategory(MessengerCategory category) {
         this.messengerCategories.add(category);
 
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection = databaseSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement(
                         "INSERT INTO messenger_categories (name, user_id) VALUES (?, ?)",
                         Statement.RETURN_GENERATED_KEYS)) {
@@ -355,39 +332,11 @@ public class HabboInfo implements Runnable {
     }
 
     public void addCurrencyAmount(int type, int amount) {
-        // Legacy check-then-act entry point: never throw here, because the many
-        // existing callers (staff commands, wired, chests, plugins) are not
-        // structured to recover from a rejected mutation. Clamp into range and
-        // log if a delta would have gone out of bounds. Paths that must reject an
-        // out-of-range update use tryAddCurrencyAmount instead.
-        synchronized (this.currencyLock) {
-            int current = this.currencies.get(type);
-            int updated = WalletBalanceMath.clampedBalance(current, amount);
-            if ((long) Math.max(0, current) + amount != updated) {
-                LOGGER.warn(
-                        "Clamped out-of-range point balance for user {} (currency type {}): {} + {} -> {}",
-                        this.id,
-                        type,
-                        current,
-                        amount,
-                        updated);
-            }
-            this.currencies.put(type, updated);
-        }
-        this.run();
+        applyLegacyWallet(new LegacyWalletMutation.Change(type, amount, false, true));
     }
 
     public boolean tryAddCurrencyAmount(int type, int amount) {
-        synchronized (this.currencyLock) {
-            int current = this.currencies.get(type);
-            try {
-                this.currencies.put(type, WalletBalanceMath.checkedBalance(current, amount));
-            } catch (IllegalArgumentException e) {
-                return false;
-            }
-        }
-        this.run();
-        return true;
+        return applyLegacyWallet(new LegacyWalletMutation.Change(type, amount, false, false));
     }
 
     /**
@@ -396,43 +345,23 @@ public class HabboInfo implements Runnable {
      * concurrent purchase paths cannot both spend the same balance.
      */
     public boolean tryDebitCatalogPayment(int credits, int pointsType, int points) {
-        if (credits < 0 || points < 0) {
-            return false;
-        }
-
-        synchronized (this.currencyLock) {
-            int currentPoints = this.currencies.get(pointsType);
-            if (this.credits < credits || currentPoints < points) {
-                return false;
-            }
-
-            this.credits -= credits;
-            this.currencies.put(pointsType, currentPoints - points);
-        }
-
-        this.run();
-        return true;
+        if (credits < 0 || points < 0 || pointsType < 0) return false;
+        return applyLegacyWallet(
+                new LegacyWalletMutation.Change(-1, -credits, false, false),
+                new LegacyWalletMutation.Change(pointsType, -points, false, false));
     }
 
     /** Restores a catalog debit after delivery failed. */
     public void refundCatalogPayment(int credits, int pointsType, int points) {
-        if (credits < 0 || points < 0) {
-            throw new IllegalArgumentException("catalog refund cannot be negative");
-        }
-
-        synchronized (this.currencyLock) {
-            this.credits = Math.addExact(this.credits, credits);
-            this.currencies.put(pointsType, Math.addExact(this.currencies.get(pointsType), points));
-        }
-
-        this.run();
+        if (credits < 0 || points < 0 || pointsType < 0) throw new IllegalArgumentException("Invalid refund");
+        applyLegacyWallet(
+                new LegacyWalletMutation.Change(-1, credits, false, false),
+                new LegacyWalletMutation.Change(pointsType, points, false, false));
     }
 
     public void setCurrencyAmount(int type, int amount) {
-        synchronized (this.currencyLock) {
-            this.currencies.put(type, WalletBalanceMath.requireValidBalance(amount));
-        }
-        this.run();
+        WalletBalanceMath.requireValidBalance(amount);
+        applyLegacyWallet(new LegacyWalletMutation.Change(type, amount, true, false));
     }
 
     public int getId() {
@@ -544,10 +473,41 @@ public class HabboInfo implements Runnable {
     }
 
     public Rank getRank() {
-        return this.rank;
+        RankSnapshot snapshot = this.rankSnapshot;
+        if (snapshot == null) return this.rank;
+        if (snapshot.previous() != null && System.currentTimeMillis() >= snapshot.expiresAt())
+            return snapshot.resolver() == null
+                    ? snapshot.previous()
+                    : snapshot.resolver().apply(snapshot.previous().getId());
+        return snapshot.current();
+    }
+
+    public long getTemporaryRankExpiresAt() {
+        RankSnapshot snapshot = this.rankSnapshot;
+        return snapshot != null && snapshot.previous() != null ? snapshot.expiresAt() : 0;
+    }
+
+    public Rank getPermanentRank() {
+        RankSnapshot snapshot = this.rankSnapshot;
+        return snapshot != null && snapshot.previous() != null ? snapshot.previous() : getRank();
+    }
+
+    Rank getStoredRank() {
+        RankSnapshot snapshot = this.rankSnapshot;
+        return snapshot == null ? this.rank : snapshot.current();
+    }
+
+    void setTemporaryRank(Rank assigned, Rank previous, long expiresAt) {
+        setTemporaryRank(assigned, previous, expiresAt, null);
+    }
+
+    void setTemporaryRank(Rank assigned, Rank previous, long expiresAt, java.util.function.IntFunction<Rank> resolver) {
+        this.rankSnapshot = new RankSnapshot(assigned, previous, expiresAt, resolver);
+        this.rank = assigned;
     }
 
     public void setRank(Rank rank) {
+        this.rankSnapshot = new RankSnapshot(rank, null, 0, null);
         this.rank = rank;
     }
 
@@ -623,29 +583,20 @@ public class HabboInfo implements Runnable {
     }
 
     public void setCredits(int credits) {
-        synchronized (this.currencyLock) {
-            this.credits = WalletBalanceMath.requireValidBalance(credits);
-        }
-        this.run();
+        WalletBalanceMath.requireValidBalance(credits);
+        applyLegacyWallet(new LegacyWalletMutation.Change(-1, credits, true, false));
+    }
+
+    private static com.zaxxer.hikari.HikariDataSource databaseSource() {
+        return Emulator.getDatabase().getDataSource();
+    }
+
+    private boolean applyLegacyWallet(LegacyWalletMutation.Change... changes) {
+        return LegacyWalletMutation.apply(this, databaseSource(), changes);
     }
 
     public void addCredits(int credits) {
-        // Legacy check-then-act entry point: never throw here (see
-        // addCurrencyAmount). Clamp into range and log an out-of-range delta.
-        // Paths that must reject an out-of-range update use tryAddCredits.
-        synchronized (this.currencyLock) {
-            int updated = WalletBalanceMath.clampedBalance(this.credits, credits);
-            if ((long) Math.max(0, this.credits) + credits != updated) {
-                LOGGER.warn(
-                        "Clamped out-of-range credit balance for user {}: {} + {} -> {}",
-                        this.id,
-                        this.credits,
-                        credits,
-                        updated);
-            }
-            this.credits = updated;
-        }
-        this.run();
+        applyLegacyWallet(new LegacyWalletMutation.Change(-1, credits, false, true));
     }
 
     void applyPersistedCredits(int credits) {
@@ -665,15 +616,7 @@ public class HabboInfo implements Runnable {
     }
 
     public boolean tryAddCredits(int credits) {
-        synchronized (this.currencyLock) {
-            try {
-                this.credits = WalletBalanceMath.checkedBalance(this.credits, credits);
-            } catch (IllegalArgumentException e) {
-                return false;
-            }
-        }
-        this.run();
-        return true;
+        return applyLegacyWallet(new LegacyWalletMutation.Change(-1, credits, false, false));
     }
 
     public int getPixels() {
@@ -716,7 +659,12 @@ public class HabboInfo implements Runnable {
         return this.loadingRoom;
     }
 
+    public long getLoadingRoomStartedAt() {
+        return this.loadingRoomStartedAt;
+    }
+
     public void setLoadingRoom(int loadingRoom) {
+        this.loadingRoomStartedAt = loadingRoom > 0 ? System.currentTimeMillis() : 0;
         this.loadingRoom = loadingRoom;
     }
 
@@ -877,28 +825,17 @@ public class HabboInfo implements Runnable {
 
     @Override
     public void run() {
-        this.saveCurrencies();
-
-        // Read credits under the lock so the persisted value is consistent with
-        // concurrent addCredits/setCredits (matches the currencyLock invariant).
-        final int creditsForSave;
-        synchronized (this.currencyLock) {
-            creditsForSave = this.credits;
-        }
-
         try {
             SqlQueries.update(
-                    "UPDATE users SET motto = ?, online = ?, look = ?, gender = ?, credits = ?, last_login = ?, last_online = ?, home_room = ?, ip_current = ?, `rank` = ?, machine_id = ?, username = ?, background_id = ?, background_stand_id = ?, background_overlay_id = ?, background_card_id = ?, background_border_id = ?, infostand_direction = ?, infostand_head_direction = ?, infostand_action = ?, profile_direction = ?, profile_head_direction = ?, profile_action = ? WHERE id = ?",
+                    "UPDATE users SET motto = ?, online = ?, look = ?, gender = ?, last_login = ?, last_online = ?, home_room = ?, ip_current = ?, machine_id = ?, username = ?, background_id = ?, background_stand_id = ?, background_overlay_id = ?, background_card_id = ?, background_border_id = ?, infostand_direction = ?, infostand_head_direction = ?, infostand_action = ?, profile_direction = ?, profile_head_direction = ?, profile_action = ? WHERE id = ?",
                     this.motto,
                     this.online ? "1" : "0",
                     this.look,
                     this.gender.name(),
-                    creditsForSave,
                     Emulator.getIntUnixTimestamp(),
                     this.lastOnline,
                     this.homeRoom,
                     this.ipLogin,
-                    this.rank != null ? this.rank.getId() : 1,
                     this.machineID,
                     this.username,
                     this.InfostandBg,

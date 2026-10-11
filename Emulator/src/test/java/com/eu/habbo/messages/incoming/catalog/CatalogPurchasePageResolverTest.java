@@ -110,6 +110,17 @@ class CatalogPurchasePageResolverTest {
         assertFalse(accessEvaluated.get());
     }
 
+    @Test
+    void normalCatalogBuildingBlocksCannotBeBoughtOrGifted() {
+        CatalogPage alias = mock(com.eu.habbo.habbohotel.catalog.BuildersBlocksCatalogAccessPage.class);
+        AtomicBoolean accessEvaluated = new AtomicBoolean();
+        assertNull(resolver(null, alias).resolve(new CatalogPurchaseCommand(1800000101, 72, "", 1), page -> {
+            accessEvaluated.set(true);
+            return true;
+        }));
+        assertFalse(accessEvaluated.get());
+    }
+
     private static CatalogPurchasePageResolver resolver(CatalogItem item, CatalogPage page) {
         return new CatalogPurchasePageResolver(new CatalogPurchasePageResolver.CatalogLookup() {
             @Override

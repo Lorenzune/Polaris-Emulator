@@ -95,7 +95,8 @@ final class WiredInternalVariableRegistry {
                 "@bot_id",
                 "@pet_id",
                 "@pet_owner_id");
-        builder.register(Capability.USER_DESTINATION, "@handitem_id", "@position_x", "@position_y", "@direction");
+        builder.register(
+                Capability.USER_DESTINATION, "@handitem_id", "@position_x", "@position_y", "@direction", "@opacity");
         builder.register(
                 Capability.FURNI_REFERENCE,
                 "~teleport.target_id",
@@ -120,12 +121,25 @@ final class WiredInternalVariableRegistry {
                 "@wallitem_offset",
                 "@dimensions.x",
                 "@dimensions.y");
+        builder.registerWhen(
+                ALWAYS_ENABLED,
+                EnumSet.of(Capability.FURNI_REFERENCE, Capability.FURNI_DESTINATION),
+                "~recolorable_furni.color.rgb",
+                "~recolorable_furni.color.rgb.r",
+                "~recolorable_furni.color.rgb.g",
+                "~recolorable_furni.color.rgb.b");
         builder.register(
                 Capability.FURNI_DESTINATION, "@state", "@position_x", "@position_y", "@rotation", "@altitude");
         builder.registerWhen(
                 ALWAYS_ENABLED, EnumSet.of(Capability.FURNI_REFERENCE, Capability.FURNI_DESTINATION), "@gravity");
         builder.registerWhen(
-                ALWAYS_ENABLED, EnumSet.of(Capability.FURNI_REFERENCE, Capability.FURNI_DESTINATION), "@opacity");
+                ALWAYS_ENABLED,
+                EnumSet.of(
+                        Capability.FURNI_REFERENCE,
+                        Capability.FURNI_DESTINATION,
+                        Capability.USER_REFERENCE,
+                        Capability.USER_DESTINATION),
+                "@opacity");
         builder.registerWhen(
                 ALWAYS_ENABLED, EnumSet.of(Capability.FURNI_REFERENCE, Capability.FURNI_DESTINATION), "@scaling");
         builder.register(
@@ -158,6 +172,7 @@ final class WiredInternalVariableRegistry {
                 "@current_time.year");
         builder.register(
                 Capability.CONTEXT_REFERENCE,
+                "@event.transaction_failed.reason",
                 "@selector_furni_count",
                 "@selector_user_count",
                 "@signal_furni_count",

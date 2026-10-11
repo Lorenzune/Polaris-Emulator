@@ -8,8 +8,13 @@ import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.wired.WiredEffectType;
+import com.eu.habbo.habbohotel.wired.WiredTriggerType;
+import com.eu.habbo.habbohotel.wired.core.DefaultWiredServices;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
+import com.eu.habbo.habbohotel.wired.core.WiredState;
+import com.eu.habbo.habbohotel.wired.core.WiredTextPlaceholderUtil;
+import com.eu.habbo.habbohotel.wired.migrate.WiredEvents;
 import com.eu.habbo.messages.ServerMessage;
 import com.google.gson.JsonObject;
 import java.sql.ResultSet;
@@ -39,19 +44,36 @@ public class WiredEffectWriteToLogs extends InteractionWiredEffect {
 
     @Override
     public boolean execute(RoomUnit roomUnit, Room room, Object[] stuff) {
-        String msg = "[WiredLog Room " + (room != null ? room.getId() : 0) + "] " + this.logMessage;
+        execute(new WiredContext(
+                WiredEvents.fromLegacy(WiredTriggerType.CUSTOM, room, roomUnit, stuff),
+                this,
+                DefaultWiredServices.getInstance(),
+                new WiredState(1000)));
+        return true;
+    }
+
+    @Override
+    public void execute(WiredContext ctx) {
+        Room room = ctx.room();
+        String resolvedMessage = WiredTextPlaceholderUtil.applyUsernamePlaceholders(ctx, this.logMessage);
+        String msg = "[WiredLog Room " + (room != null ? room.getId() : 0) + "] " + resolvedMessage;
+        if (room != null)
+            WiredManager.recordWiredLog(
+                    room.getId(),
+                    getId(),
+                    resolvedMessage,
+                    switch (this.logLevel) {
+                        case 1 -> com.eu.habbo.habbohotel.wired.core.WiredRoomDiagnostics.Severity.WARNING;
+                        case 2 -> com.eu.habbo.habbohotel.wired.core.WiredRoomDiagnostics.Severity.ERROR;
+                        case 3 -> com.eu.habbo.habbohotel.wired.core.WiredRoomDiagnostics.Severity.DEBUG;
+                        default -> com.eu.habbo.habbohotel.wired.core.WiredRoomDiagnostics.Severity.INFO;
+                    });
         switch (this.logLevel) {
             case 1 -> LOGGER.warn(msg);
             case 2 -> LOGGER.error(msg);
             case 3 -> LOGGER.debug(msg);
             default -> LOGGER.info(msg);
         }
-        return true;
-    }
-
-    @Override
-    public void execute(WiredContext ctx) {
-        execute(null, ctx.room(), null);
     }
 
     @Override
