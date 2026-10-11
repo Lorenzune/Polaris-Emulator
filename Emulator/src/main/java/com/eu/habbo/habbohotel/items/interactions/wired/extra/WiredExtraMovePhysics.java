@@ -17,13 +17,13 @@ public class WiredExtraMovePhysics extends InteractionWiredExtra {
     public static final int CODE = 61;
     public static final int SOURCE_ALL_ROOM = 900;
 
-    private boolean keepAltitude = false;
+    private boolean keepAltitude = true;
     private boolean moveThroughFurni = false;
     private boolean moveThroughUsers = false;
     private boolean blockByFurni = false;
-    private int moveThroughFurniSource = WiredSourceUtil.SOURCE_TRIGGER;
-    private int moveThroughUsersSource = WiredSourceUtil.SOURCE_TRIGGER;
-    private int blockByFurniSource = WiredSourceUtil.SOURCE_TRIGGER;
+    private int moveThroughFurniSource = SOURCE_ALL_ROOM;
+    private int moveThroughUsersSource = SOURCE_ALL_ROOM;
+    private int blockByFurniSource = SOURCE_ALL_ROOM;
 
     public WiredExtraMovePhysics(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -43,13 +43,13 @@ public class WiredExtraMovePhysics extends InteractionWiredExtra {
         settings = WiredNativeMovementSettings.normalize(this, settings);
         int[] params = settings.getIntParams();
 
-        this.keepAltitude = readFlag(params, 0);
+        this.keepAltitude = readInt(params, 0, 1) == 1;
         this.moveThroughFurni = readFlag(params, 1);
         this.moveThroughUsers = readFlag(params, 2);
         this.blockByFurni = readFlag(params, 3);
-        this.moveThroughFurniSource = normalizeSource(readInt(params, 4, WiredSourceUtil.SOURCE_TRIGGER));
-        this.blockByFurniSource = normalizeSource(readInt(params, 5, WiredSourceUtil.SOURCE_TRIGGER));
-        this.moveThroughUsersSource = normalizeSource(readInt(params, 6, WiredSourceUtil.SOURCE_TRIGGER));
+        this.moveThroughFurniSource = normalizeSource(readInt(params, 4, SOURCE_ALL_ROOM));
+        this.blockByFurniSource = normalizeSource(readInt(params, 5, SOURCE_ALL_ROOM));
+        this.moveThroughUsersSource = normalizeSource(readInt(params, 6, SOURCE_ALL_ROOM));
 
         return true;
     }
@@ -115,24 +115,24 @@ public class WiredExtraMovePhysics extends InteractionWiredExtra {
         }
 
         String[] legacyData = wiredData.split("\t");
-        this.keepAltitude = readLegacyFlag(legacyData, 0);
+        this.keepAltitude = readLegacyInt(legacyData, 0, 1) == 1;
         this.moveThroughFurni = readLegacyFlag(legacyData, 1);
         this.moveThroughUsers = readLegacyFlag(legacyData, 2);
         this.blockByFurni = readLegacyFlag(legacyData, 3);
-        this.moveThroughFurniSource = normalizeSource(readLegacyInt(legacyData, 4, WiredSourceUtil.SOURCE_TRIGGER));
-        this.blockByFurniSource = normalizeSource(readLegacyInt(legacyData, 5, WiredSourceUtil.SOURCE_TRIGGER));
-        this.moveThroughUsersSource = normalizeSource(readLegacyInt(legacyData, 6, WiredSourceUtil.SOURCE_TRIGGER));
+        this.moveThroughFurniSource = normalizeSource(readLegacyInt(legacyData, 4, SOURCE_ALL_ROOM));
+        this.blockByFurniSource = normalizeSource(readLegacyInt(legacyData, 5, SOURCE_ALL_ROOM));
+        this.moveThroughUsersSource = normalizeSource(readLegacyInt(legacyData, 6, SOURCE_ALL_ROOM));
     }
 
     @Override
     public void onPickUp() {
-        this.keepAltitude = false;
+        this.keepAltitude = true;
         this.moveThroughFurni = false;
         this.moveThroughUsers = false;
         this.blockByFurni = false;
-        this.moveThroughFurniSource = WiredSourceUtil.SOURCE_TRIGGER;
-        this.moveThroughUsersSource = WiredSourceUtil.SOURCE_TRIGGER;
-        this.blockByFurniSource = WiredSourceUtil.SOURCE_TRIGGER;
+        this.moveThroughFurniSource = SOURCE_ALL_ROOM;
+        this.moveThroughUsersSource = SOURCE_ALL_ROOM;
+        this.blockByFurniSource = SOURCE_ALL_ROOM;
     }
 
     @Override
@@ -203,18 +203,20 @@ public class WiredExtraMovePhysics extends InteractionWiredExtra {
             case WiredSourceUtil.SOURCE_SIGNAL:
                 return value;
             default:
-                return WiredSourceUtil.SOURCE_TRIGGER;
+                return SOURCE_ALL_ROOM;
         }
     }
 
     static class JsonData {
-        boolean keepAltitude;
+        boolean keepAltitude = true;
         boolean moveThroughFurni;
         boolean moveThroughUsers;
         boolean blockByFurni;
-        int moveThroughFurniSource;
-        int blockByFurniSource;
-        int moveThroughUsersSource;
+        int moveThroughFurniSource = SOURCE_ALL_ROOM;
+        int blockByFurniSource = SOURCE_ALL_ROOM;
+        int moveThroughUsersSource = SOURCE_ALL_ROOM;
+
+        private JsonData() {}
 
         JsonData(
                 boolean keepAltitude,

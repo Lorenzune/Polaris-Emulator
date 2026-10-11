@@ -13,6 +13,7 @@ import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredMoveCarryHelper;
+import com.eu.habbo.habbohotel.wired.core.WiredMovementPhysics;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
@@ -79,10 +80,13 @@ public class WiredEffectFurniToFurni extends InteractionWiredEffect {
                 continue;
             }
 
-            // Explicit movement physics can retain each mover's altitude. This
-            // keeps decorations above a piece when both are moved to one marker.
-            double altitude = WiredMoveCarryHelper.getFurniMovementPhysics(room, this, moveItem, ctx).isKeepAltitude()
-                    ? moveItem.getZ() : destination.z();
+            var physics = WiredMoveCarryHelper.getFurniMovementPhysics(room, this, moveItem, ctx);
+            // Without the accessory, retain the legacy target-base destination.
+            double altitude = physics.isKeepAltitude()
+                    ? moveItem.getZ()
+                    : physics == WiredMovementPhysics.NONE
+                            ? destination.z()
+                            : this.resolveStackAltitude(room, moveItem, targetTile, moveItem.getRotation(), physics, null);
             WiredMoveCarryHelper.moveFurni(
                     room, this, moveItem, targetTile, moveItem.getRotation(), altitude, null, false, ctx);
         }
@@ -100,12 +104,50 @@ public class WiredEffectFurniToFurni extends InteractionWiredEffect {
             if (target == null || mover.getId() == target.getId()) continue;
             var p = simulation.getItemPosition(mover);
             var destination = simulation.getItemPosition(target);
-            double altitude = WiredMoveCarryHelper.getFurniMovementPhysics(ctx.room(), this, mover, ctx).isKeepAltitude()
-                    ? p.z : destination.z;
+            var physics = WiredMoveCarryHelper.getFurniMovementPhysics(ctx.room(), this, mover, ctx);
+            double altitude = physics.isKeepAltitude()
+                    ? p.z
+                    : physics == WiredMovementPhysics.NONE
+                            ? destination.z
+                            : this.resolveStackAltitude(
+                                    ctx.room(), mover,
+                                    ctx.room().getLayout().getTile(destination.x, destination.y),
+                                    p.rotation, physics, simulation);
             if (!simulation.moveItem(ctx, this, mover, destination.x, destination.y, altitude, p.rotation, false))
                 return false;
         }
         return true;
+    }
+
+    private double resolveStackAltitude(
+            Room room, HabboItem mover, RoomTile destination, int rotation, WiredMovementPhysics physics,
+            com.eu.habbo.habbohotel.wired.core.WiredSimulation simulation) {
+        if (destination == null) return 0;
+        var layout = room.getLayout();
+        var occupiedTiles = layout.getTilesAt(
+                destination, mover.getBaseItem().getWidth(), mover.getBaseItem().getLength(), rotation);
+        double altitude = layout.getHeightAtSquare(destination.x, destination.y);
+        Set<HabboItem> supports = new HashSet<>();
+        for (RoomTile tile : occupiedTiles) {
+            altitude = Math.max(altitude, layout.getHeightAtSquare(tile.x, tile.y));
+            if (simulation == null) supports.addAll(room.getItemsAt(tile));
+        }
+        // Simulated movers may have entered or left the destination since the room index was built.
+        if (simulation != null) supports.addAll(room.getFloorItems());
+        for (HabboItem support : supports) {
+            if (support.getId() == mover.getId() || physics.shouldIgnoreFurni(support)) continue;
+            double z = support.getZ();
+            if (simulation != null) {
+                var position = simulation.getItemPosition(support);
+                var tile = layout.getTile(position.x, position.y);
+                if (tile == null || layout.getTilesAt(
+                                tile, support.getBaseItem().getWidth(), support.getBaseItem().getLength(), position.rotation)
+                        .stream().noneMatch(occupiedTiles::contains)) continue;
+                z = position.z;
+            }
+            altitude = Math.max(altitude, z + Item.getCurrentHeight(support));
+        }
+        return altitude;
     }
 
     @Deprecated
