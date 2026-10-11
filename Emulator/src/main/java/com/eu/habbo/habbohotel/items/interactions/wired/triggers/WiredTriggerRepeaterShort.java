@@ -36,9 +36,13 @@ public class WiredTriggerRepeaterShort extends WiredTriggerRepeater {
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
         try {
             String wiredData = set.getString("wired_data");
-            Integer stored = wiredData != null && wiredData.startsWith("{")
-                    ? WiredManager.getGson().fromJson(wiredData, JsonData.class).repeatTime
-                    : wiredData == null || wiredData.isEmpty() ? null : Integer.valueOf(wiredData);
+            Integer stored = null;
+            if (wiredData != null && wiredData.startsWith("{")) {
+                JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
+                if (data != null) stored = data.repeatTime;
+            } else if (wiredData != null && !wiredData.isEmpty()) {
+                stored = Integer.valueOf(wiredData);
+            }
             this.repeatTime = WiredTimerInputGuard.normalizeStoredMillis(stored, MIN_DELAY, DEFAULT_DELAY, MAX_DELAY);
         } catch (RuntimeException ignored) {
             this.repeatTime = DEFAULT_DELAY;

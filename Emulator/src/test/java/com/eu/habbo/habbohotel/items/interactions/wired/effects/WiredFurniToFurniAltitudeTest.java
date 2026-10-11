@@ -105,10 +105,17 @@ class WiredFurniToFurniAltitudeTest {
                     var helper = mockStatic(WiredMoveCarryHelper.class)) {
                 fixture.configureSources(sources);
                 helper.when(() -> WiredMoveCarryHelper.getFurniMovementPhysics(
-                        fixture.room, fixture.effect, fixture.mover, fixture.ctx)).thenReturn(fixture.physics(false));
+                                fixture.room, fixture.effect, fixture.mover, fixture.ctx))
+                        .thenReturn(fixture.physics(false));
                 helper.when(() -> WiredMoveCarryHelper.getSimulationMovementError(
-                        eq(fixture.room), eq(fixture.effect), eq(fixture.mover), eq(fixture.tile(17, 6)),
-                        eq(2), eq(fixture.ctx), eq(false))).thenReturn(FurnitureMovementError.NONE);
+                                eq(fixture.room),
+                                eq(fixture.effect),
+                                eq(fixture.mover),
+                                eq(fixture.tile(17, 6)),
+                                eq(2),
+                                eq(fixture.ctx),
+                                eq(false)))
+                        .thenReturn(FurnitureMovementError.NONE);
                 var simulation = new WiredSimulation(fixture.room);
                 short supportX = (short) (moveIntoStack ? 17 : 20);
                 when(fixture.room.furnitureFitsAt(fixture.tile(supportX, 6), support, 0, false))
@@ -132,42 +139,49 @@ class WiredFurniToFurniAltitudeTest {
 
         Fixture() throws Exception {
             when(room.getLayout()).thenReturn(layout);
-            when(layout.getTile(anyShort(), anyShort())).thenAnswer(call -> tile(call.<Short>getArgument(0), call.<Short>getArgument(1)));
+            when(layout.getTile(anyShort(), anyShort()))
+                    .thenAnswer(call -> tile(call.<Short>getArgument(0), call.<Short>getArgument(1)));
             when(layout.getTilesAt(org.mockito.ArgumentMatchers.any(RoomTile.class), anyInt(), anyInt(), anyInt()))
-                    .thenAnswer(call -> footprint(call.getArgument(0), call.getArgument(1), call.getArgument(2), call.getArgument(3)));
+                    .thenAnswer(call -> footprint(
+                            call.getArgument(0), call.getArgument(1), call.getArgument(2), call.getArgument(3)));
             when(room.getFloorItems()).thenReturn(items);
-            when(room.getItemsAt(org.mockito.ArgumentMatchers.any(RoomTile.class))).thenAnswer(call -> {
-                RoomTile requested = call.getArgument(0);
-                Set<HabboItem> found = new HashSet<>();
-                for (HabboItem item : items) {
-                    var base = item.getBaseItem();
-                    if (footprint(tile(item.getX(), item.getY()), base.getWidth(), base.getLength(), item.getRotation()).contains(requested))
-                        found.add(item);
-                }
-                return found;
-            });
+            when(room.getItemsAt(org.mockito.ArgumentMatchers.any(RoomTile.class)))
+                    .thenAnswer(call -> {
+                        RoomTile requested = call.getArgument(0);
+                        Set<HabboItem> found = new HashSet<>();
+                        for (HabboItem item : items) {
+                            var base = item.getBaseItem();
+                            if (footprint(
+                                            tile(item.getX(), item.getY()),
+                                            base.getWidth(),
+                                            base.getLength(),
+                                            item.getRotation())
+                                    .contains(requested)) found.add(item);
+                        }
+                        return found;
+                    });
             mover = add(68, 8, 4, 0.5, 1);
             when(mover.getRotation()).thenReturn(2);
             target = add(215, 17, 6, 1, 1.25);
             effect = new WiredEffectFurniToFurni(277, 16, mock(Item.class), "", 0, 0);
             ResultSet row = mock(ResultSet.class);
-            when(row.getString("wired_data")).thenReturn(
-                    "{\"moveSource\":200,\"targetSource\":201,\"itemIds\":[],\"targetItemIds\":[],\"delay\":0}");
+            when(row.getString("wired_data"))
+                    .thenReturn(
+                            "{\"moveSource\":200,\"targetSource\":201,\"itemIds\":[],\"targetItemIds\":[],\"delay\":0}");
             effect.loadWiredData(row, room);
             when(ctx.room()).thenReturn(room);
         }
 
         RoomTile tile(int x, int y) {
-            return tiles.computeIfAbsent(x + ":" + y,
-                    ignored -> new RoomTile((short) x, (short) y, (short) 0, RoomTileState.OPEN, true));
+            return tiles.computeIfAbsent(
+                    x + ":" + y, ignored -> new RoomTile((short) x, (short) y, (short) 0, RoomTileState.OPEN, true));
         }
 
         Set<RoomTile> footprint(RoomTile tile, int width, int length, int rotation) {
             int w = rotation == 2 || rotation == 6 ? length : width;
             int l = rotation == 2 || rotation == 6 ? width : length;
             Set<RoomTile> result = new HashSet<>();
-            for (int x = tile.x; x < tile.x + w; x++)
-                for (int y = tile.y; y < tile.y + l; y++) result.add(tile(x, y));
+            for (int x = tile.x; x < tile.x + w; x++) for (int y = tile.y; y < tile.y + l; y++) result.add(tile(x, y));
             return result;
         }
 
@@ -195,8 +209,10 @@ class WiredFurniToFurniAltitudeTest {
         }
 
         void configureSources(org.mockito.MockedStatic<WiredSourceUtil> sources) {
-            sources.when(() -> WiredSourceUtil.resolveItems(eq(ctx), eq(200), anyCollection())).thenReturn(List.of(mover));
-            sources.when(() -> WiredSourceUtil.resolveItems(eq(ctx), eq(201), anyCollection())).thenReturn(List.of(target));
+            sources.when(() -> WiredSourceUtil.resolveItems(eq(ctx), eq(200), anyCollection()))
+                    .thenReturn(List.of(mover));
+            sources.when(() -> WiredSourceUtil.resolveItems(eq(ctx), eq(201), anyCollection()))
+                    .thenReturn(List.of(target));
         }
 
         void verifyAltitude(WiredMovementPhysics physics, double expected) {

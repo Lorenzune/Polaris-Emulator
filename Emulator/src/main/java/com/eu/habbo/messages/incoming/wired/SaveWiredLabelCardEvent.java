@@ -1,6 +1,6 @@
 package com.eu.habbo.messages.incoming.wired;
 
-import com.eu.habbo.Emulator;
+import com.eu.habbo.WiredPlatform;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredLabel;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.HabboItem;
@@ -31,7 +31,7 @@ public class SaveWiredLabelCardEvent extends MessageHandler {
             label.needsUpdate(true);
             room.sendComposer(new FloorItemUpdateComposer(label).compose());
         }
-        Emulator.getThreading().run(label);
+        WiredPlatform.threading().run(label);
     }
 
     @Override

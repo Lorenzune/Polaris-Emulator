@@ -74,7 +74,8 @@ public class WiredEffectFurniToFurni extends InteractionWiredEffect {
                 continue;
             }
 
-            var destination = com.eu.habbo.habbohotel.wired.core.WiredFurniDestinationSnapshot.position(ctx, targetItem);
+            var destination =
+                    com.eu.habbo.habbohotel.wired.core.WiredFurniDestinationSnapshot.position(ctx, targetItem);
             RoomTile targetTile = room.getLayout().getTile(destination.x(), destination.y());
             if (targetTile == null) {
                 continue;
@@ -86,7 +87,8 @@ public class WiredEffectFurniToFurni extends InteractionWiredEffect {
                     ? moveItem.getZ()
                     : physics == WiredMovementPhysics.NONE
                             ? destination.z()
-                            : this.resolveStackAltitude(room, moveItem, targetTile, moveItem.getRotation(), physics, null);
+                            : this.resolveStackAltitude(
+                                    room, moveItem, targetTile, moveItem.getRotation(), physics, null);
             WiredMoveCarryHelper.moveFurni(
                     room, this, moveItem, targetTile, moveItem.getRotation(), altitude, null, false, ctx);
         }
@@ -110,9 +112,12 @@ public class WiredEffectFurniToFurni extends InteractionWiredEffect {
                     : physics == WiredMovementPhysics.NONE
                             ? destination.z
                             : this.resolveStackAltitude(
-                                    ctx.room(), mover,
+                                    ctx.room(),
+                                    mover,
                                     ctx.room().getLayout().getTile(destination.x, destination.y),
-                                    p.rotation, physics, simulation);
+                                    p.rotation,
+                                    physics,
+                                    simulation);
             if (!simulation.moveItem(ctx, this, mover, destination.x, destination.y, altitude, p.rotation, false))
                 return false;
         }
@@ -120,7 +125,11 @@ public class WiredEffectFurniToFurni extends InteractionWiredEffect {
     }
 
     private double resolveStackAltitude(
-            Room room, HabboItem mover, RoomTile destination, int rotation, WiredMovementPhysics physics,
+            Room room,
+            HabboItem mover,
+            RoomTile destination,
+            int rotation,
+            WiredMovementPhysics physics,
             com.eu.habbo.habbohotel.wired.core.WiredSimulation simulation) {
         if (destination == null) return 0;
         var layout = room.getLayout();
@@ -140,9 +149,15 @@ public class WiredEffectFurniToFurni extends InteractionWiredEffect {
             if (simulation != null) {
                 var position = simulation.getItemPosition(support);
                 var tile = layout.getTile(position.x, position.y);
-                if (tile == null || layout.getTilesAt(
-                                tile, support.getBaseItem().getWidth(), support.getBaseItem().getLength(), position.rotation)
-                        .stream().noneMatch(occupiedTiles::contains)) continue;
+                if (tile == null
+                        || layout
+                                .getTilesAt(
+                                        tile,
+                                        support.getBaseItem().getWidth(),
+                                        support.getBaseItem().getLength(),
+                                        position.rotation)
+                                .stream()
+                                .noneMatch(occupiedTiles::contains)) continue;
                 z = position.z;
             }
             altitude = Math.max(altitude, z + Item.getCurrentHeight(support));

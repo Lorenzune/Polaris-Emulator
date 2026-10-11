@@ -619,7 +619,7 @@ public class WiredEffectChangeVariableValue extends InteractionWiredEffect {
             case OP_RANDOM ->
                 (referenceValue == null || referenceValue <= 0)
                         ? 0
-                        : (int) Emulator.getRandom().nextLong((long) referenceValue + 1);
+                        : Math.toIntExact(Emulator.getRandom().nextLong((long) referenceValue + 1));
             case OP_ABS -> (currentValue == Integer.MIN_VALUE) ? Integer.MAX_VALUE : Math.abs(currentValue);
             case OP_AND -> (referenceValue != null) ? (currentValue & referenceValue) : currentValue;
             case OP_OR -> (referenceValue != null) ? (currentValue | referenceValue) : currentValue;

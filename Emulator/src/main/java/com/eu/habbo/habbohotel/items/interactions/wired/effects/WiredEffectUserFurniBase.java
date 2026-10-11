@@ -189,7 +189,7 @@ public abstract class WiredEffectUserFurniBase extends InteractionWiredEffect {
                 this.userSource = data.userSource;
 
                 if (data.itemIds != null) {
-                    for (Integer id : data.itemIds != null ? data.itemIds : java.util.List.<Integer>of()) {
+                    for (Integer id : data.itemIds) {
                         if (id == null) continue;
                         HabboItem item = room.getHabboItem(id);
 

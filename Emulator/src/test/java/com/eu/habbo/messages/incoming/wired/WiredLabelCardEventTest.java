@@ -8,7 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.eu.habbo.Emulator;
+import com.eu.habbo.WiredPlatform;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.ItemInteraction;
@@ -55,8 +55,8 @@ class WiredLabelCardEventTest {
         assertEquals("", label.getLabelText());
         when(room.canModifyWired(habbo, label)).thenReturn(true);
         ThreadPooling pool = mock(ThreadPooling.class);
-        try (var emulator = mockStatic(Emulator.class)) {
-            emulator.when(Emulator::getThreading).thenReturn(pool);
+        try (var emulator = mockStatic(WiredPlatform.class)) {
+            emulator.when(WiredPlatform::threading).thenReturn(pool);
             packet(save, 259, 0xff00aa);
             save.handle();
             assertEquals("Testo aggiornato", label.getLabelText());

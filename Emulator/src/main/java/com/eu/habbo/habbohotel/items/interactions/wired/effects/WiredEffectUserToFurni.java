@@ -101,7 +101,7 @@ public class WiredEffectUserToFurni extends WiredEffectUserFurniBase {
                 this.walkMode = this.normalizeWalkMode((data.walkMode != null) ? data.walkMode : WALKMODE_CONTINUE);
 
                 if (data.itemIds != null) {
-                    for (Integer id : data.itemIds != null ? data.itemIds : java.util.List.<Integer>of()) {
+                    for (Integer id : data.itemIds) {
                         if (id == null) continue;
                         HabboItem item = room.getHabboItem(id);
 

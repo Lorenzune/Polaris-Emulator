@@ -31,7 +31,7 @@ public class WiredExtraMoveNoAnimation extends InteractionWiredExtra {
 
     @Override
     public boolean saveData(WiredSettings settings, GameClient gameClient) {
-        settings = WiredNativeMovementSettings.normalize(this, settings);
+        WiredNativeMovementSettings.normalize(this, settings);
         return true;
     }
 

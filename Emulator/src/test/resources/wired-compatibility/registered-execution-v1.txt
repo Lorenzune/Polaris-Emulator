@@ -154,6 +154,8 @@ com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectResetTimers 
 com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSayCommand | EFFECT | type=SHOW_MESSAGE | actor=true | execute=OK
 com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSendSignal | EFFECT | type=SEND_SIGNAL | actor=false | execute=OK
 com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSetAltitude | EFFECT | type=SET_ALTITUDE | actor=false | execute=OK
+com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSetHighlight | EFFECT | type=SET_HIGHLIGHT | actor=false | execute=OK
+com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSetVisibility | EFFECT | type=SET_VISIBILITY | actor=false | execute=OK
 com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSit | EFFECT | type=KICK_USER | actor=true | execute=OK
 com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectTeleport | EFFECT | type=TELEPORT | actor=true | execute=OK
 com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectToggleFurni | EFFECT | type=TOGGLE_STATE | actor=false | execute=OK

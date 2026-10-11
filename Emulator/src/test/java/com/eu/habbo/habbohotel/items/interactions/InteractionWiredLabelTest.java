@@ -77,8 +77,8 @@ class InteractionWiredLabelTest {
         assertEquals("0", label.getExtradata());
         when(room.canModifyWired(habbo, label)).thenReturn(true);
         com.eu.habbo.threading.ThreadPooling threading = mock(com.eu.habbo.threading.ThreadPooling.class);
-        try (var emulator = org.mockito.Mockito.mockStatic(com.eu.habbo.Emulator.class)) {
-            emulator.when(com.eu.habbo.Emulator::getThreading).thenReturn(threading);
+        try (var emulator = org.mockito.Mockito.mockStatic(com.eu.habbo.WiredPlatform.class)) {
+            emulator.when(com.eu.habbo.WiredPlatform::threading).thenReturn(threading);
             label.setLabelText("Documentazione");
             label.onClick(client, room, new Object[] {1});
             assertEquals("1", label.getExtradata());

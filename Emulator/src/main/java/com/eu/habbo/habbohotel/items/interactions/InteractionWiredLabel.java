@@ -128,7 +128,7 @@ public class InteractionWiredLabel extends InteractionRemoteSwitchControl {
                 needsUpdate(true);
                 room.updateItemState(this);
             }
-            com.eu.habbo.Emulator.getThreading().run(this);
+            com.eu.habbo.WiredPlatform.threading().run(this);
             return;
         }
         super.onClick(client, room, objects);

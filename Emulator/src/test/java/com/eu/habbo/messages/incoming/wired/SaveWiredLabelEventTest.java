@@ -8,7 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.eu.habbo.Emulator;
+import com.eu.habbo.WiredPlatform;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.ItemInteraction;
@@ -42,8 +42,8 @@ class SaveWiredLabelEventTest {
         when(event.packet.readInt()).thenReturn(259, 12, 1);
         when(event.packet.readString()).thenReturn("Trigger: sali sul furni");
         ThreadPooling threading = mock(ThreadPooling.class);
-        try (var emulator = mockStatic(Emulator.class)) {
-            emulator.when(Emulator::getThreading).thenReturn(threading);
+        try (var emulator = mockStatic(WiredPlatform.class)) {
+            emulator.when(WiredPlatform::threading).thenReturn(threading);
             event.handle();
             assertEquals("Trigger: sali sul furni", label.getLabelText());
             assertEquals("1", label.getExtradata());

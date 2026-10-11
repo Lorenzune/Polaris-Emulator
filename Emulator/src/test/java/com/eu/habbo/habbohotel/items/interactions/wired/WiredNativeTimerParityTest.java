@@ -131,6 +131,18 @@ class WiredNativeTimerParityTest {
     }
 
     @Test
+    void shortRepeaterRestoresDefaultsForMissingAndMalformedStoredTimers() throws Exception {
+        var timer = new WiredTriggerRepeaterShort(1, 1, mock(Item.class), "", 0, 0);
+        var row = mock(ResultSet.class);
+        for (String payload : new String[] {null, "", "{}", "{broken"}) {
+            assertTrue(timer.saveData(nativeSettings(new int[] {3})));
+            when(row.getString("wired_data")).thenReturn(payload);
+            timer.loadWiredData(row, null);
+            assertEquals(WiredTriggerRepeaterShort.DEFAULT_DELAY, timer.getRepeatTimeMs());
+        }
+    }
+
+    @Test
     void triggerOneShotAndRepeaterRestartAfterResetRatherThanFollowingServerPhase() {
         var room = mock(Room.class);
         when(room.isLoaded()).thenReturn(true);
