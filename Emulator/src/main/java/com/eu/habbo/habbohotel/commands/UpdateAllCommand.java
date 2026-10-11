@@ -27,14 +27,20 @@ public class UpdateAllCommand extends Command {
             return true;
         }
 
-        if (Emulator.getThreading().run(() -> this.reloadAll(gameClient)) == null) {
+        var auditActor = new com.eu.habbo.habbohotel.permissions.PermissionAuditLog.Actor(
+                gameClient.getHabbo().getHabboInfo().getId(),
+                gameClient.getHabbo().getHabboInfo().getUsername(),
+                "update_all",
+                "Observed reload; SQL editor identity unknown");
+        if (Emulator.getThreading().run(() -> this.reloadAll(gameClient, auditActor)) == null) {
             this.updateInProgress.set(false);
         }
 
         return true;
     }
 
-    private void reloadAll(GameClient gameClient) {
+    private void reloadAll(
+            GameClient gameClient, com.eu.habbo.habbohotel.permissions.PermissionAuditLog.Actor auditActor) {
         LOGGER.info("[UpdateAll] Reloading all subsystems...");
 
         try {
@@ -82,7 +88,7 @@ public class UpdateAllCommand extends Command {
 
             // Permissions: rebind and notify every online Habbo so the new
             // server-side rank and Nitro's live permission state stay aligned.
-            if (Emulator.getGameEnvironment().reloadPermissionsAndBroadcast() < 0) {
+            if (Emulator.getGameEnvironment().reloadPermissionsAndBroadcast(auditActor) < 0) {
                 LOGGER.warn("[UpdateAll] Permissions update already in progress; its own live refresh will follow.");
             }
 

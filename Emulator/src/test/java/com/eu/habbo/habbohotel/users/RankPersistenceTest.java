@@ -54,17 +54,29 @@ class RankPersistenceTest {
                 var platform = mockStatic(WiredPlatform.class);
                 var sql = mockStatic(TemporaryRankStore.class)) {
             platform.when(WiredPlatform::database).thenReturn(database);
+            platform.when(WiredPlatform::gameEnvironment).thenReturn(environment);
+            when(permissions.getOverrides())
+                    .thenReturn(mock(com.eu.habbo.habbohotel.permissions.UserPermissionOverrides.class));
             emulator.when(Emulator::getGameEnvironment).thenReturn(environment);
             emulator.when(Emulator::getPluginManager).thenReturn(mock(PluginManager.class));
             if (success) {
-                sql.when(() -> TemporaryRankStore.permanent(connection, 42, 2)).thenAnswer(call -> {
-                    verify(info, never()).setRank(next);
-                    return null;
-                });
+                sql.when(() -> TemporaryRankStore.permanent(
+                                connection,
+                                42,
+                                2,
+                                com.eu.habbo.habbohotel.permissions.PermissionAuditLog.Actor.system("system")))
+                        .thenAnswer(call -> {
+                            verify(info, never()).setRank(next);
+                            return null;
+                        });
                 manager.setRank(42, 2);
                 verify(info).setRank(next);
             } else {
-                sql.when(() -> TemporaryRankStore.permanent(connection, 42, 2))
+                sql.when(() -> TemporaryRankStore.permanent(
+                                connection,
+                                42,
+                                2,
+                                com.eu.habbo.habbohotel.permissions.PermissionAuditLog.Actor.system("system")))
                         .thenThrow(new SQLException("unavailable"));
                 assertThrows(SQLException.class, () -> manager.setRank(42, 2));
                 verify(info, never()).setRank(next);

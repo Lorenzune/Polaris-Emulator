@@ -226,6 +226,15 @@ public class GameEnvironment {
         Emulator.getThreading().run(this.subscriptionScheduler);
 
         this.habboManager.startTemporaryRanks();
+        var permissionRefresh = this.services.create(
+                "permission live refresh",
+                () -> new com.eu.habbo.habbohotel.permissions.PermissionLiveRefresh(
+                        this.permissionsManager,
+                        this.habboManager,
+                        this.commandHandler,
+                        com.eu.habbo.WiredPlatform.threading()),
+                com.eu.habbo.habbohotel.permissions.PermissionLiveRefresh::dispose);
+        permissionRefresh.start();
         LOGGER.info("GameEnvironment -> Loaded!");
     }
 
@@ -551,12 +560,37 @@ public class GameEnvironment {
      * @return number of online users refreshed, or -1 when another reload is active
      */
     public int reloadPermissionsAndBroadcast() {
+        return reloadPermissionsAndBroadcast(
+                com.eu.habbo.habbohotel.permissions.PermissionAuditLog.Actor.system("permission_reload"));
+    }
+
+    public int reloadPermissionsAndBroadcast(com.eu.habbo.habbohotel.permissions.PermissionAuditLog.Actor actor) {
         if (!this.permissionsReloadInProgress.compareAndSet(false, true)) {
             return -1;
         }
 
         try {
+            var before =
+                    com.eu.habbo.habbohotel.permissions.PermissionChange.capture(this.permissionsManager.getAllRanks());
             this.permissionsManager.reload();
+            this.permissionsManager.getOverrides().invalidateAll();
+            var changes = com.eu.habbo.habbohotel.permissions.PermissionChange.diff(
+                    before,
+                    com.eu.habbo.habbohotel.permissions.PermissionChange.capture(
+                            this.permissionsManager.getAllRanks()));
+            if (!changes.isEmpty()) {
+                try (var connection =
+                        com.eu.habbo.WiredPlatform.database().getDataSource().getConnection()) {
+                    com.eu.habbo.habbohotel.permissions.PermissionAuditLog.observeChanges(connection, actor, changes);
+                } catch (java.sql.SQLException failure) {
+                    // SQL edits already happened externally. Do not prevent a revocation
+                    // from taking effect just because its observation cannot be logged.
+                    org.slf4j.LoggerFactory.getLogger(GameEnvironment.class)
+                            .error(
+                                    "Permission reload audit failed; externally committed changes were still applied",
+                                    failure);
+                }
+            }
 
             int refreshed = 0;
             try (GameClientFlushBatch ignored = GameClientFlushBatch.open()) {
@@ -573,10 +607,10 @@ public class GameEnvironment {
 
                     habbo.getHabboInfo().setRank(freshRank);
                     habbo.getClient().sendResponse(new UserPermissionsComposer(habbo));
+                    habbo.getClient().sendResponse(new com.eu.habbo.messages.outgoing.users.UserPerksComposer(habbo));
                     habbo.getClient()
                             .sendResponse(new AvailableCommandsComposer(
-                                    this.commandHandler.getCommandsForRank(
-                                            freshRank == null ? currentRankId : freshRank.getId()),
+                                    this.commandHandler.getCommandsForUser(habbo),
                                     this.permissionsManager.getAllRanks()));
                     refreshed++;
                 }

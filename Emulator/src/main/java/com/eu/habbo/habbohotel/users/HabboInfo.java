@@ -482,6 +482,16 @@ public class HabboInfo implements Runnable {
         return snapshot.current();
     }
 
+    public long getTemporaryRankExpiresAt() {
+        RankSnapshot snapshot = this.rankSnapshot;
+        return snapshot != null && snapshot.previous() != null ? snapshot.expiresAt() : 0;
+    }
+
+    public Rank getPermanentRank() {
+        RankSnapshot snapshot = this.rankSnapshot;
+        return snapshot != null && snapshot.previous() != null ? snapshot.previous() : getRank();
+    }
+
     Rank getStoredRank() {
         RankSnapshot snapshot = this.rankSnapshot;
         return snapshot == null ? this.rank : snapshot.current();

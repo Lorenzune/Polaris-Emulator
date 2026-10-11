@@ -104,6 +104,15 @@ public final class TemporaryRankStore {
             if (previous != null && expires <= now) {
                 previous = rankResolver.applyAsInt(previous);
                 writeRank(connection, userId, previous);
+                PermissionAuditLog.append(
+                        connection,
+                        PermissionAuditLog.Actor.system("temporary_rank_expiry"),
+                        "rank_set",
+                        "user",
+                        userId,
+                        "rank",
+                        "" + current,
+                        "" + previous);
                 current = previous;
                 clear(connection, userId);
                 previous = null;
@@ -128,6 +137,15 @@ public final class TemporaryRankStore {
                     update.executeUpdate();
                 }
                 writeRank(connection, userId, assigned);
+                PermissionAuditLog.append(
+                        connection,
+                        new PermissionAuditLog.Actor(actorId, "", "temporary_rank", reason),
+                        "rank_set",
+                        "user",
+                        userId,
+                        "rank",
+                        "" + current,
+                        "" + assigned + ";expires=" + expires);
                 current = assigned;
                 previous = returnRank;
             }
@@ -142,12 +160,18 @@ public final class TemporaryRankStore {
     }
 
     public static void permanent(Connection connection, int userId, int rank) throws SQLException {
+        permanent(connection, userId, rank, PermissionAuditLog.Actor.system("system"));
+    }
+
+    public static void permanent(Connection connection, int userId, int rank, PermissionAuditLog.Actor actor)
+            throws SQLException {
         if (!connection.getAutoCommit()) throw new SQLException("Rank transition requires its own transaction");
         connection.setAutoCommit(false);
         try {
-            lockedRank(connection, userId);
+            int previous = lockedRank(connection, userId);
             writeRank(connection, userId, rank);
             clear(connection, userId);
+            PermissionAuditLog.append(connection, actor, "rank_set", "user", userId, "rank", "" + previous, "" + rank);
             connection.commit();
         } catch (SQLException | RuntimeException failure) {
             connection.rollback();

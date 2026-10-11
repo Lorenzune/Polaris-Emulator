@@ -274,6 +274,7 @@ public class CommandHandler {
         addCommand(new GiftCommand());
         addCommand(new GiveRankCommand());
         addCommand(new TemporaryRankCommand());
+        addCommand(new PermissionCommand());
         addCommand(new HabnamCommand());
         addCommand(new HandItemCommand());
         addCommand(new HappyHourCommand());
@@ -386,6 +387,23 @@ public class CommandHandler {
 
         com.eu.habbo.habbohotel.commands.roleplay.RoleplayCommandManager.getInstance()
                 .load();
+    }
+
+    public List<Command> getCommandsForUser(com.eu.habbo.habbohotel.users.Habbo habbo) {
+        List<Command> allowed = new ArrayList<>();
+        for (Command command : new java.util.HashSet<>(commands.values())) {
+            // Match the established rank catalog: public/internal commands have no
+            // permission entry. They remain executable but do not belong in this list.
+            if (command.permission == null
+                    || command.permission.isBlank()
+                    || command.keys == null
+                    || command.keys.length == 0
+                    || command.keys[0] == null
+                    || command.keys[0].isBlank()) continue;
+            if (habbo.hasPermission(command.permission, true)) allowed.add(command);
+        }
+        allowed.sort(ALPHABETICAL_ORDER);
+        return allowed;
     }
 
     public List<Command> getCommandsForRank(int rankId) {

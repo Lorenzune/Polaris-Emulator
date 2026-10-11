@@ -292,13 +292,7 @@ public class SecureLoginEvent extends MessageHandler {
                 messages.add(new NewUserIdentityComposer(habbo).compose());
                 messages.add(new UserPermissionsComposer(this.client.getHabbo()).compose());
                 messages.add(new AvailableCommandsComposer(
-                                gameEnvironment
-                                        .getCommandHandler()
-                                        .getCommandsForRank(this.client
-                                                .getHabbo()
-                                                .getHabboInfo()
-                                                .getRank()
-                                                .getId()),
+                                gameEnvironment.getCommandHandler().getCommandsForUser(this.client.getHabbo()),
                                 gameEnvironment.getPermissionsManager().getAllRanks())
                         .compose());
                 messages.add(new com.eu.habbo.messages.outgoing.roleplay.RoleplayCommandsComposer(

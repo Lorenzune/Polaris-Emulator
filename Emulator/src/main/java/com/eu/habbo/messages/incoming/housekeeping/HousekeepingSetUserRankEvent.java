@@ -88,7 +88,16 @@ public class HousekeepingSetUserRankEvent extends MessageHandler {
         }
 
         try {
-            gameEnvironment.getHabboManager().setRank(userId, rankId);
+            gameEnvironment
+                    .getHabboManager()
+                    .setRank(
+                            userId,
+                            rankId,
+                            new com.eu.habbo.habbohotel.permissions.PermissionAuditLog.Actor(
+                                    this.client.getHabbo().getHabboInfo().getId(),
+                                    this.client.getHabbo().getHabboInfo().getUsername(),
+                                    "housekeeping",
+                                    ""));
         } catch (Exception failure) {
             this.client.sendResponse(
                     new HousekeepingActionResultComposer(ACTION_KEY, false, 0, "housekeeping.error.db_failed"));

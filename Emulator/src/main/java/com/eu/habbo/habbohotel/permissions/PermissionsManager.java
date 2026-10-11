@@ -31,8 +31,23 @@ public class PermissionsManager {
     private volatile Int2IntMap enables;
     private volatile Map<String, List<Rank>> badges;
     private volatile boolean normalizedSchemaEnabled;
+    private volatile Set<String> knownKeys = Set.of();
+    private final UserPermissionOverrides overrides;
+
+    public UserPermissionOverrides getOverrides() {
+        return overrides;
+    }
+
+    public boolean isPermissionDefined(String key) {
+        return knownKeys.contains(key);
+    }
 
     public PermissionsManager() {
+        this(new UserPermissionOverrides());
+    }
+
+    PermissionsManager(UserPermissionOverrides overrides) {
+        this.overrides = java.util.Objects.requireNonNull(overrides);
         long millis = System.currentTimeMillis();
         this.ranks = new Int2ObjectOpenHashMap<>();
         this.enables = new Int2IntOpenHashMap();
@@ -101,6 +116,9 @@ public class PermissionsManager {
             }
         }
 
+        Set<String> keys = new HashSet<>();
+        for (Rank rank : loaded.values()) keys.addAll(rank.getPermissions().keySet());
+        this.knownKeys = Set.copyOf(keys);
         this.ranks = loaded;
         this.badges = loadedBadges;
     }
@@ -302,17 +320,59 @@ public class PermissionsManager {
             return false;
         }
 
-        if (!this.hasPermission(habbo.getHabboInfo().getRank(), permission, withRoomRights)) {
-            for (HabboPlugin plugin : Emulator.getPluginManager().getPlugins()) {
-                if (plugin.hasPermission(habbo, permission)) {
-                    return true;
-                }
-            }
+        UserPermissionOverrides.Snapshot personal =
+                overrides.snapshot(habbo.getHabboInfo().getId());
+        return hasPermission(habbo, permission, withRoomRights, personal);
+    }
 
-            return false;
+    public boolean hasPermission(
+            Habbo habbo, String permission, boolean withRoomRights, UserPermissionOverrides.Snapshot personal) {
+        if (habbo == null || habbo.getHabboInfo() == null || permission == null || permission.isBlank()) return false;
+        if (!personal.available()) return false;
+        var override = personal.active(permission, System.currentTimeMillis());
+        if (override != null) {
+            return isPermissionDefined(permission)
+                    && (override.setting() == PermissionSetting.ALLOWED
+                            || override.setting() == PermissionSetting.ROOM_OWNER && withRoomRights);
         }
 
-        return true;
+        return hasBasePermission(habbo, permission, withRoomRights);
+    }
+
+    public boolean hasBasePermission(Habbo habbo, String permission, boolean withRoomRights) {
+        if (habbo == null || habbo.getHabboInfo() == null || permission == null || permission.isBlank()) return false;
+        return this.hasPermission(habbo.getHabboInfo().getRank(), permission, withRoomRights)
+                || anyPluginGrants(habbo, permission);
+    }
+
+    private boolean anyPluginGrants(Habbo habbo, String permission) {
+        for (HabboPlugin plugin : Emulator.getPluginManager().getPlugins()) {
+            if (plugin.hasPermission(habbo, permission)) return true;
+        }
+        return false;
+    }
+
+    public Map<String, Integer> getEffectivePermissions(Habbo habbo) {
+        var personal = overrides.snapshot(habbo.getHabboInfo().getId());
+        if (!personal.available()) return Map.of();
+        long now = System.currentTimeMillis();
+        Map<String, Integer> resolved = new java.util.LinkedHashMap<>();
+        for (var entry : habbo.getHabboInfo().getRank().getPermissions().entrySet()) {
+            var override = personal.active(entry.getKey(), now);
+            if (override != null) {
+                if (knownKeys.contains(entry.getKey()) && override.setting() != PermissionSetting.DISALLOWED)
+                    resolved.put(entry.getKey(), UserPermissionOverrides.valueOf(override.setting()));
+            } else if (entry.getValue().setting != PermissionSetting.DISALLOWED) {
+                resolved.put(entry.getKey(), UserPermissionOverrides.valueOf(entry.getValue().setting));
+            } else if (anyPluginGrants(habbo, entry.getKey())) resolved.put(entry.getKey(), 1);
+        }
+        for (var override : personal.values().values()) {
+            if (override.activeAt(now)
+                    && knownKeys.contains(override.key())
+                    && override.setting() != PermissionSetting.DISALLOWED)
+                resolved.put(override.key(), UserPermissionOverrides.valueOf(override.setting()));
+        }
+        return java.util.Collections.unmodifiableMap(resolved);
     }
 
     public boolean hasPermission(Rank rank, String permission, boolean withRoomRights) {

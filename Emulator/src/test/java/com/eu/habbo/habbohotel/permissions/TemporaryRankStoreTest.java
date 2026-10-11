@@ -32,7 +32,7 @@ class TemporaryRankStoreTest {
         Fixture fixture = new Fixture(3, 1, 3, 10_000);
         var state = TemporaryRankStore.grant(fixture.connection, 42, 4, 60_000, 99, "reason", 5_000, rank -> rank < 5);
         assertEquals(new TemporaryRankStore.State(4, 1, 65_000), state);
-        verify(fixture.statement("INSERT INTO")).setInt(2, 1);
+        verify(fixture.statement("INSERT INTO user_temporary_ranks")).setInt(2, 1);
         verify(fixture.connection).commit();
     }
 
@@ -71,7 +71,7 @@ class TemporaryRankStoreTest {
                 () -> TemporaryRankStore.grant(fixture.connection, 42, 3, 60_000, 99, "", 5_000, rank -> rank < 4));
         verify(fixture.connection).rollback();
         verify(fixture.connection, never()).commit();
-        assertNull(fixture.statement("INSERT INTO"));
+        assertNull(fixture.statement("INSERT INTO user_temporary_ranks"));
     }
 
     @Test

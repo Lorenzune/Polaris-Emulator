@@ -308,6 +308,12 @@ public class HabboManager {
     }
 
     public synchronized void setRank(int userId, int rankId) throws Exception {
+        setRank(userId, rankId, com.eu.habbo.habbohotel.permissions.PermissionAuditLog.Actor.system("system"));
+    }
+
+    public synchronized void setRank(
+            int userId, int rankId, com.eu.habbo.habbohotel.permissions.PermissionAuditLog.Actor actor)
+            throws Exception {
         Habbo habbo = this.getHabbo(userId);
 
         if (!Emulator.getGameEnvironment().getPermissionsManager().rankExists(rankId)) {
@@ -319,7 +325,7 @@ public class HabboManager {
                 ? this.rankDataSource
                 : WiredPlatform.database().getDataSource();
         try (Connection connection = source.getConnection()) {
-            TemporaryRankStore.permanent(connection, userId, rankId);
+            TemporaryRankStore.permanent(connection, userId, rankId, actor);
         }
         publishRank(habbo, newRank);
     }
@@ -330,6 +336,11 @@ public class HabboManager {
 
     private void publishRank(Habbo habbo, Rank newRank, TemporaryRankStore.State lease) {
         Rank oldRank = habbo != null ? habbo.getHabboInfo().getStoredRank() : null;
+        if (habbo != null)
+            WiredPlatform.gameEnvironment()
+                    .getPermissionsManager()
+                    .getOverrides()
+                    .invalidate(habbo.getHabboInfo().getId());
         if (habbo != null) {
             if (lease != null && lease.previousRank() != null)
                 habbo.getHabboInfo()
@@ -460,6 +471,7 @@ public class HabboManager {
 
     public void refreshTemporaryRankForLogin(Connection connection, HabboInfo info) throws SQLException {
         if (this.rankDataSource == null) return;
+        this.rankPermissions.getOverrides().invalidate(info.getId());
         var state = TemporaryRankStore.refresh(
                 connection,
                 info.getId(),
