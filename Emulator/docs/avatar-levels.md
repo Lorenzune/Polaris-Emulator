@@ -104,6 +104,35 @@ anche dalla configurazione di durabilità e dai backup del database.
 
 ## Verifiche
 
+Gli hotel che hanno gia applicato la release pet fino a V20261011153000
+possono ricevere dopo le migrazioni avatar V20261011120000 e V20261011150000.
+Il runner ammette soltanto questi due recuperi fuori ordine e soltanto prima
+delle successive riparazioni avatar. Altri salti, checksum errati o una
+proiezione avatar gia installata senza la migrazione iniziale restano bloccati.
+La politica di backup configurata e la validazione restano invariate;
+non occorre cancellare la cronologia,
+usare repair o abilitare globalmente outOfOrder. MigrationRunnerIT riproduce
+questa sequenza partendo dal pacchetto precedente, preserva i dati Pantheon
+e verifica che il secondo avvio non ripeta il recupero.
+
+### Recupero della riparazione su database storici
+
+V20261011170000 ha una revisione correttiva esplicita: la versione pubblicata
+(checksum 1699687904) poteva fallire con collazioni diverse tra i premi
+preesistenti e le nuove tabelle avatar, lasciando DDL gia applicato.
+La revisione 2015814367 usa confronti binari per gli identificatori dei premi,
+DDL ripetibile e conserva baseline, audit e premi gia differiti.
+Il runner riconosce soltanto questi checksum e questa versione, valida le
+altre migrazioni e richiede un backup completo prima di toccare la cronologia,
+anche quando i backup ordinari sono disabilitati. Se il backup fallisce,
+non modifica la cronologia. Una riga fallita viene rimossa soltanto per
+rieseguire normalmente la riparazione; non viene mai marcata riuscita senza
+eseguire SQL. Una vecchia riparazione gia riuscita riceve soltanto il checksum
+della revisione nota, senza ripetere premi o ricalcoli. Non e un repair globale.
+Sul server deve essere disponibile l'eseguibile mariadb-dump configurato.
+AvatarRepairMigrationRecoveryIT riproduce il fallimento originale su collazioni
+miste e verifica recupero, backup fallito, checksum estranei e premi conservati.
+
 I test di dominio versionati coprono tutte le soglie e ricompense, limiti delle
 categorie, massimo raggiunto e Pantheon. I test della coda coprono accorpamento,
 ritentativi, saturazione e inserimenti concorrenti durante uno scarico lento.
