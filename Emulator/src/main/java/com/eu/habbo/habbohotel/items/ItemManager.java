@@ -1261,10 +1261,14 @@ public class ItemManager {
     }
 
     /** Exclude a BC loan from progression before INSERT triggers can see it. */
-    public HabboItem createBuildersClubItem(int habboId, Item item, int limitedStack, int limitedSells, String extraData) {
+    public HabboItem createBuildersClubItem(
+            int habboId, Item item, int limitedStack, int limitedSells, String extraData) {
         try (Connection connection = database().getDataSource().getConnection()) {
             return createItem(connection, habboId, item, limitedStack, limitedSells, extraData, true);
-        } catch (SQLException exception) { LOGGER.error("Could not create Builders Club item", exception); return null; }
+        } catch (SQLException exception) {
+            LOGGER.error("Could not create Builders Club item", exception);
+            return null;
+        }
     }
 
     public HabboItem createItem(
@@ -1273,8 +1277,15 @@ public class ItemManager {
         return createItem(connection, habboId, item, limitedStack, limitedSells, extraData, false);
     }
 
-    private HabboItem createItem(Connection connection, int habboId, Item item, int limitedStack, int limitedSells,
-            String extraData, boolean avatarLevelExcluded) throws SQLException {
+    private HabboItem createItem(
+            Connection connection,
+            int habboId,
+            Item item,
+            int limitedStack,
+            int limitedSells,
+            String extraData,
+            boolean avatarLevelExcluded)
+            throws SQLException {
         if (habboId <= 0 || item == null) {
             return null;
         }

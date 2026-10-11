@@ -32,7 +32,9 @@ final class RoomTradeTransaction {
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
             connection.setAutoCommit(false);
             try (var avatarProgress = new com.eu.habbo.habbohotel.users.levels.AvatarLevelTransaction(
-                    connection, userOne.getHabboInfo().getId(), userTwo.getHabboInfo().getId())) {
+                    connection,
+                    userOne.getHabboInfo().getId(),
+                    userTwo.getHabboInfo().getId())) {
                 String operationId = EconomyOperationId.create("room-trade");
                 int tradeId = logTrades
                         ? insertTradeLog(connection, userOne, userTwo, userOneItems.size(), userTwoItems.size())

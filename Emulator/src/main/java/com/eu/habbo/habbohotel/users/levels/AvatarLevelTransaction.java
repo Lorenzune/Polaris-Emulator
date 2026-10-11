@@ -12,7 +12,8 @@ public final class AvatarLevelTransaction implements AutoCloseable {
 
     public AvatarLevelTransaction(Connection connection, int... users) throws SQLException {
         this.connection = connection;
-        this.users = Arrays.stream(users).filter(id -> id > 0).distinct().sorted().toArray();
+        this.users =
+                Arrays.stream(users).filter(id -> id > 0).distinct().sorted().toArray();
         setDeferred(true);
     }
 
@@ -20,7 +21,8 @@ public final class AvatarLevelTransaction implements AutoCloseable {
         setDeferred(false);
         for (int user : users) {
             try (var call = connection.prepareCall("{CALL avatar_levels_refresh(?)}")) {
-                call.setInt(1, user); call.execute();
+                call.setInt(1, user);
+                call.execute();
             }
         }
     }
@@ -32,5 +34,8 @@ public final class AvatarLevelTransaction implements AutoCloseable {
         }
     }
 
-    @Override public void close() throws SQLException { if (this.deferred) setDeferred(false); }
+    @Override
+    public void close() throws SQLException {
+        if (this.deferred) setDeferred(false);
+    }
 }

@@ -83,8 +83,16 @@ Gli scambi registrano solo la collezione finale, evitando punti dal passaggio
 intermedio ricevi/cedi. I nuovi prestiti Builders Club sono esclusi già al loro
 inserimento, prima del posizionamento e della registrazione nella tabella BC.
 
-Il tempo di ospitalità viene salvato a ogni ciclo della stanza e all'uscita,
-tramite checkpoint cumulativi identificati per sessione. Il checkpoint e
+Il tempo di ospitalità viene campionato a ogni ciclo della stanza e all'uscita,
+tramite checkpoint cumulativi identificati per sessione. Le stanze leggono il
+livello dei visitatori dall'ultimo snapshot confermato (livello 1 prima del primo
+aggiornamento), senza accessi SQL. Una coda in memoria accorpa i checkpoint
+di al massimo 8192 sessioni; un worker dedicato ne salva fino a 200 per passaggio,
+con un secondo di pausa fra passaggi. La saturazione rifiuta nuove sessioni,
+che vengono ritentate dalla stanza. La chiusura ordinata tenta un ultimo scarico.
+La conferma della coda non equivale a un COMMIT: un arresto improvviso può
+perdere il tempo campionato ma ancora in attesa, anche con database disponibile.
+Il checkpoint SQL e
 l'incremento del proprietario vengono confermati insieme: ripetere il tentativo
 anche dopo una risposta COMMIT persa non duplica il tempo. L'ultimo intervallo
 non ancora campionato al momento del crash non è tempo già confermato. In caso
@@ -96,11 +104,12 @@ anche dalla configurazione di durabilità e dai backup del database.
 
 ## Verifiche
 
-I test di dominio coprono soglie, limiti delle categorie, massimo raggiunto,
-Pantheon e premi ripetuti. I test MariaDB di durabilità coprono assegnazioni
-offline, duplicati, esclusioni, rollback, trasferimenti, code offline, assegnazioni simultanee, conversione delle tabelle MyISAM,
-ricaricamento delle definizioni e recupero dei contatori da una nuova connessione. Usano soltanto oggetti con prefisso
-`duck_avcheck_`, poi li rimuovono; non modificano gli utenti dell'hotel.
+I test di dominio versionati coprono tutte le soglie e ricompense, limiti delle
+categorie, massimo raggiunto e Pantheon. I test della coda coprono accorpamento,
+ritentativi, saturazione e inserimenti concorrenti durante uno scarico lento.
+AvatarLevelMigrationIT verifica su un database Testcontainers isolato la
+migrazione dei progressi duplicati, l'idempotenza dei checkpoint SQL e la
+pulizia delle routine fra migrazioni. Non usa il database dell'hotel.
 
 ## Correzione del livello 30 e riconciliazione
 

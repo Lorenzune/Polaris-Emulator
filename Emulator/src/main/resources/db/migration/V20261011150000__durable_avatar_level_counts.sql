@@ -110,7 +110,8 @@ INSERT INTO users_avatar_furni_counts (user_id, item_id, copies)
  LEFT JOIN builders_club_items bc ON bc.item_id = i.id
  WHERE i.avatar_level_excluded = 0 AND bc.item_id IS NULL GROUP BY i.user_id, i.item_id;
 INSERT INTO users_avatar_achievement_progress (user_id, achievement_name, progress)
- SELECT user_id, achievement_name, progress FROM users_achievements;
+ SELECT user_id, achievement_name, MAX(progress) FROM users_achievements
+ GROUP BY user_id, achievement_name;
 DELIMITER $$
 CREATE PROCEDURE avatar_levels_lock(IN first_user INT, IN second_user INT)
 BEGIN

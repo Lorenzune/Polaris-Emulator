@@ -11,6 +11,7 @@ import com.eu.habbo.habbohotel.pets.Pet;
 import com.eu.habbo.habbohotel.users.DanceType;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.habbohotel.users.levels.AvatarLevelPlatform;
 import com.eu.habbo.habbohotel.wired.core.WiredMoveCarryHelper;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.rooms.RoomAccessDeniedComposer;
@@ -39,11 +40,13 @@ public class RoomCycleManager {
     private final ConcurrentHashMap<Integer, TimeSpentSession> timeSpentSessions;
     private final ConcurrentHashMap<Integer, Long> avatarHostingLastCountedAt = new ConcurrentHashMap<>();
     private final java.util.Map<Integer, AvatarHostingCheckpoint> avatarHostingCheckpoints = new java.util.HashMap<>();
+
     private static final class AvatarHostingCheckpoint {
         final String sessionId = java.util.UUID.randomUUID().toString();
         long cumulativeMillis;
-        long persistedMillis;
+        long queuedMillis;
     }
+
     private long rollerCycle = System.currentTimeMillis();
 
     public RoomCycleManager(Room room) {
@@ -232,23 +235,24 @@ public class RoomCycleManager {
     synchronized void countAvatarHostingVisitor(Habbo visitor, long now) {
         int visitorId = visitor.getHabboInfo().getId();
         if (visitorId == this.room.getOwnerId() || !visitor.isOnline()) return;
-        var manager = Emulator.getGameEnvironment().getAvatarLevelManager();
+        var manager = AvatarLevelPlatform.game().getAvatarLevelManager();
         if (manager == null) return;
         Long previous = this.avatarHostingLastCountedAt.put(visitorId, now);
         if (previous != null && now > previous) {
-            var checkpoint = avatarHostingCheckpoints.computeIfAbsent(this.room.getOwnerId(), ignored -> new AvatarHostingCheckpoint());
-            checkpoint.cumulativeMillis += (now - previous) * manager.getLevel(visitorId);
+            var checkpoint = avatarHostingCheckpoints.computeIfAbsent(
+                    this.room.getOwnerId(), ignored -> new AvatarHostingCheckpoint());
+            checkpoint.cumulativeMillis += (now - previous) * manager.getCachedLevel(visitorId);
         }
     }
 
     synchronized void flushAvatarHosting() {
-        var manager = Emulator.getGameEnvironment().getAvatarLevelManager();
+        var manager = AvatarLevelPlatform.game().getAvatarLevelManager();
         if (manager == null) return;
         for (var entry : avatarHostingCheckpoints.entrySet()) {
             var checkpoint = entry.getValue();
-            if (checkpoint.cumulativeMillis > checkpoint.persistedMillis
+            if (checkpoint.cumulativeMillis > checkpoint.queuedMillis
                     && manager.recordHosting(entry.getKey(), checkpoint.sessionId, checkpoint.cumulativeMillis)) {
-                checkpoint.persistedMillis = checkpoint.cumulativeMillis;
+                checkpoint.queuedMillis = checkpoint.cumulativeMillis;
             }
         }
     }

@@ -13,7 +13,9 @@ public record AvatarLevelScore(int achievements, int badges, int hosting, int fu
         furni = Math.max(0, furni);
     }
 
-    public int[] raw() { return new int[] { achievements, badges, hosting, furni }; }
+    public int[] raw() {
+        return new int[] {achievements, badges, hosting, furni};
+    }
 
     public int[] counted() {
         int[] result = raw();

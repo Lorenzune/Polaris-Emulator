@@ -158,7 +158,8 @@ public class GameEnvironment {
         this.modToolSanctions = this.services.create("moderation sanctions", ModToolSanctions::new);
         this.achievementManager = this.services.create("achievement manager", AchievementManager::new);
         this.achievementManager.reload();
-        this.avatarLevelManager = this.services.create("avatar level manager",
+        this.avatarLevelManager = this.services.create(
+                "avatar level manager",
                 com.eu.habbo.habbohotel.users.levels.AvatarLevelManager::new,
                 manager -> manager.setDisposed(true));
         this.avatarLevelManager.initializeDefinitions();
@@ -231,7 +232,7 @@ public class GameEnvironment {
         Emulator.getThreading().run(this.subscriptionScheduler);
 
         this.habboManager.startTemporaryRanks();
-        Emulator.getThreading().run(this.avatarLevelManager);
+        this.avatarLevelManager.start();
         var permissionRefresh = this.services.create(
                 "permission live refresh",
                 () -> new com.eu.habbo.habbohotel.permissions.PermissionLiveRefresh(
