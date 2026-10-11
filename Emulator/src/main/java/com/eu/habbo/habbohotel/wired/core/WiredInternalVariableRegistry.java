@@ -95,7 +95,8 @@ final class WiredInternalVariableRegistry {
                 "@bot_id",
                 "@pet_id",
                 "@pet_owner_id");
-        builder.register(Capability.USER_DESTINATION, "@handitem_id", "@position_x", "@position_y", "@direction");
+        builder.register(
+                Capability.USER_DESTINATION, "@handitem_id", "@position_x", "@position_y", "@direction", "@opacity");
         builder.register(
                 Capability.FURNI_REFERENCE,
                 "~teleport.target_id",
@@ -132,7 +133,13 @@ final class WiredInternalVariableRegistry {
         builder.registerWhen(
                 ALWAYS_ENABLED, EnumSet.of(Capability.FURNI_REFERENCE, Capability.FURNI_DESTINATION), "@gravity");
         builder.registerWhen(
-                ALWAYS_ENABLED, EnumSet.of(Capability.FURNI_REFERENCE, Capability.FURNI_DESTINATION), "@opacity");
+                ALWAYS_ENABLED,
+                EnumSet.of(
+                        Capability.FURNI_REFERENCE,
+                        Capability.FURNI_DESTINATION,
+                        Capability.USER_REFERENCE,
+                        Capability.USER_DESTINATION),
+                "@opacity");
         builder.registerWhen(
                 ALWAYS_ENABLED, EnumSet.of(Capability.FURNI_REFERENCE, Capability.FURNI_DESTINATION), "@scaling");
         builder.register(

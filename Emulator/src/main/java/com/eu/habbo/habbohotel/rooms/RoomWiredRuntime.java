@@ -18,6 +18,41 @@ public final class RoomWiredRuntime {
     private static final Logger LOGGER = LoggerFactory.getLogger(RoomWiredRuntime.class);
 
     private final Room room;
+    private final Map<String, WiredHighlightState> highlights = new HashMap<>();
+
+    private boolean currentHighlight(WiredHighlightState state) {
+        if (state.category() == 100)
+            return room.getRoomUnits().stream().anyMatch(unit -> unit.getId() == state.id() && !unit.isInvisible());
+        HabboItem item = room.getHabboItem(state.id());
+        return item != null
+                && item.getRoomId() == room.getId()
+                && (item.getBaseItem().getType() == com.eu.habbo.habbohotel.items.FurnitureType.WALL ? 20 : 10)
+                        == state.category();
+    }
+
+    public synchronized void applyHighlights(List<WiredHighlightState> requested) {
+        highlights.values().removeIf(state -> !currentHighlight(state));
+        Map<String, WiredHighlightState> applied = new java.util.LinkedHashMap<>();
+        for (var state : requested) {
+            if (!currentHighlight(state)) continue;
+            String key = state.category() + ":" + state.id();
+            if (state.style() == 0) highlights.remove(key);
+            else if (highlights.containsKey(key) || highlights.size() < 512) highlights.put(key, state);
+            else continue;
+            applied.put(key, state);
+            if (applied.size() >= 512) break;
+        }
+        if (!applied.isEmpty())
+            room.sendComposer(new com.eu.habbo.messages.outgoing.rooms.WiredHighlightComposer(
+                            room.getId(), List.copyOf(applied.values()))
+                    .compose());
+    }
+
+    public synchronized List<WiredHighlightState> highlightSnapshot() {
+        highlights.values().removeIf(state -> !currentHighlight(state));
+        return List.copyOf(highlights.values());
+    }
+
     private final com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor variableMonitor =
             new com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor();
 
@@ -320,7 +355,15 @@ public final class RoomWiredRuntime {
         return true;
     }
 
+    public synchronized void forgetHighlight(int category, int id) {
+        highlights.remove(category + ":" + id);
+    }
+
     void forgetOpacity(HabboItem item) {
+        if (item != null) {
+            forgetHighlight(10, item.getId());
+            forgetHighlight(20, item.getId());
+        }
         this.opacity.forgetItem(item);
     }
 
@@ -329,12 +372,14 @@ public final class RoomWiredRuntime {
     }
 
     void dispose() {
+        highlights.clear();
         variableMonitor.clear();
         this.gravity.dispose();
         this.opacity.dispose();
     }
 
     void resetForRoomLoad() {
+        highlights.clear();
         this.gravity.dispose();
         this.opacity.resetForRoomLoad();
     }

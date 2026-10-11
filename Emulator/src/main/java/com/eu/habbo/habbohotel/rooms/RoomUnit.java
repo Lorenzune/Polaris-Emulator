@@ -102,6 +102,16 @@ public class RoomUnit {
     private int idleTimer;
     private boolean idle;
     private Room room;
+    private volatile int wiredOpacity = 100;
+
+    public int getWiredOpacity() {
+        return wiredOpacity;
+    }
+
+    public void setWiredOpacity(int value) {
+        wiredOpacity = Math.max(0, Math.min(100, value));
+    }
+
     private RoomRightLevels rightsLevel = RoomRightLevels.NONE;
     private Set<Integer> overridableTiles;
 
@@ -671,6 +681,11 @@ public class RoomUnit {
     }
 
     public void setPathFinderRoom(Room room) {
+        if (this.room != room) {
+            if (this.room != null && this.room.getWiredRuntime() != null)
+                this.room.getWiredRuntime().forgetHighlight(100, getId());
+            wiredOpacity = 100;
+        }
         this.room = room;
     }
 
@@ -953,6 +968,11 @@ public class RoomUnit {
     }
 
     public void setRoom(Room room) {
+        if (this.room != room) {
+            if (this.room != null && this.room.getWiredRuntime() != null)
+                this.room.getWiredRuntime().forgetHighlight(100, getId());
+            wiredOpacity = 100;
+        }
         this.room = room;
     }
 

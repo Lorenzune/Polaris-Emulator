@@ -2,6 +2,176 @@
   "schemaVersion": 1,
   "contracts": [
     {
+      "name": "REQUEST_WIRED_LABEL_EDITOR",
+      "direction": "client_to_server",
+      "header": 10092,
+      "java": {
+        "symbol": "RequestWiredLabelEditorEvent",
+        "className": "RequestWiredLabelEditorEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/wired/RequestWiredLabelEditorEvent.java"
+      },
+      "typescript": {
+        "symbol": "REQUEST_WIRED_LABEL_EDITOR",
+        "className": "RequestWiredLabelEditorComposer",
+        "path": "packages/communication/src/messages/outgoing/roomevents/RequestWiredLabelEditorComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "roomId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "itemId"
+        }
+      ]
+    },
+    {
+      "name": "SAVE_WIRED_LABEL_CARD",
+      "direction": "client_to_server",
+      "header": 10093,
+      "java": {
+        "symbol": "SaveWiredLabelCardEvent",
+        "className": "SaveWiredLabelCardEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/wired/SaveWiredLabelCardEvent.java"
+      },
+      "typescript": {
+        "symbol": "SAVE_WIRED_LABEL_CARD",
+        "className": "SaveWiredLabelCardComposer",
+        "path": "packages/communication/src/messages/outgoing/roomevents/SaveWiredLabelCardComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "roomId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "itemId"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "text"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "color"
+        }
+      ]
+    },
+    {
+      "name": "WIRED_LABEL_EDITOR",
+      "direction": "server_to_client",
+      "header": 5115,
+      "java": {
+        "symbol": "WiredLabelEditorComposer",
+        "className": "WiredLabelEditorComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/items/WiredLabelEditorComposer.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_LABEL_EDITOR",
+        "className": "WiredLabelEditorMessageParser",
+        "path": "packages/communication/src/messages/parser/room/furniture/WiredLabelEditorMessageParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "roomId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "itemId"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "text"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "state"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "color"
+        }
+      ]
+    },
+    {
+      "name": "SAVE_WIRED_LABEL",
+      "direction": "client_to_server",
+      "header": 10091,
+      "java": {
+        "symbol": "SaveWiredLabelEvent",
+        "className": "SaveWiredLabelEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/wired/SaveWiredLabelEvent.java"
+      },
+      "typescript": {
+        "symbol": "SAVE_WIRED_LABEL",
+        "className": "SaveWiredLabelComposer",
+        "path": "packages/communication/src/messages/outgoing/roomevents/SaveWiredLabelComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "roomId"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "itemId"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "text"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "state"
+        }
+      ]
+    },
+    {
+      "name": "CHOOSER_DISABLED_STATE",
+      "direction": "server_to_client",
+      "header": 5114,
+      "java": {
+        "symbol": "ChooserDisabledStateComposer",
+        "className": "ChooserDisabledStateComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/items/ChooserDisabledStateComposer.java"
+      },
+      "typescript": {
+        "symbol": "CHOOSER_DISABLED_STATE",
+        "className": "ChooserDisabledStateMessageParser",
+        "path": "packages/communication/src/messages/parser/room/furniture/ChooserDisabledStateMessageParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "roomId"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "disabled"
+        }
+      ]
+    },
+    {
       "name": "GAME2GETACCOUNTGAMESTATUSMESSAGE",
       "direction": "client_to_server",
       "header": 11,
@@ -24259,6 +24429,38 @@
         "path": "packages/communication/src/messages/parser/roomevents/WiredFurniCustomColorParser.ts"
       },
       "reason": "The packet dictionary-compresses repeated color values and indexes them from a variable update list, a dependent shape the static analyzer cannot currently model."
+    },
+    {
+      "name": "WIRED_USER_OPACITY",
+      "direction": "server_to_client",
+      "header": 5116,
+      "java": {
+        "symbol": "WiredUserOpacityComposer",
+        "className": "WiredUserOpacityComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/users/WiredUserOpacityComposer.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_USER_OPACITY",
+        "className": "WiredUserOpacityParser",
+        "path": "packages/communication/src/messages/parser/roomevents/WiredUserOpacityParser.ts"
+      },
+      "reason": "Room-scoped count-prefixed avatar opacity collection; dedicated composer/parser regression tests cover bounds and wire format."
+    },
+    {
+      "name": "WIRED_HIGHLIGHT",
+      "direction": "server_to_client",
+      "header": 5117,
+      "java": {
+        "symbol": "WiredHighlightComposer",
+        "className": "WiredHighlightComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/WiredHighlightComposer.java"
+      },
+      "typescript": {
+        "symbol": "WIRED_HIGHLIGHT",
+        "className": "WiredHighlightParser",
+        "path": "packages/communication/src/messages/parser/roomevents/WiredHighlightParser.ts"
+      },
+      "reason": "Bounded room-scoped highlight collection; dedicated tests validate payload bounds, lifecycle and wire format."
     }
   ]
 }

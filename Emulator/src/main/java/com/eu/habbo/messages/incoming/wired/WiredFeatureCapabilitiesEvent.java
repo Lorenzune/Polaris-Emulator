@@ -29,6 +29,12 @@ public class WiredFeatureCapabilitiesEvent extends MessageHandler {
             this.client.sendResponse(new WiredFurniOpacityComposer(
                     opacityProtocolVersion, room.getId(), room.getWiredRuntime().opacitySnapshot(userId), 0, 0));
         }
+        // Resend after client room initialization: the entry snapshot can arrive
+        // before its room UI has subscribed to the highlight stream.
+        var highlights = room.getWiredRuntime().highlightSnapshot();
+        if (!highlights.isEmpty())
+            this.client.sendResponse(
+                    new com.eu.habbo.messages.outgoing.rooms.WiredHighlightComposer(room.getId(), highlights));
         WiredOpacityBroadcaster.sendCustomColorSnapshot(
                 this.client.getHabbo(), room.getId(), room.getWiredRuntime().customColorSnapshot());
     }

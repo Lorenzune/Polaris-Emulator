@@ -1,6 +1,9 @@
 package com.eu.habbo.messages.outgoing;
 
 public class Outgoing {
+    public static final int WiredHighlightComposer = 5117;
+    public static final int WiredUserOpacityComposer = 5116;
+    public static final int WiredLabelEditorComposer = 5115;
     public static final int WiredQuestStateComposer = 9373;
     public static final int WiredContractTransactionComposer = 9371;
     public static final int PetStatusUpdateComposer = 1907; // error 404
@@ -142,6 +145,7 @@ public class Outgoing {
     public static final int WiredUserVariablesDataComposer = 5103; // CUSTOM
     public static final int WiredAccountPreferencesDataComposer = 5111; // CUSTOM
     public static final int ConfInvisStateComposer = 5104; // CUSTOM
+    public static final int ChooserDisabledStateComposer = 5114; // CUSTOM, room-scoped user chooser restriction
     public static final int TranslationLanguagesComposer = 5106; // CUSTOM
     public static final int TranslationResultComposer = 5107; // CUSTOM
     public static final int AreaHideComposer = 6001; // CUSTOM

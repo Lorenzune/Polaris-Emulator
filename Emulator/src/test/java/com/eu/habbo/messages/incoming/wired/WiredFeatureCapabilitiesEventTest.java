@@ -82,6 +82,15 @@ class WiredFeatureCapabilitiesEventTest {
         verify(fixture.runtime, never()).opacitySnapshot(anyInt());
     }
 
+    @Test
+    void roomInitializationResendsActiveHighlights() throws Exception {
+        Fixture fixture = fixture();
+        when(fixture.runtime.highlightSnapshot())
+                .thenReturn(List.of(new com.eu.habbo.habbohotel.rooms.WiredHighlightState(10, 901, 4, 0xff5500)));
+        event(fixture, 3, 0).handle();
+        verify(fixture.client).sendResponse(any(com.eu.habbo.messages.outgoing.rooms.WiredHighlightComposer.class));
+    }
+
     private static WiredFeatureCapabilitiesEvent event(Fixture fixture, int version, int capabilities) {
         WiredFeatureCapabilitiesEvent event = new WiredFeatureCapabilitiesEvent();
         event.client = fixture.client;

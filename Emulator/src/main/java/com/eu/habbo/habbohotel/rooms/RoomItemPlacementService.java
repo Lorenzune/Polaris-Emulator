@@ -214,6 +214,9 @@ final class RoomItemPlacementService {
         if (RoomHanditemBlockSupport.isControllerItem(item)) {
             RoomHanditemBlockSupport.sendState(this.room);
         }
+        if (RoomChooserDisableSupport.isControllerItem(item)) {
+            RoomChooserDisableSupport.sendState(this.room);
+        }
 
         for (RoomTile occupiedTile : occupiedTiles) {
             this.room.updateHabbosAt(occupiedTile.x, occupiedTile.y);

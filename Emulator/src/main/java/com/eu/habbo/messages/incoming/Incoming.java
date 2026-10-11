@@ -1,6 +1,9 @@
 package com.eu.habbo.messages.incoming;
 
 public class Incoming {
+    public static final int SaveWiredLabelEvent = 10091;
+    public static final int RequestWiredLabelEditorEvent = 10092;
+    public static final int SaveWiredLabelCardEvent = 10093;
     public static final int WiredQuestRequestEvent = 9372;
     public static final int WiredContractTransactionEvent = 9370;
     public static final int PongEvent = 2596;

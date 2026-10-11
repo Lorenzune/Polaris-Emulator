@@ -103,6 +103,9 @@ final class RoomItemOwnershipService {
             this.index.unregisterIncarnation(removed);
             this.removeOwnerIndex(removed);
             this.registry.unregister(item);
+            if (RoomChooserDisableSupport.isControllerItem(removed)) {
+                RoomChooserDisableSupport.sendState(this.room);
+            }
         }
 
         if (trackedBuildersClubItem) {

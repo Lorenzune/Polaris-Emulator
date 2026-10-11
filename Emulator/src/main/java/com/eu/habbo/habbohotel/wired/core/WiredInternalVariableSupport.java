@@ -79,7 +79,8 @@ public final class WiredInternalVariableSupport {
         String normalized = normalizeKey(key);
 
         return switch (normalized) {
-            case "@index",
+            case "@opacity",
+                    "@index",
                     "@type",
                     "@level",
                     "@achievement_score",
@@ -172,6 +173,7 @@ public final class WiredInternalVariableSupport {
         String normalized = normalizeKey(key);
 
         return switch (normalized) {
+            case "@opacity" -> roomUnit.getWiredOpacity();
             case "@index" -> roomUnit.getId();
             case "@type" -> getUserTypeValue(habbo, bot, pet);
             case "@gender" -> getGenderValue(habbo, bot);
@@ -256,6 +258,15 @@ public final class WiredInternalVariableSupport {
         }
 
         return switch (normalized) {
+            case "@opacity" -> {
+                if (value < 0 || value > 100 || !room.getRoomUnits().contains(roomUnit)) yield false;
+                if (roomUnit.getWiredOpacity() == value) yield true;
+                roomUnit.setWiredOpacity(value);
+                room.sendComposer(new com.eu.habbo.messages.outgoing.rooms.users.WiredUserOpacityComposer(
+                                room.getId(), java.util.List.of(roomUnit))
+                        .compose());
+                yield true;
+            }
             case "@handitem_id" -> {
                 int handItemId = Math.max(0, Math.min(MAX_HAND_ITEM_ID, value));
                 room.getUnitManager().giveHandItem(roomUnit, handItemId);

@@ -14,7 +14,7 @@ class WiredInternalVariableRegistryCompatibilityTest {
     @Test
     void everyCurrentCapabilitySetIsFrozenExactly() {
         assertEquals(
-                Set.of("@handitem_id", "@position_x", "@position_y", "@direction"),
+                Set.of("@handitem_id", "@position_x", "@position_y", "@direction", "@opacity"),
                 keys(WiredInternalVariableRegistry.Capability.USER_DESTINATION));
         assertEquals(
                 Set.of(
@@ -56,6 +56,7 @@ class WiredInternalVariableRegistryCompatibilityTest {
                         "@position_x",
                         "@position_y",
                         "@direction",
+                        "@opacity",
                         "@altitude",
                         "@favourite_group_id",
                         "@room_entry.method",

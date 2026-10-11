@@ -40,6 +40,9 @@ final class RoomItemOperations {
             if (RoomAreaHideSupport.isControllerItem(item)) {
                 RoomAreaHideSupport.sendState(this.room, item);
             }
+            if (RoomChooserDisableSupport.isControllerItem(item)) {
+                RoomChooserDisableSupport.sendState(this.room);
+            }
             this.room.onFurnitureTopologyChanged(item, true);
         } else if (item.getBaseItem().getType() == FurnitureType.WALL) {
             this.sendOrSchedule(new WallItemUpdateComposer(item).compose());
@@ -53,6 +56,10 @@ final class RoomItemOperations {
     void updateItemState(HabboItem item) {
         if (item == null) {
             return;
+        }
+
+        if (RoomChooserDisableSupport.isControllerItem(item)) {
+            RoomChooserDisableSupport.sendState(this.room);
         }
 
         if (RoomAreaHideSupport.isControllerItem(item) || item instanceof InteractionWiredHighscore) {

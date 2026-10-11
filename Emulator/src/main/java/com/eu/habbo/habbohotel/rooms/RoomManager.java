@@ -1186,6 +1186,8 @@ public class RoomManager {
         habbo.getClient().sendResponse(new ConfInvisStateComposer(room).compose());
         RoomAreaHideSupport.sendState(room, habbo.getClient());
         habbo.getClient().sendResponse(new HanditemBlockStateComposer(room).compose());
+        habbo.getClient()
+                .sendResponse(new com.eu.habbo.messages.outgoing.rooms.items.ChooserDisabledStateComposer(room));
 
         if (!room.getCurrentPets().isEmpty()) {
             habbo.getClient()
@@ -1195,6 +1197,12 @@ public class RoomManager {
             }
         }
 
+        habbo.getClient()
+                .sendResponse(new com.eu.habbo.messages.outgoing.rooms.users.WiredUserOpacityComposer(
+                        room.getId(), room.getRoomUnits()));
+        habbo.getClient()
+                .sendResponse(new com.eu.habbo.messages.outgoing.rooms.WiredHighlightComposer(
+                        room.getId(), room.getWiredRuntime().highlightSnapshot()));
         if (!habbo.getHabboStats().allowTalk()) {
             habbo.getHabboStats().mutedBubbleTracker = true;
             int remainingMuteTime = habbo.getHabboStats().remainingMuteTime();

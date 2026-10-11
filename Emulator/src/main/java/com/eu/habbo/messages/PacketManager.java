@@ -463,6 +463,9 @@ import com.eu.habbo.messages.incoming.users.UserActivityEvent;
 import com.eu.habbo.messages.incoming.users.UserNuxEvent;
 import com.eu.habbo.messages.incoming.users.UserSaveLookEvent;
 import com.eu.habbo.messages.incoming.users.UserWearBadgeEvent;
+import com.eu.habbo.messages.incoming.wired.RequestWiredLabelEditorEvent;
+import com.eu.habbo.messages.incoming.wired.SaveWiredLabelCardEvent;
+import com.eu.habbo.messages.incoming.wired.SaveWiredLabelEvent;
 import com.eu.habbo.messages.incoming.wired.WiredAccountPreferencesRequestEvent;
 import com.eu.habbo.messages.incoming.wired.WiredAccountPreferencesSaveEvent;
 import com.eu.habbo.messages.incoming.wired.WiredApplySetConditionsEvent;
@@ -1234,6 +1237,9 @@ public class PacketManager {
         this.registerHandler(Incoming.WiredFurniRuntimeStateRequestEvent, WiredFurniRuntimeStateRequestEvent.class);
         this.registerHandler(Incoming.WiredFurniOpacityBatchEvent, WiredFurniOpacityBatchEvent.class);
         this.registerHandler(Incoming.WiredFurniCustomColorBatchEvent, WiredFurniCustomColorBatchEvent.class);
+        this.registerHandler(Incoming.SaveWiredLabelEvent, SaveWiredLabelEvent.class);
+        this.registerHandler(Incoming.RequestWiredLabelEditorEvent, RequestWiredLabelEditorEvent.class);
+        this.registerHandler(Incoming.SaveWiredLabelCardEvent, SaveWiredLabelCardEvent.class);
         this.registerHandler(Incoming.WiredFeatureCapabilitiesEvent, WiredFeatureCapabilitiesEvent.class);
         this.registerHandler(Incoming.WiredRoomRollbackEvent, WiredRoomRollbackEvent.class);
     }
