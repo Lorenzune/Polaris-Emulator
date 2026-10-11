@@ -4,7 +4,6 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.WiredPlatform;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
-import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraExecutionLimit;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraRandom;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraUnseen;
 import com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboClicksUser;
@@ -357,8 +356,7 @@ public final class WiredEngine {
             return false;
         }
 
-        WiredExtraExecutionLimit executionLimitExtra = getExecutionLimitExtra(room, stack);
-        return executionLimitExtra == null || executionLimitExtra.canExecuteAt(currentTime);
+        return WiredExecutionLimitSupport.forStack(room, stack.triggerItem()).canExecuteAt(currentTime);
     }
 
     private boolean stackHasExecutableOutcome(WiredStack stack, WiredEvent event) {
@@ -886,12 +884,6 @@ public final class WiredEngine {
         InteractionWiredExtra extra = getStackExtra(room, stack, WiredExtraUnseen.class);
 
         return (extra instanceof WiredExtraUnseen) ? (WiredExtraUnseen) extra : null;
-    }
-
-    private WiredExtraExecutionLimit getExecutionLimitExtra(Room room, WiredStack stack) {
-        InteractionWiredExtra extra = getStackExtra(room, stack, WiredExtraExecutionLimit.class);
-
-        return (extra instanceof WiredExtraExecutionLimit) ? (WiredExtraExecutionLimit) extra : null;
     }
 
     private <T extends InteractionWiredExtra> InteractionWiredExtra getStackExtra(

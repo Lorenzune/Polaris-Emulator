@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraAnimationTime;
 import com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerRepeaterShort;
@@ -18,10 +19,15 @@ import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer;
 import io.netty.buffer.ByteBuf;
+import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 
@@ -78,6 +84,43 @@ class WiredShortMovementTimingTest {
         } finally {
             WiredMoveCarryHelper.clearThreadLocalsForCurrentThread();
         }
+    }
+
+    @ParameterizedTest
+    @MethodSource("animationStacks")
+    void keywordMovementUsesTheSumOfAllAnimationExtras(int[] durations, int expectedDuration) {
+        Fixture fixture = fixture(WiredEvent.Type.USER_SAYS, mock(HabboItem.class));
+        Set<InteractionWiredExtra> extras = new LinkedHashSet<>();
+        for (int i = 0; i < durations.length; i++) {
+            WiredExtraAnimationTime extra = new WiredExtraAnimationTime(
+                    i + 1, 1, mock(com.eu.habbo.habbohotel.items.Item.class), "", 0, 0);
+            assertTrue(extra.saveData(new WiredSettings(new int[] {durations[i]}, "", new int[0], 0), null));
+            extras.add(extra);
+        }
+        when(fixture.room.getRoomSpecialTypes().getExtras((short) 0, (short) 0)).thenReturn(extras);
+        when(fixture.room.furnitureFitsAtWithPhysics(fixture.target, fixture.item, 0, false, WiredMovementPhysics.NONE))
+                .thenReturn(FurnitureMovementError.NONE);
+        when(fixture.room.moveFurniToWithPhysics(
+                        fixture.item, fixture.target, 0, null, false, false, WiredMovementPhysics.NONE))
+                .thenReturn(FurnitureMovementError.NONE);
+
+        WiredMoveCarryHelper.beginMovementCollection();
+        try {
+            assertEquals(FurnitureMovementError.NONE, move(fixture));
+            assertDuration(WiredMoveCarryHelper.finishMovementCollection(), expectedDuration);
+            verify(fixture.room.getWiredRuntime()).markFurnitureMoving(fixture.item, expectedDuration);
+        } finally {
+            WiredMoveCarryHelper.clearThreadLocalsForCurrentThread();
+        }
+    }
+
+    private static Stream<Arguments> animationStacks() {
+        return Stream.of(
+                Arguments.of(new int[] {2000}, 2000),
+                Arguments.of(new int[] {2000, 1500}, 3500),
+                Arguments.of(new int[] {1500, 2000}, 3500),
+                Arguments.of(new int[] {2000, 1500, 50}, 3550),
+                Arguments.of(IntStream.range(0, 1000).map(i -> i % 2 == 0 ? 2000 : 1500).toArray(), 1750000));
     }
 
     @Test

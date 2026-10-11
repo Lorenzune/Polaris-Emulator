@@ -1285,9 +1285,7 @@ public final class WiredManager {
     }
 
     public static boolean isTriggerExecutionAllowed(Room room, HabboItem triggerItem, long timestamp) {
-        WiredExtraExecutionLimit executionLimit = getExecutionLimitExtra(room, triggerItem);
-
-        return executionLimit == null || executionLimit.canExecuteAt(timestamp);
+        return WiredExecutionLimitSupport.forStack(room, triggerItem).canExecuteAt(timestamp);
     }
 
     public static WiredExtraExecutionLimit getExecutionLimitExtra(Room room, HabboItem triggerItem) {

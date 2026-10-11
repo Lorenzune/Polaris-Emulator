@@ -5,7 +5,6 @@ import com.eu.habbo.habbohotel.items.interactions.InteractionWiredCondition;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
-import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraExecutionLimit;
 import com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboClicksUser;
 import com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerHabboSaysKeyword;
 import com.eu.habbo.habbohotel.rooms.Room;
@@ -187,18 +186,18 @@ final class WiredStackExecutor {
             return false;
         }
 
-        WiredExtraExecutionLimit executionLimitExtra = executionLimitExtra(room, stack);
+        WiredExecutionLimitSupport executionLimits = WiredExecutionLimitSupport.forStack(room, stack.triggerItem());
         // Negative effects are the condition-failure branch; a recent successful
         // execution must not prevent that branch from completing a signal loop.
-        if (conditionsPassed && executionLimitExtra != null && !executionLimitExtra.tryAcquireExecutionSlot(currentTime)) {
+        if (conditionsPassed && !executionLimits.tryAcquireExecutionSlot(currentTime)) {
             this.diagnostics.log(
                     room,
                     mode == Mode.DIRECT
-                            ? "Execution limit blocked direct stack {} (max {} in {} ms)"
-                            : "Execution limit blocked stack {} (max {} in {} ms)",
+                            ? "Execution limit blocked direct stack {} (max {} across {} accessories)"
+                            : "Execution limit blocked stack {} (max {} across {} accessories)",
                     stack.triggerItem() != null ? stack.triggerItem().getId() : "null",
-                    executionLimitExtra.getMaxExecutions(),
-                    executionLimitExtra.getTimeWindowMs());
+                    executionLimits.maxExecutions(),
+                    executionLimits.limits().size());
             return false;
         }
 
@@ -396,11 +395,6 @@ final class WiredStackExecutor {
                 extra.activateBox(room, roomUnit, currentTime);
             }
         }
-    }
-
-    private static WiredExtraExecutionLimit executionLimitExtra(Room room, WiredStack stack) {
-        InteractionWiredExtra extra = stackExtra(room, stack, WiredExtraExecutionLimit.class);
-        return extra instanceof WiredExtraExecutionLimit limit ? limit : null;
     }
 
     private static <T extends InteractionWiredExtra> InteractionWiredExtra stackExtra(

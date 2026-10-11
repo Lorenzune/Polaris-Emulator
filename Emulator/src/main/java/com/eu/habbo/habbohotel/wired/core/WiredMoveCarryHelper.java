@@ -853,8 +853,20 @@ public final class WiredMoveCarryHelper {
     }
 
     public static int getAnimationDuration(Room room, HabboItem stackItem, int fallbackDuration) {
-        WiredExtraAnimationTime extra = getAnimationTimeExtra(room, stackItem);
-        return (extra != null) ? extra.getDurationMs() : fallbackDuration;
+        Collection<InteractionWiredExtra> extras = getMovementExtras(room, stackItem);
+        if (extras == null) {
+            return fallbackDuration;
+        }
+
+        long durationMs = 0;
+        for (InteractionWiredExtra extra : extras) {
+            if (extra instanceof WiredExtraAnimationTime animationTime) {
+                durationMs += animationTime.getDurationMs();
+            }
+        }
+
+        // The movement packet carries a signed int; only its range limits the sum.
+        return durationMs > 0 ? (int) Math.min(durationMs, Integer.MAX_VALUE) : fallbackDuration;
     }
 
     private static int defaultMovementDuration(WiredContext ctx) {
@@ -1515,21 +1527,6 @@ public final class WiredMoveCarryHelper {
         for (InteractionWiredExtra extra : extras) {
             if (extra instanceof WiredExtraMoveNoAnimation) {
                 return (WiredExtraMoveNoAnimation) extra;
-            }
-        }
-
-        return null;
-    }
-
-    private static WiredExtraAnimationTime getAnimationTimeExtra(Room room, HabboItem stackItem) {
-        Collection<InteractionWiredExtra> extras = getMovementExtras(room, stackItem);
-        if (extras == null || extras.isEmpty()) {
-            return null;
-        }
-
-        for (InteractionWiredExtra extra : extras) {
-            if (extra instanceof WiredExtraAnimationTime) {
-                return (WiredExtraAnimationTime) extra;
             }
         }
 

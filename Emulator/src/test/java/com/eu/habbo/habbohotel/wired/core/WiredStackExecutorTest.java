@@ -25,6 +25,40 @@ import org.junit.jupiter.api.Test;
 class WiredStackExecutorTest {
 
     @Test
+    void fiveHundredSlotsAllowFiveHundredEventAndDirectExecutions() {
+        for (boolean direct : new boolean[] {false, true}) {
+            List<String> calls = new ArrayList<>();
+            Room room = room(269);
+            var special = mock(com.eu.habbo.habbohotel.rooms.RoomSpecialTypes.class);
+            when(room.getRoomSpecialTypes()).thenReturn(special);
+            java.util.Set<com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra> extras =
+                    new java.util.LinkedHashSet<>();
+            for (int i = 0; i < 5; i++) {
+                var limit = new com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraExecutionLimit(
+                        14000 + i, 1, null, "", 0, 0);
+                assertTrue(limit.saveData(new com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings(
+                        new int[] {100, 1000}, "", new int[0], 0), null));
+                extras.add(limit);
+            }
+            when(special.getExtras(0, 0)).thenReturn(extras);
+            AtomicInteger executions = new AtomicInteger();
+            var stack = new WiredStack(item(14010), trigger(calls, true), List.of(),
+                    List.of(ctx -> executions.incrementAndGet()));
+            var executor = executor(calls, 1000L);
+            var event = event(room);
+            for (int i = 0; i < 500; i++) {
+                assertTrue(direct
+                        ? executor.executeDirect(stack, event, false)
+                        : executor.executeEvent(stack, event, 1000L, false));
+            }
+            assertFalse(direct
+                    ? executor.executeDirect(stack, event, false)
+                    : executor.executeEvent(stack, event, 1000L, false));
+            assertEquals(500, executions.get());
+        }
+    }
+
+    @Test
     void limitedReceiverCanFinishThroughItsNegativeBranchAfterResettingItsCondition() {
         List<String> calls = new ArrayList<>();
         Room room = room(268);
