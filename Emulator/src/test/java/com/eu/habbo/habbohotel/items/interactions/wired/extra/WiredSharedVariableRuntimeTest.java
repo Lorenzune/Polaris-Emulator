@@ -78,12 +78,15 @@ class WiredSharedVariableRuntimeTest {
             emulator.when(Emulator::getDatabase).thenReturn(database);
             assertTrue(WiredVariableReferenceSupport.updateSharedRoomVariable(reference, 7));
             when(definition.isSharedAvailability()).thenReturn(false);
-            org.junit.jupiter.api.Assertions.assertFalse(WiredVariableReferenceSupport.updateSharedRoomVariable(reference, 7));
+            org.junit.jupiter.api.Assertions.assertFalse(
+                    WiredVariableReferenceSupport.updateSharedRoomVariable(reference, 7));
             when(definition.isSharedAvailability()).thenReturn(true);
             when(definition.getVariableName()).thenReturn(" ");
-            org.junit.jupiter.api.Assertions.assertFalse(WiredVariableReferenceSupport.updateSharedRoomVariable(reference, 7));
+            org.junit.jupiter.api.Assertions.assertFalse(
+                    WiredVariableReferenceSupport.updateSharedRoomVariable(reference, 7));
             when(source.getHabboItem(33)).thenReturn(null);
-            org.junit.jupiter.api.Assertions.assertFalse(WiredVariableReferenceSupport.updateSharedRoomVariable(reference, 7));
+            org.junit.jupiter.api.Assertions.assertFalse(
+                    WiredVariableReferenceSupport.updateSharedRoomVariable(reference, 7));
             verify(source.getRoomVariableManager(), times(1)).updateVariableValue(33, 7);
             org.mockito.Mockito.verifyNoInteractions(database);
         }
@@ -94,7 +97,11 @@ class WiredSharedVariableRuntimeTest {
         var environment = mock(GameEnvironment.class, RETURNS_DEEP_STUBS);
         var database = mock(Database.class, RETURNS_DEEP_STUBS);
         var rows = mock(ResultSet.class);
-        when(database.getDataSource().getConnection().prepareStatement(anyString()).executeQuery()).thenReturn(rows);
+        when(database.getDataSource()
+                        .getConnection()
+                        .prepareStatement(anyString())
+                        .executeQuery())
+                .thenReturn(rows);
         when(rows.next()).thenReturn(false);
         var reference = mock(WiredExtraVariableReference.class);
         when(reference.isUserReference()).thenReturn(true);
@@ -103,7 +110,8 @@ class WiredSharedVariableRuntimeTest {
         try (var emulator = mockStatic(Emulator.class)) {
             emulator.when(Emulator::getGameEnvironment).thenReturn(environment);
             emulator.when(Emulator::getDatabase).thenReturn(database);
-            org.junit.jupiter.api.Assertions.assertFalse(WiredVariableReferenceSupport.removeSharedUserVariable(reference, 9));
+            org.junit.jupiter.api.Assertions.assertFalse(
+                    WiredVariableReferenceSupport.removeSharedUserVariable(reference, 9));
             verify(rows).next();
         }
     }

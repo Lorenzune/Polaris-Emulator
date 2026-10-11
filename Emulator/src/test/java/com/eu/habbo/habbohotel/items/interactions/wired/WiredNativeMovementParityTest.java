@@ -324,17 +324,20 @@ class WiredNativeMovementParityTest {
         try (var emulator = mockStatic(Emulator.class)) {
             emulator.when(Emulator::getGameEnvironment).thenReturn(f.env);
             emulator.when(Emulator::getConfig).thenReturn(f.config);
-            var settings = nativeSettings(new int[0], new int[]{201, 100}, new int[0]);
-            settings.setFurniIds(new int[]{20});
+            var settings = nativeSettings(new int[0], new int[] {201, 100}, new int[0]);
+            settings.setFurniIds(new int[] {20});
             assertTrue(pair.saveData(settings, null));
             String saved = pair.getWiredData();
             var data = com.google.gson.JsonParser.parseString(saved).getAsJsonObject();
             assertEquals(20, data.getAsJsonArray("targetItemIds").get(0).getAsInt());
             assertTrue(data.getAsJsonArray("itemIds").isEmpty());
-            var row = mock(ResultSet.class);when(row.getString("wired_data")).thenReturn(saved);
-            pair.loadWiredData(row, f.room);assertEquals(saved, pair.getWiredData());
-            var sameSelection = nativeSettings(new int[0], new int[]{100, 100}, new int[0]);
-            sameSelection.setFurniIds(new int[]{20});assertTrue(pair.saveData(sameSelection, null));
+            var row = mock(ResultSet.class);
+            when(row.getString("wired_data")).thenReturn(saved);
+            pair.loadWiredData(row, f.room);
+            assertEquals(saved, pair.getWiredData());
+            var sameSelection = nativeSettings(new int[0], new int[] {100, 100}, new int[0]);
+            sameSelection.setFurniIds(new int[] {20});
+            assertTrue(pair.saveData(sameSelection, null));
             data = com.google.gson.JsonParser.parseString(pair.getWiredData()).getAsJsonObject();
             assertEquals(20, data.getAsJsonArray("itemIds").get(0).getAsInt());
             assertEquals(20, data.getAsJsonArray("targetItemIds").get(0).getAsInt());

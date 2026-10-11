@@ -23,7 +23,9 @@ class WiredExecutionGuardTest {
         Room room = room(80);
         AtomicLong clock = new AtomicLong(1000L);
         AtomicInteger rejected = new AtomicInteger();
-        WiredExecutionGuard guard = new WiredExecutionGuard(limits(10, 2, 1000L, 2000L), clock::get,
+        WiredExecutionGuard guard = new WiredExecutionGuard(
+                limits(10, 2, 1000L, 2000L),
+                clock::get,
                 (ignored, type, count, limits, banned) -> rejected.incrementAndGet(),
                 (ignored, type, kind, depth, maximum) -> {});
         try (var scope = WiredSignalExecutionScope.begin()) {

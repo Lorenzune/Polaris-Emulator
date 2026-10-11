@@ -10,10 +10,22 @@ import java.util.function.Supplier;
 
 /** Dependencies installed by the emulator composition root; breeding code has no singleton lookups. */
 public final class PetBreedingPlatform {
-    public record Services(Supplier<ConfigurationManager> config, Supplier<Database> database,
-            Supplier<GameEnvironment> game, Supplier<ThreadPooling> threading, Supplier<Random> random) {}
+    public record Services(
+            Supplier<ConfigurationManager> config,
+            Supplier<Database> database,
+            Supplier<GameEnvironment> game,
+            Supplier<ThreadPooling> threading,
+            Supplier<Random> random) {}
+
     private static final AtomicReference<Services> SERVICES = new AtomicReference<>();
+
     private PetBreedingPlatform() {}
-    public static void install(Services services) { SERVICES.set(java.util.Objects.requireNonNull(services)); }
-    public static Services services() { return java.util.Objects.requireNonNull(SERVICES.get(), "Breeding services not installed"); }
+
+    public static void install(Services services) {
+        SERVICES.set(java.util.Objects.requireNonNull(services));
+    }
+
+    public static Services services() {
+        return java.util.Objects.requireNonNull(SERVICES.get(), "Breeding services not installed");
+    }
 }

@@ -1,14 +1,24 @@
 package com.eu.habbo.habbohotel.items.interactions.wired.conditions;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import com.eu.habbo.WiredPlatform;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.wired.selector.WiredEffectFurniOnFurni;
-import com.eu.habbo.habbohotel.rooms.*;
+import com.eu.habbo.habbohotel.rooms.Room;
+import com.eu.habbo.habbohotel.rooms.RoomTile;
+import com.eu.habbo.habbohotel.rooms.RoomTileState;
 import com.eu.habbo.habbohotel.users.HabboItem;
-import com.eu.habbo.habbohotel.wired.core.*;
+import com.eu.habbo.habbohotel.wired.core.WiredContext;
+import com.eu.habbo.habbohotel.wired.core.WiredEvent;
+import com.eu.habbo.habbohotel.wired.core.WiredServices;
+import com.eu.habbo.habbohotel.wired.core.WiredState;
 import java.sql.ResultSet;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -38,14 +48,18 @@ class WiredFurniAboveOverlapTest {
         when(row.getString("wired_data")).thenReturn("{\"all\":true,\"furniSource\":0,\"itemIds\":[]}");
         positive.loadWiredData(row, room);
         negative.loadWiredData(row, room);
-        var context = new WiredContext(WiredEvent.builder(WiredEvent.Type.USER_CLICKS_FURNI, room)
-                .sourceItem(piece).build(), null, mock(WiredServices.class), new WiredState(100));
+        var context = new WiredContext(
+                WiredEvent.builder(WiredEvent.Type.USER_CLICKS_FURNI, room)
+                        .sourceItem(piece)
+                        .build(),
+                null,
+                mock(WiredServices.class),
+                new WiredState(100));
         try (var platform = mockStatic(WiredPlatform.class)) {
             assertTrue(positive.evaluate(context));
             assertFalse(negative.evaluate(context));
             var selector = new WiredEffectFurniOnFurni(3, 16, mock(Item.class), "", 0, 0);
-            when(row.getString("wired_data")).thenReturn(
-                    "{\"selectionType\":0,\"furniSource\":0,\"itemIds\":[]}");
+            when(row.getString("wired_data")).thenReturn("{\"selectionType\":0,\"furniSource\":0,\"itemIds\":[]}");
             selector.loadWiredData(row, room);
             selector.execute(context);
             assertEquals(Set.of(skull), context.targets().items());
@@ -56,9 +70,9 @@ class WiredFurniAboveOverlapTest {
             // SWF keeps the origin outside the one-element require-all option.
             // A normal attacker must not make its crowned victim look uncrowned.
             var settings = new com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings(
-                    new int[]{0}, "", new int[0], 0, 0);
+                    new int[] {0}, "", new int[0], 0, 0);
             settings.setNativeVariableFormat(true);
-            settings.setFurniSourceTypes(new int[]{200});
+            settings.setFurniSourceTypes(new int[] {200});
             var attacker = mock(HabboItem.class, RETURNS_DEEP_STUBS);
             when(attacker.getId()).thenReturn(811);
             when(attacker.getRoomId()).thenReturn(267);
@@ -70,9 +84,15 @@ class WiredFurniAboveOverlapTest {
             when(room.getLayout().getTile((short) 1, (short) 0)).thenReturn(emptyTile);
             when(room.getLayout().getTilesAt(emptyTile, 1, 1, 0)).thenReturn(Set.of(emptyTile));
             when(room.getItemsAt(emptyTile)).thenReturn(Set.of(attacker));
-            var victimContext = new WiredContext(WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
-                    .sourceItem(attacker).signalPayloadExplicit(true).signalSourceItems(java.util.List.of(attacker)).build(),
-                    null, mock(WiredServices.class), new WiredState(100));
+            var victimContext = new WiredContext(
+                    WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
+                            .sourceItem(attacker)
+                            .signalPayloadExplicit(true)
+                            .signalSourceItems(java.util.List.of(attacker))
+                            .build(),
+                    null,
+                    mock(WiredServices.class),
+                    new WiredState(100));
             victimContext.targets().setItems(java.util.List.of(piece));
             when(skull.getZ()).thenReturn(2.21);
             try (var emulator = mockStatic(com.eu.habbo.Emulator.class)) {
@@ -84,7 +104,7 @@ class WiredFurniAboveOverlapTest {
                 assertTrue(positive.evaluate(victimContext));
                 assertFalse(negative.evaluate(victimContext));
                 assertTrue(negative.getWiredData().contains("\"furniSource\":200"));
-                settings.setFurniSourceTypes(new int[]{201});
+                settings.setFurniSourceTypes(new int[] {201});
                 assertTrue(negative.saveData(settings));
                 assertTrue(negative.getWiredData().contains("\"furniSource\":201"));
                 assertTrue(negative.evaluate(victimContext));

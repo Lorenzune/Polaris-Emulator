@@ -19,7 +19,9 @@ final class WiredMovementCollection extends ArrayList<MovementData> {
         final int itemId;
         volatile boolean invalidated;
 
-        Ticket(int itemId) { this.itemId = itemId; }
+        Ticket(int itemId) {
+            this.itemId = itemId;
+        }
     }
 
     static void addFurniture(List<MovementData> target, int itemId, MovementData movement) {

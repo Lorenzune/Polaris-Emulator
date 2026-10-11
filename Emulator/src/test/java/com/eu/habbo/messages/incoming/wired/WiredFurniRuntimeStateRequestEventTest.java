@@ -104,7 +104,8 @@ class WiredFurniRuntimeStateRequestEventTest {
         HabboInfo info = mock(HabboInfo.class);
         Room room = mock(Room.class);
         RoomWiredRuntime runtime = mock(RoomWiredRuntime.class);
-        when(runtime.getVariableMonitor()).thenReturn(mock(com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor.class));
+        when(runtime.getVariableMonitor())
+                .thenReturn(mock(com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor.class));
         when(client.getHabbo()).thenReturn(habbo);
         when(habbo.getHabboInfo()).thenReturn(info);
         when(info.getCurrentRoom()).thenReturn(room);

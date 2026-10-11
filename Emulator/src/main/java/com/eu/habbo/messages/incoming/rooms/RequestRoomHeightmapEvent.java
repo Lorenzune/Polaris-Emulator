@@ -12,14 +12,16 @@ public class RequestRoomHeightmapEvent extends MessageHandler {
     @Override
     public void handle() throws Exception {
         if (this.client.getHabbo().getHabboInfo().getLoadingRoom() > 0) {
-            Room room = Emulator.getGameEnvironment().getRoomManager().loadRoom(this.client.getHabbo().getHabboInfo().getLoadingRoom());
+            Room room = Emulator.getGameEnvironment()
+                    .getRoomManager()
+                    .loadRoom(this.client.getHabbo().getHabboInfo().getLoadingRoom());
 
             if (room != null) {
                 // If room is loading in background, wait for it to complete
                 if (room.isLoadingInProgress()) {
                     room.waitForLoad();
                 }
-                
+
                 if (room.getLayout() != null) {
                     this.client.sendResponse(new RoomRelativeMapComposer(room));
 
@@ -35,10 +37,14 @@ public class RequestRoomHeightmapEvent extends MessageHandler {
             Room room = this.client.getHabbo().getHabboInfo().getCurrentRoom();
             RoomUnit roomUnit = this.client.getHabbo().getRoomUnit();
 
-            if (room != null && room.isLoaded() && roomUnit != null && roomUnit.isInRoom()
+            if (room != null
+                    && room.isLoaded()
+                    && roomUnit != null
+                    && roomUnit.isInRoom()
                     && room.getHabbo(roomUnit) == this.client.getHabbo()) {
                 synchronized (room.roomUnitLock) {
-                    this.client.sendResponse(RoomUserStatusComposer.currentStateSnapshot(roomUnit).compose());
+                    this.client.sendResponse(RoomUserStatusComposer.currentStateSnapshot(roomUnit)
+                            .compose());
                 }
             }
         }

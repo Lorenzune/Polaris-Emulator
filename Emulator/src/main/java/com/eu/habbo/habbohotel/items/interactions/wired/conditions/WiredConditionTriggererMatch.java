@@ -14,7 +14,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -48,7 +47,8 @@ public class WiredConditionTriggererMatch extends InteractionWiredCondition {
         super(set, baseItem);
     }
 
-    public WiredConditionTriggererMatch(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredConditionTriggererMatch(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -66,14 +66,14 @@ public class WiredConditionTriggererMatch extends InteractionWiredCondition {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(
-                this.entityType,
-                this.avatarMode,
-                this.matchUserSource,
-                this.compareUserSource,
-                this.quantifier,
-                this.username
-        ));
+        return WiredManager.getGson()
+                .toJson(new JsonData(
+                        this.entityType,
+                        this.avatarMode,
+                        this.matchUserSource,
+                        this.compareUserSource,
+                        this.quantifier,
+                        this.username));
     }
 
     @Override
@@ -149,10 +149,15 @@ public class WiredConditionTriggererMatch extends InteractionWiredCondition {
 
         if (settings.isNativeVariableFormat()) {
             int[] sources = settings.getUserSourceTypes();
-            this.matchUserSource = this.normalizePrimaryUserSource(sources != null && sources.length > 0 ? sources[0] : WiredSourceUtil.SOURCE_TRIGGER);
-            this.compareUserSource = this.normalizeCompareUserSource(sources != null && sources.length > 1 ? sources[1] : WiredSourceUtil.SOURCE_TRIGGER);
+            this.matchUserSource = this.normalizePrimaryUserSource(
+                    sources != null && sources.length > 0 ? sources[0] : WiredSourceUtil.SOURCE_TRIGGER);
+            this.compareUserSource = this.normalizeCompareUserSource(
+                    sources != null && sources.length > 1 ? sources[1] : WiredSourceUtil.SOURCE_TRIGGER);
             this.quantifier = this.normalizeQuantifier(settings.getQuantifier());
-            this.avatarMode = settings.getStringParam() != null && !settings.getStringParam().isEmpty() ? AVATAR_MODE_CERTAIN : AVATAR_MODE_ANY;
+            this.avatarMode = settings.getStringParam() != null
+                            && !settings.getStringParam().isEmpty()
+                    ? AVATAR_MODE_CERTAIN
+                    : AVATAR_MODE_ANY;
         }
 
         this.username = this.normalizeUsername(settings.getStringParam());
@@ -284,7 +289,9 @@ public class WiredConditionTriggererMatch extends InteractionWiredCondition {
 
         if (roomUnit.getRoomUnitType() == RoomUnitType.USER) {
             Habbo habbo = room.getHabbo(roomUnit);
-            return (habbo != null && habbo.getHabboInfo() != null) ? habbo.getHabboInfo().getUsername() : "";
+            return (habbo != null && habbo.getHabboInfo() != null)
+                    ? habbo.getHabboInfo().getUsername()
+                    : "";
         }
 
         if (roomUnit.getRoomUnitType() == RoomUnitType.BOT) {
@@ -368,7 +375,13 @@ public class WiredConditionTriggererMatch extends InteractionWiredCondition {
         int quantifier;
         String username;
 
-        public JsonData(int entityType, int avatarMode, int matchUserSource, int compareUserSource, int quantifier, String username) {
+        public JsonData(
+                int entityType,
+                int avatarMode,
+                int matchUserSource,
+                int compareUserSource,
+                int quantifier,
+                String username) {
             this.entityType = entityType;
             this.avatarMode = avatarMode;
             this.matchUserSource = matchUserSource;

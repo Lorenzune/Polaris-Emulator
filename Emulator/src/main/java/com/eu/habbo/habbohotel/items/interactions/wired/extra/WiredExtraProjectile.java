@@ -43,8 +43,11 @@ public class WiredExtraProjectile extends InteractionWiredExtra {
         String[] tokens = null;
         String text = settings.getStringParam();
         if (text != null && !text.isBlank()) {
-            try { tokens = WiredManager.getGson().fromJson(text, String[].class); }
-            catch (RuntimeException ignored) { return false; }
+            try {
+                tokens = WiredManager.getGson().fromJson(text, String[].class);
+            } catch (RuntimeException ignored) {
+                return false;
+            }
         }
         int[] params = settings.getIntParams();
         if (params == null || params.length < 19) return false;
@@ -54,7 +57,13 @@ public class WiredExtraProjectile extends InteractionWiredExtra {
         }
 
         normalizeParams();
-        this.furniIds = settings.getFurniIds() == null ? new int[0] : java.util.Arrays.stream(settings.getFurniIds()).filter(id -> id > 0).distinct().limit(5).toArray();
+        this.furniIds = settings.getFurniIds() == null
+                ? new int[0]
+                : java.util.Arrays.stream(settings.getFurniIds())
+                        .filter(id -> id > 0)
+                        .distinct()
+                        .limit(5)
+                        .toArray();
         int[] varIds = settings.getVariableIds();
         this.variableIds = new String[] {"", ""};
         if (varIds != null && varIds.length > 0) {
@@ -63,14 +72,25 @@ public class WiredExtraProjectile extends InteractionWiredExtra {
             }
         }
 
-        if (tokens != null) for (int i = 0; i < Math.min(2, tokens.length); i++) this.variableIds[i] = tokens[i] == null ? "" : tokens[i].substring(0, Math.min(200, tokens[i].length()));
+        if (tokens != null)
+            for (int i = 0; i < Math.min(2, tokens.length); i++)
+                this.variableIds[i] =
+                        tokens[i] == null ? "" : tokens[i].substring(0, Math.min(200, tokens[i].length()));
         com.eu.habbo.habbohotel.wired.core.WiredProjectileSupport.cancelExtra(this);
-        if (gameClient != null && gameClient.getHabbo() != null && gameClient.getHabbo().getHabboInfo().getCurrentRoom() != null) gameClient.getHabbo().getHabboInfo().getCurrentRoom().getFurniVariableManager().requestBroadcast();
+        if (gameClient != null
+                && gameClient.getHabbo() != null
+                && gameClient.getHabbo().getHabboInfo().getCurrentRoom() != null)
+            gameClient
+                    .getHabbo()
+                    .getHabboInfo()
+                    .getCurrentRoom()
+                    .getFurniVariableManager()
+                    .requestBroadcast();
         return true;
     }
 
     private void normalizeParams() {
-        for (int i : new int[]{0,2,6,7,8,12,13}) this.intParams[i] = this.intParams[i] == 0 ? 0 : 1;
+        for (int i : new int[] {0, 2, 6, 7, 8, 12, 13}) this.intParams[i] = this.intParams[i] == 0 ? 0 : 1;
         this.intParams[1] = Math.max(0, Math.min(3, this.intParams[1]));
         this.intParams[3] = this.intParams[3] == 1 ? 1 : 0;
         this.intParams[15] = this.intParams[15] == 1 ? 1 : 0;
@@ -81,7 +101,11 @@ public class WiredExtraProjectile extends InteractionWiredExtra {
         this.intParams[14] = Math.max(0, Math.min(2, this.intParams[14]));
         this.intParams[16] = Math.max(-64, Math.min(64, this.intParams[16]));
         this.intParams[18] = Math.max(-1000, Math.min(1000, this.intParams[18]));
-        for (int i : new int[]{5,17}) if (this.intParams[i] != 0 && this.intParams[i] != 1 && this.intParams[i] != -10 && this.intParams[i] != -20) this.intParams[i] = 0;
+        for (int i : new int[] {5, 17})
+            if (this.intParams[i] != 0
+                    && this.intParams[i] != 1
+                    && this.intParams[i] != -10
+                    && this.intParams[i] != -20) this.intParams[i] = 0;
     }
 
     @Override
@@ -97,7 +121,10 @@ public class WiredExtraProjectile extends InteractionWiredExtra {
         for (int id : this.furniIds) message.appendInt(id);
         message.appendInt(this.getBaseItem().getSpriteId());
         message.appendInt(this.getId());
-        message.appendString(java.util.Arrays.stream(this.variableIds).allMatch(v -> v == null || v.isBlank()) ? "" : WiredManager.getGson().toJson(this.variableIds));
+        message.appendString(
+                java.util.Arrays.stream(this.variableIds).allMatch(v -> v == null || v.isBlank())
+                        ? ""
+                        : WiredManager.getGson().toJson(this.variableIds));
         message.appendInt(this.intParams.length);
         for (int param : this.intParams) {
             message.appendInt(param);
@@ -131,8 +158,9 @@ public class WiredExtraProjectile extends InteractionWiredExtra {
                     normalizeParams();
                 }
                 if (data.variableIds != null) {
-                    this.variableIds = new String[]{"", ""};
-                    for (int i = 0; i < Math.min(2, data.variableIds.length); i++) this.variableIds[i] = data.variableIds[i] == null ? "" : data.variableIds[i];
+                    this.variableIds = new String[] {"", ""};
+                    for (int i = 0; i < Math.min(2, data.variableIds.length); i++)
+                        this.variableIds[i] = data.variableIds[i] == null ? "" : data.variableIds[i];
                 }
             }
         }
@@ -154,7 +182,9 @@ public class WiredExtraProjectile extends InteractionWiredExtra {
         return this.variableIds;
     }
 
-    public int[] getSelectedFurniIds() { return this.furniIds.clone(); }
+    public int[] getSelectedFurniIds() {
+        return this.furniIds.clone();
+    }
 
     private static class JsonData {
         private final int[] intParams;

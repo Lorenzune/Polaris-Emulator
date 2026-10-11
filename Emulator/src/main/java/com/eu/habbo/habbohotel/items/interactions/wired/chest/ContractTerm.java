@@ -27,6 +27,7 @@ public class ContractTerm {
 
     /** Furnidata sprite id for client icons; baseItemId remains the database identity. */
     public int spriteId;
+
     public final int direction;
     public final int kind;
     public final int currencyType;

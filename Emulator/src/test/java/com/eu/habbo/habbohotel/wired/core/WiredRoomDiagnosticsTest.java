@@ -15,7 +15,11 @@ class WiredRoomDiagnosticsTest {
         diagnostics.consumeSignalExecutionBudget(250, 1000L);
         var snapshot = diagnostics.snapshot(0, 10, 0, 1000L);
         assertEquals(250, snapshot.getUsageCurrentWindow());
-        assertEquals(0, logsByType(snapshot).get(WiredRoomDiagnostics.Type.EXECUTION_CAP).getCount());
+        assertEquals(
+                0,
+                logsByType(snapshot)
+                        .get(WiredRoomDiagnostics.Type.EXECUTION_CAP)
+                        .getCount());
         assertEquals(900L, diagnostics.signalExecutionDelay(1100L));
         assertEquals(0L, diagnostics.signalExecutionDelay(2000L));
         assertEquals(0, diagnostics.snapshot(0, 10, 0, 2000L).getUsageCurrentWindow());

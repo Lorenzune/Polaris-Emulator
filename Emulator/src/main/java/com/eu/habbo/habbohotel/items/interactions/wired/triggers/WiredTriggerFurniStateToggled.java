@@ -66,7 +66,8 @@ public class WiredTriggerFurniStateToggled extends InteractionWiredTrigger {
                 return false;
             }
             String changedState = event.getType() == WiredEvent.Type.FURNI_STATE_UPDATED
-                    ? event.getText().orElse(sourceItem.getExtradata()) : sourceItem.getExtradata();
+                    ? event.getText().orElse(sourceItem.getExtradata())
+                    : sourceItem.getExtradata();
             return snapshot.state.equals(this.normalizeState(changedState));
         }
 
@@ -96,9 +97,9 @@ public class WiredTriggerFurniStateToggled extends InteractionWiredTrigger {
             if (wiredData.startsWith("{")) {
                 JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
                 this.nativeEvents = data != null && data.nativeEvents;
-                this.triggerMode =
-                        (data != null && (data.triggerMode == MODE_SAVED_STATE || data.triggerMode == -1))
-                                ? data.triggerMode : MODE_ALL_STATES;
+                this.triggerMode = (data != null && (data.triggerMode == MODE_SAVED_STATE || data.triggerMode == -1))
+                        ? data.triggerMode
+                        : MODE_ALL_STATES;
                 this.furniSource =
                         (data != null) ? this.normalizeFurniSource(data.furniSource) : WiredSourceUtil.SOURCE_TRIGGER;
 
@@ -206,7 +207,8 @@ public class WiredTriggerFurniStateToggled extends InteractionWiredTrigger {
             int[] params = settings.getIntParams();
             int[] sources = settings.getFurniSourceTypes();
             // Older USE_STUFF exports omit the mode; retain their all-states default.
-            if ((params.length != 1 && !("wf_trg_stuff_state".equals(this.getBaseItem().getName()) && params.length == 0))
+            if ((params.length != 1
+                            && !("wf_trg_stuff_state".equals(this.getBaseItem().getName()) && params.length == 0))
                     || sources.length != 1
                     || (sources[0] != 100 && sources[0] != 200)
                     || (params.length == 1 && params[0] != 0 && params[0] != 1)
@@ -235,7 +237,8 @@ public class WiredTriggerFurniStateToggled extends InteractionWiredTrigger {
             captured.add(this.captureSnapshot(item));
         }
         int[] params = settings.getIntParams();
-        int mode = nativeFormat && params.length > 0 && params[0] == -1 ? -1
+        int mode = nativeFormat && params.length > 0 && params[0] == -1
+                ? -1
                 : params.length > 0 && params[0] == MODE_SAVED_STATE ? MODE_SAVED_STATE : MODE_ALL_STATES;
         int source = params.length > 1
                 ? this.normalizeFurniSource(params[1])

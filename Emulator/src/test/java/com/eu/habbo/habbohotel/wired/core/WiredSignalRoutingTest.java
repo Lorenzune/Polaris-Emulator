@@ -1,20 +1,28 @@
 package com.eu.habbo.habbohotel.wired.core;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerReceiveSignal;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.HabboItem;
-import com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerReceiveSignal;
 import com.eu.habbo.habbohotel.wired.api.IWiredTrigger;
 import com.eu.habbo.habbohotel.wired.api.WiredStack;
 import java.sql.ResultSet;
-import java.util.*;
-import java.util.concurrent.atomic.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class WiredSignalRoutingTest {
-    @Test void staticAntennasAreIndexedWhileDynamicAndPluginReceiversKeepOriginalOrder() throws Exception {
+    @Test
+    void staticAntennasAreIndexedWhileDynamicAndPluginReceiversKeepOriginalOrder() throws Exception {
         Room room = room();
         WiredStack ten = receiver(room, 1, 100, true, 0, 10);
         WiredStack dynamic = receiver(room, 2, 200, true, 0);
@@ -25,7 +33,8 @@ class WiredSignalRoutingTest {
         WiredStack legacy = receiver(room, 6, 100, false, 10);
         AtomicInteger lookups = new AtomicInteger();
         WiredStackRepository repository = new WiredStackRepository((ignored, type) -> {
-            assertEquals(WiredEvent.Type.SIGNAL_RECEIVED, type); lookups.incrementAndGet();
+            assertEquals(WiredEvent.Type.SIGNAL_RECEIVED, type);
+            lookups.incrementAndGet();
             return List.of(ten, dynamic, twenty, plugin, both, empty, legacy);
         });
         List<WiredStack> result = repository.getSignalStacks(room, 10);
@@ -38,7 +47,8 @@ class WiredSignalRoutingTest {
         assertThrows(UnsupportedOperationException.class, () -> result.add(empty));
     }
 
-    @Test void oneHundredStaticReceiversReduceCandidatesToTheSingleMatchingAntenna() throws Exception {
+    @Test
+    void oneHundredStaticReceiversReduceCandidatesToTheSingleMatchingAntenna() throws Exception {
         Room room = room();
         List<WiredStack> stacks = new ArrayList<>();
         for (int i = 0; i < 100; i++) stacks.add(receiver(room, i + 1, 100, true, 0, 1000 + i));
@@ -46,7 +56,8 @@ class WiredSignalRoutingTest {
         for (int i = 0; i < 100; i++) assertEquals(List.of(stacks.get(i)), repository.getSignalStacks(room, 1000 + i));
     }
 
-    @Test void mutationLifecycleAndExplicitInvalidationRebuildRouting() throws Exception {
+    @Test
+    void mutationLifecycleAndExplicitInvalidationRebuildRouting() throws Exception {
         Room room = room();
         AtomicLong generation = new AtomicLong(1), lifecycle = new AtomicLong(1);
         when(room.getWiredCacheGeneration()).thenAnswer(call -> generation.get());
@@ -55,25 +66,36 @@ class WiredSignalRoutingTest {
         WiredStack replacement = receiver(room, 2, 100, true, 0, 20);
         AtomicReference<List<WiredStack>> stacks = new AtomicReference<>(List.of(old));
         AtomicInteger lookups = new AtomicInteger();
-        WiredStackRepository repository = new WiredStackRepository((ignored, type) -> { lookups.incrementAndGet(); return stacks.get(); });
+        WiredStackRepository repository = new WiredStackRepository((ignored, type) -> {
+            lookups.incrementAndGet();
+            return stacks.get();
+        });
         assertEquals(List.of(old), repository.getSignalStacks(room, 10));
-        stacks.set(List.of(replacement)); generation.incrementAndGet();
+        stacks.set(List.of(replacement));
+        generation.incrementAndGet();
         assertEquals(List.of(), repository.getSignalStacks(room, 10));
         assertEquals(List.of(replacement), repository.getSignalStacks(room, 20));
-        lifecycle.incrementAndGet(); repository.getSignalStacks(room, 20);
-        repository.clearRoomSourceStackCache(room.getId()); repository.getSignalStacks(room, 20);
-        repository.clearAllSourceStackCache(); repository.getSignalStacks(room, 20);
+        lifecycle.incrementAndGet();
+        repository.getSignalStacks(room, 20);
+        repository.clearRoomSourceStackCache(room.getId());
+        repository.getSignalStacks(room, 20);
+        repository.clearAllSourceStackCache();
+        repository.getSignalStacks(room, 20);
         assertEquals(5, lookups.get());
     }
 
-    @Test void invalidationDuringBuildCannotPublishStaleRouting() throws Exception {
+    @Test
+    void invalidationDuringBuildCannotPublishStaleRouting() throws Exception {
         Room room = room();
         WiredStack old = receiver(room, 1, 100, true, 0, 10);
         WiredStack replacement = receiver(room, 2, 100, true, 0, 20);
         AtomicInteger lookups = new AtomicInteger();
         AtomicReference<WiredStackRepository> owner = new AtomicReference<>();
         WiredStackRepository repository = new WiredStackRepository((ignored, type) -> {
-            if (lookups.incrementAndGet() == 1) { owner.get().clearAllSourceStackCache(); return List.of(old); }
+            if (lookups.incrementAndGet() == 1) {
+                owner.get().clearAllSourceStackCache();
+                return List.of(old);
+            }
             return List.of(replacement);
         });
         owner.set(repository);
@@ -89,15 +111,19 @@ class WiredSignalRoutingTest {
         when(room.getWiredCacheGeneration()).thenReturn(1L);
         return room;
     }
-    private static WiredStack receiver(Room room, int id, int source, boolean nativeSignal, int channel, int... antennas) throws Exception {
+
+    private static WiredStack receiver(
+            Room room, int id, int source, boolean nativeSignal, int channel, int... antennas) throws Exception {
         WiredTriggerReceiveSignal receiver = new WiredTriggerReceiveSignal(id, 16, null, "", 0, 0);
         for (int antenna : antennas) {
-            HabboItem item = mock(HabboItem.class); when(item.getId()).thenReturn(antenna);
+            HabboItem item = mock(HabboItem.class);
+            when(item.getId()).thenReturn(antenna);
             when(room.getHabboItem(antenna)).thenReturn(item);
         }
         ResultSet row = mock(ResultSet.class);
-        when(row.getString("wired_data")).thenReturn("{\"nativeSignal\":" + nativeSignal
-                + ",\"furniSource\":" + source + ",\"channel\":" + channel + ",\"itemIds\":" + Arrays.toString(antennas) + "}");
+        when(row.getString("wired_data"))
+                .thenReturn("{\"nativeSignal\":" + nativeSignal + ",\"furniSource\":" + source + ",\"channel\":"
+                        + channel + ",\"itemIds\":" + Arrays.toString(antennas) + "}");
         receiver.loadWiredData(row, room);
         return new WiredStack(receiver, receiver, List.of(), List.of());
     }

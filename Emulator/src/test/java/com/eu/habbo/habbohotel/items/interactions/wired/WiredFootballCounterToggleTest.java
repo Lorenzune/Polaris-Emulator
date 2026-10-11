@@ -1,7 +1,10 @@
 package com.eu.habbo.habbohotel.items.interactions.wired;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.games.football.scoreboards.InteractionFootballScoreboard;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectToggleFurni;
@@ -17,8 +20,9 @@ class WiredFootballCounterToggleTest {
         Room room = mock(Room.class);
         var layout = mock(com.eu.habbo.habbohotel.rooms.RoomLayout.class);
         when(room.getLayout()).thenReturn(layout);
-        when(layout.getTile((short) 0, (short) 0)).thenReturn(new com.eu.habbo.habbohotel.rooms.RoomTile(
-                (short) 0, (short) 0, (short) 0, com.eu.habbo.habbohotel.rooms.RoomTileState.OPEN, true));
+        when(layout.getTile((short) 0, (short) 0))
+                .thenReturn(new com.eu.habbo.habbohotel.rooms.RoomTile(
+                        (short) 0, (short) 0, (short) 0, com.eu.habbo.habbohotel.rooms.RoomTileState.OPEN, true));
         var counter = mock(InteractionFootballScoreboard.class);
         when(counter.getId()).thenReturn(123);
         // Football counters inherit false: their numeric state still supports reset.
@@ -29,8 +33,8 @@ class WiredFootballCounterToggleTest {
         var effect = new com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectMatchFurni(
                 1, 1, mock(Item.class), "", 0, 0);
         ResultSet row = mock(ResultSet.class);
-        when(row.getString("wired_data")).thenReturn(
-                "{\"state\":true,\"furniSource\":100,\"items\":[{\"item_id\":123,\"state\":\" \"}]}");
+        when(row.getString("wired_data"))
+                .thenReturn("{\"state\":true,\"furniSource\":100,\"items\":[{\"item_id\":123,\"state\":\" \"}]}");
         effect.loadWiredData(row, room);
         WiredContext ctx = mock(WiredContext.class);
         when(ctx.room()).thenReturn(room);

@@ -15,7 +15,6 @@ import com.github.javaparser.ast.stmt.IfStmt;
 import com.github.javaparser.ast.stmt.SwitchStmt;
 import com.github.javaparser.ast.stmt.TryStmt;
 import com.github.javaparser.ast.stmt.WhileStmt;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
@@ -58,6 +57,7 @@ final class JavaPacketSignatureExtractor {
             Map.entry("readBoolean", "boolean"),
             Map.entry("readString", "string"),
             Map.entry("readBytes", "bytes"));
+
     static {
         StaticJavaParser.getParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.BLEEDING_EDGE);
     }
@@ -156,12 +156,10 @@ final class JavaPacketSignatureExtractor {
                 if (!tryFields.equals(catchFields)) {
                     return new TryCatchAnalysis(
                             Set.of(),
-                            Optional.of("Different packet operations across try/catch inside "
-                                    + method.getNameAsString()));
+                            Optional.of(
+                                    "Different packet operations across try/catch inside " + method.getNameAsString()));
                 }
-                catchCalls.stream()
-                        .filter(call -> wireType(call, side) != null)
-                        .forEach(callsToSkip::add);
+                catchCalls.stream().filter(call -> wireType(call, side) != null).forEach(callsToSkip::add);
             }
         }
         return new TryCatchAnalysis(callsToSkip, Optional.empty());
@@ -180,12 +178,11 @@ final class JavaPacketSignatureExtractor {
             for (ObjectCreationExpr creation : method.findAll(ObjectCreationExpr.class)) {
                 boolean receivesHandler = creation.getArguments().stream()
                         .map(Object::toString)
-                        .anyMatch(argument -> argument.equals("this")
-                                || argument.equals("packet")
-                                || argument.equals("this.packet"));
+                        .anyMatch(argument ->
+                                argument.equals("this") || argument.equals("packet") || argument.equals("this.packet"));
                 if (receivesHandler) {
-                    return Optional.of("Packet fields delegated to external constructor "
-                            + creation.getTypeAsString() + " inside " + method.getNameAsString());
+                    return Optional.of("Packet fields delegated to external constructor " + creation.getTypeAsString()
+                            + " inside " + method.getNameAsString());
                 }
             }
             for (MethodCallExpr call : method.findAll(MethodCallExpr.class)) {
@@ -193,8 +190,8 @@ final class JavaPacketSignatureExtractor {
                         .map(Object::toString)
                         .anyMatch(argument -> argument.equals("packet") || argument.equals("this.packet"));
                 if (receivesPacket && !isLocalCall(call)) {
-                    return Optional.of("Packet fields delegated to external reader "
-                            + call.getNameAsString() + " inside " + method.getNameAsString());
+                    return Optional.of("Packet fields delegated to external reader " + call.getNameAsString()
+                            + " inside " + method.getNameAsString());
                 }
             }
         } else {
@@ -203,8 +200,8 @@ final class JavaPacketSignatureExtractor {
                         .map(Object::toString)
                         .anyMatch(argument -> argument.equals("response") || argument.equals("this.response"));
                 if (receivesResponse && wireType(call, side) == null && !isLocalCall(call)) {
-                    return Optional.of("Packet fields delegated to external serializer "
-                            + call.getNameAsString() + " inside " + method.getNameAsString());
+                    return Optional.of("Packet fields delegated to external serializer " + call.getNameAsString()
+                            + " inside " + method.getNameAsString());
                 }
             }
         }
@@ -220,12 +217,12 @@ final class JavaPacketSignatureExtractor {
         controls.addAll(method.findAll(WhileStmt.class));
         controls.addAll(method.findAll(DoStmt.class));
         for (Node control : controls) {
-            if (side == JavaPacketSide.INCOMING && (control instanceof IfStmt branch && optionalIntegerList(branch, method) != null
-                    || optionalListAncestor(control, method) != null)) continue;
+            if (side == JavaPacketSide.INCOMING
+                    && (control instanceof IfStmt branch && optionalIntegerList(branch, method) != null
+                            || optionalListAncestor(control, method) != null)) continue;
             if (control.findAll(MethodCallExpr.class).stream().anyMatch(call -> wireType(call, side) != null)) {
-                return Optional.of(
-                        "Data-dependent packet operations in " + control.getClass().getSimpleName()
-                                + " inside " + method.getNameAsString());
+                return Optional.of("Data-dependent packet operations in "
+                        + control.getClass().getSimpleName() + " inside " + method.getNameAsString());
             }
         }
         return Optional.empty();
@@ -245,24 +242,33 @@ final class JavaPacketSignatureExtractor {
         if (condition.isNameExpr()) {
             String name = condition.asNameExpr().getNameAsString();
             var variable = method.findAll(com.github.javaparser.ast.body.VariableDeclarator.class).stream()
-                    .filter(value -> value.getNameAsString().equals(name)).findFirst();
+                    .filter(value -> value.getNameAsString().equals(name))
+                    .findFirst();
             if (variable.isEmpty() || variable.get().getInitializer().isEmpty()) return null;
             condition = variable.get().getInitializer().orElseThrow();
         }
-        if (condition.findAll(MethodCallExpr.class).stream().noneMatch(call -> call.getNameAsString().equals("bytesAvailable")
-                && call.getScope().map(scope -> scope.toString().equals("this.packet") || scope.toString().equals("packet")).orElse(false))) return null;
+        if (condition.findAll(MethodCallExpr.class).stream()
+                .noneMatch(call -> call.getNameAsString().equals("bytesAvailable")
+                        && call.getScope()
+                                .map(scope -> scope.toString().equals("this.packet")
+                                        || scope.toString().equals("packet"))
+                                .orElse(false))) return null;
         var reads = branch.getThenStmt().findAll(MethodCallExpr.class).stream()
-                .filter(call -> wireType(call, JavaPacketSide.INCOMING) != null).toList();
-        if (reads.size() != 2 || !"int".equals(wireType(reads.get(0), JavaPacketSide.INCOMING))
+                .filter(call -> wireType(call, JavaPacketSide.INCOMING) != null)
+                .toList();
+        if (reads.size() != 2
+                || !"int".equals(wireType(reads.get(0), JavaPacketSide.INCOMING))
                 || !"int".equals(wireType(reads.get(1), JavaPacketSide.INCOMING))) return null;
         String count = inferredName(reads.get(0));
         if (count.isEmpty() || reads.get(0).findAncestor(ForStmt.class).isPresent()) return null;
         var loop = reads.get(1).findAncestor(ForStmt.class);
         if (loop.isEmpty() || loop.get().getCompare().isEmpty()) return null;
         var compare = loop.get().getCompare().get();
-        if (!compare.isBinaryExpr() || compare.asBinaryExpr().getOperator() != com.github.javaparser.ast.expr.BinaryExpr.Operator.LESS
+        if (!compare.isBinaryExpr()
+                || compare.asBinaryExpr().getOperator() != com.github.javaparser.ast.expr.BinaryExpr.Operator.LESS
                 || !compare.asBinaryExpr().getRight().toString().equals(count)) return null;
-        return new OptionalSchema("bytesAvailable", List.of(new ListSchema("int", List.of(new ScalarSchema("int", "itemId")))));
+        return new OptionalSchema(
+                "bytesAvailable", List.of(new ListSchema("int", List.of(new ScalarSchema("int", "itemId")))));
     }
 
     private static boolean isOptionalRead(MethodCallExpr call) {
@@ -270,13 +276,18 @@ final class JavaPacketSignatureExtractor {
         while (node.getParentNode().isPresent()) {
             node = node.getParentNode().orElseThrow();
             com.github.javaparser.ast.expr.Expression condition = null;
-            if (node instanceof com.github.javaparser.ast.expr.ConditionalExpr conditional) condition = conditional.getCondition();
+            if (node instanceof com.github.javaparser.ast.expr.ConditionalExpr conditional)
+                condition = conditional.getCondition();
             if (node instanceof com.github.javaparser.ast.expr.BinaryExpr binary
                     && binary.getOperator() == com.github.javaparser.ast.expr.BinaryExpr.Operator.AND
                     && binary.getRight().findAll(MethodCallExpr.class).contains(call)) condition = binary.getLeft();
-            if (condition != null && condition.findAll(MethodCallExpr.class).stream().anyMatch(method ->
-                    method.getNameAsString().equals("bytesAvailable")
-                    && method.getScope().map(scope -> scope.toString().equals("this.packet") || scope.toString().equals("packet")).orElse(false))) return true;
+            if (condition != null
+                    && condition.findAll(MethodCallExpr.class).stream()
+                            .anyMatch(method -> method.getNameAsString().equals("bytesAvailable")
+                                    && method.getScope()
+                                            .map(scope -> scope.toString().equals("this.packet")
+                                                    || scope.toString().equals("packet"))
+                                            .orElse(false))) return true;
             if (node instanceof com.github.javaparser.ast.stmt.Statement) break;
         }
         return false;
@@ -287,8 +298,7 @@ final class JavaPacketSignatureExtractor {
         if (call.getScope().isEmpty()) return null;
         String scope = call.getScope().orElseThrow().toString();
         if (!scope.equals(expectedScope) && !scope.equals("this." + expectedScope)) return null;
-        return (side == JavaPacketSide.INCOMING ? INCOMING_TYPES : OUTGOING_TYPES)
-                .get(call.getNameAsString());
+        return (side == JavaPacketSide.INCOMING ? INCOMING_TYPES : OUTGOING_TYPES).get(call.getNameAsString());
     }
 
     private static boolean isLocalCall(MethodCallExpr call) {

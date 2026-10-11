@@ -6,10 +6,12 @@ import java.util.Map;
 
 /** Uses the established notification packet, including for clients without chest-specific packets. */
 public final class ChestNotifications {
-    private ChestNotifications() { }
+    private ChestNotifications() {}
+
     public static void send(Habbo user, String event, String message) {
         if (user == null || user.getClient() == null) return;
-        user.getClient().sendResponse(new BubbleAlertComposer("chest." + event,
-                Map.of("message", message, "display", "BUBBLE", "title", "Scrigni Wired")));
+        user.getClient()
+                .sendResponse(new BubbleAlertComposer(
+                        "chest." + event, Map.of("message", message, "display", "BUBBLE", "title", "Scrigni Wired")));
     }
 }

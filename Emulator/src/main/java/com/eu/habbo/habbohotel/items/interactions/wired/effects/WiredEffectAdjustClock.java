@@ -4,8 +4,8 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
-import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameUpCounter;
 import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameTimer;
+import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameUpCounter;
 import com.eu.habbo.habbohotel.items.interactions.games.WiredGameTimerAdjustment;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeTimerSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
@@ -70,7 +70,8 @@ public class WiredEffectAdjustClock extends InteractionWiredEffect {
             if (item instanceof InteractionGameUpCounter counter) {
                 counter.adjustCounter(room, this.operator, this.minutes, this.halfSecondSteps);
             } else {
-                WiredGameTimerAdjustment.adjust((InteractionGameTimer) item, room, this.operator, this.minutes, this.halfSecondSteps);
+                WiredGameTimerAdjustment.adjust(
+                        (InteractionGameTimer) item, room, this.operator, this.minutes, this.halfSecondSteps);
             }
         }
     }

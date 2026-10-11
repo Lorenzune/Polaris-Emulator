@@ -205,24 +205,31 @@ class WiredNativeSignalParityTest {
         var config = mock(ConfigurationManager.class);
         when(environment.getRoomManager().getRoom(8)).thenReturn(room);
         when(config.getInt("hotel.wired.furni.selection.count")).thenReturn(20);
-        when(config.getInt("hotel.wired.max_delay",20)).thenReturn(20);
-        var antenna=item(10,true);var first=item(11,false);var clicked=item(12,false);
-        var items=Map.of(10,antenna,11,first,12,clicked);
-        when(room.getHabboItem(org.mockito.ArgumentMatchers.anyInt())).thenAnswer(i->items.get(i.getArgument(0)));
-        when(room.getLayout().getTile((short)0,(short)0)).thenReturn(
-            new RoomTile((short)0,(short)0,(short)0,RoomTileState.OPEN,true));
-        try(var emulator=mockStatic(Emulator.class)) {
+        when(config.getInt("hotel.wired.max_delay", 20)).thenReturn(20);
+        var antenna = item(10, true);
+        var first = item(11, false);
+        var clicked = item(12, false);
+        var items = Map.of(10, antenna, 11, first, 12, clicked);
+        when(room.getHabboItem(org.mockito.ArgumentMatchers.anyInt())).thenAnswer(i -> items.get(i.getArgument(0)));
+        when(room.getLayout().getTile((short) 0, (short) 0))
+                .thenReturn(new RoomTile((short) 0, (short) 0, (short) 0, RoomTileState.OPEN, true));
+        try (var emulator = mockStatic(Emulator.class)) {
             emulator.when(Emulator::getGameEnvironment).thenReturn(environment);
             emulator.when(Emulator::getConfig).thenReturn(config);
-            var sender=new Sender();
-            sender.saveData(settings(0,0,100,101,200,new int[]{11,12}),null);
-            var ctx=new WiredContext(WiredEvent.builder(WiredEvent.Type.USER_CLICKS_FURNI,room)
-                .sourceItem(clicked).build(),null,mock(WiredServices.class),new WiredState(100));
+            var sender = new Sender();
+            sender.saveData(settings(0, 0, 100, 101, 200, new int[] {11, 12}), null);
+            var ctx = new WiredContext(
+                    WiredEvent.builder(WiredEvent.Type.USER_CLICKS_FURNI, room)
+                            .sourceItem(clicked)
+                            .build(),
+                    null,
+                    mock(WiredServices.class),
+                    new WiredState(100));
             sender.execute(ctx);
-            var event=sender.sent.getFirst();
-            var receiver=new WiredContext(event,null,mock(WiredServices.class),new WiredState(100));
-            assertEquals(List.of(clicked),WiredSourceUtil.resolveItemsRaw(receiver,0,List.of()));
-            assertEquals(List.of(first,clicked),WiredSourceUtil.resolveItemsRaw(receiver,201,List.of()));
+            var event = sender.sent.getFirst();
+            var receiver = new WiredContext(event, null, mock(WiredServices.class), new WiredState(100));
+            assertEquals(List.of(clicked), WiredSourceUtil.resolveItemsRaw(receiver, 0, List.of()));
+            assertEquals(List.of(first, clicked), WiredSourceUtil.resolveItemsRaw(receiver, 201, List.of()));
         }
     }
 
@@ -238,15 +245,17 @@ class WiredNativeSignalParityTest {
         var piece = item(11, false);
         when(room.getHabboItem(10)).thenReturn(antenna);
         when(room.getHabboItem(11)).thenReturn(piece);
-        var tile = new RoomTile((short)0, (short)0, (short)0, RoomTileState.OPEN, true);
-        when(room.getLayout().getTile((short)0, (short)0)).thenReturn(tile);
+        var tile = new RoomTile((short) 0, (short) 0, (short) 0, RoomTileState.OPEN, true);
+        when(room.getLayout().getTile((short) 0, (short) 0)).thenReturn(tile);
         try (var emulator = mockStatic(Emulator.class)) {
             emulator.when(Emulator::getGameEnvironment).thenReturn(environment);
             emulator.when(Emulator::getConfig).thenReturn(config);
             var sender = new Sender();
-            sender.saveData(settings(0, 0, 100, 101, 200, new int[]{11}), null);
+            sender.saveData(settings(0, 0, 100, 101, 200, new int[] {11}), null);
             var event = WiredEvent.builder(WiredEvent.Type.USER_CLICKS_FURNI, room)
-                    .sourceItem(piece).callStackDepth(9).build();
+                    .sourceItem(piece)
+                    .callStackDepth(9)
+                    .build();
             for (int relay = 0; relay < 24; relay++) {
                 var context = new WiredContext(event, null, mock(WiredServices.class), new WiredState(100));
                 context.contextVariables().assignValue(9, 42, true);
@@ -266,8 +275,10 @@ class WiredNativeSignalParityTest {
                 cleanup.execute(context);
                 manager.verify(() -> WiredManager.executeEffectsAtTiles(
                         org.mockito.ArgumentMatchers.eq(java.util.Set.of(tile)),
-                        org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(room),
-                        org.mockito.ArgumentMatchers.eq(1), org.mockito.ArgumentMatchers.eq(context)));
+                        org.mockito.ArgumentMatchers.isNull(),
+                        org.mockito.ArgumentMatchers.eq(room),
+                        org.mockito.ArgumentMatchers.eq(1),
+                        org.mockito.ArgumentMatchers.eq(context)));
             }
         }
     }

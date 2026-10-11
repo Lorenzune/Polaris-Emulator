@@ -36,7 +36,8 @@ public class WiredActionClickSettings extends InteractionWiredEffect {
     @Override
     public void execute(WiredContext ctx) {
         if (ctx == null || ctx.room() == null) return;
-        for (RoomUnit target : com.eu.habbo.habbohotel.wired.core.WiredSourceUtil.resolveUsers(ctx, this.userSource)) execute(target, ctx.room(), new Object[0]);
+        for (RoomUnit target : com.eu.habbo.habbohotel.wired.core.WiredSourceUtil.resolveUsers(ctx, this.userSource))
+            execute(target, ctx.room(), new Object[0]);
     }
 
     @Override
@@ -44,8 +45,9 @@ public class WiredActionClickSettings extends InteractionWiredEffect {
         if (room == null || roomUnit == null) return false;
         var habbo = room.getHabbo(roomUnit);
         if (habbo == null || habbo.getClient() == null) return false;
-        habbo.getClient().sendResponse(new com.eu.habbo.messages.outgoing.wired.WiredClickSettingsComposer(
-                room.getId(), this.userClickSetting, this.furniClickSetting, room.canModifyWired(habbo)));
+        habbo.getClient()
+                .sendResponse(new com.eu.habbo.messages.outgoing.wired.WiredClickSettingsComposer(
+                        room.getId(), this.userClickSetting, this.furniClickSetting, room.canModifyWired(habbo)));
         return true;
     }
 
@@ -65,8 +67,11 @@ public class WiredActionClickSettings extends InteractionWiredEffect {
 
         if (wiredData.startsWith("{")) {
             JsonData data;
-            try { data = WiredManager.getGson().fromJson(wiredData, JsonData.class); }
-            catch (com.google.gson.JsonParseException ignored) { return; }
+            try {
+                data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
+            } catch (com.google.gson.JsonParseException ignored) {
+                return;
+            }
             if (data != null) {
                 this.userSource = data.userSource == null ? 0 : WiredUtilityPayloadGuard.userSource(data.userSource);
                 this.userClickSetting = Math.max(0, Math.min(2, data.userClickSetting));

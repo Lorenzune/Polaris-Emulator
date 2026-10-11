@@ -1,7 +1,11 @@
 package com.eu.habbo.habbohotel.items.interactions.wired;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraExecutionLimit;
 import com.eu.habbo.habbohotel.rooms.Room;
@@ -29,8 +33,7 @@ class WiredExecutionLimitPulseTest {
     private WiredExtraExecutionLimit configured(int milliseconds) throws Exception {
         var extra = new WiredExtraExecutionLimit(1, 1, mock(Item.class), "", 0, 0);
         var row = mock(ResultSet.class);
-        when(row.getString("wired_data")).thenReturn(
-                "{\"maxExecutions\":1,\"timeWindowMs\":" + milliseconds + "}");
+        when(row.getString("wired_data")).thenReturn("{\"maxExecutions\":1,\"timeWindowMs\":" + milliseconds + "}");
         extra.loadWiredData(row, mock(Room.class));
         return extra;
     }

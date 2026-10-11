@@ -30,38 +30,59 @@ public class RequestCreateRoomEvent extends MessageHandler {
         boolean vocalChatEnabled = this.packet.bytesAvailable() > 0 ? this.packet.readBoolean() : true;
 
         if (!Emulator.getGameEnvironment().getRoomManager().layoutExists(modelName)) {
-            LOGGER.error("[SCRIPTER] Incorrect layout name \"{}\". {}", modelName, this.client.getHabbo().getHabboInfo().getUsername());
+            LOGGER.error(
+                    "[SCRIPTER] Incorrect layout name \"{}\". {}",
+                    modelName,
+                    this.client.getHabbo().getHabboInfo().getUsername());
             return;
         }
 
         RoomCategory category = Emulator.getGameEnvironment().getRoomManager().getCategory(categoryId);
 
-        if (category == null || category.getMinRank() > this.client.getHabbo().getHabboInfo().getRank().getId()) {
-            LOGGER.error("[SCRIPTER] Incorrect rank or non existing category ID: \"{}\".{}", categoryId, this.client.getHabbo().getHabboInfo().getUsername());
+        if (category == null
+                || category.getMinRank()
+                        > this.client.getHabbo().getHabboInfo().getRank().getId()) {
+            LOGGER.error(
+                    "[SCRIPTER] Incorrect rank or non existing category ID: \"{}\".{}",
+                    categoryId,
+                    this.client.getHabbo().getHabboInfo().getUsername());
             return;
         }
 
-        if (maxUsers > 250)
-            return;
+        if (maxUsers > 250) return;
 
-        if (tradeType > 2)
-            return;
+        if (tradeType > 2) return;
 
-        if (name.trim().length() < 3 || name.length() > MAX_ROOM_NAME_LENGTH || !Emulator.getGameEnvironment().getWordFilter().filter(name, this.client.getHabbo()).equals(name))
-            return;
+        if (name.trim().length() < 3
+                || name.length() > MAX_ROOM_NAME_LENGTH
+                || !Emulator.getGameEnvironment()
+                        .getWordFilter()
+                        .filter(name, this.client.getHabbo())
+                        .equals(name)) return;
 
-        if (description.length() > 128 || !Emulator.getGameEnvironment().getWordFilter().filter(description, this.client.getHabbo()).equals(description))
-            return;
+        if (description.length() > 128
+                || !Emulator.getGameEnvironment()
+                        .getWordFilter()
+                        .filter(description, this.client.getHabbo())
+                        .equals(description)) return;
 
-        int count = Emulator.getGameEnvironment().getRoomManager().getRoomsForHabbo(this.client.getHabbo()).size();
-        int max = this.client.getHabbo().getHabboStats().hasActiveClub() ? RoomManager.MAXIMUM_ROOMS_HC : RoomManager.MAXIMUM_ROOMS_USER;
+        int count = Emulator.getGameEnvironment()
+                .getRoomManager()
+                .getRoomsForHabbo(this.client.getHabbo())
+                .size();
+        int max = this.client.getHabbo().getHabboStats().hasActiveClub()
+                ? RoomManager.MAXIMUM_ROOMS_HC
+                : RoomManager.MAXIMUM_ROOMS_USER;
 
         if (count >= max) {
             this.client.sendResponse(new CanCreateRoomComposer(count, max));
             return;
         }
 
-        final Room room = Emulator.getGameEnvironment().getRoomManager().createRoomForHabbo(this.client.getHabbo(), name, description, modelName, maxUsers, categoryId, tradeType);
+        final Room room = Emulator.getGameEnvironment()
+                .getRoomManager()
+                .createRoomForHabbo(
+                        this.client.getHabbo(), name, description, modelName, maxUsers, categoryId, tradeType);
 
         if (room != null) {
             room.setVocalChatEnabled(vocalChatEnabled);

@@ -9,6 +9,7 @@ import com.eu.habbo.messages.outgoing.rooms.pets.breeding.PetBreedingStartCompos
 
 final class RoomPetBreedingLifecycle {
     private RoomPetBreedingLifecycle() {}
+
     static void leaving(Room room, Habbo habbo) {
         if (habbo == null) return;
         synchronized (room) {
@@ -18,7 +19,8 @@ final class RoomPetBreedingLifecycle {
             }
             var requests = MonsterplantBreedingRequests.getInstance();
             for (var request : requests.cancelOwner(owner, room.getId(), id -> {
-                Pet pet = room.getPet(id); return pet == null ? 0 : pet.getUserId();
+                Pet pet = room.getPet(id);
+                return pet == null ? 0 : pet.getUserId();
             })) {
                 Pet asked = room.getPet(request.askedPetId());
                 int[] owners = {request.requesterId(), asked == null ? 0 : asked.getUserId()};

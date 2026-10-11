@@ -1,8 +1,8 @@
 package com.eu.habbo.messages.outgoing.rooms;
 
+import com.eu.habbo.habbohotel.wired.core.WiredFurnitureAnimationState;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.WiredMovementMessage;
-import com.eu.habbo.habbohotel.wired.core.WiredFurnitureAnimationState;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
 import java.util.ArrayList;
@@ -66,9 +66,21 @@ public class WiredMovementsComposer extends MessageComposer {
                 Integer index = userIndexes.get(next.id);
                 if (index != null) {
                     UserMovementData first = (UserMovementData) normalized.get(index);
-                    normalized.set(index, new UserMovementData(next.id,
-                            first.fromX, first.fromY, next.toX, next.toY, first.fromZ, next.toZ,
-                            next.movementType, next.bodyDirection, next.headDirection, next.duration, next.jumpPower));
+                    normalized.set(
+                            index,
+                            new UserMovementData(
+                                    next.id,
+                                    first.fromX,
+                                    first.fromY,
+                                    next.toX,
+                                    next.toY,
+                                    first.fromZ,
+                                    next.toZ,
+                                    next.movementType,
+                                    next.bodyDirection,
+                                    next.headDirection,
+                                    next.duration,
+                                    next.jumpPower));
                     mergedUserIndexes.add(index);
                     continue;
                 }
@@ -89,13 +101,26 @@ public class WiredMovementsComposer extends MessageComposer {
                         normalized.set(index, next);
                         continue;
                     }
-                    normalized.set(index, new FurniMovementData(
-                            next.id, first.fromX, first.fromY, next.toX, next.toY,
-                            first.fromZ, next.toZ, next.rotation,
-                            next.duration, next.elapsed, next.anchorType, next.anchorId,
-                            next.overshootingDistance != null ? next.overshootingDistance : first.overshootingDistance,
-                            next.curveStrength != null ? next.curveStrength : first.curveStrength,
-                            next.epoch));
+                    normalized.set(
+                            index,
+                            new FurniMovementData(
+                                    next.id,
+                                    first.fromX,
+                                    first.fromY,
+                                    next.toX,
+                                    next.toY,
+                                    first.fromZ,
+                                    next.toZ,
+                                    next.rotation,
+                                    next.duration,
+                                    next.elapsed,
+                                    next.anchorType,
+                                    next.anchorId,
+                                    next.overshootingDistance != null
+                                            ? next.overshootingDistance
+                                            : first.overshootingDistance,
+                                    next.curveStrength != null ? next.curveStrength : first.curveStrength,
+                                    next.epoch));
                     continue;
                 }
                 furnitureIndexes.put(next.id, normalized.size());
@@ -107,11 +132,15 @@ public class WiredMovementsComposer extends MessageComposer {
         // direction. Authoritative room status retains the chair's posture.
         for (int index = normalized.size() - 1; index >= 0; index--) {
             if (normalized.get(index) instanceof UserMovementData movement
-                    && movement.movementType == USER_MOVEMENT_SLIDE && movement.jumpPower == null
-                    && movement.fromX == movement.toX && movement.fromY == movement.toY
+                    && movement.movementType == USER_MOVEMENT_SLIDE
+                    && movement.jumpPower == null
+                    && movement.fromX == movement.toX
+                    && movement.fromY == movement.toY
                     && Double.compare(movement.fromZ, movement.toZ) == 0) {
                 if (mergedUserIndexes.contains(index)) normalized.remove(index);
-                else normalized.set(index, new UserDirectionData(movement.id, movement.headDirection, movement.bodyDirection));
+                else
+                    normalized.set(
+                            index, new UserDirectionData(movement.id, movement.headDirection, movement.bodyDirection));
             }
         }
         return normalized;
@@ -242,10 +271,30 @@ public class WiredMovementsComposer extends MessageComposer {
     }
 
     public static MovementData userSlideMovement(
-            int id, int fromX, int fromY, int toX, int toY, double fromZ, double toZ,
-            int bodyDirection, int headDirection, int duration, Integer jumpPower) {
-        return new UserMovementData(id, fromX, fromY, toX, toY, fromZ, toZ,
-                USER_MOVEMENT_SLIDE, bodyDirection, headDirection, duration, jumpPower);
+            int id,
+            int fromX,
+            int fromY,
+            int toX,
+            int toY,
+            double fromZ,
+            double toZ,
+            int bodyDirection,
+            int headDirection,
+            int duration,
+            Integer jumpPower) {
+        return new UserMovementData(
+                id,
+                fromX,
+                fromY,
+                toX,
+                toY,
+                fromZ,
+                toZ,
+                USER_MOVEMENT_SLIDE,
+                bodyDirection,
+                headDirection,
+                duration,
+                jumpPower);
     }
 
     public static MovementData userDirectionUpdate(int id, int headDirection, int bodyDirection) {
@@ -259,7 +308,9 @@ public class WiredMovementsComposer extends MessageComposer {
     public interface MovementData {
         int getType();
 
-        default boolean isCurrent() { return true; }
+        default boolean isCurrent() {
+            return true;
+        }
 
         void append(ServerMessage response);
     }
@@ -371,15 +422,40 @@ public class WiredMovementsComposer extends MessageComposer {
                 int anchorId,
                 Integer overshootingDistance,
                 Integer curveStrength) {
-            this(id, fromX, fromY, toX, toY, fromZ, toZ, rotation, duration, elapsed,
-                    anchorType, anchorId, overshootingDistance, curveStrength,
+            this(
+                    id,
+                    fromX,
+                    fromY,
+                    toX,
+                    toY,
+                    fromZ,
+                    toZ,
+                    rotation,
+                    duration,
+                    elapsed,
+                    anchorType,
+                    anchorId,
+                    overshootingDistance,
+                    curveStrength,
                     WiredFurnitureAnimationState.capture(id));
         }
 
         private FurniMovementData(
-                int id, int fromX, int fromY, int toX, int toY, double fromZ, double toZ,
-                int rotation, int duration, int elapsed, int anchorType, int anchorId,
-                Integer overshootingDistance, Integer curveStrength, WiredFurnitureAnimationState.Epoch epoch) {
+                int id,
+                int fromX,
+                int fromY,
+                int toX,
+                int toY,
+                double fromZ,
+                double toZ,
+                int rotation,
+                int duration,
+                int elapsed,
+                int anchorType,
+                int anchorId,
+                Integer overshootingDistance,
+                Integer curveStrength,
+                WiredFurnitureAnimationState.Epoch epoch) {
             super(TYPE_FURNI_MOVE);
             this.epoch = epoch;
             this.id = id;
@@ -399,7 +475,9 @@ public class WiredMovementsComposer extends MessageComposer {
         }
 
         @Override
-        public boolean isCurrent() { return this.epoch.isCurrent(); }
+        public boolean isCurrent() {
+            return this.epoch.isCurrent();
+        }
 
         @Override
         public void append(ServerMessage response) {

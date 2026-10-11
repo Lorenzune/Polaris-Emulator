@@ -22,7 +22,6 @@ import com.eu.habbo.habbohotel.items.interactions.InteractionGuildFurni;
 import com.eu.habbo.habbohotel.items.interactions.InteractionGuildGate;
 import com.eu.habbo.habbohotel.items.interactions.InteractionHopper;
 import com.eu.habbo.habbohotel.items.interactions.InteractionTeleport;
-import com.eu.habbo.habbohotel.items.interactions.InteractionTeleportTile;
 import com.eu.habbo.habbohotel.items.interactions.InteractionTrophy;
 import com.eu.habbo.habbohotel.modtool.ScripterManager;
 import com.eu.habbo.habbohotel.permissions.Permission;
@@ -564,7 +563,8 @@ public class CatalogBuyItemAsGiftEvent extends MessageHandler {
                                                 + extraData;
                                     }
 
-                                    if (InteractionTeleport.class.isAssignableFrom(baseItem.getInteractionType().getType())) {
+                                    if (InteractionTeleport.class.isAssignableFrom(
+                                            baseItem.getInteractionType().getType())) {
 
                                         HabboItem teleportOne = Emulator.getGameEnvironment()
                                                 .getItemManager()

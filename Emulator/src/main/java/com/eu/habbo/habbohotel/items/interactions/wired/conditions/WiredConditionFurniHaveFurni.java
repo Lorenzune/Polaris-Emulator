@@ -71,7 +71,8 @@ public class WiredConditionFurniHaveFurni extends InteractionWiredCondition {
                 return occupiedTiles.stream()
                         .anyMatch(tile -> tile != null
                                 && room.getItemsAt(tile).stream()
-                                        .anyMatch(matchedItem -> matchedItem != item && matchedItem.getZ() > minZ + 0.001));
+                                        .anyMatch(matchedItem ->
+                                                matchedItem != item && matchedItem.getZ() > minZ + 0.001));
             });
         } else {
             return targets.stream().anyMatch(item -> {
@@ -89,7 +90,8 @@ public class WiredConditionFurniHaveFurni extends InteractionWiredCondition {
                 return occupiedTiles.stream()
                         .anyMatch(tile -> tile != null
                                 && room.getItemsAt(tile).stream()
-                                        .anyMatch(matchedItem -> matchedItem != item && matchedItem.getZ() > minZ + 0.001));
+                                        .anyMatch(matchedItem ->
+                                                matchedItem != item && matchedItem.getZ() > minZ + 0.001));
             });
         }
     }
@@ -208,8 +210,8 @@ public class WiredConditionFurniHaveFurni extends InteractionWiredCondition {
         this.furniSource = settings.getFurniSourceTypes().length > 0
                 ? WiredFurniConditionInputGuard.normalizeFurniSource(settings.getFurniSourceTypes()[0])
                 : (params.length > 1)
-                ? WiredFurniConditionInputGuard.normalizeFurniSource(params[1])
-                : WiredSourceUtil.SOURCE_TRIGGER;
+                        ? WiredFurniConditionInputGuard.normalizeFurniSource(params[1])
+                        : WiredSourceUtil.SOURCE_TRIGGER;
 
         int count = settings.getFurniIds().length;
         if (count > Emulator.getConfig().getInt("hotel.wired.furni.selection.count")) return false;

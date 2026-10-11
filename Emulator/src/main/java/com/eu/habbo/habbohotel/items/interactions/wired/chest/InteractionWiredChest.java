@@ -4,10 +4,9 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
 import com.eu.habbo.habbohotel.rooms.Room;
+import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.outgoing.rooms.items.ChestDataComposer;
-import com.eu.habbo.habbohotel.rooms.RoomUnit;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Set;
@@ -32,7 +31,9 @@ public abstract class InteractionWiredChest extends InteractionWiredExtra {
             if (wiredData != null && !wiredData.isEmpty()) {
                 this.contents = ChestStorage.fromJson(wiredData);
                 resolveLegacySpriteIds(this.contents);
-                this.lastNotifiedLog = this.contents.getLog().isEmpty() ? null : this.contents.getLog().get(0);
+                this.lastNotifiedLog = this.contents.getLog().isEmpty()
+                        ? null
+                        : this.contents.getLog().get(0);
             }
         } catch (SQLException ignored) {
             // Legacy rows/schema variants without wired_data retain the same empty-storage fallback.
@@ -40,12 +41,14 @@ public abstract class InteractionWiredChest extends InteractionWiredExtra {
         }
     }
 
-    protected InteractionWiredChest(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    protected InteractionWiredChest(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
     public boolean canManage(Habbo habbo) {
-        return habbo != null && (getUserId() == habbo.getHabboInfo().getId() || habbo.hasPermission("acc_anyroomowner"));
+        return habbo != null
+                && (getUserId() == habbo.getHabboInfo().getId() || habbo.hasPermission("acc_anyroomowner"));
     }
 
     public boolean canEdit(Habbo habbo, Room room) {
@@ -85,7 +88,9 @@ public abstract class InteractionWiredChest extends InteractionWiredExtra {
         var entry = log.get(0);
         lastNotifiedLog = entry;
         if (contents.getNotifyMode() == 2 || (entry.withdrawn <= 0 && entry.deposited <= 0)) return;
-        int used = this instanceof InteractionWiredChestFurni ? contents.furniItemCount() : contents.total(ChestStorage.KIND_CURRENCY);
+        int used = this instanceof InteractionWiredChestFurni
+                ? contents.furniItemCount()
+                : contents.total(ChestStorage.KIND_CURRENCY);
         boolean enabled = (entry.deposited > 0 && contents.isNotifyDonation())
                 || (entry.withdrawn > 0 && contents.isNotifyWithdraw())
                 || (entry.type != null && entry.type.startsWith("wired") && contents.isNotifyWired())
@@ -98,17 +103,22 @@ public abstract class InteractionWiredChest extends InteractionWiredExtra {
         if (owner == null || owner.getClient() == null) return;
         if (contents.getNotifyMode() == 1 && owner.getHabboInfo().getCurrentRoom() != room) return;
         String label = contents.getName().isBlank() ? "Scrigno #" + getId() : contents.getName();
-        String text = label + ": " + entry.userName + (entry.deposited > 0 ? " ha depositato " + entry.deposited : " ha prelevato " + entry.withdrawn);
+        String text = label + ": " + entry.userName
+                + (entry.deposited > 0 ? " ha depositato " + entry.deposited : " ha prelevato " + entry.withdrawn);
         if (entry.deposited > 0 && contents.isNotifyDonation()) ChestNotifications.send(owner, "donation", text);
         if (entry.withdrawn > 0 && contents.isNotifyWithdraw()) ChestNotifications.send(owner, "withdraw", text);
-        if (entry.type != null && entry.type.startsWith("wired") && contents.isNotifyWired()) ChestNotifications.send(owner, "wired_transaction", text);
-        if (entry.deposited > 0 && used >= contents.getCapacity() && contents.isNotifyFull()) ChestNotifications.send(owner, "full", label + ": lo scrigno è pieno.");
-        if (entry.withdrawn > 0 && used == 0 && contents.isNotifyEmpty()) ChestNotifications.send(owner, "empty", label + ": lo scrigno è vuoto.");
+        if (entry.type != null && entry.type.startsWith("wired") && contents.isNotifyWired())
+            ChestNotifications.send(owner, "wired_transaction", text);
+        if (entry.deposited > 0 && used >= contents.getCapacity() && contents.isNotifyFull())
+            ChestNotifications.send(owner, "full", label + ": lo scrigno è pieno.");
+        if (entry.withdrawn > 0 && used == 0 && contents.isNotifyEmpty())
+            ChestNotifications.send(owner, "empty", label + ": lo scrigno è vuoto.");
     }
 
     public boolean hasContents() {
         if (this instanceof InteractionWiredChestFurni) {
-            return this.contents.furniItemCount() > 0 || !this.contents.entries().isEmpty();
+            return this.contents.furniItemCount() > 0
+                    || !this.contents.entries().isEmpty();
         } else {
             for (ChestStorage.Entry entry : this.contents.entries()) {
                 if (entry.quantity > 0) return true;
@@ -187,7 +197,8 @@ public abstract class InteractionWiredChest extends InteractionWiredExtra {
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
         this.contents = ChestStorage.fromJson(set.getString("wired_data"));
         resolveLegacySpriteIds(this.contents);
-        this.lastNotifiedLog = this.contents.getLog().isEmpty() ? null : this.contents.getLog().get(0);
+        this.lastNotifiedLog =
+                this.contents.getLog().isEmpty() ? null : this.contents.getLog().get(0);
         this.updateAppearanceState(room);
     }
 
@@ -217,9 +228,7 @@ public abstract class InteractionWiredChest extends InteractionWiredExtra {
     }
 
     @Override
-    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {
-
-    }
+    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {}
 
     @Override
     public boolean hasConfiguration() {
@@ -240,7 +249,8 @@ public abstract class InteractionWiredChest extends InteractionWiredExtra {
     public void persistContents() {
         var environment = Emulator.getGameEnvironment();
         Room room = environment == null || environment.getRoomManager() == null
-                ? null : environment.getRoomManager().getRoom(getRoomId());
+                ? null
+                : environment.getRoomManager().getRoom(getRoomId());
         this.persistContents(room);
     }
 }

@@ -11,9 +11,8 @@ import com.eu.habbo.habbohotel.items.ItemInteraction;
 import com.eu.habbo.habbohotel.items.interactions.InteractionAreaHideControl;
 import com.eu.habbo.habbohotel.items.interactions.InteractionConfInvisControl;
 import com.eu.habbo.habbohotel.users.HabboItem;
-import org.junit.jupiter.api.Test;
-
 import java.util.Set;
+import org.junit.jupiter.api.Test;
 
 class RoomAreaHideSupportTest {
 
@@ -95,8 +94,7 @@ class RoomAreaHideSupportTest {
     @Test
     void invisibleAreaHideControllerIsIncludedInConfInvisState() {
         InteractionAreaHideControl areaHide = controller(0, 0, 2, 2, false, false);
-        HabboItem invisControl = new InteractionConfInvisControl(
-            3, 1, baseItem(FurnitureType.FLOOR, 1, 1), "1", 0, 0);
+        HabboItem invisControl = new InteractionConfInvisControl(3, 1, baseItem(FurnitureType.FLOOR, 1, 1), "1", 0, 0);
         Room room = mock(Room.class);
         when(room.getFloorItems()).thenReturn(Set.of(areaHide, invisControl));
 
@@ -118,8 +116,7 @@ class RoomAreaHideSupportTest {
         return controller;
     }
 
-    private static HabboItem item(
-            int itemId, FurnitureType type, int x, int y, int width, int length) {
+    private static HabboItem item(int itemId, FurnitureType type, int x, int y, int width, int length) {
         HabboItem item = mock(HabboItem.class);
         Item baseItem = baseItem(type, width, length);
         when(item.getId()).thenReturn(itemId);
@@ -133,7 +130,8 @@ class RoomAreaHideSupportTest {
     private static HabboItem visibilityController(int itemId, String interactionName) {
         HabboItem item = item(itemId, FurnitureType.FLOOR, 0, 0, 1, 1);
         Item baseItem = baseItem(FurnitureType.FLOOR, 1, 1);
-        when(baseItem.getInteractionType()).thenReturn(new ItemInteraction(interactionName, InteractionConfInvisControl.class));
+        when(baseItem.getInteractionType())
+                .thenReturn(new ItemInteraction(interactionName, InteractionConfInvisControl.class));
         when(item.getBaseItem()).thenReturn(baseItem);
         return item;
     }

@@ -1,7 +1,10 @@
 package com.eu.habbo.habbohotel.wired.core;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mock;
 
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.messages.ServerMessage;
@@ -16,8 +19,8 @@ import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
@@ -63,16 +66,21 @@ class WiredMovementPublicationTest {
         ServerMessage stale = new WiredMovementsComposer(List.of(old)).compose();
         assertEquals(List.of(), write(stale, false), "Normalization must not renew an old animation");
         var next = WiredMovementsComposer.furniMovement(7143, 1, 3, 7, 14, .02, .02);
-        ServerMessage current = new WiredMovementsComposer(List.of(next,
-                WiredMovementsComposer.furniMovement(7143, 7, 14, 7, 14, .02, .1))).compose();
+        ServerMessage current = new WiredMovementsComposer(
+                        List.of(next, WiredMovementsComposer.furniMovement(7143, 7, 14, 7, 14, .02, .1)))
+                .compose();
         assertEquals(List.of(7143), write(current, false));
     }
 
     @Test
     void normalFurnitureAndUserOnlyMessagesKeepTheirTransportBehavior() throws Exception {
         assertEquals(List.of(7144), write(new WiredMovementsComposer(List.of(move(7144))).compose(), true));
-        assertEquals(List.of(-8), write(new WiredMovementsComposer(List.of(
-                WiredMovementsComposer.userDirectionUpdate(8, 4, 4))).compose(), true));
+        assertEquals(
+                List.of(-8),
+                write(
+                        new WiredMovementsComposer(List.of(WiredMovementsComposer.userDirectionUpdate(8, 4, 4)))
+                                .compose(),
+                        true));
     }
 
     @ParameterizedTest
@@ -95,8 +103,11 @@ class WiredMovementPublicationTest {
             var entered = new CountDownLatch(1);
             executors.next().submit(() -> {
                 entered.countDown();
-                try { assertTrue(release.await(5, TimeUnit.SECONDS)); }
-                catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
+                try {
+                    assertTrue(release.await(5, TimeUnit.SECONDS));
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                }
             });
             assertTrue(entered.await(5, TimeUnit.SECONDS));
             writeToChannel(channel, message, broadcast);
@@ -115,7 +126,9 @@ class WiredMovementPublicationTest {
                 bytes.skipBytes(6);
                 assertEquals(0, bytes.readInt());
                 assertEquals(0, bytes.readableBytes());
-            } finally { bytes.release(); }
+            } finally {
+                bytes.release();
+            }
         } finally {
             release.countDown();
             executors.shutdownGracefully(0, 2, TimeUnit.SECONDS).sync();
@@ -130,8 +143,9 @@ class WiredMovementPublicationTest {
     void oldAndNewEpochInSameComposerStartsAtTheResetLocation() throws Exception {
         var old = move(7146);
         foreignReset(7146);
-        ServerMessage message = new WiredMovementsComposer(List.of(old,
-                WiredMovementsComposer.furniMovement(7146, 1, 3, 7, 14, .02, .1))).compose();
+        ServerMessage message = new WiredMovementsComposer(
+                        List.of(old, WiredMovementsComposer.furniMovement(7146, 1, 3, 7, 14, .02, .1)))
+                .compose();
         ByteBuf bytes = message.get();
         try {
             bytes.skipBytes(6);
@@ -141,7 +155,9 @@ class WiredMovementPublicationTest {
             assertEquals(3, bytes.readInt());
             assertEquals(7, bytes.readInt());
             assertEquals(14, bytes.readInt());
-        } finally { bytes.release(); }
+        } finally {
+            bytes.release();
+        }
     }
 
     private static WiredMovementsComposer.MovementData move(int id) {
@@ -150,7 +166,8 @@ class WiredMovementPublicationTest {
 
     private static void foreignReset(int id) throws Exception {
         try (var executor = Executors.newSingleThreadExecutor()) {
-            executor.submit(() -> WiredMoveCarryHelper.discardCollectedFurnitureMovements(id)).get(5, TimeUnit.SECONDS);
+            executor.submit(() -> WiredMoveCarryHelper.discardCollectedFurnitureMovements(id))
+                    .get(5, TimeUnit.SECONDS);
         }
     }
 
@@ -184,19 +201,27 @@ class WiredMovementPublicationTest {
                 }
                 assertEquals(0, bytes.readableBytes());
                 return ids;
-            } finally { bytes.release(); }
-        } finally { channel.finishAndReleaseAll(); }
+            } finally {
+                bytes.release();
+            }
+        } finally {
+            channel.finishAndReleaseAll();
+        }
     }
 
-    private static void writeToChannel(EmbeddedChannel channel, ServerMessage message, boolean broadcast) throws Exception {
+    private static void writeToChannel(EmbeddedChannel channel, ServerMessage message, boolean broadcast)
+            throws Exception {
         GameClient client = mock(GameClient.class, CALLS_REAL_METHODS);
         var field = GameClient.class.getDeclaredField("channel");
         field.setAccessible(true);
         field.set(client, channel);
-        var writer = GameClient.class.getDeclaredMethod("writeResponse", ServerMessage.class, boolean.class, boolean.class);
+        var writer =
+                GameClient.class.getDeclaredMethod("writeResponse", ServerMessage.class, boolean.class, boolean.class);
         writer.setAccessible(true);
         writer.invoke(client, message, broadcast, false);
     }
 
-    private static void skipString(ByteBuf bytes) { bytes.skipBytes(bytes.readUnsignedShort()); }
+    private static void skipString(ByteBuf bytes) {
+        bytes.skipBytes(bytes.readUnsignedShort());
+    }
 }

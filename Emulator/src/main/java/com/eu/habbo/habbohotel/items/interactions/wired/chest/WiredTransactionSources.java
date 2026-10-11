@@ -1,7 +1,12 @@
 package com.eu.habbo.habbohotel.items.interactions.wired.chest;
 
-import com.eu.habbo.habbohotel.wired.core.*;
 import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.habbohotel.wired.core.DefaultWiredServices;
+import com.eu.habbo.habbohotel.wired.core.WiredContext;
+import com.eu.habbo.habbohotel.wired.core.WiredEvent;
+import com.eu.habbo.habbohotel.wired.core.WiredManager;
+import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
+import com.eu.habbo.habbohotel.wired.core.WiredState;
 import java.util.List;
 
 /** Optional transaction source envelope; absent data preserves selected contracts and the actor. */
@@ -21,7 +26,10 @@ public final class WiredTransactionSources {
                         com.eu.habbo.WiredCompatibilityDiagnostics.FailurePoint.TRANSACTION_SOURCES_JSON, ignored);
             }
         }
-        if (result.furniSource != 0 && result.furniSource != 100 && result.furniSource != 200 && result.furniSource != 201) result.furniSource = 100;
+        if (result.furniSource != 0
+                && result.furniSource != 100
+                && result.furniSource != 200
+                && result.furniSource != 201) result.furniSource = 100;
         if (!WiredSourceUtil.isDefaultUserSource(result.userSource)) result.userSource = 0;
         return result;
     }
@@ -35,8 +43,11 @@ public final class WiredTransactionSources {
         if (event.getSourceItem().isEmpty()) return false;
         if (furniSource == 100) return ids.contains(event.getSourceItem().get().getId());
         var ctx = new WiredContext(event, trigger, DefaultWiredServices.getInstance(), new WiredState(100));
-        return contracts(ctx, ids).stream().anyMatch(item -> item.getId() == event.getSourceItem().get().getId());
+        return contracts(ctx, ids).stream()
+                .anyMatch(item -> item.getId() == event.getSourceItem().get().getId());
     }
 
-    public String json() { return WiredManager.getGson().toJson(this); }
+    public String json() {
+        return WiredManager.getGson().toJson(this);
+    }
 }

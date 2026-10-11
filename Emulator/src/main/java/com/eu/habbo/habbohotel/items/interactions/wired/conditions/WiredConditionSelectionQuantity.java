@@ -6,13 +6,12 @@ import com.eu.habbo.habbohotel.items.interactions.InteractionWiredCondition;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
+import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.WiredConditionType;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
-import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
@@ -48,7 +47,8 @@ public class WiredConditionSelectionQuantity extends InteractionWiredCondition {
         this.items = new LinkedHashSet<>();
     }
 
-    public WiredConditionSelectionQuantity(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredConditionSelectionQuantity(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
         this.items = new LinkedHashSet<>();
     }
@@ -92,13 +92,18 @@ public class WiredConditionSelectionQuantity extends InteractionWiredCondition {
 
         if (settings.isNativeVariableFormat()) {
             // SWF: [users rather than furni, quantity, comparison]. Origins are separate.
-            if (params.length != 3 || (params[0] != 0 && params[0] != 1)
-                    || params[1] < 0 || params[1] > 100 || params[2] < 0 || params[2] > 2) return false;
+            if (params.length != 3
+                    || (params[0] != 0 && params[0] != 1)
+                    || params[1] < 0
+                    || params[1] > 100
+                    || params[2] < 0
+                    || params[2] > 2) return false;
             boolean users = params[0] == 1;
             int[] sources = users ? settings.getUserSourceTypes() : settings.getFurniSourceTypes();
             if (sources.length != 1) return false;
             int source = sources[0];
-            if (users ? source != 0 && source != 11 && source != 200 && source != 201
+            if (users
+                    ? source != 0 && source != 11 && source != 200 && source != 201
                     : source != 0 && source != 100 && source != 200 && source != 201) return false;
             params = new int[] {params[2], params[1], users ? SOURCE_GROUP_USERS : SOURCE_GROUP_FURNI, source};
         }
@@ -163,13 +168,13 @@ public class WiredConditionSelectionQuantity extends InteractionWiredCondition {
     public String getWiredData() {
         this.refresh(Emulator.getGameEnvironment().getRoomManager().getRoom(this.getRoomId()));
 
-        return WiredManager.getGson().toJson(new JsonData(
-                this.comparison,
-                this.quantity,
-                this.sourceGroup,
-                this.sourceType,
-                this.items.stream().map(HabboItem::getId).collect(Collectors.toList())
-        ));
+        return WiredManager.getGson()
+                .toJson(new JsonData(
+                        this.comparison,
+                        this.quantity,
+                        this.sourceGroup,
+                        this.sourceType,
+                        this.items.stream().map(HabboItem::getId).collect(Collectors.toList())));
     }
 
     @Override

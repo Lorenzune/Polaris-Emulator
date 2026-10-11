@@ -1,7 +1,11 @@
 package com.eu.habbo.habbohotel.items.interactions.wired.conditions;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.GameEnvironment;
@@ -10,7 +14,10 @@ import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.users.HabboItem;
-import com.eu.habbo.habbohotel.wired.core.*;
+import com.eu.habbo.habbohotel.wired.core.WiredContext;
+import com.eu.habbo.habbohotel.wired.core.WiredEvent;
+import com.eu.habbo.habbohotel.wired.core.WiredServices;
+import com.eu.habbo.habbohotel.wired.core.WiredState;
 import java.sql.ResultSet;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -39,8 +46,11 @@ class WiredSelectionQuantityNativeTest {
             when(stored.getString("wired_data")).thenReturn(payload);
             var reloaded = new WiredConditionSelectionQuantity(2, 16, mock(Item.class), "", 0, 0);
             reloaded.loadWiredData(stored, room);
-            var context = new WiredContext(WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room).build(),
-                    null, mock(WiredServices.class), new WiredState(100));
+            var context = new WiredContext(
+                    WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room).build(),
+                    null,
+                    mock(WiredServices.class),
+                    new WiredState(100));
             context.targets().setItems(Set.of(mock(HabboItem.class), mock(HabboItem.class), mock(HabboItem.class)));
             assertTrue(reloaded.evaluate(context));
             context.targets().setItems(Set.of());
@@ -54,8 +64,11 @@ class WiredSelectionQuantityNativeTest {
     void userFlagChoosesUsersAndLegacyFourFieldsRemainCompatible() {
         var room = mock(Room.class);
         var condition = new WiredConditionSelectionQuantity(1, 16, mock(Item.class), "", 0, 0);
-        var context = new WiredContext(WiredEvent.builder(WiredEvent.Type.USER_CLICKS_FURNI, room).build(),
-                null, mock(WiredServices.class), new WiredState(100));
+        var context = new WiredContext(
+                WiredEvent.builder(WiredEvent.Type.USER_CLICKS_FURNI, room).build(),
+                null,
+                mock(WiredServices.class),
+                new WiredState(100));
         var user = mock(RoomUnit.class);
         when(user.getId()).thenReturn(7);
         context.targets().setUsers(Set.of(user));

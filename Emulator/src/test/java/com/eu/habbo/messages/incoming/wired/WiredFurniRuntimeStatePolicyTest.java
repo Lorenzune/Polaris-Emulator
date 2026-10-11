@@ -23,7 +23,8 @@ class WiredFurniRuntimeStatePolicyTest {
     void readReturnsAuthoritativeRoomOwnedState() {
         Room room = mock(Room.class);
         RoomWiredRuntime runtime = mock(RoomWiredRuntime.class);
-        when(runtime.getVariableMonitor()).thenReturn(mock(com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor.class));
+        when(runtime.getVariableMonitor())
+                .thenReturn(mock(com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor.class));
         when(room.getWiredRuntime()).thenReturn(runtime);
         HabboItem item = floorItem();
         when(runtime.isGravityEnabled(item)).thenReturn(true);
@@ -39,7 +40,8 @@ class WiredFurniRuntimeStatePolicyTest {
     void writeAcceptsOnlyBooleanValuesAndReturnsCommittedState() {
         Room room = mock(Room.class);
         RoomWiredRuntime runtime = mock(RoomWiredRuntime.class);
-        when(runtime.getVariableMonitor()).thenReturn(mock(com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor.class));
+        when(runtime.getVariableMonitor())
+                .thenReturn(mock(com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor.class));
         when(room.getWiredRuntime()).thenReturn(runtime);
         HabboItem item = floorItem();
         when(runtime.setGravityEnabled(item, true)).thenReturn(true);
@@ -61,7 +63,8 @@ class WiredFurniRuntimeStatePolicyTest {
     void opacityIsReadableAndWritableAcrossItsFullPercentageRange() {
         Room room = mock(Room.class);
         RoomWiredRuntime runtime = mock(RoomWiredRuntime.class);
-        when(runtime.getVariableMonitor()).thenReturn(mock(com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor.class));
+        when(runtime.getVariableMonitor())
+                .thenReturn(mock(com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor.class));
         when(room.getWiredRuntime()).thenReturn(runtime);
         HabboItem item = floorItem();
         when(runtime.setGlobalOpacity(room, item, 40)).thenReturn(true);
@@ -83,7 +86,8 @@ class WiredFurniRuntimeStatePolicyTest {
     void scalingIsReadableAndWritableAsLevelsFromOneQuarterToThreeTimes() {
         Room room = mock(Room.class);
         RoomWiredRuntime runtime = mock(RoomWiredRuntime.class);
-        when(runtime.getVariableMonitor()).thenReturn(mock(com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor.class));
+        when(runtime.getVariableMonitor())
+                .thenReturn(mock(com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor.class));
         when(room.getWiredRuntime()).thenReturn(runtime);
         HabboItem item = floorItem();
         when(runtime.setGlobalScaling(room, item, 175)).thenReturn(true);
@@ -116,7 +120,8 @@ class WiredFurniRuntimeStatePolicyTest {
     void opacityRejectsValuesOutsideZeroToHundredAndGravityStaysBoolean() {
         Room room = mock(Room.class);
         RoomWiredRuntime runtime = mock(RoomWiredRuntime.class);
-        when(runtime.getVariableMonitor()).thenReturn(mock(com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor.class));
+        when(runtime.getVariableMonitor())
+                .thenReturn(mock(com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor.class));
         when(room.getWiredRuntime()).thenReturn(runtime);
         HabboItem item = floorItem();
 
@@ -133,7 +138,8 @@ class WiredFurniRuntimeStatePolicyTest {
     void opacityAppliesToWallFurnitureUnlikeGravity() {
         Room room = mock(Room.class);
         RoomWiredRuntime runtime = mock(RoomWiredRuntime.class);
-        when(runtime.getVariableMonitor()).thenReturn(mock(com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor.class));
+        when(runtime.getVariableMonitor())
+                .thenReturn(mock(com.eu.habbo.habbohotel.wired.core.WiredInternalVariableMonitor.class));
         when(room.getWiredRuntime()).thenReturn(runtime);
         HabboItem wall = mock(HabboItem.class);
         Item wallBase = mock(Item.class);

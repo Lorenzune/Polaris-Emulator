@@ -1,7 +1,11 @@
 package com.eu.habbo.habbohotel.items.interactions.wired.extra;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.core.ConfigurationManager;
@@ -30,9 +34,9 @@ class WiredExtraConditionGroupTest {
         when(room.getHabboItem(10)).thenReturn(child);
         var group = new WiredExtraOrEval(20, 16, base, "", 0, 0);
         group.setRoomId(266);
-        WiredSettings settings = new WiredSettings(new int[]{-1, 1, 250}, "", new int[]{10}, 0);
+        WiredSettings settings = new WiredSettings(new int[] {-1, 1, 250}, "", new int[] {10}, 0);
         settings.setNativeVariableFormat(true);
-        settings.setFurniSourceTypes(new int[]{100});
+        settings.setFurniSourceTypes(new int[] {100});
         try (var emulator = mockStatic(Emulator.class)) {
             emulator.when(Emulator::getGameEnvironment).thenReturn(environment);
             emulator.when(Emulator::getConfig).thenReturn(configuration);
@@ -49,7 +53,7 @@ class WiredExtraConditionGroupTest {
             when(context.room()).thenReturn(room);
             assertEquals(java.util.List.of(child), group.resolveConditions(context));
             assertTrue(group.hasReferencedConditions());
-            assertTrue(group.saveData(new WiredSettings(new int[]{5, 100, 250}, "", new int[]{10}, 0), null));
+            assertTrue(group.saveData(new WiredSettings(new int[] {5, 100, 250}, "", new int[] {10}, 0), null));
             assertEquals(java.util.List.of(child), group.resolveConditions(context));
             assertTrue(group.hasReferencedConditions());
         }

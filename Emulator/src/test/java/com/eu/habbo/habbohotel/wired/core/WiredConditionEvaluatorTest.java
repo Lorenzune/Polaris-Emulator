@@ -6,11 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.eu.habbo.habbohotel.items.interactions.InteractionWiredCondition;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraOrEval;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomSpecialTypes;
 import com.eu.habbo.habbohotel.users.HabboItem;
-import com.eu.habbo.habbohotel.items.interactions.InteractionWiredCondition;
 import com.eu.habbo.habbohotel.wired.WiredConditionOperator;
 import com.eu.habbo.habbohotel.wired.api.IWiredCondition;
 import com.eu.habbo.habbohotel.wired.api.WiredStack;
@@ -40,7 +40,11 @@ class WiredConditionEvaluatorTest {
         WiredConditionEvaluator.EvaluationResult result = evaluator.evaluateForExecution(stack, normalContext, false);
 
         assertTrue(result.passed());
-        assertEquals(List.of(true, false, true), result.conditions().stream().map(WiredConditionEvaluator.ConditionResult::passed).toList());
+        assertEquals(
+                List.of(true, false, true),
+                result.conditions().stream()
+                        .map(WiredConditionEvaluator.ConditionResult::passed)
+                        .toList());
         assertEquals(List.of("and", "or-false", "or-true"), evaluationOrder);
         assertEquals(3, normalState.steps());
         assertTrue(diagnostics.contains("Conditions result: {}"));
@@ -77,7 +81,8 @@ class WiredConditionEvaluatorTest {
             InteractionWiredCondition rightSeat = mock(InteractionWiredCondition.class);
             boolean lt = (bits & 1) != 0, ls = (bits & 2) != 0;
             boolean rt = (bits & 4) != 0, rs = (bits & 8) != 0;
-            WiredStack stack = new WiredStack(trigger, null, List.of(leftTurn, rightTurn, leftSeat, rightSeat), List.of());
+            WiredStack stack =
+                    new WiredStack(trigger, null, List.of(leftTurn, rightTurn, leftSeat, rightSeat), List.of());
             WiredContext context = context(room, mock(WiredServices.class), stack, new WiredState(100));
             when(leftTurn.evaluate(context)).thenReturn(lt);
             when(leftSeat.evaluate(context)).thenReturn(ls);
@@ -116,8 +121,11 @@ class WiredConditionEvaluatorTest {
         HabboItem trigger = mock(HabboItem.class);
         InteractionWiredCondition selected = mock(InteractionWiredCondition.class);
         List<String> order = new ArrayList<>();
-        WiredStack stack = new WiredStack(trigger, null,
-                List.of(selected, new TestCondition("outside", false, WiredConditionOperator.AND, order)), List.of());
+        WiredStack stack = new WiredStack(
+                trigger,
+                null,
+                List.of(selected, new TestCondition("outside", false, WiredConditionOperator.AND, order)),
+                List.of());
         WiredContext context = context(room, mock(WiredServices.class), stack, new WiredState(100));
         when(selected.evaluate(context)).thenReturn(true);
         WiredExtraOrEval group = group(1, WiredExtraOrEval.MODE_AT_LEAST_ONE, context, List.of(selected));

@@ -1,8 +1,8 @@
 package com.eu.habbo.habbohotel.wired.core;
 
+import com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerReceiveSignal;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.wired.api.WiredStack;
-import com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerReceiveSignal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -53,8 +53,10 @@ final class WiredStackRepository {
                 routes = previous != null ? previous : built;
             }
             List<WiredStack> result = routes.forChannel(channel);
-            if (key.equals(SignalCacheKey.capture(room)) && epoch == publicationEpoch.get()
-                    && routes.epoch == epoch && signalRoutes.get(key) == routes) return result;
+            if (key.equals(SignalCacheKey.capture(room))
+                    && epoch == publicationEpoch.get()
+                    && routes.epoch == epoch
+                    && signalRoutes.get(key) == routes) return result;
             signalRoutes.remove(key, routes);
         }
     }
@@ -161,15 +163,22 @@ final class WiredStackRepository {
                 if (stack == null) continue;
                 var entry = new PositionedStack(position, stack);
                 java.util.Set<Integer> ids = null;
-                if (stack.triggerItem() != null && stack.triggerItem().getClass() == WiredTriggerReceiveSignal.class
+                if (stack.triggerItem() != null
+                        && stack.triggerItem().getClass() == WiredTriggerReceiveSignal.class
                         && stack.trigger() == stack.triggerItem()) {
-                    try { ids = ((WiredTriggerReceiveSignal) stack.triggerItem()).getStaticSignalChannels(); }
-                    catch (java.util.ConcurrentModificationException concurrentEdit) {
-                        LOGGER.debug("WIRED signal routing uses dynamic fallback for receiver {} during an edit", stack.triggerItem().getId());
+                    try {
+                        ids = ((WiredTriggerReceiveSignal) stack.triggerItem()).getStaticSignalChannels();
+                    } catch (java.util.ConcurrentModificationException concurrentEdit) {
+                        LOGGER.debug(
+                                "WIRED signal routing uses dynamic fallback for receiver {} during an edit",
+                                stack.triggerItem().getId());
                     }
                 }
                 if (ids == null) dynamic.add(entry);
-                else for (int id : ids) channels.computeIfAbsent(id, unused -> new ArrayList<>()).add(entry);
+                else
+                    for (int id : ids)
+                        channels.computeIfAbsent(id, unused -> new ArrayList<>())
+                                .add(entry);
             }
             fallback = dynamic.stream().map(PositionedStack::stack).toList();
         }

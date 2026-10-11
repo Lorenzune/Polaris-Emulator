@@ -1,13 +1,10 @@
 package com.eu.habbo.habbohotel.items.interactions.wired.chest;
 
-import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.messages.ServerMessage;
-import com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestOpenHelper;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -25,7 +22,8 @@ public class InteractionWiredChestFurni extends InteractionWiredChest {
         super(set, baseItem);
     }
 
-    public InteractionWiredChestFurni(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public InteractionWiredChestFurni(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -36,8 +34,11 @@ public class InteractionWiredChestFurni extends InteractionWiredChest {
 
     /** Same four identities used by the room's glowing chest preview. */
     public java.util.Set<String> previewKeys() {
-        return contents.furniItems().stream().map(InteractionWiredChestFurni::previewKey)
-                .distinct().limit(4).collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
+        return contents.furniItems().stream()
+                .map(InteractionWiredChestFurni::previewKey)
+                .distinct()
+                .limit(4)
+                .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
     }
 
     @Override

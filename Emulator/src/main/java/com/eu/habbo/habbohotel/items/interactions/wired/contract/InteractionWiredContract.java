@@ -2,16 +2,15 @@ package com.eu.habbo.habbohotel.items.interactions.wired.contract;
 
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
-import com.eu.habbo.habbohotel.items.interactions.wired.chest.ContractTerm;
-import com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
+import com.eu.habbo.habbohotel.items.interactions.wired.chest.ContractTerm;
+import com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -33,7 +32,8 @@ public abstract class InteractionWiredContract extends InteractionWiredExtra {
         super(set, baseItem);
     }
 
-    protected InteractionWiredContract(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    protected InteractionWiredContract(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -46,8 +46,7 @@ public abstract class InteractionWiredContract extends InteractionWiredExtra {
     }
 
     @Override
-    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {
-    }
+    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {}
 
     @Override
     public boolean hasConfiguration() {
@@ -68,18 +67,28 @@ public abstract class InteractionWiredContract extends InteractionWiredExtra {
         ContractConfiguration next = ContractConfiguration.read(settings.getStringParam());
 
         if (this instanceof InteractionWiredCustomContract && next.customNative && params.length == 10) {
-            next.paymentEnabled = params[0] == 1; next.paymentKind = params[1] == 1 ? 1 : 0;
-            next.payment.amountOption = params[2] == 1 ? 1 : 0; next.paymentAmount = Math.max(1, Math.min(100000, params[3])); next.payment.amountTarget = params[4];
-            next.rewardEnabled = params[5] == 1; next.rewardKind = params[6] == 1 ? 1 : 0;
-            next.reward.amountOption = params[7] == 1 ? 1 : 0; next.rewardAmount = Math.max(1, Math.min(100000, params[8])); next.reward.amountTarget = params[9];
+            next.paymentEnabled = params[0] == 1;
+            next.paymentKind = params[1] == 1 ? 1 : 0;
+            next.payment.amountOption = params[2] == 1 ? 1 : 0;
+            next.paymentAmount = Math.max(1, Math.min(100000, params[3]));
+            next.payment.amountTarget = params[4];
+            next.rewardEnabled = params[5] == 1;
+            next.rewardKind = params[6] == 1 ? 1 : 0;
+            next.reward.amountOption = params[7] == 1 ? 1 : 0;
+            next.rewardAmount = Math.max(1, Math.min(100000, params[8]));
+            next.reward.amountTarget = params[9];
         }
-        List<ContractTerm> parsed = this instanceof InteractionWiredCustomContract && next.customNative ? java.util.List.of() : ContractTerm.parse(params, settings.getStringParam());
+        List<ContractTerm> parsed = this instanceof InteractionWiredCustomContract && next.customNative
+                ? java.util.List.of()
+                : ContractTerm.parse(params, settings.getStringParam());
         if (parsed.size() > MAX_TERMS) return false;
         for (ContractTerm term : parsed) {
             if (term.amount > (term.isFurni() ? 500 : 100000)) return false;
             if (this instanceof InteractionWiredContractPayment && term.direction != ContractTerm.DIR_PAY) return false;
-            if (this instanceof InteractionWiredContractReward && term.direction != ContractTerm.DIR_RECEIVE) return false;
-            if (term.isCurrency() && term.currencyType != -1 && term.currencyType != 0 && term.currencyType != 5) return false;
+            if (this instanceof InteractionWiredContractReward && term.direction != ContractTerm.DIR_RECEIVE)
+                return false;
+            if (term.isCurrency() && term.currencyType != -1 && term.currencyType != 0 && term.currencyType != 5)
+                return false;
             if (term.isFurni() && term.baseItemId <= 0) return false;
         }
         List<Term> mapped = new ArrayList<>();
@@ -87,14 +96,21 @@ public abstract class InteractionWiredContract extends InteractionWiredExtra {
             ContractTerm term = parsed.get(index);
             String code = index < next.furniCodes.size() ? next.furniCodes.get(index) : "";
             if (term.isFurni() && code != null && !code.isBlank()) {
-                var item = com.eu.habbo.Emulator.getGameEnvironment().getItemManager().getItem(code);
-                if (item == null || !item.allowTrade() || (item.getType() == com.eu.habbo.habbohotel.items.FurnitureType.WALL) != term.wallItem) return false;
-                term = ContractTerm.furni(term.direction, term.wallItem, item.getId(), term.legacyPosterId, term.amount);
+                var item = com.eu.habbo.Emulator.getGameEnvironment()
+                        .getItemManager()
+                        .getItem(code);
+                if (item == null
+                        || !item.allowTrade()
+                        || (item.getType() == com.eu.habbo.habbohotel.items.FurnitureType.WALL) != term.wallItem)
+                    return false;
+                term = ContractTerm.furni(
+                        term.direction, term.wallItem, item.getId(), term.legacyPosterId, term.amount);
             }
             mapped.add(new Term(term));
         }
         this.configuration = next;
-        this.terms.clear(); this.terms.addAll(mapped);
+        this.terms.clear();
+        this.terms.addAll(mapped);
         this.chestIds.clear();
         if (settings.getFurniIds() != null) {
             for (int id : settings.getFurniIds()) this.chestIds.add(id);
@@ -138,8 +154,19 @@ public abstract class InteractionWiredContract extends InteractionWiredExtra {
         message.appendInt(this.getId());
         message.appendString(WiredManager.getGson().toJson(this.configuration));
         int[] params = this instanceof InteractionWiredCustomContract && configuration.customNative
-            ? new int[] {configuration.paymentEnabled ? 1 : 0, configuration.paymentKind, configuration.payment.amountOption, configuration.paymentAmount, configuration.payment.amountTarget, configuration.rewardEnabled ? 1 : 0, configuration.rewardKind, configuration.reward.amountOption, configuration.rewardAmount, configuration.reward.amountTarget}
-            : ContractTerm.serialize(this.getAssetTerms());
+                ? new int[] {
+                    configuration.paymentEnabled ? 1 : 0,
+                    configuration.paymentKind,
+                    configuration.payment.amountOption,
+                    configuration.paymentAmount,
+                    configuration.payment.amountTarget,
+                    configuration.rewardEnabled ? 1 : 0,
+                    configuration.rewardKind,
+                    configuration.reward.amountOption,
+                    configuration.rewardAmount,
+                    configuration.reward.amountTarget
+                }
+                : ContractTerm.serialize(this.getAssetTerms());
         message.appendInt(params.length);
         for (int param : params) message.appendInt(param);
         message.appendInt(0);
@@ -155,21 +182,36 @@ public abstract class InteractionWiredContract extends InteractionWiredExtra {
         this.configuration = new ContractConfiguration();
     }
 
-    public ContractConfiguration getConfiguration() { return configuration; }
+    public ContractConfiguration getConfiguration() {
+        return configuration;
+    }
 
     public List<ContractTerm> getAssetTerms() {
-        return terms.stream().map(t -> new ContractTerm(t.direction, t.kind, t.currencyType, t.wallItem, t.baseItemId, t.legacyPosterId, t.amount)).toList();
+        return terms.stream()
+                .map(t -> new ContractTerm(
+                        t.direction, t.kind, t.currencyType, t.wallItem, t.baseItemId, t.legacyPosterId, t.amount))
+                .toList();
     }
     /** Legacy plugin interface, with additive furniture fields. */
     public static class Term {
         public int direction, currencyType, amount, kind, baseItemId;
         public boolean wallItem;
         public String legacyPosterId = "";
+
         public Term() {}
-        public Term(int direction, int currencyType, int amount) { this.direction = direction; this.currencyType = currencyType; this.amount = amount; }
+
+        public Term(int direction, int currencyType, int amount) {
+            this.direction = direction;
+            this.currencyType = currencyType;
+            this.amount = amount;
+        }
+
         public Term(ContractTerm term) {
             this(term.direction, term.currencyType, term.amount);
-            kind = term.kind; wallItem = term.wallItem; baseItemId = term.baseItemId; legacyPosterId = term.legacyPosterId;
+            kind = term.kind;
+            wallItem = term.wallItem;
+            baseItemId = term.baseItemId;
+            legacyPosterId = term.legacyPosterId;
         }
     }
 
@@ -186,8 +228,7 @@ public abstract class InteractionWiredContract extends InteractionWiredExtra {
         List<Integer> chestIds;
         ContractConfiguration configuration;
 
-        JsonData() {
-        }
+        JsonData() {}
 
         JsonData(List<Term> terms, List<Integer> chestIds, ContractConfiguration configuration) {
             this.terms = terms;

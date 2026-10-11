@@ -9,11 +9,13 @@ public final class WiredGameTimerAdjustment {
     public static void adjust(InteractionGameTimer timer, Room room, int operator, int minutes, int halfSecondSteps) {
         int amount = Math.max(0, minutes) * 60000 + Math.max(0, halfSecondSteps) * 500;
         int remaining = timer.getClockTimeInMs();
-        int next = Math.max(0, switch (operator) {
-            case 0 -> remaining + amount;
-            case 1 -> remaining - amount;
-            default -> amount;
-        });
+        int next = Math.max(
+                0,
+                switch (operator) {
+                    case 0 -> remaining + amount;
+                    case 1 -> remaining - amount;
+                    default -> amount;
+                });
         // A positive temporary display makes the half-second phase observable even at zero.
         timer.setTimeNow(1);
         boolean currentHalf = timer.getClockTimeInMs() == 500;

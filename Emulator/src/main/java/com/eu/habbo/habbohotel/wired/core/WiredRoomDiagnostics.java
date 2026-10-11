@@ -421,7 +421,8 @@ public final class WiredRoomDiagnostics {
     long signalExecutionDelay(long now) {
         rollWindowIfNeeded(now);
         return usageCurrentWindow.get() >= usageLimitPerWindow
-                ? Math.max(1L, windowStartedAt.get() + usageWindowMs - now) : 0L;
+                ? Math.max(1L, windowStartedAt.get() + usageWindowMs - now)
+                : 0L;
     }
 
     public void completeDelayedEvent() {

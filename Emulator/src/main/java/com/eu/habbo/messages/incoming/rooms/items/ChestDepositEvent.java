@@ -1,7 +1,6 @@
 package com.eu.habbo.messages.incoming.rooms.items;
 
 import com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage;
-import com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
@@ -36,7 +35,9 @@ public class ChestDepositEvent extends MessageHandler {
         if (amount <= 0) return;
 
         HabboItem item = room.getHabboItem(itemId);
-        if (!(item instanceof com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChestCurrency chest)) return;
+        if (!(item
+                instanceof com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChestCurrency chest))
+            return;
 
         ChestStorage contents = chest.getContents();
 
@@ -55,7 +56,13 @@ public class ChestDepositEvent extends MessageHandler {
         if (currencyType < 0) habbo.giveCredits(-accepted);
         else habbo.givePoints(currencyType, -accepted);
 
-        contents.addLog(new ChestStorage.LogEntry("deposit", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), 0, accepted).withCurrency(currencyType));
+        contents.addLog(new ChestStorage.LogEntry(
+                        "deposit",
+                        System.currentTimeMillis(),
+                        habbo.getHabboInfo().getUsername(),
+                        0,
+                        accepted)
+                .withCurrency(currencyType));
         chest.persistContents(room);
 
         this.client.sendResponse(new ChestDataComposer(chest, habbo));

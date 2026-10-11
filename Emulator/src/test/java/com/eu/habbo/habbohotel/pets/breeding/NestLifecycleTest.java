@@ -1,5 +1,17 @@
 package com.eu.habbo.habbohotel.pets.breeding;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.pets.InteractionPetBreedingNest;
 import com.eu.habbo.habbohotel.pets.Pet;
@@ -8,11 +20,10 @@ import com.eu.habbo.threading.ThreadPooling;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class NestLifecycleTest {
-    @Test void wrongSpeciesAndDuplicatePetsAreRejectedAndLeavingFreesTheWaitingPet() throws Exception {
+    @Test
+    void wrongSpeciesAndDuplicatePetsAreRejectedAndLeavingFreesTheWaitingPet() throws Exception {
         Room room = mock(Room.class);
         Item item = mock(Item.class);
         when(item.getName()).thenReturn("pet_breeding_dog");
@@ -46,6 +57,8 @@ class NestLifecycleTest {
             assertNull(nest.petOne);
             verify(dog.getRoomUnit()).setCanWalk(true);
             verify(future).cancel(false);
-        } finally { PetBreedingPlatform.install(previous); }
+        } finally {
+            PetBreedingPlatform.install(previous);
+        }
     }
 }

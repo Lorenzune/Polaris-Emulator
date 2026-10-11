@@ -10,14 +10,17 @@ public class WiredConditionNotFurniInstanceMatch extends WiredConditionFurniInst
     public WiredConditionNotFurniInstanceMatch(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
     }
+
     public WiredConditionNotFurniInstanceMatch(int id, int userId, Item item, String data, int stack, int sells) {
         super(id, userId, item, data, stack, sells);
     }
+
     @Override
     public boolean evaluate(WiredContext ctx) {
         if (ctx == null) return false;
         return this.getQuantifier() == QUANTIFIER_ANY ? !this.evaluateAllMatches(ctx) : !this.evaluateAnyMatches(ctx);
     }
+
     @Override
     public WiredConditionType getType() {
         return WiredConditionType.NOT_STUFF_IS;

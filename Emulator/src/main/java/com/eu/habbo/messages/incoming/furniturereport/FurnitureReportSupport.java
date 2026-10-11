@@ -49,7 +49,9 @@ final class FurnitureReportSupport {
             for (var page : pages.values()) {
                 if (page.getRank() != 1 || !page.isVisible() || !page.isEnabled()) continue;
                 for (var offer : page.getCatalogItems().values()) {
-                    if (offer.getBaseItems().stream().anyMatch(base -> base.getId() == item.getBaseItem().getId())
+                    if (offer.getBaseItems().stream()
+                                    .anyMatch(base ->
+                                            base.getId() == item.getBaseItem().getId())
                             && (publicOfferId < 0 || offer.getId() < publicOfferId)) publicOfferId = offer.getId();
                 }
             }

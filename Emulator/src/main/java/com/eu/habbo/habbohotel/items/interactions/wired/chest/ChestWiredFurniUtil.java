@@ -27,7 +27,12 @@ public final class ChestWiredFurniUtil {
             int baseItemId,
             String legacyPosterId,
             int amount) {
-        if (habbo == null || chest == null || chest.getContents().isLocked() || amount <= 0 || habbo.getClient() == null || baseItemId <= 0) {
+        if (habbo == null
+                || chest == null
+                || chest.getContents().isLocked()
+                || amount <= 0
+                || habbo.getClient() == null
+                || baseItemId <= 0) {
             return 0;
         }
 
@@ -35,8 +40,14 @@ public final class ChestWiredFurniUtil {
                 chest.getContents().removeFurniByType(wallItem, baseItemId, legacyPosterId, amount);
         int given = giveStoredItemsToInventory(habbo, removed, chest);
         if (given > 0) {
-            ChestStorage.LogEntry log = new ChestStorage.LogEntry("wired_withdraw", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), given, 0);
-            log.setFurniItems(removed.stream().filter(item -> !chest.getContents().furniItems().contains(item)));
+            ChestStorage.LogEntry log = new ChestStorage.LogEntry(
+                    "wired_withdraw",
+                    System.currentTimeMillis(),
+                    habbo.getHabboInfo().getUsername(),
+                    given,
+                    0);
+            log.setFurniItems(removed.stream()
+                    .filter(item -> !chest.getContents().furniItems().contains(item)));
             chest.getContents().addLog(log);
             chest.persistContents();
         }
@@ -44,12 +55,21 @@ public final class ChestWiredFurniUtil {
     }
 
     public static int giveFromChestInOrder(Habbo habbo, InteractionWiredChest chest, int amount, int order) {
-        if (habbo == null || habbo.getClient() == null || chest == null || chest.getContents().isLocked()) return 0;
+        if (habbo == null
+                || habbo.getClient() == null
+                || chest == null
+                || chest.getContents().isLocked()) return 0;
         List<ChestFurniStoredItem> removed = chest.getContents().removeFurniInOrder(amount, order);
         int given = giveStoredItemsToInventory(habbo, removed, chest);
         if (given > 0) {
-            ChestStorage.LogEntry log = new ChestStorage.LogEntry("wired_withdraw", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), given, 0);
-            log.setFurniItems(removed.stream().filter(item -> !chest.getContents().furniItems().contains(item)));
+            ChestStorage.LogEntry log = new ChestStorage.LogEntry(
+                    "wired_withdraw",
+                    System.currentTimeMillis(),
+                    habbo.getHabboInfo().getUsername(),
+                    given,
+                    0);
+            log.setFurniItems(removed.stream()
+                    .filter(item -> !chest.getContents().furniItems().contains(item)));
             chest.getContents().addLog(log);
             chest.persistContents();
         }
@@ -153,7 +173,8 @@ public final class ChestWiredFurniUtil {
         return giveStoredItemsToInventory(habbo, removed, null);
     }
 
-    static int giveStoredItemsToInventory(Habbo habbo, List<ChestFurniStoredItem> removed, InteractionWiredChest chest) {
+    static int giveStoredItemsToInventory(
+            Habbo habbo, List<ChestFurniStoredItem> removed, InteractionWiredChest chest) {
         if (habbo == null || habbo.getClient() == null || removed == null || removed.isEmpty()) {
             return 0;
         }

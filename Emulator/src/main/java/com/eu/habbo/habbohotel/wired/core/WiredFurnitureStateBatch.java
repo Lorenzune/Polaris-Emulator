@@ -26,8 +26,11 @@ public final class WiredFurnitureStateBatch implements AutoCloseable {
         if (scope == null) return false;
         if (WiredManager.isEnabled() && room != null && room.getLayout() != null) {
             scope.events.add(WiredEvent.builder(WiredEvent.Type.FURNI_STATE_UPDATED, room)
-                    .actor(actor).sourceItem(item).text(item.getExtradata())
-                    .tile(room.getLayout().getTile(item.getX(), item.getY())).build());
+                    .actor(actor)
+                    .sourceItem(item)
+                    .text(item.getExtradata())
+                    .tile(room.getLayout().getTile(item.getX(), item.getY()))
+                    .build());
         }
         return true;
     }
@@ -48,9 +51,11 @@ public final class WiredFurnitureStateBatch implements AutoCloseable {
                 WiredManager.handleEvent(events.removeFirst());
             }
             if (!events.isEmpty()) {
-                org.slf4j.LoggerFactory.getLogger(WiredFurnitureStateBatch.class).warn(
-                        "Stopped cyclic WIRED furniture state events in room {} after {} events",
-                        events.peek().getRoom().getId(), maxStateEvents);
+                org.slf4j.LoggerFactory.getLogger(WiredFurnitureStateBatch.class)
+                        .warn(
+                                "Stopped cyclic WIRED furniture state events in room {} after {} events",
+                                events.peek().getRoom().getId(),
+                                maxStateEvents);
                 events.clear();
             }
         } finally {

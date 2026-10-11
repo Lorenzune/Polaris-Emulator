@@ -11,7 +11,6 @@ import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
@@ -63,7 +62,8 @@ public class WiredExtraOrEval extends InteractionWiredExtra {
             int comparison = params.length > 1 ? params[1] : 0;
             this.evaluationMode = normalizeEvaluationMode(mode == -1 ? MODE_LESS_THAN + comparison : mode);
             int[] sources = settings.getFurniSourceTypes();
-            this.furniSource = normalizeFurniSource(sources != null && sources.length > 0 ? sources[0] : WiredSourceUtil.SOURCE_SELECTED);
+            this.furniSource = normalizeFurniSource(
+                    sources != null && sources.length > 0 ? sources[0] : WiredSourceUtil.SOURCE_SELECTED);
         } else {
             this.evaluationMode = normalizeEvaluationMode(mode);
             this.furniSource = normalizeFurniSource(params.length > 1 ? params[1] : WiredSourceUtil.SOURCE_TRIGGER);
@@ -97,13 +97,13 @@ public class WiredExtraOrEval extends InteractionWiredExtra {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(
-                this.nativeFormat,
-                this.evaluationMode,
-                this.furniSource,
-                this.compareValue,
-                this.items.stream().map(HabboItem::getId).collect(Collectors.toList())
-        ));
+        return WiredManager.getGson()
+                .toJson(new JsonData(
+                        this.nativeFormat,
+                        this.evaluationMode,
+                        this.furniSource,
+                        this.compareValue,
+                        this.items.stream().map(HabboItem::getId).collect(Collectors.toList())));
     }
 
     @Override
@@ -194,9 +194,7 @@ public class WiredExtraOrEval extends InteractionWiredExtra {
     }
 
     @Override
-    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {
-
-    }
+    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {}
 
     @Override
     public boolean hasConfiguration() {
@@ -216,7 +214,10 @@ public class WiredExtraOrEval extends InteractionWiredExtra {
     }
 
     public boolean hasReferencedConditions() {
-        return this.nativeFormat || !this.items.isEmpty() || this.furniSource == WiredSourceUtil.SOURCE_SELECTOR || this.furniSource == WiredSourceUtil.SOURCE_SIGNAL;
+        return this.nativeFormat
+                || !this.items.isEmpty()
+                || this.furniSource == WiredSourceUtil.SOURCE_SELECTOR
+                || this.furniSource == WiredSourceUtil.SOURCE_SIGNAL;
     }
 
     public List<HabboItem> resolveConditions(com.eu.habbo.habbohotel.wired.core.WiredContext context) {
@@ -239,7 +240,8 @@ public class WiredExtraOrEval extends InteractionWiredExtra {
         }
     }
 
-    public static boolean matchesMode(int evaluationMode, int matchedRequirements, int totalRequirements, int compareValue) {
+    public static boolean matchesMode(
+            int evaluationMode, int matchedRequirements, int totalRequirements, int compareValue) {
         if (totalRequirements <= 0) {
             return true;
         }

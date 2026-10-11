@@ -128,28 +128,36 @@ class GameClientOutgoingPacketCompatibilityTest {
 
     @Test
     void cancellationStillSuppressesGuardedWiredMovements() {
-        org.mockito.Mockito.when(this.pluginManager.isRegistered(OutgoingPacketEvent.class, false)).thenReturn(true);
+        org.mockito.Mockito.when(this.pluginManager.isRegistered(OutgoingPacketEvent.class, false))
+                .thenReturn(true);
         doAnswer(invocation -> {
-            OutgoingPacketEvent event = invocation.getArgument(0);
-            event.setCancelled(true);
-            return event;
-        }).when(this.pluginManager).fireEvent(any(OutgoingPacketEvent.class));
-        this.client.sendResponse(new WiredMovementsComposer(List.of(
-                WiredMovementsComposer.furniMovement(9811, 1, 2, 2, 3, 0, 0))).compose());
+                    OutgoingPacketEvent event = invocation.getArgument(0);
+                    event.setCancelled(true);
+                    return event;
+                })
+                .when(this.pluginManager)
+                .fireEvent(any(OutgoingPacketEvent.class));
+        this.client.sendResponse(
+                new WiredMovementsComposer(List.of(WiredMovementsComposer.furniMovement(9811, 1, 2, 2, 3, 0, 0)))
+                        .compose());
         assertNull(this.channel.readOutbound());
     }
 
     @Test
     void pluginCanExplicitlyReplaceGuardedWiredMovements() {
-        org.mockito.Mockito.when(this.pluginManager.isRegistered(OutgoingPacketEvent.class, false)).thenReturn(true);
+        org.mockito.Mockito.when(this.pluginManager.isRegistered(OutgoingPacketEvent.class, false))
+                .thenReturn(true);
         ServerMessage replacement = new ServerMessage(102);
         doAnswer(invocation -> {
-            OutgoingPacketEvent event = invocation.getArgument(0);
-            event.setCustomMessage(replacement);
-            return event;
-        }).when(this.pluginManager).fireEvent(any(OutgoingPacketEvent.class));
-        this.client.sendResponse(new WiredMovementsComposer(List.of(
-                WiredMovementsComposer.furniMovement(9812, 1, 2, 2, 3, 0, 0))).compose());
+                    OutgoingPacketEvent event = invocation.getArgument(0);
+                    event.setCustomMessage(replacement);
+                    return event;
+                })
+                .when(this.pluginManager)
+                .fireEvent(any(OutgoingPacketEvent.class));
+        this.client.sendResponse(
+                new WiredMovementsComposer(List.of(WiredMovementsComposer.furniMovement(9812, 1, 2, 2, 3, 0, 0)))
+                        .compose());
         assertSame(replacement, this.channel.readOutbound());
         assertNull(this.channel.readOutbound());
     }

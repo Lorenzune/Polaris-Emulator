@@ -21,8 +21,8 @@ import com.eu.habbo.habbohotel.items.interactions.wired.conditions.WiredConditio
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectChangeVariableValue;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectGiveVariable;
 import com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectRemoveVariable;
-import com.eu.habbo.habbohotel.items.interactions.wired.selector.WiredEffectVariableSelectorBase;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraUserVariable;
+import com.eu.habbo.habbohotel.items.interactions.wired.selector.WiredEffectVariableSelectorBase;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.rooms.RoomUserVariableManager;
@@ -107,10 +107,14 @@ class WiredNativeVariableSettingsTest {
         for (int code = 0; code < expected.length; code++) {
             var condition = mock(WiredConditionVariableValueMatch.class);
             var input = nativeSettings(new int[] {-10, code, 0, 0, 10, -10}, "33", "0");
-            assertEquals(expected[code], WiredNativeVariableSettings.normalize(condition, input).getIntParams()[1]);
+            assertEquals(
+                    expected[code],
+                    WiredNativeVariableSettings.normalize(condition, input).getIntParams()[1]);
             var selector = mock(WiredEffectVariableSelectorBase.class);
             var selection = nativeSettings(new int[] {code, 0, 0, 10, -10}, "33", "0");
-            assertEquals(expected[code], WiredNativeVariableSettings.normalize(selector, selection).getIntParams()[1]);
+            assertEquals(
+                    expected[code],
+                    WiredNativeVariableSettings.normalize(selector, selection).getIntParams()[1]);
             var legacy = new WiredSettings(new int[] {3, code, 0, 10, 3}, "33", new int[0], 0);
             assertSame(legacy, WiredNativeVariableSettings.normalize(condition, legacy));
         }

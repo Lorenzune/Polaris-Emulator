@@ -50,10 +50,8 @@ class InteractionRollerPlacementTest {
         when(otherBaseItem.allowStack()).thenReturn(true);
         when(otherBaseItem.allowWalk()).thenReturn(false);
         assertFalse(roller.canStackAt(null, List.of(Pair.create(new RoomTile(), Set.of(support)))));
-        assertFalse(roller.canStackAt(
-                null, List.of(Pair.create(new RoomTile(), Set.of(support, otherFurniture)))));
-        assertFalse(roller.canStackAt(
-                null, List.of(Pair.create(new RoomTile(), Set.of(createRoller())))));
+        assertFalse(roller.canStackAt(null, List.of(Pair.create(new RoomTile(), Set.of(support, otherFurniture)))));
+        assertFalse(roller.canStackAt(null, List.of(Pair.create(new RoomTile(), Set.of(createRoller())))));
     }
 
     private static InteractionRoller createRoller() {

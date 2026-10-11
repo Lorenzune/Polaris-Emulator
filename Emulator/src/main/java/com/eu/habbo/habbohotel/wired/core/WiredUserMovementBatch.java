@@ -28,7 +28,8 @@ public final class WiredUserMovementBatch implements AutoCloseable {
         else room.sendComposer(new WiredMovementsComposer(movements).compose());
     }
 
-    @Override public void close() {
+    @Override
+    public void close() {
         if (parent == null) CURRENT.remove();
         else CURRENT.set(parent);
         if (!movements.isEmpty()) send(room, movements);

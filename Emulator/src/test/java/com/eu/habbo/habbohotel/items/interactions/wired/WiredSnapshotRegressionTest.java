@@ -73,10 +73,11 @@ class WiredSnapshotRegressionTest {
         when(room.getHabboItem(251)).thenReturn(light);
         var effect = new WiredEffectMatchFurni(361, 16, mock(Item.class), "", 0, 0);
         ResultSet row = mock(ResultSet.class);
-        when(row.getString("wired_data")).thenReturn(
-                "{\"state\":true,\"direction\":false,\"position\":false,\"altitude\":false,\"furniSource\":100,"
-                + "\"items\":[{\"item_id\":209,\"state\":\"1\",\"x\":17,\"y\":1,\"z\":0},"
-                + "{\"item_id\":251,\"state\":\"1\",\"x\":17,\"y\":1,\"z\":0}]}");
+        when(row.getString("wired_data"))
+                .thenReturn(
+                        "{\"state\":true,\"direction\":false,\"position\":false,\"altitude\":false,\"furniSource\":100,"
+                                + "\"items\":[{\"item_id\":209,\"state\":\"1\",\"x\":17,\"y\":1,\"z\":0},"
+                                + "{\"item_id\":251,\"state\":\"1\",\"x\":17,\"y\":1,\"z\":0}]}");
         effect.loadWiredData(row, room);
         WiredContext context = mock(WiredContext.class);
         when(context.room()).thenReturn(room);

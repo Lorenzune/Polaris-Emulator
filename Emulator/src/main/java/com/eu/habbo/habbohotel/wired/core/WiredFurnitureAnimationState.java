@@ -14,7 +14,9 @@ public final class WiredFurnitureAnimationState {
     public static final class Epoch {
         private volatile boolean current = true;
 
-        public boolean isCurrent() { return this.current; }
+        public boolean isCurrent() {
+            return this.current;
+        }
     }
 
     private static final class EpochReference extends WeakReference<Epoch> {

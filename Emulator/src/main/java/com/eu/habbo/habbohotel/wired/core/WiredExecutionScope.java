@@ -1,8 +1,8 @@
 package com.eu.habbo.habbohotel.wired.core;
 
-import com.eu.habbo.habbohotel.wired.api.IWiredEffect;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.habbohotel.wired.api.IWiredEffect;
 import java.util.LinkedHashSet;
 import java.util.List;
 
@@ -17,9 +17,11 @@ final class WiredExecutionScope {
         // Independent selectors contribute to one selection; deferred selectors filter that union.
         boolean combine = effect.isSelector() && !effect.usesExistingSelectorTargets();
         var previousItems = combine && context.targets().isItemsModifiedBySelector()
-                ? List.copyOf(context.targets().items()) : List.<HabboItem>of();
+                ? List.copyOf(context.targets().items())
+                : List.<HabboItem>of();
         var previousUsers = combine && context.targets().isUsersModifiedBySelector()
-                ? List.copyOf(context.targets().users()) : List.<RoomUnit>of();
+                ? List.copyOf(context.targets().users())
+                : List.<RoomUnit>of();
         CURRENT.set(context);
         try (var ignored = WiredVariableChangeOrigin.begin(WiredVariableChangeOrigin.THIS_ROOM)) {
             effect.execute(context);

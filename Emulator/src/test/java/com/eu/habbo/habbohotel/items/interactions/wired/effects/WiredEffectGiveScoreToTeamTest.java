@@ -1,8 +1,15 @@
 package com.eu.habbo.habbohotel.items.interactions.wired.effects;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import com.eu.habbo.habbohotel.games.*;
+import com.eu.habbo.habbohotel.games.Game;
+import com.eu.habbo.habbohotel.games.GameState;
+import com.eu.habbo.habbohotel.games.GameTeam;
+import com.eu.habbo.habbohotel.games.GameTeamColors;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;

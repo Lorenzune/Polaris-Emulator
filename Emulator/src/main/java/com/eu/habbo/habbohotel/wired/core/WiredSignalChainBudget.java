@@ -32,18 +32,23 @@ final class WiredSignalChainBudget {
         return true;
     }
 
-    void markSignal() { signalSeen = true; }
+    void markSignal() {
+        signalSeen = true;
+    }
 
     void beginSlice() {
         startedAtNanos = clock.getAsLong();
         processedInSlice = 0;
     }
 
-    void processed(int count) { processedInSlice += count; }
+    void processed(int count) {
+        processedInSlice += count;
+    }
 
     boolean shouldYield() {
-        return signalSeen && ((maximumEvents > 0 && processedInSlice >= maximumEvents)
-                || (maximumDurationNanos > 0 && clock.getAsLong() - startedAtNanos >= maximumDurationNanos));
+        return signalSeen
+                && ((maximumEvents > 0 && processedInSlice >= maximumEvents)
+                        || (maximumDurationNanos > 0 && clock.getAsLong() - startedAtNanos >= maximumDurationNanos));
     }
 
     boolean markLimitReported() {
@@ -52,7 +57,11 @@ final class WiredSignalChainBudget {
         return true;
     }
 
-    int admittedEvents() { return admittedEvents; }
+    int admittedEvents() {
+        return admittedEvents;
+    }
 
-    String limitReason() { return "chain admission limit " + maximumTotalEvents; }
+    String limitReason() {
+        return "chain admission limit " + maximumTotalEvents;
+    }
 }

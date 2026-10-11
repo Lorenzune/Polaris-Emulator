@@ -217,7 +217,8 @@ public class GameClient {
 
     private void writeResponse(ServerMessage response, boolean sharedBroadcastAllowed, boolean useVoidPromise) {
         if (response instanceof WiredMovementMessage
-                || !sharedBroadcastAllowed || !ServerMessageFrame.isBroadcastPrepared(response)) {
+                || !sharedBroadcastAllowed
+                || !ServerMessageFrame.isBroadcastPrepared(response)) {
             if (useVoidPromise) {
                 this.channel.write(response, this.channel.voidPromise());
             } else {

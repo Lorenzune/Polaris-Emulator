@@ -35,17 +35,25 @@ class WiredFilterRuntimeParityTest {
         var lights = List.of(first, second);
         var ctx = new WiredContext(
                 WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
-                        .signalPayloadExplicit(true).signalSourceItems(lights).build(),
-                trigger, mock(WiredServices.class), new WiredState(100));
+                        .signalPayloadExplicit(true)
+                        .signalSourceItems(lights)
+                        .build(),
+                trigger,
+                mock(WiredServices.class),
+                new WiredState(100));
         try (var emulator = mockStatic(Emulator.class)) {
             emulator.when(Emulator::getRandom).thenReturn(new Random(0));
             assertEquals(lights, WiredSourceUtil.resolveItems(ctx, WiredSourceUtil.SOURCE_SELECTED, lights));
-            assertEquals(lights, WiredSourceUtil.resolveItems(ctx, WiredSourceUtil.SOURCE_SELECTED_SECONDARY,
-                    List.of(), lights));
+            assertEquals(
+                    lights,
+                    WiredSourceUtil.resolveItems(ctx, WiredSourceUtil.SOURCE_SELECTED_SECONDARY, List.of(), lights));
             assertEquals(lights, WiredSourceUtil.resolveItems(ctx, WiredSourceUtil.SOURCE_SIGNAL, null));
             ctx.targets().setItems(lights);
             WiredSelectionFilterSupport.applySelectorFilters(room, trigger, ctx);
-            assertEquals(1, WiredSourceUtil.resolveItems(ctx, WiredSourceUtil.SOURCE_SELECTOR, null).size());
+            assertEquals(
+                    1,
+                    WiredSourceUtil.resolveItems(ctx, WiredSourceUtil.SOURCE_SELECTOR, null)
+                            .size());
             assertEquals(lights, WiredSourceUtil.resolveItems(ctx, WiredSourceUtil.SOURCE_SELECTED, lights));
         }
     }

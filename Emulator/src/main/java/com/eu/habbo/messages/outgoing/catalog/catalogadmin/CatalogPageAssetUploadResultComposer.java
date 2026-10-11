@@ -13,7 +13,8 @@ public class CatalogPageAssetUploadResultComposer extends MessageComposer {
     private final String fileName;
     private final String message;
 
-    public CatalogPageAssetUploadResultComposer(int pageId, CatalogPageType catalogType, String slot, boolean success, String fileName, String message) {
+    public CatalogPageAssetUploadResultComposer(
+            int pageId, CatalogPageType catalogType, String slot, boolean success, String fileName, String message) {
         this.pageId = pageId;
         this.catalogType = catalogType;
         this.slot = slot;

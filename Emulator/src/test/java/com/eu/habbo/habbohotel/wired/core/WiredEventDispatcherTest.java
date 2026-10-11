@@ -26,8 +26,12 @@ class WiredEventDispatcherTest {
         WiredStackIndex index = (candidate, type) -> List.of(stack);
         WiredExecutionGuard guard = guard();
         WiredEventDispatcher dispatcher = new WiredEventDispatcher(
-                guard, new WiredStackRepository(index),
-                (candidate, event, time, negate) -> { calls.add("stack"); return true; },
+                guard,
+                new WiredStackRepository(index),
+                (candidate, event, time, negate) -> {
+                    calls.add("stack");
+                    return true;
+                },
                 (candidate, format, arguments) -> {},
                 (event, admission) -> {
                     assertTrue(guard.recursionDepth(room.getId()) > 0);
@@ -36,8 +40,11 @@ class WiredEventDispatcherTest {
                 });
         assertTrue(dispatcher.dispatch(event(room, WiredEvent.Type.CUSTOM), false));
         assertTrue(dispatcher.dispatch(event(room, WiredEvent.Type.SIGNAL_RECEIVED), false));
-        assertTrue(dispatcher.dispatch(WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
-                .signalPayloadExplicit(true).build(), false));
+        assertTrue(dispatcher.dispatch(
+                WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
+                        .signalPayloadExplicit(true)
+                        .build(),
+                false));
         assertTrue(dispatcher.dispatch(event(room, WiredEvent.Type.USER_CLICKS_FURNI), false));
         assertEquals(List.of("stack", "stack", "batch", "stack", "batch", "stack"), calls);
         assertEquals(0, guard.recursionDepth(room.getId()));

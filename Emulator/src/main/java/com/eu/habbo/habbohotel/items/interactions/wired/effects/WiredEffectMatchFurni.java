@@ -110,10 +110,17 @@ public class WiredEffectMatchFurni extends InteractionWiredEffect implements Int
     }
 
     private void applySetting(Room room, HabboItem item, WiredMatchFurniSetting setting, WiredContext ctx) {
-        if (this.state && this.checkForWiredResetPermission
+        if (this.state
+                && this.checkForWiredResetPermission
                 && (item.allowWiredResetState()
-                        || item instanceof com.eu.habbo.habbohotel.items.interactions.games.football.scoreboards.InteractionFootballScoreboard)) {
-            if (item instanceof com.eu.habbo.habbohotel.items.interactions.games.football.scoreboards.InteractionFootballScoreboard counter) {
+                        || item
+                                instanceof
+                                com.eu.habbo.habbohotel.items.interactions.games.football.scoreboards
+                                        .InteractionFootballScoreboard)) {
+            if (item
+                    instanceof
+                    com.eu.habbo.habbohotel.items.interactions.games.football.scoreboards.InteractionFootballScoreboard
+                            counter) {
                 // SWF snapshots use an empty state for a counter's initial value.
                 // Updating only extradata leaves the counter's numeric score stale.
                 try {
@@ -124,7 +131,8 @@ public class WiredEffectMatchFurni extends InteractionWiredEffect implements Int
                     }
                 } catch (NumberFormatException ignored) {
                     com.eu.habbo.WiredCompatibilityDiagnostics.record(
-                            com.eu.habbo.WiredCompatibilityDiagnostics.FailurePoint.EFFECT_MATCH_COUNTER_STATE, ignored);
+                            com.eu.habbo.WiredCompatibilityDiagnostics.FailurePoint.EFFECT_MATCH_COUNTER_STATE,
+                            ignored);
                 }
             } else if (!setting.state.equals(" ") && !setting.state.equals(item.getExtradata())) {
                 item.setExtradata(setting.state);

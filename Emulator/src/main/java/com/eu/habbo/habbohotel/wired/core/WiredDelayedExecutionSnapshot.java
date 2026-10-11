@@ -111,17 +111,40 @@ final class WiredDelayedExecutionSnapshot {
     // Retain payload, selector results and variable scopes to keep independent
     // users, pieces and configurations on independent loops.
     Object feedbackKey(int delay, String effectConfiguration) {
-        return new FeedbackKey(this.roomId, this.roomGeneration, delay, this.triggerItem,
-                this.effects, effectConfiguration, this.event.actor(), this.event.originActor(), this.event.targetUnit(), this.event.sourceItem(),
-                this.event.signalSourceUsers(), this.event.signalSourceItems(), this.targets,
+        return new FeedbackKey(
+                this.roomId,
+                this.roomGeneration,
+                delay,
+                this.triggerItem,
+                this.effects,
+                effectConfiguration,
+                this.event.actor(),
+                this.event.originActor(),
+                this.event.targetUnit(),
+                this.event.sourceItem(),
+                this.event.signalSourceUsers(),
+                this.event.signalSourceItems(),
+                this.targets,
                 WiredManager.getGson().toJson(this.contextVariables),
                 WiredManager.getGson().toJson(this.event.contextVariableScope()));
     }
 
-    private record FeedbackKey(int roomId, long generation, int delay, ItemReference trigger,
-            List<ComponentReference<IWiredEffect>> effects, String configuration, UnitReference actor, UnitReference origin, UnitReference target,
-            ItemReference source, List<UnitReference> users, List<ItemReference> items,
-            TargetSnapshot targets, String variables, String eventVariables) {}
+    private record FeedbackKey(
+            int roomId,
+            long generation,
+            int delay,
+            ItemReference trigger,
+            List<ComponentReference<IWiredEffect>> effects,
+            String configuration,
+            UnitReference actor,
+            UnitReference origin,
+            UnitReference target,
+            ItemReference source,
+            List<UnitReference> users,
+            List<ItemReference> items,
+            TargetSnapshot targets,
+            String variables,
+            String eventVariables) {}
 
     Optional<Resolved> resolve(Room room) {
         return resolve(room, false);

@@ -1,6 +1,7 @@
 package com.eu.habbo.habbohotel.wired.core;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer;
 import java.util.List;
@@ -28,7 +29,9 @@ class WiredMovementCollectionTest {
                 executor.submit(() -> WiredMoveCarryHelper.discardCollectedFurnitureMovements(141))
                         .get(5, TimeUnit.SECONDS);
             }
-            assertEquals(List.of(old, independent, direction), first,
+            assertEquals(
+                    List.of(old, independent, direction),
+                    first,
                     "Another thread must not mutate the owner's list while effects append to it");
             var subsequent = WiredMovementsComposer.furniMovement(141, 1, 3, 7, 14, 0.02, 0.02);
             WiredMovementCollection.addFurniture(first, 141, subsequent);
@@ -48,10 +51,12 @@ class WiredMovementCollectionTest {
         var batch = new WiredMovementCollection();
         try {
             for (int index = 0; index < 64; index++) {
-                WiredMovementCollection.addFurniture(batch, 811,
-                        WiredMovementsComposer.furniMovement(811, index, 1, index + 1, 1, 0, 0));
+                WiredMovementCollection.addFurniture(
+                        batch, 811, WiredMovementsComposer.furniMovement(811, index, 1, index + 1, 1, 0, 0));
             }
-        } finally { batch.release(); }
+        } finally {
+            batch.release();
+        }
         // Teardown can run after finish has already released the same collection.
         batch.release();
         assertNoPending(811);

@@ -1,16 +1,28 @@
 package com.eu.habbo.habbohotel.items.interactions.wired.chest;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.messages.outgoing.rooms.items.ChestDataComposer;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class ChestIntegrationTest {
-    @Test void furniAppearanceSendsDistinctNativeIconTypesAndHidesThemWhenClosed() {
+    @Test
+    void furniAppearanceSendsDistinctNativeIconTypesAndHidesThemWhenClosed() {
         var chest = new InteractionWiredChestFurni(10, 7, mock(Item.class), "1", 0, 0);
         chest.addViewer(7, mock(Room.class));
         for (int index = 0; index < 6; index++) {
@@ -30,7 +42,8 @@ class ChestIntegrationTest {
         verify(closed).appendString("");
     }
 
-    @Test void currencyAppearanceUsesAllNativeBalanceStatesAndClosesAfterLastViewer() {
+    @Test
+    void currencyAppearanceUsesAllNativeBalanceStatesAndClosesAfterLastViewer() {
         Room room = mock(Room.class);
         var chest = new InteractionWiredChestCurrency(10, 7, mock(Item.class), "0", 0, 0);
         chest.addViewer(7, room);
@@ -57,7 +70,8 @@ class ChestIntegrationTest {
         assertEquals("0", chest.getExtradata());
     }
 
-    @Test void furniAppearanceNeverSendsTheUnsupportedStateTwo() {
+    @Test
+    void furniAppearanceNeverSendsTheUnsupportedStateTwo() {
         Room room = mock(Room.class);
         var chest = new InteractionWiredChestFurni(10, 7, mock(Item.class), "0", 0, 0);
         chest.addViewer(7, room);
@@ -75,7 +89,8 @@ class ChestIntegrationTest {
         return user;
     }
 
-    @Test void locksAndCapacitySurvivePersistenceWithoutLosingContents() {
+    @Test
+    void locksAndCapacitySurvivePersistenceWithoutLosingContents() {
         ChestStorage storage = new ChestStorage();
         storage.depositCurrency(-1, 40);
         storage.setLocked(true);
@@ -90,7 +105,8 @@ class ChestIntegrationTest {
         assertEquals(0, restored.depositCurrency(-1, 1));
     }
 
-    @Test void capacityOverrideCanDisableDepositsAndCannotExceedPurchasedCapacity() {
+    @Test
+    void capacityOverrideCanDisableDepositsAndCannotExceedPurchasedCapacity() {
         ChestStorage storage = new ChestStorage();
         storage.setCapacity(0);
         assertEquals(0, storage.depositCurrency(-1, 1));
@@ -100,7 +116,8 @@ class ChestIntegrationTest {
         assertEquals(5000, ChestStorage.fromJson("{\"entries\":[]}").getCapacity());
     }
 
-    @Test void ownerCanOperateLockedChestButRoomRightsCannotBypassLock() {
+    @Test
+    void ownerCanOperateLockedChestButRoomRightsCannotBypassLock() {
         var chest = new InteractionWiredChestCurrency(10, 7, mock(Item.class), "0", 0, 0);
         Room room = mock(Room.class);
         Habbo owner = user(7), editor = user(8), visitor = user(9);
@@ -116,7 +133,8 @@ class ChestIntegrationTest {
         assertFalse(chest.canManage(editor));
     }
 
-    @Test void donationAccessDoesNotBypassLock() {
+    @Test
+    void donationAccessDoesNotBypassLock() {
         var chest = new InteractionWiredChestFurni(10, 7, mock(Item.class), "0", 0, 0);
         Habbo visitor = user(9);
         Room room = mock(Room.class);
@@ -126,18 +144,21 @@ class ChestIntegrationTest {
         assertFalse(chest.canDeposit(visitor, room));
     }
 
-    @Test void obsoleteWiredConfigurationCannotReplaceOrMintStoredContents() throws Exception {
+    @Test
+    void obsoleteWiredConfigurationCannotReplaceOrMintStoredContents() throws Exception {
         for (InteractionWiredChest chest : new InteractionWiredChest[] {
-                new InteractionWiredChestCurrency(10, 7, mock(Item.class), "0", 0, 0),
-                new InteractionWiredChestFurni(11, 7, mock(Item.class), "0", 0, 0) }) {
+            new InteractionWiredChestCurrency(10, 7, mock(Item.class), "0", 0, 0),
+            new InteractionWiredChestFurni(11, 7, mock(Item.class), "0", 0, 0)
+        }) {
             chest.getContents().depositCurrency(-1, 20);
             String before = chest.getWiredData();
-            assertFalse(chest.saveData(new WiredSettings(new int[]{-1, 99999}, "", new int[0], 0), null));
+            assertFalse(chest.saveData(new WiredSettings(new int[] {-1, 99999}, "", new int[0], 0), null));
             assertEquals(before, chest.getWiredData());
         }
     }
 
-    @Test void playerStateRetainsLegacyPrefixAndAppendsNativeFooterPermissions() {
+    @Test
+    void playerStateRetainsLegacyPrefixAndAppendsNativeFooterPermissions() {
         Item item = mock(Item.class);
         var chest = new InteractionWiredChestCurrency(10, 7, item, "0", 0, 0);
         chest.getContents().setLocked(true);
@@ -154,10 +175,13 @@ class ChestIntegrationTest {
             assertTrue(tail.readBoolean());
             assertTrue(tail.readBoolean());
             assertTrue(tail.readBoolean());
-        } finally { buffer.release(); }
+        } finally {
+            buffer.release();
+        }
     }
 
-    @Test void chestControlsUseTheAuthoritativeWiredMenuPermissions() {
+    @Test
+    void chestControlsUseTheAuthoritativeWiredMenuPermissions() {
         var chest = new InteractionWiredChestCurrency(10, 7, mock(Item.class), "0", 0, 0);
         Room room = mock(Room.class);
         Habbo editor = user(8), inspector = user(9);
@@ -170,13 +194,18 @@ class ChestIntegrationTest {
         assertFalse(chest.canWithdraw(inspector, room));
     }
 
-    @Test void furniLogFiltersArePersistedAndSentByTheEmulator() {
+    @Test
+    void furniLogFiltersArePersistedAndSentByTheEmulator() {
         var chest = new InteractionWiredChestFurni(10, 7, mock(Item.class), "0", 0, 0);
         var log = new ChestStorage.LogEntry("deposit", 123000, "Loren", 0, 2);
-        log.furniTypeIds = new int[] { 14153 };
+        log.furniTypeIds = new int[] {14153};
         chest.getContents().addLog(log);
-        assertArrayEquals(log.furniTypeIds, ChestStorage.fromJson(chest.getContents().toJson()).getLog().getFirst().furniTypeIds);
-        var buffer = new com.eu.habbo.messages.outgoing.rooms.items.ChestLogComposer(chest).compose().get();
+        assertArrayEquals(
+                log.furniTypeIds,
+                ChestStorage.fromJson(chest.getContents().toJson()).getLog().getFirst().furniTypeIds);
+        var buffer = new com.eu.habbo.messages.outgoing.rooms.items.ChestLogComposer(chest)
+                .compose()
+                .get();
         try {
             var tail = buffer.duplicate();
             tail.readerIndex(tail.writerIndex() - 21);
@@ -186,14 +215,20 @@ class ChestIntegrationTest {
             assertEquals(1, tail.readInt());
             assertFalse(tail.readBoolean());
             assertEquals(0, tail.readInt());
-        } finally { buffer.release(); }
+        } finally {
+            buffer.release();
+        }
     }
 
-    @Test void wiredFurniRewardsRemoveRealStoredRowsAndKeepTheirMetadata() {
+    @Test
+    void wiredFurniRewardsRemoveRealStoredRowsAndKeepTheirMetadata() {
         var chest = new InteractionWiredChestFurni(10, 7, mock(Item.class), "0", 0, 0);
         var stored = new ChestFurniStoredItem();
-        stored.baseItemId = 99; stored.spriteId = 100; stored.extradata = "42";
-        stored.limitedStack = 7; stored.limitedSells = 20;
+        stored.baseItemId = 99;
+        stored.spriteId = 100;
+        stored.extradata = "42";
+        stored.limitedStack = 7;
+        stored.limitedSells = 20;
         chest.getContents().addFurniItem(stored);
         Habbo recipient = user(8);
         Item base = mock(Item.class);
@@ -211,14 +246,17 @@ class ChestIntegrationTest {
         verify(environment.getItemManager()).createItem(8, base, 7, 20, "42");
     }
 
-    @Test void failedInventoryCreationRestoresTheStoredFurni() {
+    @Test
+    void failedInventoryCreationRestoresTheStoredFurni() {
         var chest = new InteractionWiredChestFurni(10, 7, mock(Item.class), "0", 0, 0);
-        var stored = new ChestFurniStoredItem(); stored.baseItemId = 99;
+        var stored = new ChestFurniStoredItem();
+        stored.baseItemId = 99;
         chest.getContents().addFurniItem(stored);
         var environment = mock(com.eu.habbo.habbohotel.GameEnvironment.class, RETURNS_DEEP_STUBS);
         Item base = mock(Item.class);
         when(environment.getItemManager().getItem(99)).thenReturn(base);
-        when(environment.getItemManager().createItem(anyInt(), eq(base), anyInt(), anyInt(), any())).thenReturn(null);
+        when(environment.getItemManager().createItem(anyInt(), eq(base), anyInt(), anyInt(), any()))
+                .thenReturn(null);
         try (var emulator = mockStatic(com.eu.habbo.Emulator.class)) {
             emulator.when(com.eu.habbo.Emulator::getGameEnvironment).thenReturn(environment);
             assertEquals(0, ChestWiredFurniUtil.giveFromChestByType(user(8), chest, false, 99, "", 1));

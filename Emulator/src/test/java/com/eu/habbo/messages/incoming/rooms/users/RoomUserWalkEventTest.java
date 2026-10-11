@@ -40,8 +40,8 @@ class RoomUserWalkEventTest {
     void clickAfterSlideWindowDoesNotUseTheSlideGuard() {
         RoomUnit unit = slidingUnit();
 
-        assertFalse(RoomUserWalkEvent.shouldIgnoreRollerSlideClick(
-                unit, 5, 5, SLIDE_STARTED_AT + InteractionRoller.DELAY));
+        assertFalse(
+                RoomUserWalkEvent.shouldIgnoreRollerSlideClick(unit, 5, 5, SLIDE_STARTED_AT + InteractionRoller.DELAY));
     }
 
     private static RoomUnit slidingUnit() {

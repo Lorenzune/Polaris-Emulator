@@ -170,8 +170,13 @@ class WiredDelayedLifecycleCompatibilityTest {
         AtomicInteger immediate = new AtomicInteger();
         AtomicInteger delayed = new AtomicInteger();
         IWiredEffect selector = new IWiredEffect() {
-            public void execute(WiredContext context) { context.targets().setItems(List.of(target)); }
-            public boolean isSelector() { return true; }
+            public void execute(WiredContext context) {
+                context.targets().setItems(List.of(target));
+            }
+
+            public boolean isSelector() {
+                return true;
+            }
         };
         IWiredEffect first = context -> {
             assertEquals(Set.of(target), context.targets().items());
@@ -182,10 +187,13 @@ class WiredDelayedLifecycleCompatibilityTest {
                 assertEquals(Set.of(target), context.targets().items());
                 delayed.incrementAndGet();
             }
-            public int getDelay() { return 1; }
+
+            public int getDelay() {
+                return 1;
+            }
         };
-        WiredEngine engine = new WiredEngine(
-                mock(WiredServices.class), (candidate, type) -> List.of(), 100, ignoredId -> room);
+        WiredEngine engine =
+                new WiredEngine(mock(WiredServices.class), (candidate, type) -> List.of(), 100, ignoredId -> room);
         engine.executeCalledEffects(null, List.of(first, later, selector), event(room, null));
         assertEquals(1, immediate.get());
         assertEquals(0, delayed.get());
@@ -201,11 +209,12 @@ class WiredDelayedLifecycleCompatibilityTest {
         HabboItem anchor = mock(HabboItem.class);
         var extra = mock(com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraRandom.class);
         when(room.getRoomSpecialTypes().getExtras(0, 0)).thenReturn(Set.of(extra));
-        when(extra.selectWiredEffects(any())).thenAnswer(invocation ->
-                List.of(((List<IWiredEffect>) invocation.getArgument(0)).getFirst()));
+        when(extra.selectWiredEffects(any()))
+                .thenAnswer(invocation -> List.of(((List<IWiredEffect>) invocation.getArgument(0)).getFirst()));
         AtomicInteger first = new AtomicInteger(), second = new AtomicInteger();
         WiredEngine engine = new WiredEngine(mock(WiredServices.class), (candidate, type) -> List.of(), 100);
-        engine.executeCalledEffects(anchor, List.of(ctx -> first.incrementAndGet(), ctx -> second.incrementAndGet()), event(room, null));
+        engine.executeCalledEffects(
+                anchor, List.of(ctx -> first.incrementAndGet(), ctx -> second.incrementAndGet()), event(room, null));
         assertEquals(1, first.get());
         assertEquals(0, second.get());
     }

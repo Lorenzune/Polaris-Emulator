@@ -2,12 +2,10 @@ package com.eu.habbo.messages.incoming.rooms.items;
 
 import com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestFurniStoredItem;
 import com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestFurniWithdrawHelper;
-import com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.messages.incoming.MessageHandler;
-
 import java.util.List;
 
 public class ChestWithdrawFurniEvent extends MessageHandler {
@@ -33,7 +31,8 @@ public class ChestWithdrawFurniEvent extends MessageHandler {
         int amount = this.packet.readInt();
 
         HabboItem item = room.getHabboItem(itemId);
-        if (!(item instanceof com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChestFurni chest)) return;
+        if (!(item instanceof com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChestFurni chest))
+            return;
 
         if (!chest.canWithdraw(habbo, room)) return;
 

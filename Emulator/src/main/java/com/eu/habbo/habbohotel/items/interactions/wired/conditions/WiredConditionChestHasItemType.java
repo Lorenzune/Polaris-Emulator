@@ -4,9 +4,8 @@ import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredCondition;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredComparison;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
-import com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage;
-import com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredChestConfiguration;
 import com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest;
+import com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredChestConfiguration;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.users.HabboItem;
@@ -14,7 +13,6 @@ import com.eu.habbo.habbohotel.wired.WiredConditionType;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -38,7 +36,8 @@ public class WiredConditionChestHasItemType extends InteractionWiredCondition {
         super(set, baseItem);
     }
 
-    public WiredConditionChestHasItemType(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredConditionChestHasItemType(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -56,8 +55,13 @@ public class WiredConditionChestHasItemType extends InteractionWiredCondition {
             if (candidates.isEmpty()) return false;
             boolean any = config.conditionQuantifier == 1;
             for (HabboItem item : candidates) {
-                boolean match = item instanceof InteractionWiredChest chest && WiredComparison.compare(
-                    (int)chest.getContents().furniItems().stream().filter(row -> types.contains(row.baseItemId)).count(), expected, this.comparison);
+                boolean match = item instanceof InteractionWiredChest chest
+                        && WiredComparison.compare(
+                                (int) chest.getContents().furniItems().stream()
+                                        .filter(row -> types.contains(row.baseItemId))
+                                        .count(),
+                                expected,
+                                this.comparison);
                 if (any && match) return true;
                 if (!any && !match) return false;
             }
@@ -70,7 +74,7 @@ public class WiredConditionChestHasItemType extends InteractionWiredCondition {
                 for (var stored : chest.getContents().furniItems()) if (types.contains(stored.baseItemId)) total++;
             }
         }
-        return WiredComparison.compare((int)Math.min(Integer.MAX_VALUE, total), expected, this.comparison);
+        return WiredComparison.compare((int) Math.min(Integer.MAX_VALUE, total), expected, this.comparison);
     }
 
     @Deprecated
@@ -109,7 +113,8 @@ public class WiredConditionChestHasItemType extends InteractionWiredCondition {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(this.baseItemId, this.amount, this.comparison, this.chestIds));
+        return WiredManager.getGson()
+                .toJson(new JsonData(this.baseItemId, this.amount, this.comparison, this.chestIds));
     }
 
     @Override
@@ -141,7 +146,8 @@ public class WiredConditionChestHasItemType extends InteractionWiredCondition {
         }
         message.appendInt(this.getBaseItem().getSpriteId());
         message.appendInt(this.getId());
-        message.appendString(this.configuration == null ? "" : WiredManager.getGson().toJson(this.configuration));
+        message.appendString(
+                this.configuration == null ? "" : WiredManager.getGson().toJson(this.configuration));
         if (this.configuration != null) {
             message.appendInt(4);
             message.appendInt(this.amount);
@@ -149,14 +155,17 @@ public class WiredConditionChestHasItemType extends InteractionWiredCondition {
             message.appendInt(this.configuration.amountTarget);
             message.appendInt(this.comparison);
         } else {
-        message.appendInt(3);
-        message.appendInt(this.baseItemId);
-        message.appendInt(this.amount);
-        message.appendInt(this.comparison);
+            message.appendInt(3);
+            message.appendInt(this.baseItemId);
+            message.appendInt(this.amount);
+            message.appendInt(this.comparison);
         }
         message.appendInt(0);
         message.appendInt(this.getType().code);
-        if (this.configuration == null) { message.appendInt(0); message.appendInt(0); }
+        if (this.configuration == null) {
+            message.appendInt(0);
+            message.appendInt(0);
+        }
         if (this.configuration != null) this.configuration.appendSettings(message, true, null);
     }
 

@@ -6,7 +6,6 @@ import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestFurniPackets;
 import com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestFurniStoredItem;
 import com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage;
-import com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
@@ -46,7 +45,8 @@ public class ChestDepositFurniEvent extends MessageHandler {
         if (amount <= 0 || amount > MAX_DEPOSIT_AMOUNT) return;
 
         HabboItem item = room.getHabboItem(itemId);
-        if (!(item instanceof com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChestFurni chest)) return;
+        if (!(item instanceof com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChestFurni chest))
+            return;
 
         ChestStorage contents = chest.getContents();
 
@@ -84,7 +84,8 @@ public class ChestDepositFurniEvent extends MessageHandler {
         int deposited = toRemove.size();
         if (deposited <= 0) return;
 
-        ChestStorage.LogEntry log = new ChestStorage.LogEntry("deposit", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), 0, deposited);
+        ChestStorage.LogEntry log = new ChestStorage.LogEntry(
+                "deposit", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), 0, deposited);
         log.setFurniItems(added.stream());
         contents.addLog(log);
         chest.persistContents();

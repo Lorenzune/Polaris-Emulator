@@ -50,7 +50,10 @@ public class ModToolManager {
     private final Int2ObjectMap<CfhCategory> cfhCategories;
 
     private Runnable chatlogFlusher = () -> {};
-    public void setChatlogFlusher(Runnable flusher) { this.chatlogFlusher = java.util.Objects.requireNonNull(flusher); }
+
+    public void setChatlogFlusher(Runnable flusher) {
+        this.chatlogFlusher = java.util.Objects.requireNonNull(flusher);
+    }
 
     public ModToolManager() {
         long millis = System.currentTimeMillis();

@@ -29,91 +29,90 @@ public class PetPackageNameEvent extends MessageHandler {
 
         if (room != null) {
             synchronized (room) {
-            HabboItem item = room.getHabboItem(itemId);
-            if (item != null) {
-                if (item.getUserId() == this.client.getHabbo().getHabboInfo().getId()) {
-                    int nameError = validatePetPackageName(name);
-                    if (nameError == PetPackageNameValidationComposer.CLOSE_WIDGET) {
-                        RoomTile tile = room.getLayout().getTile(item.getX(), item.getY());
-                        if (tile == null) {
-                            this.client.sendResponse(
-                                    new AlertPurchaseFailedComposer(AlertPurchaseFailedComposer.SERVER_ERROR));
-                            return;
-                        }
+                HabboItem item = room.getHabboItem(itemId);
+                if (item != null) {
+                    if (item.getUserId()
+                            == this.client.getHabbo().getHabboInfo().getId()) {
+                        int nameError = validatePetPackageName(name);
+                        if (nameError == PetPackageNameValidationComposer.CLOSE_WIDGET) {
+                            RoomTile tile = room.getLayout().getTile(item.getX(), item.getY());
+                            if (tile == null) {
+                                this.client.sendResponse(
+                                        new AlertPurchaseFailedComposer(AlertPurchaseFailedComposer.SERVER_ERROR));
+                                return;
+                            }
 
-                        Pet pet = null;
-                        var petManager = Emulator.getGameEnvironment().getPetManager();
+                            Pet pet = null;
+                            var petManager = Emulator.getGameEnvironment().getPetManager();
 
-                        if (item.getBaseItem().getName().equalsIgnoreCase("val11_present")) {
-                            pet = petManager.createPet(11, name, this.client);
-                        }
+                            if (item.getBaseItem().getName().equalsIgnoreCase("val11_present")) {
+                                pet = petManager.createPet(11, name, this.client);
+                            }
 
-                        if (item.getBaseItem().getName().equalsIgnoreCase("gnome_box")) {
-                            pet = petManager
-                                    .createGnome(name, room, this.client.getHabbo());
-                        }
+                            if (item.getBaseItem().getName().equalsIgnoreCase("gnome_box")) {
+                                pet = petManager.createGnome(name, room, this.client.getHabbo());
+                            }
 
-                        if (item.getBaseItem().getName().equalsIgnoreCase("leprechaun_box")) {
-                            pet = petManager
-                                    .createLeprechaun(name, room, this.client.getHabbo());
-                        }
+                            if (item.getBaseItem().getName().equalsIgnoreCase("leprechaun_box")) {
+                                pet = petManager.createLeprechaun(name, room, this.client.getHabbo());
+                            }
 
-                        if (item.getBaseItem().getName().equalsIgnoreCase("velociraptor_egg")) {
-                            pet = petManager.createPet(34, name, this.client);
-                        }
+                            if (item.getBaseItem().getName().equalsIgnoreCase("velociraptor_egg")) {
+                                pet = petManager.createPet(34, name, this.client);
+                            }
 
-                        if (item.getBaseItem().getName().equalsIgnoreCase("pterosaur_egg")) {
-                            pet = petManager.createPet(33, name, this.client);
-                        }
+                            if (item.getBaseItem().getName().equalsIgnoreCase("pterosaur_egg")) {
+                                pet = petManager.createPet(33, name, this.client);
+                            }
 
-                        if (item.getBaseItem().getName().equalsIgnoreCase("petbox_epic")) {
-                            pet = petManager.createPet(32, name, this.client);
-                        }
+                            if (item.getBaseItem().getName().equalsIgnoreCase("petbox_epic")) {
+                                pet = petManager.createPet(32, name, this.client);
+                            }
 
-                        if (item.getBaseItem().getName().equalsIgnoreCase("cowbox")) {
-                            pet = petManager.createPet(35, name, this.client);
-                        }
-                        if (item.getBaseItem().getName().equalsIgnoreCase("cowbox_gold")) {
-                            pet = petManager.createPet(35, 28, name, this.client);
-                        }
+                            if (item.getBaseItem().getName().equalsIgnoreCase("cowbox")) {
+                                pet = petManager.createPet(35, name, this.client);
+                            }
+                            if (item.getBaseItem().getName().equalsIgnoreCase("cowbox_gold")) {
+                                pet = petManager.createPet(35, 28, name, this.client);
+                            }
 
-                        if (item.getBaseItem().getName().equalsIgnoreCase("newbie_cat_package")) {
-                            pet = petManager.createPet(1, name, this.client);
-                        }
-                        if (item.getBaseItem().getName().equalsIgnoreCase("newbie_crocodile_package")) {
-                            pet = petManager.createPet(2, name, this.client);
-                        }
-                        if (item.getBaseItem().getName().equalsIgnoreCase("newbie_present_2014")) {
-                            pet = petManager.createPet(0, name, this.client);
-                        }
+                            if (item.getBaseItem().getName().equalsIgnoreCase("newbie_cat_package")) {
+                                pet = petManager.createPet(1, name, this.client);
+                            }
+                            if (item.getBaseItem().getName().equalsIgnoreCase("newbie_crocodile_package")) {
+                                pet = petManager.createPet(2, name, this.client);
+                            }
+                            if (item.getBaseItem().getName().equalsIgnoreCase("newbie_present_2014")) {
+                                pet = petManager.createPet(0, name, this.client);
+                            }
 
-                        if (pet != null) {
-                            room.placePet(pet, item.getX(), item.getY(), item.getZ(), item.getRotation());
-                            pet.setUserId(this.client.getHabbo().getHabboInfo().getId());
-                            pet.needsUpdate = true;
-                            pet.getRoomUnit().setLocation(tile);
-                            pet.getRoomUnit().setZ(item.getZ());
-                            Emulator.getThreading().runPersistence(new QueryDeleteHabboItem(item.getId()));
-                            room.removeHabboItem(item);
-                            room.sendComposer(new RemoveFloorItemComposer(item).compose());
-                            room.updateTile(tile);
-                            room.sendComposer(
-                                    new UpdateStackHeightComposer(tile.x, tile.y, tile.z, tile.relativeHeight())
-                                            .compose());
-                            item.setUserId(0);
+                            if (pet != null) {
+                                room.placePet(pet, item.getX(), item.getY(), item.getZ(), item.getRotation());
+                                pet.setUserId(
+                                        this.client.getHabbo().getHabboInfo().getId());
+                                pet.needsUpdate = true;
+                                pet.getRoomUnit().setLocation(tile);
+                                pet.getRoomUnit().setZ(item.getZ());
+                                Emulator.getThreading().runPersistence(new QueryDeleteHabboItem(item.getId()));
+                                room.removeHabboItem(item);
+                                room.sendComposer(new RemoveFloorItemComposer(item).compose());
+                                room.updateTile(tile);
+                                room.sendComposer(
+                                        new UpdateStackHeightComposer(tile.x, tile.y, tile.z, tile.relativeHeight())
+                                                .compose());
+                                item.setUserId(0);
+                            } else {
+                                this.client.sendResponse(
+                                        new AlertPurchaseFailedComposer(AlertPurchaseFailedComposer.SERVER_ERROR));
+                            }
                         } else {
                             this.client.sendResponse(
-                                    new AlertPurchaseFailedComposer(AlertPurchaseFailedComposer.SERVER_ERROR));
+                                    new PetPackageNameValidationComposer(itemId, nameError, name == null ? "" : name));
+                            return;
                         }
-                    } else {
-                        this.client.sendResponse(
-                                new PetPackageNameValidationComposer(itemId, nameError, name == null ? "" : name));
-                        return;
                     }
                 }
             }
-        }
-
         }
         this.client.sendResponse(
                 new PetPackageNameValidationComposer(itemId, PetPackageNameValidationComposer.CLOSE_WIDGET, ""));

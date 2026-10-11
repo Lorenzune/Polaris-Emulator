@@ -4,11 +4,10 @@ import com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestFurniStoredIt
 import com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage;
 import com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest;
 import com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChestFurni;
-import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.habbohotel.users.Habbo;
+import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -48,16 +47,15 @@ public class ChestDataComposer extends MessageComposer {
     protected ServerMessage composeInternal() {
         ChestStorage c = this.chest.getContents();
         int chestKind = (this.chest instanceof InteractionWiredChestFurni)
-                ? ChestStorage.KIND_FURNI : ChestStorage.KIND_CURRENCY;
+                ? ChestStorage.KIND_FURNI
+                : ChestStorage.KIND_CURRENCY;
 
         this.response.init(Outgoing.ChestDataComposer);
         this.response.appendInt(this.chest.getId());
         this.response.appendString(c.getName());
         this.response.appendString(c.getDescription());
         this.response.appendInt(c.getCapacityMax());
-        int used = (this.chest instanceof InteractionWiredChestFurni)
-                ? c.furniItemCount()
-                : c.total(chestKind);
+        int used = (this.chest instanceof InteractionWiredChestFurni) ? c.furniItemCount() : c.total(chestKind);
         this.response.appendInt(used);
         this.response.appendBoolean(c.isAccessOpen());
         this.response.appendBoolean(c.isAccessDonate());
@@ -100,8 +98,10 @@ public class ChestDataComposer extends MessageComposer {
         this.response.appendBoolean(c.isAutoLock());
         this.response.appendInt(c.getCapacity());
         this.response.appendBoolean(chest.canManage(viewer));
-        this.response.appendBoolean(viewer != null && chest.canEdit(viewer, viewer.getHabboInfo().getCurrentRoom()));
-        this.response.appendBoolean(viewer != null && chest.canRead(viewer, viewer.getHabboInfo().getCurrentRoom()));
+        this.response.appendBoolean(
+                viewer != null && chest.canEdit(viewer, viewer.getHabboInfo().getCurrentRoom()));
+        this.response.appendBoolean(
+                viewer != null && chest.canRead(viewer, viewer.getHabboInfo().getCurrentRoom()));
         return this.response;
     }
 }

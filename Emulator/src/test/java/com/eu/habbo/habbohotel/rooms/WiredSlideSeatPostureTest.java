@@ -1,7 +1,15 @@
 package com.eu.habbo.habbohotel.rooms;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
@@ -13,8 +21,8 @@ class WiredSlideSeatPostureTest {
     @Test
     void suppressedSlidePacketsStillRecalculateSeatBaseHeight() {
         Room room = mock(Room.class, RETURNS_DEEP_STUBS);
-        RoomTile tile = new RoomTile((short)25, (short)25, (short)0, RoomTileState.OPEN, true);
-        when(room.getLayout().getTile((short)25, (short)25)).thenReturn(tile);
+        RoomTile tile = new RoomTile((short) 25, (short) 25, (short) 0, RoomTileState.OPEN, true);
+        when(room.getLayout().getTile((short) 25, (short) 25)).thenReturn(tile);
         HabboItem chair = mock(HabboItem.class);
         Item base = mock(Item.class);
         when(chair.getBaseItem()).thenReturn(base);
@@ -31,8 +39,9 @@ class WiredSlideSeatPostureTest {
         Habbo habbo = mock(Habbo.class);
         when(habbo.getRoomUnit()).thenReturn(unit);
         try (var helper = mockStatic(WiredUserMovementHelper.class)) {
-            helper.when(() -> WiredUserMovementHelper.shouldSuppressStatusUpdate(unit)).thenReturn(true);
-            new RoomUnitManager(room).updateHabbosAt((short)25, (short)25, List.of(habbo));
+            helper.when(() -> WiredUserMovementHelper.shouldSuppressStatusUpdate(unit))
+                    .thenReturn(true);
+            new RoomUnitManager(room).updateHabbosAt((short) 25, (short) 25, List.of(habbo));
             assertEquals(0.1, unit.getZ());
             assertTrue(unit.hasStatus(RoomUnitStatus.SIT));
             verify(room, never()).sendComposer(any());

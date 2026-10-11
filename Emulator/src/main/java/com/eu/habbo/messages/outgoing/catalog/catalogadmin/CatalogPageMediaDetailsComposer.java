@@ -14,7 +14,13 @@ public class CatalogPageMediaDetailsComposer extends MessageComposer {
     private final int[] textPosition;
     private final boolean uploadEnabled;
 
-    public CatalogPageMediaDetailsComposer(CatalogPage page, CatalogPageType catalogType, int[] header, int[] teaser, int[] textPosition, boolean uploadEnabled) {
+    public CatalogPageMediaDetailsComposer(
+            CatalogPage page,
+            CatalogPageType catalogType,
+            int[] header,
+            int[] teaser,
+            int[] textPosition,
+            boolean uploadEnabled) {
         this.page = page;
         this.catalogType = catalogType;
         this.header = header;

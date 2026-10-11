@@ -27,8 +27,12 @@ class WiredSelectorSourcesParityTest {
         var room = mock(Room.class);
         var trigger = mock(HabboItem.class);
         var ctx = new WiredContext(
-                WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room).sourceItem(trigger).build(),
-                trigger, mock(WiredServices.class), new WiredState(100));
+                WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, room)
+                        .sourceItem(trigger)
+                        .build(),
+                trigger,
+                mock(WiredServices.class),
+                new WiredState(100));
         var sphere = mock(HabboItem.class);
         var wildCard = mock(HabboItem.class);
         var outside = mock(HabboItem.class);
@@ -41,12 +45,15 @@ class WiredSelectorSourcesParityTest {
         when(neighborhood.isSelector()).thenReturn(true);
         when(neighborhood.usesExistingSelectorTargets()).thenReturn(true);
         doAnswer(invocation -> {
-            WiredContext current = invocation.getArgument(0);
-            var matches = new java.util.LinkedHashSet<>(current.targets().items());
-            matches.retainAll(Set.of(sphere, wildCard));
-            current.targets().setItems(matches);
-            return null;
-        }).when(neighborhood).execute(any(WiredContext.class));
+                    WiredContext current = invocation.getArgument(0);
+                    var matches =
+                            new java.util.LinkedHashSet<>(current.targets().items());
+                    matches.retainAll(Set.of(sphere, wildCard));
+                    current.targets().setItems(matches);
+                    return null;
+                })
+                .when(neighborhood)
+                .execute(any(WiredContext.class));
         WiredExecutionScope.execute(neighborhood, ctx);
         assertEquals(Set.of(sphere, wildCard), ctx.targets().items());
     }
@@ -55,8 +62,12 @@ class WiredSelectorSourcesParityTest {
     void emptyIndependentSelectionKeepsEarlierResultsWithoutAddingTheTrigger() {
         var trigger = mock(HabboItem.class);
         var ctx = new WiredContext(
-                WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, mock(Room.class)).sourceItem(trigger).build(),
-                trigger, mock(WiredServices.class), new WiredState(100));
+                WiredEvent.builder(WiredEvent.Type.SIGNAL_RECEIVED, mock(Room.class))
+                        .sourceItem(trigger)
+                        .build(),
+                trigger,
+                mock(WiredServices.class),
+                new WiredState(100));
         WiredExecutionScope.execute(itemSelector(Set.of(), false), ctx);
         assertTrue(ctx.targets().items().isEmpty());
         var sphere = mock(HabboItem.class);
@@ -77,7 +88,10 @@ class WiredSelectorSourcesParityTest {
         var second = itemSelector(Set.of(bonus), false);
         when(second.getZ()).thenReturn(1D);
         when(room.getRoomSpecialTypes().getEffects((short) 0, (short) 0)).thenReturn(Set.of(first, second));
-        assertEquals(Set.of(sphere, bonus), WiredSourceUtil.resolveRemoteSelectors(context(room, stack), stack).items());
+        assertEquals(
+                Set.of(sphere, bonus),
+                WiredSourceUtil.resolveRemoteSelectors(context(room, stack), stack)
+                        .items());
     }
 
     private static InteractionWiredEffect itemSelector(Set<HabboItem> items, boolean deferred) {
@@ -85,9 +99,11 @@ class WiredSelectorSourcesParityTest {
         when(selector.isSelector()).thenReturn(true);
         when(selector.usesExistingSelectorTargets()).thenReturn(deferred);
         doAnswer(invocation -> {
-            ((WiredContext) invocation.getArgument(0)).targets().setItems(items);
-            return null;
-        }).when(selector).execute(any(WiredContext.class));
+                    ((WiredContext) invocation.getArgument(0)).targets().setItems(items);
+                    return null;
+                })
+                .when(selector)
+                .execute(any(WiredContext.class));
         return selector;
     }
 

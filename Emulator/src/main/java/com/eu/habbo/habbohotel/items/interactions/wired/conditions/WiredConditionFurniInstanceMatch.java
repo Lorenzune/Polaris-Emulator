@@ -13,9 +13,11 @@ public class WiredConditionFurniInstanceMatch extends WiredConditionFurniTypeMat
     public WiredConditionFurniInstanceMatch(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
     }
+
     public WiredConditionFurniInstanceMatch(int id, int userId, Item item, String data, int stack, int sells) {
         super(id, userId, item, data, stack, sells);
     }
+
     @Override
     protected Set<Integer> resolveCompareTypeIds(WiredContext ctx) {
         this.refresh();
@@ -25,6 +27,7 @@ public class WiredConditionFurniInstanceMatch extends WiredConditionFurniTypeMat
         }
         return ids;
     }
+
     @Override
     protected boolean matchesType(HabboItem item, Set<Integer> ids) {
         return item != null && ids.contains(item.getId());

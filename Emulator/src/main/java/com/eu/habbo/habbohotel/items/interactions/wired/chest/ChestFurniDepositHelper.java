@@ -26,7 +26,8 @@ public final class ChestFurniDepositHelper {
         if (!(chest instanceof InteractionWiredChestFurni) || !chest.canDeposit(habbo, room)) return false;
 
         Item baseItem = inventoryItem.getBaseItem();
-        if (baseItem == null || (baseItem.getType() != FurnitureType.FLOOR && baseItem.getType() != FurnitureType.WALL)) return false;
+        if (baseItem == null || (baseItem.getType() != FurnitureType.FLOOR && baseItem.getType() != FurnitureType.WALL))
+            return false;
 
         HabboItem removed = habbo.getInventory().getItemsComponent().getHabboItem(inventoryItem.getId());
         if (removed == null) return false;
@@ -39,7 +40,8 @@ public final class ChestFurniDepositHelper {
             habbo.getInventory().getItemsComponent().addItem(removed);
             return false;
         }
-        ChestStorage.LogEntry log = new ChestStorage.LogEntry("deposit", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), 0, 1);
+        ChestStorage.LogEntry log = new ChestStorage.LogEntry(
+                "deposit", System.currentTimeMillis(), habbo.getHabboInfo().getUsername(), 0, 1);
         log.setFurniItems(java.util.stream.Stream.of(stored));
         contents.addLog(log);
         chest.persistContents(room);

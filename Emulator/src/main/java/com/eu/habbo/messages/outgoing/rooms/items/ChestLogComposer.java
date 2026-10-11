@@ -5,7 +5,6 @@ import com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredCh
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
-
 import java.util.List;
 import java.util.Map;
 
@@ -24,8 +23,13 @@ public class ChestLogComposer extends MessageComposer {
         response.appendBoolean(currency != null);
         if (currency != null) response.appendInt(currency);
         response.appendInt(quantities == null ? 0 : quantities.size());
-        if (quantities != null) for (var entry : quantities.entrySet()) { response.appendInt(entry.getKey()); response.appendInt(entry.getValue()); }
+        if (quantities != null)
+            for (var entry : quantities.entrySet()) {
+                response.appendInt(entry.getKey());
+                response.appendInt(entry.getValue());
+            }
     }
+
     @Override
     protected ServerMessage composeInternal() {
         this.response.init(Outgoing.ChestLogComposer);

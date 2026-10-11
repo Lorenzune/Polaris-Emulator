@@ -80,8 +80,10 @@ public class WiredTriggerReceiveSignal extends InteractionWiredTrigger {
     }
 
     public boolean listensToPickedAntenna(HabboItem antenna) {
-        return this.nativeSignal && this.furniSource == WiredSourceUtil.SOURCE_SELECTED
-                && antenna != null && this.items.contains(antenna);
+        return this.nativeSignal
+                && this.furniSource == WiredSourceUtil.SOURCE_SELECTED
+                && antenna != null
+                && this.items.contains(antenna);
     }
 
     public boolean unlinkAntenna(int antennaItemId) {

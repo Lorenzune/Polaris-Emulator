@@ -22,7 +22,8 @@ public class WiredConditionFurniAnchoredInstanceMatch extends WiredConditionFurn
         if (trigger == null || trigger.getX() == getX() && trigger.getY() == getY()) {
             return super.evaluate(context);
         }
-        var own = new WiredContext(context.event(), this, null, context.services(), context.state(), context.legacySettings());
+        var own = new WiredContext(
+                context.event(), this, null, context.services(), context.state(), context.legacySettings());
         own.targets().setItems(WiredSourceUtil.resolveSelectorItems(own, context.includeWiredSelectorItems()));
         return super.evaluate(own);
     }

@@ -1,8 +1,8 @@
 package com.eu.habbo.habbohotel.pets;
 
 import com.eu.habbo.Emulator;
-import com.eu.habbo.habbohotel.achievements.AchievementManager;
 import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
+import com.eu.habbo.habbohotel.achievements.AchievementManager;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.rooms.RoomUnitStatus;
 import com.eu.habbo.habbohotel.users.Habbo;
@@ -10,14 +10,10 @@ import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.inventory.AddHabboItemComposer;
 import com.eu.habbo.messages.outgoing.inventory.InventoryRefreshComposer;
-import com.eu.habbo.messages.outgoing.rooms.pets.breeding.MonsterplantBreedingResultComposer;
 import com.eu.habbo.messages.outgoing.rooms.pets.PetStatusUpdateComposer;
 import com.eu.habbo.messages.outgoing.rooms.pets.RoomPetRespectComposer;
+import com.eu.habbo.messages.outgoing.rooms.pets.breeding.MonsterplantBreedingResultComposer;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserStatusComposer;
-import org.apache.commons.math3.util.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -25,45 +21,52 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.apache.commons.math3.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MonsterplantPet extends Pet implements IPetLook {
     private static final Logger LOGGER = LoggerFactory.getLogger(MonsterplantPet.class);
 
-    public static final Map<Integer, Pair<String, Integer>> bodyRarity = new LinkedHashMap<Integer, Pair<String, Integer>>() {
-        {
-            this.put(1, new Pair<>("Blungon", 0));
-            this.put(2, new Pair<>("Wailzor", 1));
-            this.put(3, new Pair<>("Stumpy", 1));
-            this.put(4, new Pair<>("Sunspike", 2));
-            this.put(5, new Pair<>("Squarg", 0));
-            this.put(6, new Pair<>("Shroomer", 3));
-            this.put(7, new Pair<>("Zuchinu", 3));
-            this.put(8, new Pair<>("Abysswirl", 5));
-            this.put(9, new Pair<>("Weggylum", 2));
-            this.put(10, new Pair<>("Wystique", 4));
-            this.put(11, new Pair<>("Hairbullis", 4));
-            this.put(12, new Pair<>("Snozzle", 5)); //Rarity???
-        }
-    };
-    public static final Map<Integer, Pair<String, Integer>> colorRarity = new LinkedHashMap<Integer, Pair<String, Integer>>() {
-        {
-            this.put(0, new Pair<>("Aenueus", 0));
-            this.put(1, new Pair<>("Griseus", 1));
-            this.put(2, new Pair<>("Phoenicus", 2));
-            this.put(3, new Pair<>("Viridulus", 1));
-            this.put(4, new Pair<>("Cyaneus", 5));
-            this.put(5, new Pair<>("Incarnatus", 2));
-            this.put(6, new Pair<>("Azureus", 4));
-            this.put(7, new Pair<>("Atamasc", 4));
-            this.put(8, new Pair<>("Amethyst", 3));
-            this.put(9, new Pair<>("Fulvus", 0));
-            this.put(10, new Pair<>("Cinereus", 3));
-        }
-    };
-    public static final ArrayList<Pair<String, Integer>> indexedBody = new ArrayList<>(MonsterplantPet.bodyRarity.values());
-    public static final ArrayList<Pair<String, Integer>> indexedColors = new ArrayList<>(MonsterplantPet.colorRarity.values());
+    public static final Map<Integer, Pair<String, Integer>> bodyRarity =
+            new LinkedHashMap<Integer, Pair<String, Integer>>() {
+                {
+                    this.put(1, new Pair<>("Blungon", 0));
+                    this.put(2, new Pair<>("Wailzor", 1));
+                    this.put(3, new Pair<>("Stumpy", 1));
+                    this.put(4, new Pair<>("Sunspike", 2));
+                    this.put(5, new Pair<>("Squarg", 0));
+                    this.put(6, new Pair<>("Shroomer", 3));
+                    this.put(7, new Pair<>("Zuchinu", 3));
+                    this.put(8, new Pair<>("Abysswirl", 5));
+                    this.put(9, new Pair<>("Weggylum", 2));
+                    this.put(10, new Pair<>("Wystique", 4));
+                    this.put(11, new Pair<>("Hairbullis", 4));
+                    this.put(12, new Pair<>("Snozzle", 5)); // Rarity???
+                }
+            };
+    public static final Map<Integer, Pair<String, Integer>> colorRarity =
+            new LinkedHashMap<Integer, Pair<String, Integer>>() {
+                {
+                    this.put(0, new Pair<>("Aenueus", 0));
+                    this.put(1, new Pair<>("Griseus", 1));
+                    this.put(2, new Pair<>("Phoenicus", 2));
+                    this.put(3, new Pair<>("Viridulus", 1));
+                    this.put(4, new Pair<>("Cyaneus", 5));
+                    this.put(5, new Pair<>("Incarnatus", 2));
+                    this.put(6, new Pair<>("Azureus", 4));
+                    this.put(7, new Pair<>("Atamasc", 4));
+                    this.put(8, new Pair<>("Amethyst", 3));
+                    this.put(9, new Pair<>("Fulvus", 0));
+                    this.put(10, new Pair<>("Cinereus", 3));
+                }
+            };
+    public static final ArrayList<Pair<String, Integer>> indexedBody =
+            new ArrayList<>(MonsterplantPet.bodyRarity.values());
+    public static final ArrayList<Pair<String, Integer>> indexedColors =
+            new ArrayList<>(MonsterplantPet.colorRarity.values());
     public static int growTime = (30 * 60);
-    public static int timeToLive = (3 * 24 * 60 * 60); //3 days
+    public static int timeToLive = (3 * 24 * 60 * 60); // 3 days
     private final int nose;
     private final int noseColor;
     private final int eyes;
@@ -95,7 +98,16 @@ public class MonsterplantPet extends Pet implements IPetLook {
         this.hasDied = set.getInt("mp_is_dead") == 1;
     }
 
-    public MonsterplantPet(int userId, int type, int hue, int nose, int noseColor, int mouth, int mouthColor, int eyes, int eyesColor) {
+    public MonsterplantPet(
+            int userId,
+            int type,
+            int hue,
+            int nose,
+            int noseColor,
+            int mouth,
+            int mouthColor,
+            int eyes,
+            int eyesColor) {
         super(16, 0, "", "", userId);
 
         this.type = type;
@@ -128,7 +140,9 @@ public class MonsterplantPet extends Pet implements IPetLook {
         if (this.needsUpdate) {
             super.run();
 
-            try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("UPDATE users_pets SET mp_type = ?, mp_color = ?, mp_nose = ?, mp_eyes = ?, mp_mouth = ?, mp_nose_color = ?, mp_eyes_color = ?, mp_mouth_color = ?, mp_death_timestamp = ?, mp_breedable = ?, mp_allow_breed = ?, mp_is_dead = ? WHERE id = ?")) {
+            try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                    PreparedStatement statement = connection.prepareStatement(
+                            "UPDATE users_pets SET mp_type = ?, mp_color = ?, mp_nose = ?, mp_eyes = ?, mp_mouth = ?, mp_nose_color = ?, mp_eyes_color = ?, mp_mouth_color = ?, mp_death_timestamp = ?, mp_breedable = ?, mp_allow_breed = ?, mp_is_dead = ? WHERE id = ?")) {
                 statement.setInt(1, this.type);
                 statement.setInt(2, this.hue);
                 statement.setInt(3, this.nose);
@@ -156,8 +170,14 @@ public class MonsterplantPet extends Pet implements IPetLook {
                 this.roomUnit.removeStatus(RoomUnitStatus.GESTURE);
 
                 if (!this.hasDied) {
-                    AchievementManager.progressAchievement(Emulator.getGameEnvironment().getHabboManager().getHabbo(this.userId), Emulator.getGameEnvironment().getAchievementManager().getAchievement("MonsterPlantGardenOfDeath"));
-                    AchievementInteractions.progress(Emulator.getGameEnvironment().getHabboManager().getHabbo(this.userId), "MonsterPlantUnluckyGardener");
+                    AchievementManager.progressAchievement(
+                            Emulator.getGameEnvironment().getHabboManager().getHabbo(this.userId),
+                            Emulator.getGameEnvironment()
+                                    .getAchievementManager()
+                                    .getAchievement("MonsterPlantGardenOfDeath"));
+                    AchievementInteractions.progress(
+                            Emulator.getGameEnvironment().getHabboManager().getHabbo(this.userId),
+                            "MonsterPlantUnluckyGardener");
 
                     this.hasDied = true;
                     this.needsUpdate = true;
@@ -208,22 +228,22 @@ public class MonsterplantPet extends Pet implements IPetLook {
 
     public int getRarity() {
         if (bodyRarity.containsKey(this.type) && colorRarity.containsKey(this.hue)) {
-            return bodyRarity.get(this.type).getValue() + colorRarity.get(this.hue).getValue();
+            return bodyRarity.get(this.type).getValue()
+                    + colorRarity.get(this.hue).getValue();
         }
         return 0;
     }
 
     @Override
     public String getLook() {
-        return "16 0 FFFFFF " +
-                "5 " +
-                "0 -1 10 " +
-                "1 " + this.type + " " + this.hue + " " +
-                "2 " + this.mouth + " " + this.mouthColor + " " +
-                "3 " + this.nose + " " + this.noseColor + " " +
-                "4 " + this.eyes + " " + this.eyesColor;
+        return "16 0 FFFFFF " + "5 "
+                + "0 -1 10 "
+                + "1 "
+                + this.type + " " + this.hue + " " + "2 "
+                + this.mouth + " " + this.mouthColor + " " + "3 "
+                + this.nose + " " + this.noseColor + " " + "4 "
+                + this.eyes + " " + this.eyesColor;
     }
-
 
     @Override
     public void serialize(ServerMessage message) {
@@ -321,34 +341,61 @@ public class MonsterplantPet extends Pet implements IPetLook {
             Habbo ownerOne = this.room.getHabbo(this.userId);
             Habbo ownerTwo = this.room.getHabbo(pet.getUserId());
             if (ownerOne == null || ownerTwo == null) return;
-            boolean rare = this.getRarity() >= 8 && pet.getRarity() >= 8
+            boolean rare = this.getRarity() >= 8
+                    && pet.getRarity() >= 8
                     && Emulator.getRandom().nextInt(100) <= this.getRarity() + pet.getRarity();
-            Item seedBase = Emulator.getGameEnvironment().getItemManager().getItem(
-                    Emulator.getConfig().getInt(rare ? "monsterplant.seed_rare.item_id" : "monsterplant.seed.item_id"));
+            Item seedBase = Emulator.getGameEnvironment()
+                    .getItemManager()
+                    .getItem(Emulator.getConfig()
+                            .getInt(rare ? "monsterplant.seed_rare.item_id" : "monsterplant.seed.item_id"));
             if (seedBase == null) return;
             HabboItem one, two = null;
-            try (Connection connection = com.eu.habbo.habbohotel.pets.breeding.PetBreedingPlatform.services().database().get().getDataSource().getConnection()) {
+            try (Connection connection = com.eu.habbo.habbohotel.pets.breeding.PetBreedingPlatform.services()
+                    .database()
+                    .get()
+                    .getDataSource()
+                    .getConnection()) {
                 connection.setAutoCommit(false);
                 try {
                     try (PreparedStatement update = connection.prepareStatement(
                             "UPDATE users_pets SET mp_breedable = 0, mp_allow_breed = 0 WHERE id IN (?, ?) AND room_id = ? AND mp_breedable = 1 AND mp_is_dead = 0")) {
-                        update.setInt(1, this.id); update.setInt(2, pet.getId()); update.setInt(3, this.room.getId());
-                        if (update.executeUpdate() != 2) throw new SQLException("Plants no longer breedable in this room");
+                        update.setInt(1, this.id);
+                        update.setInt(2, pet.getId());
+                        update.setInt(3, this.room.getId());
+                        if (update.executeUpdate() != 2)
+                            throw new SQLException("Plants no longer breedable in this room");
                     }
-                    one = Emulator.getGameEnvironment().getItemManager().createItem(connection, this.userId, seedBase, 0, 0, "");
-                    if (ownerOne != ownerTwo) two = Emulator.getGameEnvironment().getItemManager()
-                            .createItem(connection, pet.getUserId(), seedBase, 0, 0, "");
-                    if (one == null || (ownerOne != ownerTwo && two == null)) throw new SQLException("Unable to create offspring seed");
+                    one = Emulator.getGameEnvironment()
+                            .getItemManager()
+                            .createItem(connection, this.userId, seedBase, 0, 0, "");
+                    if (ownerOne != ownerTwo)
+                        two = Emulator.getGameEnvironment()
+                                .getItemManager()
+                                .createItem(connection, pet.getUserId(), seedBase, 0, 0, "");
+                    if (one == null || (ownerOne != ownerTwo && two == null))
+                        throw new SQLException("Unable to create offspring seed");
                     connection.commit();
-                } catch (Exception failure) { connection.rollback(); throw failure; }
+                } catch (Exception failure) {
+                    connection.rollback();
+                    throw failure;
+                }
             } catch (Exception failure) {
                 LOGGER.error("Unable to breed monsterplants {} and {}", this.id, pet.getId(), failure);
-                ownerOne.getClient().sendResponse(new com.eu.habbo.messages.outgoing.rooms.pets.breeding.PetBreedingStartComposer(1, 0, 0));
-                if (ownerOne != ownerTwo) ownerTwo.getClient().sendResponse(new com.eu.habbo.messages.outgoing.rooms.pets.breeding.PetBreedingStartComposer(1, 0, 0));
+                ownerOne.getClient()
+                        .sendResponse(new com.eu.habbo.messages.outgoing.rooms.pets.breeding.PetBreedingStartComposer(
+                                1, 0, 0));
+                if (ownerOne != ownerTwo)
+                    ownerTwo.getClient()
+                            .sendResponse(
+                                    new com.eu.habbo.messages.outgoing.rooms.pets.breeding.PetBreedingStartComposer(
+                                            1, 0, 0));
                 return;
             }
-            this.canBreed = false; this.publiclyBreedable = false; this.needsUpdate = true;
-            pet.setCanBreed(false); pet.setPubliclyBreedable(false);
+            this.canBreed = false;
+            this.publiclyBreedable = false;
+            this.needsUpdate = true;
+            pet.setCanBreed(false);
+            pet.setPubliclyBreedable(false);
             this.room.sendComposer(new PetStatusUpdateComposer(this).compose());
             this.room.sendComposer(new PetStatusUpdateComposer(pet).compose());
             this.getRoomUnit().setStatus(RoomUnitStatus.GESTURE, "reb");
@@ -358,7 +405,8 @@ public class MonsterplantPet extends Pet implements IPetLook {
             this.getRoomUnit().removeStatus(RoomUnitStatus.GESTURE);
             pet.getRoomUnit().removeStatus(RoomUnitStatus.GESTURE);
             MonsterplantBreedingResultComposer.Seed first = publishSeed(ownerOne, one, this.getRarity(), rare);
-            MonsterplantBreedingResultComposer.Seed second = two == null ? MonsterplantBreedingResultComposer.Seed.NONE
+            MonsterplantBreedingResultComposer.Seed second = two == null
+                    ? MonsterplantBreedingResultComposer.Seed.NONE
                     : publishSeed(ownerTwo, two, pet.getRarity(), rare);
             MonsterplantBreedingResultComposer result = new MonsterplantBreedingResultComposer(first, second);
             ownerOne.getClient().sendResponse(result);
@@ -366,22 +414,24 @@ public class MonsterplantPet extends Pet implements IPetLook {
         }
     }
 
-    private static MonsterplantBreedingResultComposer.Seed publishSeed(Habbo owner, HabboItem seed, int rarity, boolean rare) {
+    private static MonsterplantBreedingResultComposer.Seed publishSeed(
+            Habbo owner, HabboItem seed, int rarity, boolean rare) {
         owner.getInventory().getItemsComponent().addItem(seed);
         owner.getClient().sendResponse(new AddHabboItemComposer(seed));
         owner.getClient().sendResponse(new InventoryRefreshComposer());
-        AchievementManager.progressAchievement(owner, Emulator.getGameEnvironment().getAchievementManager()
-                .getAchievement("MonsterPlantBreeder"), 5);
+        AchievementManager.progressAchievement(
+                owner, Emulator.getGameEnvironment().getAchievementManager().getAchievement("MonsterPlantBreeder"), 5);
         AchievementInteractions.progress(owner, "MonsterPlantShapeCollector");
         AchievementInteractions.progress(owner, "MonsterPlantColorCollector");
-        return new MonsterplantBreedingResultComposer.Seed(seed, owner.getHabboInfo().getId(),
-                owner.getHabboInfo().getUsername(), rarity, rare);
+        return new MonsterplantBreedingResultComposer.Seed(
+                seed, owner.getHabboInfo().getId(), owner.getHabboInfo().getUsername(), rarity, rare);
     }
 
     private boolean mayScratch() {
         // Monsterplant petting is available when:
         //   ((energy / max_energy) < 0.98) = true
-        // You can find the minimum deathTimestamp by solving (insert a timestamp for timestamp, solve for death_timestamp):
+        // You can find the minimum deathTimestamp by solving (insert a timestamp for timestamp, solve for
+        // death_timestamp):
         //   (((death_timestamp - timestamp) / 259200)) < 0.98
         // This information was found in the Habbo swf, com.sulake.habbo.ui.widget.infostand.InfoStandPetView.as
         //   this._Str_2304("pettreat", ((_local_3 / _local_4) < 0.98));
@@ -408,7 +458,10 @@ public class MonsterplantPet extends Pet implements IPetLook {
     @Override
     public synchronized void scratched(Habbo habbo) {
         if (this.mayScratch()) {
-            AchievementManager.progressAchievement(habbo, Emulator.getGameEnvironment().getAchievementManager().getAchievement("MonsterPlantTreater"), 5);
+            AchievementManager.progressAchievement(
+                    habbo,
+                    Emulator.getGameEnvironment().getAchievementManager().getAchievement("MonsterPlantTreater"),
+                    5);
             this.setDeathTimestamp(Emulator.getIntUnixTimestamp() + MonsterplantPet.timeToLive);
             this.addHappiness(10);
             this.addExperience(10);

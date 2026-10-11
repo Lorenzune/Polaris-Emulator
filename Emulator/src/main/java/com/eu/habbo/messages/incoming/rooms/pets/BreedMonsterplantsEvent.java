@@ -33,8 +33,12 @@ public class BreedMonsterplantsEvent extends MessageHandler {
 
     @Override
     public void handle() throws Exception {
-        if (!com.eu.habbo.habbohotel.pets.breeding.PetBreedingPlatform.services().config().get().getBoolean("pet.breeding.confirmation.enabled", false)) {
-            legacy(); return;
+        if (!com.eu.habbo.habbohotel.pets.breeding.PetBreedingPlatform.services()
+                .config()
+                .get()
+                .getBoolean("pet.breeding.confirmation.enabled", false)) {
+            legacy();
+            return;
         }
         int state = this.packet.readInt();
         Room room = this.client.getHabbo().getHabboInfo().getCurrentRoom();
@@ -66,13 +70,13 @@ public class BreedMonsterplantsEvent extends MessageHandler {
         MonsterplantPet theirs = ownsOne ? plantTwo : plantOne;
 
         synchronized (room) {
-        if (room.getPet(mine.getId()) != mine || room.getPet(theirs.getId()) != theirs) return;
-        switch (state) {
-            case STATE_START -> this.start(room, mine, theirs);
-            case STATE_CANCEL -> this.cancel(room, mine, theirs);
-            case STATE_ACCEPT -> this.accept(room, mine, theirs);
-            default -> {}
-        }
+            if (room.getPet(mine.getId()) != mine || room.getPet(theirs.getId()) != theirs) return;
+            switch (state) {
+                case STATE_START -> this.start(room, mine, theirs);
+                case STATE_CANCEL -> this.cancel(room, mine, theirs);
+                case STATE_ACCEPT -> this.accept(room, mine, theirs);
+                default -> {}
+            }
         }
     }
 
@@ -87,7 +91,8 @@ public class BreedMonsterplantsEvent extends MessageHandler {
 
         if (other == null || other.getClient() == null) return;
 
-        if (!MonsterplantBreedingRequests.getInstance().open(mine.getUserId(), mine.getId(), theirs.getId(), room.getId())) return;
+        if (!MonsterplantBreedingRequests.getInstance()
+                .open(mine.getUserId(), mine.getId(), theirs.getId(), room.getId())) return;
 
         other.getClient().sendResponse(new PetBreedingStartComposer(ANSWER_ASKED, theirs.getId(), mine.getId()));
         this.client.sendResponse(new PetBreedingStartComposer(3, mine.getId(), theirs.getId()));
@@ -101,9 +106,11 @@ public class BreedMonsterplantsEvent extends MessageHandler {
         MonsterplantBreedingRequests requests = MonsterplantBreedingRequests.getInstance();
         int key = requests.on(mine.getId()) != null ? mine.getId() : theirs.getId();
         MonsterplantBreedingRequests.Request request = requests.on(key);
-        if (request == null || request.roomId() != room.getId()
+        if (request == null
+                || request.roomId() != room.getId()
                 || !((request.requesterPetId() == mine.getId() && request.askedPetId() == theirs.getId())
-                    || (request.requesterPetId() == theirs.getId() && request.askedPetId() == mine.getId()))) return;
+                        || (request.requesterPetId() == theirs.getId() && request.askedPetId() == mine.getId())))
+            return;
         if (!requests.close(request)) return;
 
         this.tell(room, request.requesterId(), new PetBreedingStartComposer(ANSWER_CANCELLED, 0, 0));
@@ -116,8 +123,11 @@ public class BreedMonsterplantsEvent extends MessageHandler {
                 MonsterplantBreedingRequests.getInstance().on(mine.getId());
 
         // Only the plant that was asked for can accept, and only for the plant that asked.
-        if (request == null || request.roomId() != room.getId() || request.requesterPetId() != theirs.getId()
-                || request.requesterId() != theirs.getUserId() || room.getHabbo(theirs.getUserId()) == null) return;
+        if (request == null
+                || request.roomId() != room.getId()
+                || request.requesterPetId() != theirs.getId()
+                || request.requesterId() != theirs.getUserId()
+                || room.getHabbo(theirs.getUserId()) == null) return;
 
         if (!MonsterplantBreedingRequests.getInstance().close(request)) return;
 
@@ -134,7 +144,7 @@ public class BreedMonsterplantsEvent extends MessageHandler {
     }
 
     private void legacy() throws Exception {
-        int unknownInt = this.packet.readInt(); //Something state. 0 = initiate breeding
+        int unknownInt = this.packet.readInt(); // Something state. 0 = initiate breeding
 
         if (unknownInt == 0) {
             Room room = this.client.getHabbo().getHabboInfo().getCurrentRoom();
@@ -150,23 +160,23 @@ public class BreedMonsterplantsEvent extends MessageHandler {
             if (petOne instanceof MonsterplantPet && petTwo instanceof MonsterplantPet) {
                 MonsterplantPet plantOne = (MonsterplantPet) petOne;
                 MonsterplantPet plantTwo = (MonsterplantPet) petTwo;
-                
+
                 // Validate both plants are breedable (fully grown, can breed, not dead)
                 if (!plantOne.breedable() || !plantTwo.breedable()) {
                     return;
                 }
-                
+
                 // Validate ownership - at least one plant must belong to the client
                 // and the other must be publicly breedable or owned by client
                 int clientId = this.client.getHabbo().getHabboInfo().getId();
                 boolean ownsOne = plantOne.getUserId() == clientId;
                 boolean ownsTwo = plantTwo.getUserId() == clientId;
-                
+
                 if (!ownsOne && !ownsTwo) {
                     // Client doesn't own either plant
                     return;
                 }
-                
+
                 // If client doesn't own one of them, that one must be publicly breedable
                 if (!ownsOne && !plantOne.isPubliclyBreedable()) {
                     return;
@@ -174,8 +184,10 @@ public class BreedMonsterplantsEvent extends MessageHandler {
                 if (!ownsTwo && !plantTwo.isPubliclyBreedable()) {
                     return;
                 }
-                
-                synchronized (room) { plantOne.breed(plantTwo); }
+
+                synchronized (room) {
+                    plantOne.breed(plantTwo);
+                }
             }
         }
     }

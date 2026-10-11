@@ -63,12 +63,20 @@ public class ChestStorage {
 
         public Integer currencyType;
         public java.util.Map<Integer, Integer> furniQuantities;
-        public LogEntry withCurrency(int currency) { this.currencyType = currency; return this; }
+
+        public LogEntry withCurrency(int currency) {
+            this.currencyType = currency;
+            return this;
+        }
+
         public void setFurniItems(java.util.stream.Stream<ChestFurniStoredItem> items) {
             this.furniQuantities = new java.util.LinkedHashMap<>();
             items.forEach(item -> this.furniQuantities.merge(item.wireTypeId(), 1, Integer::sum));
-            this.furniTypeIds = this.furniQuantities.keySet().stream().mapToInt(Integer::intValue).toArray();
+            this.furniTypeIds = this.furniQuantities.keySet().stream()
+                    .mapToInt(Integer::intValue)
+                    .toArray();
         }
+
         public LogEntry() {}
 
         public LogEntry(String type, long timestamp, String userName, int withdrawn, int deposited) {
@@ -102,10 +110,21 @@ public class ChestStorage {
     private boolean notifyWired = false;
     private int notifyMode = 0; // 0 = always
 
-    public synchronized boolean isLocked() { return this.locked; }
-    public synchronized void setLocked(boolean locked) { this.locked = locked; }
-    public synchronized boolean isAutoLock() { return this.autoLock; }
-    public synchronized void setAutoLock(boolean autoLock) { this.autoLock = autoLock; }
+    public synchronized boolean isLocked() {
+        return this.locked;
+    }
+
+    public synchronized void setLocked(boolean locked) {
+        this.locked = locked;
+    }
+
+    public synchronized boolean isAutoLock() {
+        return this.autoLock;
+    }
+
+    public synchronized void setAutoLock(boolean autoLock) {
+        this.autoLock = autoLock;
+    }
 
     /** Defensive snapshot — safe to iterate off-thread; mutate the chest through the dedicated methods. */
     public synchronized List<Entry> entries() {

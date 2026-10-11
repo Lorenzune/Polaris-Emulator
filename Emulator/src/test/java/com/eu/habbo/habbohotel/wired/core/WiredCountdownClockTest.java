@@ -1,22 +1,30 @@
 package com.eu.habbo.habbohotel.wired.core;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.eu.habbo.Emulator;
+import com.eu.habbo.core.ConfigurationManager;
+import com.eu.habbo.habbohotel.GameEnvironment;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameTimer;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerClockCounter;
 import com.eu.habbo.habbohotel.rooms.Room;
-import com.eu.habbo.Emulator;
-import com.eu.habbo.habbohotel.GameEnvironment;
-import com.eu.habbo.core.ConfigurationManager;
 import com.eu.habbo.habbohotel.wired.migrate.WiredEvents;
+import com.eu.habbo.threading.ThreadPooling;
+import com.eu.habbo.threading.runnables.games.GameTimer;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
-import com.eu.habbo.threading.ThreadPooling;
-import com.eu.habbo.threading.runnables.games.GameTimer;
 import org.junit.jupiter.api.Test;
 
 class WiredCountdownClockTest {
@@ -41,8 +49,8 @@ class WiredCountdownClockTest {
         when(room.getHabboItem(674)).thenReturn(clock);
         var trigger = new WiredTriggerClockCounter(113, 16, mock(Item.class), "", 0, 0);
         var data = mock(ResultSet.class);
-        when(data.getString("wired_data")).thenReturn(
-                "{\"minutes\":0,\"halfSecondSteps\":9,\"furniSource\":100,\"itemIds\":[674]}");
+        when(data.getString("wired_data"))
+                .thenReturn("{\"minutes\":0,\"halfSecondSteps\":9,\"furniSource\":100,\"itemIds\":[674]}");
         trigger.loadWiredData(data, room);
         assertTrue(trigger.getWiredData().contains("674"));
         WiredEvent event = WiredEvents.clockCounter(room, clock);
@@ -65,7 +73,8 @@ class WiredCountdownClockTest {
         when(environment.getRoomManager().getRoom(268)).thenReturn(room);
         var threads = mock(ThreadPooling.class);
         List<Integer> pulses = new ArrayList<>();
-        try (var emulator = mockStatic(Emulator.class); var wired = mockStatic(WiredManager.class)) {
+        try (var emulator = mockStatic(Emulator.class);
+                var wired = mockStatic(WiredManager.class)) {
             emulator.when(Emulator::getGameEnvironment).thenReturn(environment);
             emulator.when(Emulator::getThreading).thenReturn(threads);
             wired.when(() -> WiredManager.triggerClockCounter(room, clock)).thenAnswer(i -> {
@@ -77,11 +86,11 @@ class WiredCountdownClockTest {
             verify(room, never()).updateItem(clock);
             runnable.run();
             verify(room).updateItem(clock);
-            assertEquals(List.of(4500,4000), pulses);
+            assertEquals(List.of(4500, 4000), pulses);
             assertEquals(4, clock.getTimeNow());
             clock.pauseTimer(room);
             runnable.run();
-            assertEquals(List.of(4500,4000), pulses);
+            assertEquals(List.of(4500, 4000), pulses);
         }
     }
 
@@ -92,8 +101,8 @@ class WiredCountdownClockTest {
         when(room.getHabboItem(674)).thenReturn(clock);
         var trigger = new WiredTriggerClockCounter(814, 16, mock(Item.class), "", 0, 0);
         var data = mock(ResultSet.class);
-        when(data.getString("wired_data")).thenReturn(
-                "{\"minutes\":0,\"halfSecondSteps\":0,\"furniSource\":100,\"itemIds\":[674]}");
+        when(data.getString("wired_data"))
+                .thenReturn("{\"minutes\":0,\"halfSecondSteps\":0,\"furniSource\":100,\"itemIds\":[674]}");
         trigger.loadWiredData(data, room);
         var event = WiredEvents.clockCounter(room, clock);
         assertFalse(trigger.matches(trigger, event));
@@ -114,9 +123,9 @@ class WiredCountdownClockTest {
         when(configuration.getInt(anyString())).thenReturn(50);
         var trigger = new WiredTriggerClockCounter(113, 16, mock(Item.class), "", 0, 0);
         trigger.setRoomId(268);
-        var settings = new WiredSettings(new int[]{4,0,1}, "", new int[]{674}, 0, 0);
+        var settings = new WiredSettings(new int[] {4, 0, 1}, "", new int[] {674}, 0, 0);
         settings.setNativeVariableFormat(true);
-        settings.setFurniSourceTypes(new int[]{100});
+        settings.setFurniSourceTypes(new int[] {100});
         try (var emulator = mockStatic(Emulator.class)) {
             emulator.when(Emulator::getGameEnvironment).thenReturn(environment);
             emulator.when(Emulator::getConfig).thenReturn(configuration);

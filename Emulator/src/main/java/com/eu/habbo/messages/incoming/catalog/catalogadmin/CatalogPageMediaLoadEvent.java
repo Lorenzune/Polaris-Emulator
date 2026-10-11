@@ -29,9 +29,10 @@ public class CatalogPageMediaLoadEvent extends MessageHandler {
         int[] textPosition = new int[2];
         String pageTable = catalogType == CatalogPageType.BUILDER ? "catalog_pages_bc" : "catalog_pages";
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "SELECT page_headline_x, page_headline_y, page_headline_width, page_headline_height, "
-                             + "page_teaser_x, page_teaser_y, page_teaser_width, page_teaser_height, page_text1_x, page_text1_y FROM " + pageTable + " WHERE id = ?")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "SELECT page_headline_x, page_headline_y, page_headline_width, page_headline_height, "
+                                + "page_teaser_x, page_teaser_y, page_teaser_width, page_teaser_height, page_text1_x, page_text1_y FROM "
+                                + pageTable + " WHERE id = ?")) {
             statement.setInt(1, pageId);
             try (ResultSet rows = statement.executeQuery()) {
                 if (rows.next()) {
@@ -49,7 +50,11 @@ public class CatalogPageMediaLoadEvent extends MessageHandler {
             }
         }
 
-        boolean uploadEnabled = !Emulator.getConfig().getValue("catalog.admin.asset.upload.path", "").trim().isEmpty();
-        this.client.sendResponse(new CatalogPageMediaDetailsComposer(page, catalogType, header, teaser, textPosition, uploadEnabled));
+        boolean uploadEnabled = !Emulator.getConfig()
+                .getValue("catalog.admin.asset.upload.path", "")
+                .trim()
+                .isEmpty();
+        this.client.sendResponse(
+                new CatalogPageMediaDetailsComposer(page, catalogType, header, teaser, textPosition, uploadEnabled));
     }
 }

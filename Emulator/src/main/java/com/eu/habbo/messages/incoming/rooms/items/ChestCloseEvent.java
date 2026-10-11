@@ -21,7 +21,10 @@ public class ChestCloseEvent extends MessageHandler {
         if (room == null) return;
 
         int chestId = this.packet.readInt();
-        if (com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestDepositSession.isDepositingInto(habbo.getHabboInfo().getId(), chestId)) com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestDepositSession.clear(habbo.getHabboInfo().getId());
+        if (com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestDepositSession.isDepositingInto(
+                habbo.getHabboInfo().getId(), chestId))
+            com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestDepositSession.clear(
+                    habbo.getHabboInfo().getId());
         HabboItem item = room.getHabboItem(chestId);
         if (item instanceof InteractionWiredChest chest) {
             chest.removeViewer(habbo.getHabboInfo().getId(), room);

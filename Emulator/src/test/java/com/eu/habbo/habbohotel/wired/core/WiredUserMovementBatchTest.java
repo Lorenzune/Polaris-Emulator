@@ -1,7 +1,12 @@
 package com.eu.habbo.habbohotel.wired.core;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.rooms.WiredMovementsComposer;
@@ -10,7 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 class WiredUserMovementBatchTest {
-    @Test void chairServiceTileRoundTripPublishesNeitherMovementNorTemporaryDirection() {
+    @Test
+    void chairServiceTileRoundTripPublishesNeitherMovementNorTemporaryDirection() {
         var room = mock(Room.class);
         try (var outer = WiredUserMovementBatch.begin(room)) {
             WiredUserMovementBatch.send(room, List.of(slide(25, 25, 1, 8)));
@@ -24,24 +30,34 @@ class WiredUserMovementBatchTest {
         var packet = message.getValue().get();
         try {
             assertEquals(0, packet.getInt(6));
-        } finally { packet.release(); }
+        } finally {
+            packet.release();
+        }
         // Closing the batch must restore immediate delivery.
         WiredUserMovementBatch.send(room, List.of(slide(25, 25, 26, 25)));
         verify(room, times(2)).sendComposer(any(ServerMessage.class));
     }
 
-    @Test void explicitStationaryDirectionChangeStillPublishesDirection() {
-        var packet = new WiredMovementsComposer(List.of(slide(25, 25, 25, 25))).compose().get();
+    @Test
+    void explicitStationaryDirectionChangeStillPublishesDirection() {
+        var packet = new WiredMovementsComposer(List.of(slide(25, 25, 25, 25)))
+                .compose()
+                .get();
         try {
             assertEquals(1, packet.getInt(6));
             assertEquals(WiredMovementsComposer.TYPE_USER_DIRECTION, packet.getInt(10));
             assertEquals(4, packet.getInt(18));
             assertEquals(4, packet.getInt(22));
-        } finally { packet.release(); }
+        } finally {
+            packet.release();
+        }
     }
 
-    @Test void genuineMultiStepMoveKeepsInitialOriginAndFinalDestination() {
-        var packet = new WiredMovementsComposer(List.of(slide(25, 25, 1, 8), slide(1, 8, 26, 25))).compose().get();
+    @Test
+    void genuineMultiStepMoveKeepsInitialOriginAndFinalDestination() {
+        var packet = new WiredMovementsComposer(List.of(slide(25, 25, 1, 8), slide(1, 8, 26, 25)))
+                .compose()
+                .get();
         try {
             assertEquals(1, packet.getInt(6));
             assertEquals(WiredMovementsComposer.TYPE_USER_MOVE, packet.getInt(10));
@@ -49,10 +65,13 @@ class WiredUserMovementBatchTest {
             assertEquals(25, packet.getInt(18));
             assertEquals(26, packet.getInt(22));
             assertEquals(25, packet.getInt(26));
-        } finally { packet.release(); }
+        } finally {
+            packet.release();
+        }
     }
 
-    @Test void separatelyTimedBatchesRemainSeparateAnimations() {
+    @Test
+    void separatelyTimedBatchesRemainSeparateAnimations() {
         var room = mock(Room.class);
         try (var batch = WiredUserMovementBatch.begin(room)) {
             WiredUserMovementBatch.send(room, List.of(slide(25, 25, 1, 8)));
@@ -64,8 +83,11 @@ class WiredUserMovementBatchTest {
         verify(room, times(2)).sendComposer(messages.capture());
         for (var message : messages.getAllValues()) {
             var packet = message.get();
-            try { assertEquals(WiredMovementsComposer.TYPE_USER_MOVE, packet.getInt(10)); }
-            finally { packet.release(); }
+            try {
+                assertEquals(WiredMovementsComposer.TYPE_USER_MOVE, packet.getInt(10));
+            } finally {
+                packet.release();
+            }
         }
     }
 

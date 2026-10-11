@@ -87,7 +87,9 @@ public class CatalogPageAssetUploadEvent extends MessageHandler {
                 return;
             }
 
-            String configuredPath = Emulator.getConfig().getValue("catalog.admin.asset.upload.path", "").trim();
+            String configuredPath = Emulator.getConfig()
+                    .getValue("catalog.admin.asset.upload.path", "")
+                    .trim();
             if (configuredPath.isEmpty()) {
                 respond(pageId, catalogType, slot, false, "", "Catalog image upload folder is not configured");
                 return;
@@ -96,7 +98,8 @@ public class CatalogPageAssetUploadEvent extends MessageHandler {
             Path root = Paths.get(configuredPath).toAbsolutePath().normalize();
             Files.createDirectories(root);
             root = root.toRealPath();
-            String fileName = "catalog_" + pageId + "_" + UUID.randomUUID().toString().replace("-", "") + "." + actualExtension;
+            String fileName =
+                    "catalog_" + pageId + "_" + UUID.randomUUID().toString().replace("-", "") + "." + actualExtension;
             Path destination = root.resolve(fileName).normalize();
             if (!destination.startsWith(root)) {
                 respond(pageId, catalogType, slot, false, "", "Invalid upload folder");
@@ -110,9 +113,11 @@ public class CatalogPageAssetUploadEvent extends MessageHandler {
         }
     }
 
-    private void respond(int pageId, CatalogPageType type, String slot, boolean success, String fileName, String message) {
+    private void respond(
+            int pageId, CatalogPageType type, String slot, boolean success, String fileName, String message) {
         String safeSlot = "header".equals(slot) ? "header" : "teaser";
-        this.client.sendResponse(new CatalogPageAssetUploadResultComposer(pageId, type, safeSlot, success, fileName, message));
+        this.client.sendResponse(
+                new CatalogPageAssetUploadResultComposer(pageId, type, safeSlot, success, fileName, message));
     }
 
     private static String extensionFromName(String name) throws IOException {
@@ -120,7 +125,11 @@ public class CatalogPageAssetUploadEvent extends MessageHandler {
         int dot = name.lastIndexOf('.');
         if (dot < 0 || dot == name.length() - 1) throw new IOException("Missing file extension");
         String extension = name.substring(dot + 1).toLowerCase(Locale.ROOT);
-        if (!("png".equals(extension) || "jpg".equals(extension) || "jpeg".equals(extension) || "gif".equals(extension) || "webp".equals(extension))) {
+        if (!("png".equals(extension)
+                || "jpg".equals(extension)
+                || "jpeg".equals(extension)
+                || "gif".equals(extension)
+                || "webp".equals(extension))) {
             throw new IOException("Unsupported image extension");
         }
         return "jpeg".equals(extension) ? "jpg" : extension;
@@ -136,13 +145,17 @@ public class CatalogPageAssetUploadEvent extends MessageHandler {
                 reader.setInput(input, true, true);
                 int width = reader.getWidth(0);
                 int height = reader.getHeight(0);
-                if (width <= 0 || height <= 0 || width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION
+                if (width <= 0
+                        || height <= 0
+                        || width > MAX_IMAGE_DIMENSION
+                        || height > MAX_IMAGE_DIMENSION
                         || (long) width * height > MAX_IMAGE_PIXELS) {
                     throw new IOException("Image dimensions are outside the allowed range");
                 }
                 String format = reader.getFormatName().toLowerCase(Locale.ROOT);
                 if ("jpeg".equals(format)) return "jpg";
-                if ("jpg".equals(format) || "png".equals(format) || "gif".equals(format) || "webp".equals(format)) return format;
+                if ("jpg".equals(format) || "png".equals(format) || "gif".equals(format) || "webp".equals(format))
+                    return format;
                 throw new IOException("Unsupported image format");
             } finally {
                 reader.dispose();
@@ -174,10 +187,16 @@ public class CatalogPageAssetUploadEvent extends MessageHandler {
                 height = 1 + unsignedInt24Le(bytes, data + 7);
             } else if ("VP8L".equals(chunk) && chunkLength >= 5 && (bytes[data] & 0xFF) == 0x2F) {
                 width = 1 + (bytes[data + 1] & 0xFF) + ((bytes[data + 2] & 0x3F) << 8);
-                height = 1 + ((bytes[data + 2] & 0xC0) >> 6) + ((bytes[data + 3] & 0xFF) << 2) + ((bytes[data + 4] & 0x0F) << 10);
+                height = 1
+                        + ((bytes[data + 2] & 0xC0) >> 6)
+                        + ((bytes[data + 3] & 0xFF) << 2)
+                        + ((bytes[data + 4] & 0x0F) << 10);
                 hasFrame = true;
-            } else if ("VP8 ".equals(chunk) && chunkLength >= 10
-                    && (bytes[data + 3] & 0xFF) == 0x9D && (bytes[data + 4] & 0xFF) == 0x01 && (bytes[data + 5] & 0xFF) == 0x2A) {
+            } else if ("VP8 ".equals(chunk)
+                    && chunkLength >= 10
+                    && (bytes[data + 3] & 0xFF) == 0x9D
+                    && (bytes[data + 4] & 0xFF) == 0x01
+                    && (bytes[data + 5] & 0xFF) == 0x2A) {
                 width = unsignedInt16Le(bytes, data + 6) & 0x3FFF;
                 height = unsignedInt16Le(bytes, data + 8) & 0x3FFF;
                 hasFrame = true;
@@ -186,8 +205,12 @@ public class CatalogPageAssetUploadEvent extends MessageHandler {
             offset = (int) dataEnd + ((int) chunkLength & 1);
         }
 
-        if (!hasFrame || offset != bytes.length || width <= 0 || height <= 0
-                || width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION
+        if (!hasFrame
+                || offset != bytes.length
+                || width <= 0
+                || height <= 0
+                || width > MAX_IMAGE_DIMENSION
+                || height > MAX_IMAGE_DIMENSION
                 || (long) width * height > MAX_IMAGE_PIXELS) {
             throw new IOException("Invalid WebP image dimensions or frame");
         }

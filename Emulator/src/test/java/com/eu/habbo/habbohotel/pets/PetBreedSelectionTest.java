@@ -1,11 +1,16 @@
 package com.eu.habbo.habbohotel.pets;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
 import java.sql.ResultSet;
 import java.util.List;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class PetBreedSelectionTest {
     private PetRace breed(int palette) throws Exception {
@@ -16,7 +21,8 @@ class PetBreedSelectionTest {
         return new PetRace(result);
     }
 
-    @Test void randomCreationUsesRegisteredPaletteIdsEvenWhenTheyHaveGaps() throws Exception {
+    @Test
+    void randomCreationUsesRegisteredPaletteIdsEvenWhenTheyHaveGaps() throws Exception {
         var breeds = List.of(breed(1), breed(6), breed(28), breed(28));
         Random random = mock(Random.class);
         when(random.nextInt(3)).thenReturn(0, 1, 2);
@@ -26,7 +32,8 @@ class PetBreedSelectionTest {
         verify(random, times(3)).nextInt(3);
     }
 
-    @Test void missingBreedDataUsesBasePaletteWithoutNullOrEmptyRandomFailure() {
+    @Test
+    void missingBreedDataUsesBasePaletteWithoutNullOrEmptyRandomFailure() {
         Random random = mock(Random.class);
         assertEquals(0, PetBreedSelection.choosePalette(null, random));
         assertEquals(0, PetBreedSelection.choosePalette(List.of(), random));

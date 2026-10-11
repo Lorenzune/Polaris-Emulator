@@ -14,6 +14,5 @@ public final class WiredUserActionType {
     public static final int THUMB_UP = 11;
     public static final int SIX_SEVEN = 67;
 
-    private WiredUserActionType() {
-    }
+    private WiredUserActionType() {}
 }

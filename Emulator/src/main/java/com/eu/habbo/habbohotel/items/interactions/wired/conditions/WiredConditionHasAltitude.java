@@ -12,7 +12,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredContext;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.ResultSet;
@@ -43,7 +42,8 @@ public class WiredConditionHasAltitude extends InteractionWiredCondition {
         this.items = new LinkedHashSet<>();
     }
 
-    public WiredConditionHasAltitude(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredConditionHasAltitude(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
         this.items = new LinkedHashSet<>();
     }
@@ -77,13 +77,13 @@ public class WiredConditionHasAltitude extends InteractionWiredCondition {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(
-                this.comparison,
-                this.formatAltitude(this.altitude),
-                this.furniSource,
-                this.quantifier,
-                this.items.stream().map(HabboItem::getId).collect(Collectors.toList())
-        ));
+        return WiredManager.getGson()
+                .toJson(new JsonData(
+                        this.comparison,
+                        this.formatAltitude(this.altitude),
+                        this.furniSource,
+                        this.quantifier,
+                        this.items.stream().map(HabboItem::getId).collect(Collectors.toList())));
     }
 
     @Override
@@ -182,7 +182,8 @@ public class WiredConditionHasAltitude extends InteractionWiredCondition {
             this.altitude = Math.max(0, Math.min(8000, params.length > 0 ? params[0] : 0)) / 100.0D;
             this.comparison = this.normalizeComparison(params.length > 1 ? params[1] : COMPARISON_EQUAL);
             int[] sources = settings.getFurniSourceTypes();
-            this.furniSource = this.normalizeFurniSource(sources != null && sources.length > 0 ? sources[0] : WiredSourceUtil.SOURCE_SELECTED);
+            this.furniSource = this.normalizeFurniSource(
+                    sources != null && sources.length > 0 ? sources[0] : WiredSourceUtil.SOURCE_SELECTED);
             this.quantifier = this.normalizeQuantifier(settings.getQuantifier());
         }
 
@@ -271,7 +272,9 @@ public class WiredConditionHasAltitude extends InteractionWiredCondition {
 
     double normalizeAltitude(double value) {
         double clampedValue = Math.max(0.0D, Math.min(Room.MAXIMUM_FURNI_HEIGHT, value));
-        return BigDecimal.valueOf(clampedValue).setScale(2, RoundingMode.HALF_UP).doubleValue();
+        return BigDecimal.valueOf(clampedValue)
+                .setScale(2, RoundingMode.HALF_UP)
+                .doubleValue();
     }
 
     double parseAltitudeOrDefault(String value) {

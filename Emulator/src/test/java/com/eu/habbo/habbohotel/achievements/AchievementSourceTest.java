@@ -1,15 +1,14 @@
 package com.eu.habbo.habbohotel.achievements;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
-import org.junit.jupiter.api.Test;
-
 import java.io.Reader;
 import java.nio.file.Path;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.Test;
 
 class AchievementSourceTest {
     @Test
@@ -20,7 +19,11 @@ class AchievementSourceTest {
             long archived = 0;
 
             for (JsonElement entry : entries) {
-                if ("ARCHIVED".equals(entry.getAsJsonObject().getAsJsonObject("achievement").get("state").getAsString())) {
+                if ("ARCHIVED"
+                        .equals(entry.getAsJsonObject()
+                                .getAsJsonObject("achievement")
+                                .get("state")
+                                .getAsString())) {
                     archived++;
                 }
             }

@@ -8,7 +8,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Keeps one task per yielded chain, with explicit lifecycle cancellation and shutdown ownership. */
 final class WiredSignalContinuationScheduler {
-    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(WiredSignalContinuationScheduler.class);
+    private static final org.slf4j.Logger LOGGER =
+            org.slf4j.LoggerFactory.getLogger(WiredSignalContinuationScheduler.class);
     private final WiredDelayedScheduler.TaskScheduler scheduler;
     private final Set<Continuation> pending = ConcurrentHashMap.newKeySet();
     private final AtomicBoolean accepting = new AtomicBoolean(true);
@@ -23,7 +24,10 @@ final class WiredSignalContinuationScheduler {
         Continuation continuation = new Continuation(room, work);
         if (!accepting.get()) return;
         pending.add(continuation);
-        if (!accepting.get()) { continuation.cancel(); return; }
+        if (!accepting.get()) {
+            continuation.cancel();
+            return;
+        }
         WiredDelayedScheduler.ScheduledTask task;
         String fallbackReason = "executor unavailable or continuation backlog";
         try {
@@ -37,8 +41,10 @@ final class WiredSignalContinuationScheduler {
         if (task == null) {
             if (continuation.claim() && accepting.get() && continuation.valid()) {
                 if (fallbackReported.compareAndSet(false, true)) {
-                    LOGGER.warn("WIRED continuations finish inline in room {}: {}; accepted work is preserved",
-                            room.getId(), fallbackReason);
+                    LOGGER.warn(
+                            "WIRED continuations finish inline in room {}: {}; accepted work is preserved",
+                            room.getId(),
+                            fallbackReason);
                 }
                 inlineFallback.run();
             }
@@ -55,13 +61,17 @@ final class WiredSignalContinuationScheduler {
         return cancelled;
     }
 
-    int pendingCount() { return pending.size(); }
+    int pendingCount() {
+        return pending.size();
+    }
 
     private void cancelTask(WiredDelayedScheduler.ScheduledTask task) {
-        try { task.cancel(); }
-        catch (RuntimeException failure) {
+        try {
+            task.cancel();
+        } catch (RuntimeException failure) {
             if (cancellationFailureReported.compareAndSet(false, true)) {
-                LOGGER.warn("WIRED continuation cancellation failed: {}; cancelled callbacks cannot execute",
+                LOGGER.warn(
+                        "WIRED continuation cancellation failed: {}; cancelled callbacks cannot execute",
                         failure.getClass().getSimpleName());
             }
         }
@@ -75,10 +85,14 @@ final class WiredSignalContinuationScheduler {
         volatile WiredDelayedScheduler.ScheduledTask task;
 
         Continuation(Room room, Runnable work) {
-            this.room = room; this.generation = room.getLifecycleGeneration(); this.work = work;
+            this.room = room;
+            this.generation = room.getLifecycleGeneration();
+            this.work = work;
         }
 
-        boolean valid() { return room.isLoaded() && room.getLifecycleGeneration() == generation; }
+        boolean valid() {
+            return room.isLoaded() && room.getLifecycleGeneration() == generation;
+        }
 
         boolean claim() {
             if (!finished.compareAndSet(false, true)) return false;

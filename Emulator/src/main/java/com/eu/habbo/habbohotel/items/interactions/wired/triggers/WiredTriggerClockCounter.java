@@ -4,8 +4,8 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
-import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameUpCounter;
 import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameTimer;
+import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameUpCounter;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredNativeTimerSettings;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
@@ -58,7 +58,8 @@ public class WiredTriggerClockCounter extends InteractionWiredTrigger {
         }
 
         int time = sourceItem instanceof InteractionGameUpCounter counter
-                ? counter.getCurrentTimeInMs() : ((InteractionGameTimer) sourceItem).getClockTimeInMs();
+                ? counter.getCurrentTimeInMs()
+                : ((InteractionGameTimer) sourceItem).getClockTimeInMs();
         if (time != this.getTargetTimeInMs()) {
             return false;
         }

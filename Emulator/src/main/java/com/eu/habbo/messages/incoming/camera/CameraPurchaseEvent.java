@@ -36,29 +36,39 @@ public class CameraPurchaseEvent extends MessageHandler {
             }
 
             if (habboInfo.getCurrencyAmount(CAMERA_PURCHASE_POINTS_TYPE) < CAMERA_PURCHASE_POINTS) {
-                String alertMessage = "You don't have enough " + Emulator.getTexts().getValue("seasonal.name." + CAMERA_PURCHASE_POINTS_TYPE, "currency") + "!";
+                String alertMessage = "You don't have enough "
+                        + Emulator.getTexts().getValue("seasonal.name." + CAMERA_PURCHASE_POINTS_TYPE, "currency")
+                        + "!";
                 habbo.alert(alertMessage);
                 this.client.sendResponse(new NotEnoughPointsTypeComposer(false, true, CAMERA_PURCHASE_POINTS_TYPE));
                 return;
             }
 
-            if (habboInfo.getPhotoTimestamp() == 0 || habboInfo.getPhotoJSON().isEmpty()
-                    || !habboInfo.getPhotoJSON().contains(Integer.toString(habboInfo.getPhotoTimestamp())))
-                return;
+            if (habboInfo.getPhotoTimestamp() == 0
+                    || habboInfo.getPhotoJSON().isEmpty()
+                    || !habboInfo.getPhotoJSON().contains(Integer.toString(habboInfo.getPhotoTimestamp()))) return;
 
-            if (Emulator.getPluginManager().fireEvent(new UserPurchasePictureEvent(habbo, habboInfo.getPhotoURL(), habboInfo.getCurrentRoom().getId(), habboInfo.getPhotoTimestamp())).isCancelled())
-                return;
+            if (Emulator.getPluginManager()
+                    .fireEvent(new UserPurchasePictureEvent(
+                            habbo,
+                            habboInfo.getPhotoURL(),
+                            habboInfo.getCurrentRoom().getId(),
+                            habboInfo.getPhotoTimestamp()))
+                    .isCancelled()) return;
 
             int configuredId = Emulator.getConfig().getInt("camera.item_id");
-            Item item = resolveCameraItem(environment().getItemManager().getItem(configuredId),
-                    environment().getItemManager().getItems().values(), configuredId);
-            if (item == null || !item.getInteractionType().getName().equals("external_image"))
-            {
-                habbo.alert("La foto non può essere acquistata: camera.item_id non identifica un furno external_image.");
+            Item item = resolveCameraItem(
+                    environment().getItemManager().getItem(configuredId),
+                    environment().getItemManager().getItems().values(),
+                    configuredId);
+            if (item == null || !item.getInteractionType().getName().equals("external_image")) {
+                habbo.alert(
+                        "La foto non può essere acquistata: camera.item_id non identifica un furno external_image.");
                 return;
             }
 
-            HabboItem photoItem = environment().getItemManager().createItem(habboInfo.getId(), item, 0, 0, habboInfo.getPhotoJSON());
+            HabboItem photoItem =
+                    environment().getItemManager().createItem(habboInfo.getId(), item, 0, 0, habboInfo.getPhotoJSON());
             if (photoItem != null) {
                 photoItem.setExtradata(photoItem.getExtradata().replace("%id%", Integer.toString(photoItem.getId())));
                 photoItem.needsUpdate(true);
@@ -72,7 +82,8 @@ public class CameraPurchaseEvent extends MessageHandler {
                 habbo.giveCredits(-CAMERA_PURCHASE_CREDITS);
                 habbo.givePoints(CAMERA_PURCHASE_POINTS_TYPE, -CAMERA_PURCHASE_POINTS);
 
-                AchievementManager.progressAchievement(habbo, environment().getAchievementManager().getAchievement("CameraPhotoCount"));
+                AchievementManager.progressAchievement(
+                        habbo, environment().getAchievementManager().getAchievement("CameraPhotoCount"));
             }
         } finally {
             if (!purchased) this.client.sendResponse(new CameraURLComposer(""));
@@ -83,11 +94,14 @@ public class CameraPurchaseEvent extends MessageHandler {
         if (byId != null) return byId;
         // Older settings used the sprite ID; newer dumps can give the base item a different ID.
         for (Item candidate : items) {
-            if (candidate != null && candidate.getSpriteId() == configuredId
+            if (candidate != null
+                    && candidate.getSpriteId() == configuredId
                     && candidate.getInteractionType().getName().equals("external_image")) return candidate;
         }
         return null;
     }
 
-    private static com.eu.habbo.habbohotel.GameEnvironment environment() { return Emulator.getGameEnvironment(); }
+    private static com.eu.habbo.habbohotel.GameEnvironment environment() {
+        return Emulator.getGameEnvironment();
+    }
 }

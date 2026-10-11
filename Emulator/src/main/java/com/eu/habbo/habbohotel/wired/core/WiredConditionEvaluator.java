@@ -3,18 +3,18 @@ package com.eu.habbo.habbohotel.wired.core;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredCondition;
 import com.eu.habbo.habbohotel.items.interactions.wired.extra.WiredExtraOrEval;
 import com.eu.habbo.habbohotel.rooms.Room;
+import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.WiredConditionOperator;
 import com.eu.habbo.habbohotel.wired.api.IWiredCondition;
 import com.eu.habbo.habbohotel.wired.api.WiredStack;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import com.eu.habbo.habbohotel.users.HabboItem;
 
 /**
  * Internal owner of WIRED condition grouping, evaluation modes and negation.
@@ -63,21 +63,27 @@ final class WiredConditionEvaluator {
         if (trigger == null || context.room().getRoomSpecialTypes() == null) return List.of();
         var extras = context.room().getRoomSpecialTypes().getExtras(trigger.getX(), trigger.getY());
         if (extras == null) return List.of();
-        return extras.stream().filter(WiredExtraOrEval.class::isInstance)
-                .map(WiredExtraOrEval.class::cast).filter(WiredExtraOrEval::hasReferencedConditions)
-                .sorted(java.util.Comparator.comparingInt(HabboItem::getId)).toList();
+        return extras.stream()
+                .filter(WiredExtraOrEval.class::isInstance)
+                .map(WiredExtraOrEval.class::cast)
+                .filter(WiredExtraOrEval::hasReferencedConditions)
+                .sorted(java.util.Comparator.comparingInt(HabboItem::getId))
+                .toList();
     }
 
     private EvaluationResult evaluateGroups(WiredStack stack, WiredContext context, List<WiredExtraOrEval> groups) {
         GroupEvaluation graph = new GroupEvaluation(context);
         Set<HabboItem> referenced = new HashSet<>();
         for (WiredExtraOrEval group : groups) graph.collect(group, referenced, new HashSet<>());
-        List<WiredExtraOrEval> roots = groups.stream().filter(group -> !referenced.contains(group)).toList();
+        List<WiredExtraOrEval> roots =
+                groups.stream().filter(group -> !referenced.contains(group)).toList();
         boolean passed = !roots.isEmpty();
         for (WiredExtraOrEval root : roots) passed &= graph.evaluate(root, new HashSet<>());
         List<IWiredCondition> remaining = stack.conditions().stream()
-                .filter(condition -> !(condition instanceof HabboItem item) || !referenced.contains(item)).toList();
-        EvaluationResult outside = evaluateByMode(remaining, context, stack.conditionEvaluationMode(), stack.conditionEvaluationValue());
+                .filter(condition -> !(condition instanceof HabboItem item) || !referenced.contains(item))
+                .toList();
+        EvaluationResult outside =
+                evaluateByMode(remaining, context, stack.conditionEvaluationMode(), stack.conditionEvaluationValue());
         graph.results.addAll(outside.conditions());
         return new EvaluationResult(passed && outside.passed() && graph.valid, List.copyOf(graph.results));
     }
@@ -91,14 +97,19 @@ final class WiredConditionEvaluator {
         private boolean valid = true;
         private final Set<HabboItem> collected = new HashSet<>();
 
-        private GroupEvaluation(WiredContext context) { this.context = context; }
+        private GroupEvaluation(WiredContext context) {
+            this.context = context;
+        }
 
         private List<HabboItem> children(WiredExtraOrEval group) {
             return children.computeIfAbsent(group, key -> List.copyOf(key.resolveConditions(context)));
         }
 
         private void collect(WiredExtraOrEval group, Set<HabboItem> referenced, Set<HabboItem> path) {
-            if (path.size() >= 64 || path.contains(group)) { valid = false; return; }
+            if (path.size() >= 64 || path.contains(group)) {
+                valid = false;
+                return;
+            }
             if (!collected.add(group)) return;
             path.add(group);
             for (HabboItem child : children(group)) {
@@ -110,17 +121,24 @@ final class WiredConditionEvaluator {
         }
 
         private boolean evaluate(HabboItem item, Set<HabboItem> path) {
-            if (path.size() >= 64 || !path.add(item)) { valid = false; return false; }
+            if (path.size() >= 64 || !path.add(item)) {
+                valid = false;
+                return false;
+            }
             Boolean previous = cache.get(item);
-            if (previous != null) { path.remove(item); return previous; }
+            if (previous != null) {
+                path.remove(item);
+                return previous;
+            }
             context.state().step();
             boolean passed = false;
             if (item instanceof WiredExtraOrEval group) {
                 int matched = 0;
                 List<HabboItem> selected = children(group);
                 for (HabboItem child : selected) if (evaluate(child, path)) matched++;
-                passed = !selected.isEmpty() && WiredExtraOrEval.matchesMode(
-                        group.getEvaluationMode(), matched, selected.size(), group.getCompareValue());
+                passed = !selected.isEmpty()
+                        && WiredExtraOrEval.matchesMode(
+                                group.getEvaluationMode(), matched, selected.size(), group.getCompareValue());
             } else if (item instanceof IWiredCondition condition) {
                 passed = condition.evaluate(context);
                 results.add(new ConditionResult(condition, passed));

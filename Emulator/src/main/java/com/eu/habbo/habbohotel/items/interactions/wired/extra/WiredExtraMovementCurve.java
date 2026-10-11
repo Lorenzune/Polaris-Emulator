@@ -6,16 +6,16 @@ import com.eu.habbo.habbohotel.items.interactions.InteractionWiredExtra;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
-import com.eu.habbo.habbohotel.wired.core.WiredManager;
-import com.eu.habbo.habbohotel.wired.core.WiredContext;
-import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
-import com.eu.habbo.habbohotel.wired.core.WiredInternalVariableSupport;
-import com.eu.habbo.habbohotel.wired.core.WiredContextVariableSupport;
 import com.eu.habbo.habbohotel.users.HabboItem;
-import java.util.ArrayList;
+import com.eu.habbo.habbohotel.wired.core.WiredContext;
+import com.eu.habbo.habbohotel.wired.core.WiredContextVariableSupport;
+import com.eu.habbo.habbohotel.wired.core.WiredInternalVariableSupport;
+import com.eu.habbo.habbohotel.wired.core.WiredManager;
+import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 
 /** Native Habbo signed movement parabola, configured by a literal or variable.
  * The former easing constants/getters and JSON fields remain readable for compatibility.
@@ -60,9 +60,15 @@ public class WiredExtraMovementCurve extends InteractionWiredExtra {
             int[] params = settings.getIntParams();
             int[] variableIds = settings.getVariableIds();
             String token = settings.getStringParam();
-            if ((token == null || token.isBlank()) && variableIds != null && variableIds.length > 0) token = String.valueOf(variableIds[0]);
-            this.config = new CurveConfig(params[0] == 1 ? 1 : 0, clampStrength(params[1]), params[2],
-                params.length > 3 ? params[3] : 0, token == null ? "" : token, settings.getFurniIds());
+            if ((token == null || token.isBlank()) && variableIds != null && variableIds.length > 0)
+                token = String.valueOf(variableIds[0]);
+            this.config = new CurveConfig(
+                    params[0] == 1 ? 1 : 0,
+                    clampStrength(params[1]),
+                    params[2],
+                    params.length > 3 ? params[3] : 0,
+                    token == null ? "" : token,
+                    settings.getFurniIds());
             return true;
         }
         this.config = null;
@@ -172,47 +178,83 @@ public class WiredExtraMovementCurve extends InteractionWiredExtra {
         String key = internal ? token.substring(9) : "";
         int variableId = 0;
         if (!internal) {
-            try { variableId = Integer.parseInt(token.replace("custom:", "")); }
-            catch (NumberFormatException ignored) { return null; }
+            try {
+                variableId = Integer.parseInt(token.replace("custom:", ""));
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
         }
         Integer value = null;
         switch (this.config.target) {
-            case -10 -> value = internal ? WiredInternalVariableSupport.readRoomValue(room, key) : (room.getRoomVariableManager().hasVariable(variableId) ? room.getRoomVariableManager().getCurrentValue(variableId) : null);
-            case -20 -> value = internal ? WiredInternalVariableSupport.readContextValue(ctx, key) : WiredContextVariableSupport.getCurrentValue(ctx, variableId);
+            case -10 ->
+                value = internal
+                        ? WiredInternalVariableSupport.readRoomValue(room, key)
+                        : (room.getRoomVariableManager().hasVariable(variableId)
+                                ? room.getRoomVariableManager().getCurrentValue(variableId)
+                                : null);
+            case -20 ->
+                value = internal
+                        ? WiredInternalVariableSupport.readContextValue(ctx, key)
+                        : WiredContextVariableSupport.getCurrentValue(ctx, variableId);
             case 1 -> {
                 for (RoomUnit unit : WiredSourceUtil.resolveUsers(ctx, this.config.source)) {
                     var habbo = room.getHabbo(unit);
-                    value = internal ? WiredInternalVariableSupport.readUserValue(room, unit, key)
-                        : habbo == null || !room.getUserVariableManager().hasVariable(habbo.getHabboInfo().getId(), variableId) ? null : room.getUserVariableManager().getCurrentValue(habbo.getHabboInfo().getId(), variableId);
+                    value = internal
+                            ? WiredInternalVariableSupport.readUserValue(room, unit, key)
+                            : habbo == null
+                                            || !room.getUserVariableManager()
+                                                    .hasVariable(
+                                                            habbo.getHabboInfo().getId(), variableId)
+                                    ? null
+                                    : room.getUserVariableManager()
+                                            .getCurrentValue(
+                                                    habbo.getHabboInfo().getId(), variableId);
                     if (value != null) break;
                 }
             }
             case 0 -> {
                 var selected = new ArrayList<HabboItem>();
-                if (this.config.furniIds != null) for (int id : this.config.furniIds) {
-                    HabboItem item = room.getHabboItem(id);
-                    if (item != null) selected.add(item);
-                }
+                if (this.config.furniIds != null)
+                    for (int id : this.config.furniIds) {
+                        HabboItem item = room.getHabboItem(id);
+                        if (item != null) selected.add(item);
+                    }
                 for (HabboItem item : WiredSourceUtil.resolveItems(ctx, this.config.source, selected)) {
-                    value = internal ? WiredInternalVariableSupport.readFurniValue(room, item, key) : (room.getFurniVariableManager().hasVariable(item.getId(), variableId) ? room.getFurniVariableManager().getCurrentValue(item.getId(), variableId) : null);
+                    value = internal
+                            ? WiredInternalVariableSupport.readFurniValue(room, item, key)
+                            : (room.getFurniVariableManager().hasVariable(item.getId(), variableId)
+                                    ? room.getFurniVariableManager().getCurrentValue(item.getId(), variableId)
+                                    : null);
                     if (value != null) break;
                 }
             }
-            default -> { return null; }
+            default -> {
+                return null;
+            }
         }
         return value == null ? null : clampStrength(value);
     }
 
-    private int legacyStrength() { return this.curveType == CURVE_LINEAR ? 0 : this.intensity; }
-    private static int clampStrength(int value) { return Math.max(-1000, Math.min(1000, value)); }
+    private int legacyStrength() {
+        return this.curveType == CURVE_LINEAR ? 0 : this.intensity;
+    }
+
+    private static int clampStrength(int value) {
+        return Math.max(-1000, Math.min(1000, value));
+    }
 
     private static class CurveConfig {
         int mode, strength, target, source;
         String token;
         int[] furniIds;
+
         CurveConfig(int mode, int strength, int target, int source, String token, int[] furniIds) {
-            this.mode = mode; this.strength = strength; this.target = target; this.source = source;
-            this.token = token; this.furniIds = furniIds == null ? new int[0] : furniIds.clone();
+            this.mode = mode;
+            this.strength = strength;
+            this.target = target;
+            this.source = source;
+            this.token = token;
+            this.furniIds = furniIds == null ? new int[0] : furniIds.clone();
         }
     }
 

@@ -108,10 +108,7 @@ public class FloorPlanEditorSaveEvent extends MessageHandler {
         }
 
         if (!isFloorplanAreaWithinLimits(
-                firstRowSize,
-                mapRows.length,
-                MAXIMUM_FLOORPLAN_WIDTH_LENGTH,
-                MAXIMUM_FLOORPLAN_SIZE)) {
+                firstRowSize, mapRows.length, MAXIMUM_FLOORPLAN_WIDTH_LENGTH, MAXIMUM_FLOORPLAN_SIZE)) {
             this.client.sendResponse(new BubbleAlertComposer(
                     BubbleAlertKeys.FLOORPLAN_EDITOR_ERROR.key,
                     "Floorplan exceeds the maximum area of " + MAXIMUM_FLOORPLAN_SIZE + " tiles."));

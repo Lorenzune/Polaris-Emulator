@@ -28,8 +28,8 @@ public class ChestBatchLockEvent extends MessageHandler {
         boolean lock = this.packet.readBoolean();
         boolean allChests = this.packet.readBoolean();
 
-
-        boolean isRoomOwnerOrStaff = habbo.hasPermission("acc_anyroomowner") || room.getOwnerId() == habbo.getHabboInfo().getId();
+        boolean isRoomOwnerOrStaff = habbo.hasPermission("acc_anyroomowner")
+                || room.getOwnerId() == habbo.getHabboInfo().getId();
         if (allChests && !isRoomOwnerOrStaff) {
             allChests = false;
         }

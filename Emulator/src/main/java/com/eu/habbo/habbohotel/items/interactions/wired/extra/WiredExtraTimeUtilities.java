@@ -8,7 +8,6 @@ import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -20,7 +19,8 @@ import java.sql.SQLException;
  * it open + persist its dialog. The UI-builder mask/source configuration is also preserved;
  * date/time subvariables are computed by the variable runtime in UTC.
  */
-public class WiredExtraTimeUtilities extends InteractionWiredExtra implements com.eu.habbo.habbohotel.wired.core.WiredDerivedVariableBox {
+public class WiredExtraTimeUtilities extends InteractionWiredExtra
+        implements com.eu.habbo.habbohotel.wired.core.WiredDerivedVariableBox {
     public static final int CODE = 98;
 
     public static final int UNIT_MILLISECONDS = 0;
@@ -39,7 +39,8 @@ public class WiredExtraTimeUtilities extends InteractionWiredExtra implements co
         super(set, baseItem);
     }
 
-    public WiredExtraTimeUtilities(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredExtraTimeUtilities(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -58,7 +59,9 @@ public class WiredExtraTimeUtilities extends InteractionWiredExtra implements co
         this.subvariableMask = null;
         int value = (settings.getIntParams().length > 0) ? settings.getIntParams()[0] : this.timeUnit;
 
-        if (value == this.timeUnit && settings.getStringParam() != null && !settings.getStringParam().isEmpty()) {
+        if (value == this.timeUnit
+                && settings.getStringParam() != null
+                && !settings.getStringParam().isEmpty()) {
             try {
                 value = Integer.parseInt(settings.getStringParam());
             } catch (NumberFormatException ignored) {
@@ -128,9 +131,7 @@ public class WiredExtraTimeUtilities extends InteractionWiredExtra implements co
     }
 
     @Override
-    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {
-
-    }
+    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {}
 
     @Override
     public boolean hasConfiguration() {
@@ -141,44 +142,80 @@ public class WiredExtraTimeUtilities extends InteractionWiredExtra implements co
         return this.timeUnit;
     }
 
-    public int getSourceMode() { return sourceMode; }
-    @Override public java.util.List<Integer> getSelectedSubvariables() {
+    public int getSourceMode() {
+        return sourceMode;
+    }
+
+    @Override
+    public java.util.List<Integer> getSelectedSubvariables() {
         var result = new java.util.ArrayList<Integer>();
         for (int id = 1; id <= 26; id++) if (hasSubvariable(id)) result.add(id);
         return result;
     }
-    @Override public boolean hasSubvariable(int id) {
-        return id >= 1 && id <= 26 && subvariableMask != null && (SUPPORTED_MASK & (1 << id)) != 0 && (subvariableMask & (1 << id)) != 0;
+
+    @Override
+    public boolean hasSubvariable(int id) {
+        return id >= 1
+                && id <= 26
+                && subvariableMask != null
+                && (SUPPORTED_MASK & (1 << id)) != 0
+                && (subvariableMask & (1 << id)) != 0;
     }
-    @Override public String subvariableKey(int id) {
-        return switch(id) {
-            case 1 -> "milliseconds_of_seconds"; case 2 -> "seconds_of_minute";
-            case 3 -> "minute_of_hour"; case 4 -> "hour_of_day"; case 5 -> "day_of_week";
-            case 6 -> "day_of_month"; case 7 -> "day_of_year"; case 8 -> "week_of_year";
-            case 9 -> "month_of_year"; case 10 -> "year";
-            case 20 -> "millisecond"; case 21 -> "second"; case 22 -> "minute";
-            case 23 -> "hour"; case 24 -> "day"; case 25 -> "week"; case 26 -> "month";
+
+    @Override
+    public String subvariableKey(int id) {
+        return switch (id) {
+            case 1 -> "milliseconds_of_seconds";
+            case 2 -> "seconds_of_minute";
+            case 3 -> "minute_of_hour";
+            case 4 -> "hour_of_day";
+            case 5 -> "day_of_week";
+            case 6 -> "day_of_month";
+            case 7 -> "day_of_year";
+            case 8 -> "week_of_year";
+            case 9 -> "month_of_year";
+            case 10 -> "year";
+            case 20 -> "millisecond";
+            case 21 -> "second";
+            case 22 -> "minute";
+            case 23 -> "hour";
+            case 24 -> "day";
+            case 25 -> "week";
+            case 26 -> "month";
             default -> "";
         };
     }
     // Polaris exposes Unix timestamps in seconds, including @current_time.
-    @Override public Integer derive(int id, Integer value) { return value == null ? null : deriveTime(id, value.longValue() * 1000L); }
+    @Override
+    public Integer derive(int id, Integer value) {
+        return value == null ? null : deriveTime(id, value.longValue() * 1000L);
+    }
+
     public Integer deriveTime(int id, long milliseconds) {
         if (!hasSubvariable(id)) return null;
         var date = java.time.Instant.ofEpochMilli(milliseconds).atZone(java.time.ZoneOffset.UTC);
-        long result = switch(id) {
-            case 1 -> Math.floorMod(milliseconds, 1000); case 2 -> date.getSecond();
-            case 3 -> date.getMinute(); case 4 -> date.getHour(); case 5 -> date.getDayOfWeek().getValue();
-            case 6 -> date.getDayOfMonth(); case 7 -> date.getDayOfYear();
-            case 8 -> date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR);
-            case 9 -> date.getMonthValue(); case 10 -> date.getYear();
-            case 20 -> milliseconds; case 21 -> Math.floorDiv(milliseconds, 1000);
-            case 22 -> Math.floorDiv(milliseconds, 60000); case 23 -> Math.floorDiv(milliseconds, 3600000);
-            case 24 -> Math.floorDiv(milliseconds, 86400000); case 25 -> Math.floorDiv(milliseconds, 604800000);
-            case 26 -> (date.getYear() - 1970L) * 12 + date.getMonthValue() - 1;
-            default -> 0;
-        };
-        return (int)Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, result));
+        long result =
+                switch (id) {
+                    case 1 -> Math.floorMod(milliseconds, 1000);
+                    case 2 -> date.getSecond();
+                    case 3 -> date.getMinute();
+                    case 4 -> date.getHour();
+                    case 5 -> date.getDayOfWeek().getValue();
+                    case 6 -> date.getDayOfMonth();
+                    case 7 -> date.getDayOfYear();
+                    case 8 -> date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR);
+                    case 9 -> date.getMonthValue();
+                    case 10 -> date.getYear();
+                    case 20 -> milliseconds;
+                    case 21 -> Math.floorDiv(milliseconds, 1000);
+                    case 22 -> Math.floorDiv(milliseconds, 60000);
+                    case 23 -> Math.floorDiv(milliseconds, 3600000);
+                    case 24 -> Math.floorDiv(milliseconds, 86400000);
+                    case 25 -> Math.floorDiv(milliseconds, 604800000);
+                    case 26 -> (date.getYear() - 1970L) * 12 + date.getMonthValue() - 1;
+                    default -> 0;
+                };
+        return (int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, result));
     }
 
     private static int normalizeUnit(int value) {
@@ -190,6 +227,7 @@ public class WiredExtraTimeUtilities extends InteractionWiredExtra implements co
 
         Integer subvariableMask;
         int sourceMode;
+
         JsonData(int timeUnit, Integer subvariableMask, int sourceMode) {
             this.timeUnit = timeUnit;
             this.subvariableMask = subvariableMask;

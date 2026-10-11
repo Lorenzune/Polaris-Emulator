@@ -1776,7 +1776,6 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         SearchRoomsEvent.invalidateCachedResults();
     }
 
-
     public void addBot(Bot bot) {
         this.unitManager.addBot(bot);
     }

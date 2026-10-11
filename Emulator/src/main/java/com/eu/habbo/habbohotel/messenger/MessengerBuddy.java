@@ -7,13 +7,12 @@ import com.eu.habbo.habbohotel.users.HabboGender;
 import com.eu.habbo.messages.ISerialize;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.friends.FriendChatMessageComposer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessengerBuddy implements Runnable, ISerialize {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessengerBuddy.class);
@@ -146,9 +145,13 @@ public class MessengerBuddy implements Runnable, ISerialize {
         Emulator.getThreading().run(this);
     }
 
-    public int getCategoryId() { return this.categoryId; }
+    public int getCategoryId() {
+        return this.categoryId;
+    }
 
-    public void setCategoryId(int categoryId) { this.categoryId = categoryId; }
+    public void setCategoryId(int categoryId) {
+        this.categoryId = categoryId;
+    }
 
     public boolean inRoom() {
         Habbo habbo = gameServer().getGameClientManager().getHabbo(this.id);
@@ -166,14 +169,15 @@ public class MessengerBuddy implements Runnable, ISerialize {
 
     public boolean isVisibleInRoom() {
         Habbo habbo = gameServer().getGameClientManager().getHabbo(this.id);
-        return this.isVisibleOnline() && this.inRoom()
-                && (habbo == null || !habbo.getHabboStats().blockFollowing);
+        return this.isVisibleOnline() && this.inRoom() && (habbo == null || !habbo.getHabboStats().blockFollowing);
     }
 
     @Override
     public void run() {
 
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("UPDATE messenger_friendships SET relation = ? WHERE user_one_id = ? AND user_two_id = ?")) {
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        "UPDATE messenger_friendships SET relation = ? WHERE user_one_id = ? AND user_two_id = ?")) {
             statement.setInt(1, this.relation);
             statement.setInt(2, this.userOne);
             statement.setInt(3, this.id);
@@ -193,12 +197,16 @@ public class MessengerBuddy implements Runnable, ISerialize {
         Message chatMessage = new Message(from.getHabboInfo().getId(), this.id, message);
 
         if (WordFilter.ENABLED_FRIENDCHAT) {
-            chatMessage.setMessage(Emulator.getGameEnvironment().getWordFilter().filter(chatMessage.getMessage(), from));
+            chatMessage.setMessage(
+                    Emulator.getGameEnvironment().getWordFilter().filter(chatMessage.getMessage(), from));
         }
 
         Emulator.getThreading().run(chatMessage);
 
-        if (habbo == null || !habbo.isOnline() || habbo.getClient() == null || !habbo.getClient().getChannel().isOpen()) {
+        if (habbo == null
+                || !habbo.isOnline()
+                || habbo.getClient() == null
+                || !habbo.getClient().getChannel().isOpen()) {
             return this.storeOfflineMessage(chatMessage);
         }
 
@@ -231,11 +239,11 @@ public class MessengerBuddy implements Runnable, ISerialize {
         message.appendString(this.username);
         message.appendInt(this.gender.equals(HabboGender.M) ? 0 : 1);
         message.appendBoolean(visibleOnline);
-        message.appendBoolean(visibleOnline && visibleInRoom); //IN ROOM
+        message.appendBoolean(visibleOnline && visibleInRoom); // IN ROOM
         message.appendString(this.look);
         message.appendInt(this.categoryId); // Friends category ID
         message.appendString(this.motto);
-        message.appendString(""); //Last seen as DATETIMESTRING
+        message.appendString(""); // Last seen as DATETIMESTRING
         message.appendString(""); // Realname or Facebookame as String
         message.appendBoolean(true); // Offline messaging.
         message.appendBoolean(false);
@@ -243,5 +251,7 @@ public class MessengerBuddy implements Runnable, ISerialize {
         message.appendShort(this.relation);
     }
 
-    private static com.eu.habbo.networking.gameserver.GameServer gameServer() { return Emulator.getGameServer(); }
+    private static com.eu.habbo.networking.gameserver.GameServer gameServer() {
+        return Emulator.getGameServer();
+    }
 }

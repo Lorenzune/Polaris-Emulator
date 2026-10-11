@@ -10,13 +10,13 @@ import com.eu.habbo.habbohotel.wired.WiredTriggerType;
 import com.eu.habbo.habbohotel.wired.core.WiredEvent;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /** Matches failed transactions for selected contracts; the event carries the failure reason. */
 public class WiredTriggerTransactionFail extends InteractionWiredTrigger {
-    private com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources sources = new com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources();
+    private com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources sources =
+            new com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources();
     private java.util.List<Integer> contractIds = new java.util.ArrayList<>();
     public static final WiredTriggerType type = WiredTriggerType.TRANSACTION_FAIL;
 
@@ -24,7 +24,8 @@ public class WiredTriggerTransactionFail extends InteractionWiredTrigger {
         super(set, baseItem);
     }
 
-    public WiredTriggerTransactionFail(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredTriggerTransactionFail(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -62,8 +63,14 @@ public class WiredTriggerTransactionFail extends InteractionWiredTrigger {
 
     @Override
     public boolean saveData(WiredSettings settings) {
-        sources = com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources.read(settings.getStringParam());
-        contractIds = settings.getFurniIds() == null ? new java.util.ArrayList<>() : java.util.Arrays.stream(settings.getFurniIds()).distinct().boxed().toList();
+        sources = com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources.read(
+                settings.getStringParam());
+        contractIds = settings.getFurniIds() == null
+                ? new java.util.ArrayList<>()
+                : java.util.Arrays.stream(settings.getFurniIds())
+                        .distinct()
+                        .boxed()
+                        .toList();
         return true;
     }
 
@@ -74,23 +81,36 @@ public class WiredTriggerTransactionFail extends InteractionWiredTrigger {
 
     @Override
     public void loadWiredData(ResultSet set, Room room) throws SQLException {
-        onPickUp(); String value = set.getString("wired_data");
+        onPickUp();
+        String value = set.getString("wired_data");
         if (value != null && value.startsWith("{")) {
             JsonData data = WiredManager.getGson().fromJson(value, JsonData.class);
-            if (data != null) { contractIds = data.ids == null ? new java.util.ArrayList<>() : data.ids; sources = data.sources == null ? new com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources() : com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources.read(WiredManager.getGson().toJson(data.sources)); }
+            if (data != null) {
+                contractIds = data.ids == null ? new java.util.ArrayList<>() : data.ids;
+                sources = data.sources == null
+                        ? new com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources()
+                        : com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources.read(
+                                WiredManager.getGson().toJson(data.sources));
+            }
         } else if (value != null && value.startsWith("[")) {
             int[] ids = WiredManager.getGson().fromJson(value, int[].class);
-            if (ids != null) contractIds = java.util.Arrays.stream(ids).distinct().boxed().toList();
+            if (ids != null)
+                contractIds = java.util.Arrays.stream(ids).distinct().boxed().toList();
         }
     }
 
     @Override
-    public void onPickUp() { sources = new com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources(); contractIds = new java.util.ArrayList<>(); }
+    public void onPickUp() {
+        sources = new com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources();
+        contractIds = new java.util.ArrayList<>();
+    }
 
     @Override
     public boolean isTriggeredByRoomUnit() {
         return false;
     }
-    private record JsonData(java.util.List<Integer> ids, com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources sources) {}
 
+    private record JsonData(
+            java.util.List<Integer> ids,
+            com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredTransactionSources sources) {}
 }

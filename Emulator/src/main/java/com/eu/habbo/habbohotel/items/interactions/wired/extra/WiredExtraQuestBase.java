@@ -9,7 +9,6 @@ import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.wired.core.WiredDerivedVariableBox;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -33,9 +32,17 @@ public abstract class WiredExtraQuestBase extends InteractionWiredExtra implemen
     private String questCode = "";
     private boolean nativeConfiguration;
 
-    public String getVariableName() { return variableName; }
-    public String getQuestCode() { return questCode; }
-    public boolean isNativeConfiguration() { return nativeConfiguration; }
+    public String getVariableName() {
+        return variableName;
+    }
+
+    public String getQuestCode() {
+        return questCode;
+    }
+
+    public boolean isNativeConfiguration() {
+        return nativeConfiguration;
+    }
 
     protected WiredExtraQuestBase(ResultSet set, Item baseItem) throws SQLException {
         super(set, baseItem);
@@ -74,8 +81,7 @@ public abstract class WiredExtraQuestBase extends InteractionWiredExtra implemen
     }
 
     @Override
-    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) {
-    }
+    public void onWalk(RoomUnit roomUnit, Room room, Object[] objects) {}
 
     @Override
     public boolean hasConfiguration() {
@@ -83,22 +89,31 @@ public abstract class WiredExtraQuestBase extends InteractionWiredExtra implemen
     }
 
     @Override
-    public boolean saveData(WiredSettings settings, GameClient gameClient) throws com.eu.habbo.messages.incoming.wired.WiredSaveException {
+    public boolean saveData(WiredSettings settings, GameClient gameClient)
+            throws com.eu.habbo.messages.incoming.wired.WiredSaveException {
         String text = settings.getStringParam();
         if (text != null && text.contains("\t")) {
             String[] fields = text.split("\t", -1);
             if (fields.length != 2) return false;
             String name = WiredVariableNameValidator.normalizeForSave(fields[0]).toLowerCase(java.util.Locale.ROOT);
             String code = fields[1].trim();
-            if (code.isEmpty() || code.length() > 500 || code.indexOf('\r') >= 0 || code.indexOf('\n') >= 0) return false;
-            Room room = gameClient != null && gameClient.getHabbo() != null ? gameClient.getHabbo().getHabboInfo().getCurrentRoom() : null;
+            if (code.isEmpty() || code.length() > 500 || code.indexOf('\r') >= 0 || code.indexOf('\n') >= 0)
+                return false;
+            Room room = gameClient != null && gameClient.getHabbo() != null
+                    ? gameClient.getHabbo().getHabboInfo().getCurrentRoom()
+                    : null;
             WiredVariableNameValidator.validateDefinitionName(room, getId(), name);
-            variableName = name; questCode = code; nativeConfiguration = true; targetValue = 0;
+            variableName = name;
+            questCode = code;
+            nativeConfiguration = true;
+            targetValue = 0;
             if (room != null) room.getUserVariableManager().requestBroadcast();
             return true;
         }
         if (text != null && !text.isEmpty()) return false;
-        nativeConfiguration = false; variableName = ""; questCode = "";
+        nativeConfiguration = false;
+        variableName = "";
+        questCode = "";
         int[] params = settings.getIntParams();
         this.targetValue = (params.length > 0) ? Math.max(0, params[0]) : 0;
         return true;
@@ -106,7 +121,8 @@ public abstract class WiredExtraQuestBase extends InteractionWiredExtra implemen
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(this.targetValue, variableName, questCode, nativeConfiguration));
+        return WiredManager.getGson()
+                .toJson(new JsonData(this.targetValue, variableName, questCode, nativeConfiguration));
     }
 
     @Override
@@ -117,7 +133,12 @@ public abstract class WiredExtraQuestBase extends InteractionWiredExtra implemen
         if (wiredData == null || !wiredData.startsWith("{")) return;
 
         JsonData data = WiredManager.getGson().fromJson(wiredData, JsonData.class);
-        if (data != null) { this.targetValue = Math.max(0, data.targetValue); variableName = data.variableName == null ? "" : data.variableName; questCode = data.questCode == null ? "" : data.questCode; nativeConfiguration = data.nativeConfiguration; }
+        if (data != null) {
+            this.targetValue = Math.max(0, data.targetValue);
+            variableName = data.variableName == null ? "" : data.variableName;
+            questCode = data.questCode == null ? "" : data.questCode;
+            nativeConfiguration = data.nativeConfiguration;
+        }
     }
 
     @Override
@@ -138,7 +159,10 @@ public abstract class WiredExtraQuestBase extends InteractionWiredExtra implemen
 
     @Override
     public void onPickUp() {
-        this.targetValue = 0; variableName = ""; questCode = ""; nativeConfiguration = false;
+        this.targetValue = 0;
+        variableName = "";
+        questCode = "";
+        nativeConfiguration = false;
     }
 
     static class JsonData {
@@ -146,11 +170,12 @@ public abstract class WiredExtraQuestBase extends InteractionWiredExtra implemen
         String variableName, questCode;
         boolean nativeConfiguration;
 
-        JsonData() {
-        }
+        JsonData() {}
 
         JsonData(int targetValue, String variableName, String questCode, boolean nativeConfiguration) {
-            this.variableName = variableName; this.questCode = questCode; this.nativeConfiguration = nativeConfiguration;
+            this.variableName = variableName;
+            this.questCode = questCode;
+            this.nativeConfiguration = nativeConfiguration;
             this.targetValue = targetValue;
         }
     }

@@ -104,14 +104,30 @@ public final class WiredUserMovementHelper {
             int duration,
             boolean noAnimation,
             WiredMovementPhysics movementPhysics) {
-        return moveUser(room, roomUnit, targetTile, targetZ, bodyRotation, headRotation,
-                duration, noAnimation, movementPhysics, null);
+        return moveUser(
+                room,
+                roomUnit,
+                targetTile,
+                targetZ,
+                bodyRotation,
+                headRotation,
+                duration,
+                noAnimation,
+                movementPhysics,
+                null);
     }
 
     public static boolean moveUser(
-            Room room, RoomUnit roomUnit, RoomTile targetTile, double targetZ,
-            RoomUserRotation bodyRotation, RoomUserRotation headRotation, int duration,
-            boolean noAnimation, WiredMovementPhysics movementPhysics, Integer curveStrength) {
+            Room room,
+            RoomUnit roomUnit,
+            RoomTile targetTile,
+            double targetZ,
+            RoomUserRotation bodyRotation,
+            RoomUserRotation headRotation,
+            int duration,
+            boolean noAnimation,
+            WiredMovementPhysics movementPhysics,
+            Integer curveStrength) {
         if (room == null || roomUnit == null || targetTile == null || room.getLayout() == null) {
             return false;
         }

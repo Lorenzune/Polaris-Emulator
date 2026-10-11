@@ -41,7 +41,8 @@ public class CatalogPageContentSaveEvent extends MessageHandler {
         String teaserImage = this.packet.readString().trim();
         String text = this.packet.readString();
         if (this.packet.bytesAvailable() < 10 * Integer.BYTES) {
-            this.client.sendResponse(new CatalogAdminResultComposer(false, "Image position and size values are missing"));
+            this.client.sendResponse(
+                    new CatalogAdminResultComposer(false, "Image position and size values are missing"));
             return;
         }
         int[] header = readSlot();
@@ -52,10 +53,15 @@ public class CatalogPageContentSaveEvent extends MessageHandler {
         String textDetails = this.packet.readString();
         String textTeaser = this.packet.readString();
 
-        if (pageId <= 0 || headerImage.length() > MAX_IMAGE_NAME_LENGTH || teaserImage.length() > MAX_IMAGE_NAME_LENGTH
-                || text.length() > MAX_TEXT_LENGTH || textTwo.length() > MAX_TEXT_LENGTH
-                || textDetails.length() > MAX_TEXT_LENGTH || textTeaser.length() > MAX_TEXT_LENGTH) {
-            this.client.sendResponse(new CatalogAdminResultComposer(false, "Catalog page content is invalid or exceeds the size limit"));
+        if (pageId <= 0
+                || headerImage.length() > MAX_IMAGE_NAME_LENGTH
+                || teaserImage.length() > MAX_IMAGE_NAME_LENGTH
+                || text.length() > MAX_TEXT_LENGTH
+                || textTwo.length() > MAX_TEXT_LENGTH
+                || textDetails.length() > MAX_TEXT_LENGTH
+                || textTeaser.length() > MAX_TEXT_LENGTH) {
+            this.client.sendResponse(
+                    new CatalogAdminResultComposer(false, "Catalog page content is invalid or exceeds the size limit"));
             return;
         }
 
@@ -123,14 +129,18 @@ public class CatalogPageContentSaveEvent extends MessageHandler {
     }
 
     private int[] readSlot() {
-        return new int[] { this.packet.readInt(), this.packet.readInt(), this.packet.readInt(), this.packet.readInt() };
+        return new int[] {this.packet.readInt(), this.packet.readInt(), this.packet.readInt(), this.packet.readInt()};
     }
 
     private static boolean validSlot(int[] values) {
-        return values[0] >= -MAX_OFFSET && values[0] <= MAX_OFFSET
-                && values[1] >= -MAX_OFFSET && values[1] <= MAX_OFFSET
-                && values[2] >= 0 && values[2] <= MAX_DIMENSION
-                && values[3] >= 0 && values[3] <= MAX_DIMENSION;
+        return values[0] >= -MAX_OFFSET
+                && values[0] <= MAX_OFFSET
+                && values[1] >= -MAX_OFFSET
+                && values[1] <= MAX_OFFSET
+                && values[2] >= 0
+                && values[2] <= MAX_DIMENSION
+                && values[3] >= 0
+                && values[3] <= MAX_DIMENSION;
     }
 
     private static String sanitizeText(String text) {

@@ -19,12 +19,16 @@ public final class WiredMovementMessage extends ServerMessage {
     public ByteBuf get() {
         boolean invalidated = false;
         for (MovementData movement : this.movements) {
-            if (!movement.isCurrent()) { invalidated = true; break; }
+            if (!movement.isCurrent()) {
+                invalidated = true;
+                break;
+            }
         }
         if (!invalidated) return super.get();
 
         // Never rewrite a prepared/shared packet. Each recipient gets its own filtered copy.
-        List<MovementData> current = this.movements.stream().filter(MovementData::isCurrent).toList();
+        List<MovementData> current =
+                this.movements.stream().filter(MovementData::isCurrent).toList();
         ServerMessage filtered = new ServerMessage(Outgoing.WiredMovementsComposer);
         appendMovements(filtered, current);
         return filtered.get();

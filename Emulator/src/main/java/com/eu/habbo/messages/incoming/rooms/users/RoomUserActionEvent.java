@@ -7,8 +7,8 @@ import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomChatMessage;
 import com.eu.habbo.habbohotel.rooms.RoomChatMessageBubbles;
 import com.eu.habbo.habbohotel.rooms.RoomChatType;
-import com.eu.habbo.habbohotel.rooms.RoomUserAction;
 import com.eu.habbo.habbohotel.rooms.RoomUnitEffect;
+import com.eu.habbo.habbohotel.rooms.RoomUserAction;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.wired.WiredUserActionType;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
@@ -27,7 +27,8 @@ public class RoomUserActionEvent extends MessageHandler {
             Habbo habbo = this.client.getHabbo();
 
             if (this.client.getHabbo().getRoomUnit().getCacheable().get("control") != null) {
-                habbo = (Habbo) this.client.getHabbo().getRoomUnit().getCacheable().get("control");
+                habbo = (Habbo)
+                        this.client.getHabbo().getRoomUnit().getCacheable().get("control");
 
                 if (habbo.getHabboInfo().getCurrentRoom() != room) {
                     habbo.getRoomUnit().getCacheable().remove("controller");
@@ -37,8 +38,7 @@ public class RoomUserActionEvent extends MessageHandler {
             }
 
             int action = this.packet.readInt();
-            if (!RoomUserInputGuard.isValidAction(action))
-                return;
+            if (!RoomUserInputGuard.isValidAction(action)) return;
 
             int wiredAction = 0;
 
@@ -62,10 +62,10 @@ public class RoomUserActionEvent extends MessageHandler {
                         room.unIdle(habbo);
                     }
                 }
-
             }
 
-            room.sendComposer(new RoomUserActionComposer(habbo.getRoomUnit(), RoomUserAction.fromValue(action)).compose());
+            room.sendComposer(
+                    new RoomUserActionComposer(habbo.getRoomUnit(), RoomUserAction.fromValue(action)).compose());
 
             if (action == SIX_SEVEN_ACTION) {
                 room.talk(
@@ -79,7 +79,8 @@ public class RoomUserActionEvent extends MessageHandler {
                 switch (action) {
                     case 1:
                         wiredAction = WiredUserActionType.WAVE;
-                        Emulator.getGameEnvironment().getRewardTrackManager()
+                        Emulator.getGameEnvironment()
+                                .getRewardTrackManager()
                                 .addProgress(habbo.getHabboInfo().getId(), "wave", 1);
                         break;
                     case 6:

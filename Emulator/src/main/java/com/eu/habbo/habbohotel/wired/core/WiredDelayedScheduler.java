@@ -61,9 +61,13 @@ final class WiredDelayedScheduler {
         final long deadline;
         final java.util.ArrayList<Runnable> work = new java.util.ArrayList<>();
         ScheduledTask scheduled;
+
         SignalFrame(Room room, long deadline) {
-            this.roomId = room.getId(); this.generation = room.getLifecycleGeneration(); this.deadline = deadline;
+            this.roomId = room.getId();
+            this.generation = room.getLifecycleGeneration();
+            this.deadline = deadline;
         }
+
         void run() {
             List<Runnable> batch;
             synchronized (signalFrames) {
@@ -75,8 +79,8 @@ final class WiredDelayedScheduler {
             try {
                 room = roomResolver.resolve(this.roomId);
             } catch (RuntimeException exception) {
-                WiredCompatibilityDiagnostics.record(WiredCompatibilityDiagnostics.FailurePoint.DELAYED_ROOM_RESOLVE,
-                        this.roomId, 0, exception);
+                WiredCompatibilityDiagnostics.record(
+                        WiredCompatibilityDiagnostics.FailurePoint.DELAYED_ROOM_RESOLVE, this.roomId, 0, exception);
             }
             if (room != null && room.getLifecycleGeneration() == this.generation)
                 WiredManager.runDelayedSignalWave(room, batch);
@@ -87,17 +91,23 @@ final class WiredDelayedScheduler {
     private ScheduledTask scheduleSignalFrame(Room room, Runnable work, long delayMs) {
         long deadline = this.clock.getAsLong() + delayMs;
         synchronized (this.signalFrames) {
-            SignalFrame frame = this.signalFrames.stream().filter(candidate -> candidate.roomId == room.getId()
-                    && candidate.generation == room.getLifecycleGeneration()
-                    && deadline >= candidate.deadline && deadline <= candidate.deadline + SIGNAL_FRAME_GRACE_MS)
-                    .findFirst().orElse(null);
+            SignalFrame frame = this.signalFrames.stream()
+                    .filter(candidate -> candidate.roomId == room.getId()
+                            && candidate.generation == room.getLifecycleGeneration()
+                            && deadline >= candidate.deadline
+                            && deadline <= candidate.deadline + SIGNAL_FRAME_GRACE_MS)
+                    .findFirst()
+                    .orElse(null);
             if (frame == null) {
                 frame = new SignalFrame(room, deadline);
                 this.signalFrames.add(frame);
                 frame.work.add(work);
                 try {
                     frame.scheduled = this.taskScheduler.schedule(frame::run, delayMs + SIGNAL_FRAME_GRACE_MS);
-                    if (frame.scheduled == null) { this.signalFrames.remove(frame); return null; }
+                    if (frame.scheduled == null) {
+                        this.signalFrames.remove(frame);
+                        return null;
+                    }
                 } catch (RuntimeException exception) {
                     this.signalFrames.remove(frame);
                     throw exception;
@@ -116,6 +126,7 @@ final class WiredDelayedScheduler {
             };
         }
     }
+
     private final AtomicBoolean accepting = new AtomicBoolean(true);
 
     WiredDelayedScheduler(
@@ -218,9 +229,14 @@ final class WiredDelayedScheduler {
             ResolvedWork work) {
         WiredDelayedExecutionSnapshot snapshot = WiredDelayedExecutionSnapshot.capture(effects, context, triggerTime);
         Object feedbackKey = context.eventType() == WiredEvent.Type.SIGNAL_RECEIVED
-                && context.event().isSignalPayloadExplicit() && effects.size() == 1
-                && effects.getFirst() instanceof com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSendSignal sender
-                && sender.isNativeSelfFeedback(context) ? snapshot.feedbackKey(delay, sender.getWiredData()) : null;
+                        && context.event().isSignalPayloadExplicit()
+                        && effects.size() == 1
+                        && effects.getFirst()
+                                instanceof
+                                com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSendSignal sender
+                        && sender.isNativeSelfFeedback(context)
+                ? snapshot.feedbackKey(delay, sender.getWiredData())
+                : null;
         if (feedbackKey != null && !this.pendingFeedback.add(feedbackKey)) {
             return;
         }
@@ -273,8 +289,11 @@ final class WiredDelayedScheduler {
                 return;
             }
 
-            boolean nativeSignals = effects.stream().allMatch(effect ->
-                    effect instanceof com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSendSignal sender
+            boolean nativeSignals = effects.stream()
+                    .allMatch(effect -> effect
+                                    instanceof
+                                    com.eu.habbo.habbohotel.items.interactions.wired.effects.WiredEffectSendSignal
+                                            sender
                             && sender.isNativeSignal());
             ScheduledTask scheduledTask = nativeSignals
                     ? scheduleSignalFrame(context.room(), pendingTask::run, remainingDelayMs)

@@ -7,7 +7,6 @@ import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.rooms.items.ChestRoomLogComposer;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -46,8 +45,7 @@ public class ChestRequestRoomLogsEvent extends MessageHandler {
                             entry.userName,
                             entry.withdrawn,
                             entry.deposited,
-                            chest.getId()
-                    );
+                            chest.getId());
                     row.furniTypeIds = entry.furniTypeIds;
                     row.currencyType = entry.currencyType;
                     row.furniQuantities = entry.furniQuantities;
@@ -56,7 +54,8 @@ public class ChestRequestRoomLogsEvent extends MessageHandler {
             }
         }
 
-        allLogs.sort(Comparator.comparingLong((ChestRoomLogComposer.RoomLogItem i) -> i.timestamp).reversed());
+        allLogs.sort(Comparator.comparingLong((ChestRoomLogComposer.RoomLogItem i) -> i.timestamp)
+                .reversed());
 
         int totalCount = allLogs.size();
         page = Math.min(page, Math.max(1, (int) Math.ceil(totalCount / (double) amount)));

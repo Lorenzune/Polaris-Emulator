@@ -1,8 +1,8 @@
 package com.eu.habbo.habbohotel.pets;
 
 import com.eu.habbo.Emulator;
-import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
+import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.pets.InteractionNest;
 import com.eu.habbo.habbohotel.items.interactions.pets.InteractionPetDrink;
@@ -215,7 +215,8 @@ public class PetManager {
     public static Pet loadPet(ResultSet set) throws SQLException {
         if (set.getInt("type") == 15) return new HorsePet(set);
         else if (set.getInt("type") == 16) return new MonsterplantPet(set);
-        else if (set.getInt("type") == 26 || set.getInt("type") == 27 || set.getInt("type") == 31) return new GnomePet(set);
+        else if (set.getInt("type") == 26 || set.getInt("type") == 27 || set.getInt("type") == 31)
+            return new GnomePet(set);
         else return new Pet(set);
     }
 
@@ -592,8 +593,18 @@ public class PetManager {
     public Pet createPet(int type, int race, String name, GameClient client) {
         if (this.petData.containsKey(type)) {
             Pet pet = type == 15
-                    ? new HorsePet(type, race, "FFFFFF", name, client.getHabbo().getHabboInfo().getId())
-                    : new Pet(type, race, "FFFFFF", name, client.getHabbo().getHabboInfo().getId());
+                    ? new HorsePet(
+                            type,
+                            race,
+                            "FFFFFF",
+                            name,
+                            client.getHabbo().getHabboInfo().getId())
+                    : new Pet(
+                            type,
+                            race,
+                            "FFFFFF",
+                            name,
+                            client.getHabbo().getHabboInfo().getId());
             pet.needsUpdate = true;
             pet.run();
             if (type == 15) AchievementInteractions.progress(client.getHabbo(), "HorseRent");

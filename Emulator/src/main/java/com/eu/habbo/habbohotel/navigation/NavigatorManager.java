@@ -170,9 +170,7 @@ public class NavigatorManager {
                 // "All rooms" lists every occupied room, including publics.
                 // Popular-list limits and the legacy public toggle must not
                 // make active rooms disappear from this navigator overview.
-                rooms = Emulator.getGameEnvironment()
-                        .getRoomManager()
-                        .getOccupiedRooms();
+                rooms = Emulator.getGameEnvironment().getRoomManager().getOccupiedRooms();
                 break;
             case "categories":
                 rooms = Emulator.getGameEnvironment().getRoomManager().getRoomsPromoted();

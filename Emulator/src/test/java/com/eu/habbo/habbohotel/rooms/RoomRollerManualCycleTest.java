@@ -71,7 +71,6 @@ class RoomRollerManualCycleTest {
 
         assertFalse(manager.hasPendingRollRequests());
         verify(room, never()).getItemsAt(requestedTile);
-        verify(manager, never())
-                .processRoller(any(InteractionRoller.class), anyList(), anySet(), anySet(), anySet());
+        verify(manager, never()).processRoller(any(InteractionRoller.class), anyList(), anySet(), anySet(), anySet());
     }
 }

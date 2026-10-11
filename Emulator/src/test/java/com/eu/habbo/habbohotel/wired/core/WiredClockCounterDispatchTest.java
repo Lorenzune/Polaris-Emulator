@@ -1,7 +1,13 @@
 package com.eu.habbo.habbohotel.wired.core;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.games.InteractionGameUpCounter;
@@ -22,8 +28,8 @@ class WiredClockCounterDispatchTest {
         when(room.getHabboItem(10974)).thenReturn(clock);
         var trigger = new WiredTriggerClockCounter(10978, 16, mock(Item.class), "", 0, 0);
         var stored = mock(ResultSet.class);
-        when(stored.getString("wired_data")).thenReturn(
-                "{\"minutes\":0,\"halfSecondSteps\":6,\"furniSource\":100,\"itemIds\":[10974]}");
+        when(stored.getString("wired_data"))
+                .thenReturn("{\"minutes\":0,\"halfSecondSteps\":6,\"furniSource\":100,\"itemIds\":[10974]}");
         trigger.loadWiredData(stored, room);
         List<WiredEvent> dispatched = new ArrayList<>();
         try (var manager = mockStatic(WiredManager.class)) {

@@ -618,7 +618,8 @@ final class WiredExecutionGuard {
 
         private synchronized long delayUntilAvailable(long now, long windowMs, int maximumEvents) {
             return eventCount >= maximumEvents && now - windowStart <= windowMs
-                    ? Math.max(1L, windowStart + windowMs + 1L - now) : 0L;
+                    ? Math.max(1L, windowStart + windowMs + 1L - now)
+                    : 0L;
         }
     }
 }

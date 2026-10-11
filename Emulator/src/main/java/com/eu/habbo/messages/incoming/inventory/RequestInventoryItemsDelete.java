@@ -34,7 +34,8 @@ public class RequestInventoryItemsDelete extends MessageHandler {
             if (habbo.getRoomUnit().hasStatus(com.eu.habbo.habbohotel.rooms.RoomUnitStatus.TRADING)) return;
             Map<Integer, HabboItem> selected = new HashMap<>();
             for (int i = 0; i < count; i++) {
-                HabboItem selectedItem = habbo.getInventory().getItemsComponent().getHabboItem(this.packet.readInt());
+                HabboItem selectedItem =
+                        habbo.getInventory().getItemsComponent().getHabboItem(this.packet.readInt());
                 if (selectedItem != null) selected.put(selectedItem.getId(), selectedItem);
             }
             Map<Integer, HabboItem> removed = new HashMap<>();
@@ -51,7 +52,6 @@ public class RequestInventoryItemsDelete extends MessageHandler {
             }
             return;
         }
-
 
         HabboItem habboItem =
                 this.client.getHabbo().getInventory().getItemsComponent().getHabboItem(itemId);

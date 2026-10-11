@@ -37,7 +37,7 @@ public class FrontPageFeaturedLayout extends CatalogPage {
     private static String[] splitImages(String images) {
         // These catalog fields are nullable in existing databases. Keep the
         // empty-field protocol shape while avoiding a startup/runtime NPE.
-        return images == null ? new String[] { "" } : images.split(";");
+        return images == null ? new String[] {""} : images.split(";");
     }
 
     public void serializeExtra(ServerMessage message) {

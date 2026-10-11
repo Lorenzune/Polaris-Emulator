@@ -8,7 +8,11 @@ final class PetBreedSelection {
 
     static int choosePalette(Collection<PetRace> breeds, Random random) {
         if (breeds == null || breeds.isEmpty()) return 0;
-        int[] palettes = breeds.stream().mapToInt(breed -> breed.colorOne).distinct().sorted().toArray();
+        int[] palettes = breeds.stream()
+                .mapToInt(breed -> breed.colorOne)
+                .distinct()
+                .sorted()
+                .toArray();
         return palettes[random.nextInt(palettes.length)];
     }
 }

@@ -4,27 +4,17 @@ import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
-import com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage;
-import com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChest;
-import com.eu.habbo.habbohotel.items.interactions.wired.contract.InteractionWiredContract;
 import com.eu.habbo.habbohotel.rooms.Room;
-import com.eu.habbo.habbohotel.rooms.RoomTile;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
-import com.eu.habbo.habbohotel.users.Habbo;
-import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.core.WiredContext;
-import com.eu.habbo.habbohotel.wired.core.WiredEvent;
 import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /** Opens the selected contract with chest-backed terms. Payments commit only after acceptance and confirmation. */
 public class WiredEffectInitTransaction extends InteractionWiredEffect {
@@ -36,15 +26,18 @@ public class WiredEffectInitTransaction extends InteractionWiredEffect {
         super(set, baseItem);
     }
 
-    public WiredEffectInitTransaction(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredEffectInitTransaction(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
     private int[] transactionParams = new int[] {0, 1, 0, -20, 0, 300};
     private String transactionConfig = "";
+
     @Override
     public void execute(WiredContext ctx) {
-        com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredContractTransactions.start(ctx, this, contractIds, transactionParams, transactionConfig);
+        com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredContractTransactions.start(
+                ctx, this, contractIds, transactionParams, transactionConfig);
     }
 
     @Deprecated
@@ -76,7 +69,8 @@ public class WiredEffectInitTransaction extends InteractionWiredEffect {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(this.getDelay(), this.contractIds, transactionParams, transactionConfig));
+        return WiredManager.getGson()
+                .toJson(new JsonData(this.getDelay(), this.contractIds, transactionParams, transactionConfig));
     }
 
     @Override
@@ -123,12 +117,14 @@ public class WiredEffectInitTransaction extends InteractionWiredEffect {
     static class JsonData {
         int delay;
         List<Integer> contractIds;
-        int[] params; String config;
+        int[] params;
+        String config;
 
         public JsonData(int delay, List<Integer> contractIds, int[] params, String config) {
             this.delay = delay;
             this.contractIds = contractIds;
-            this.params = params; this.config = config;
+            this.params = params;
+            this.config = config;
         }
     }
 }

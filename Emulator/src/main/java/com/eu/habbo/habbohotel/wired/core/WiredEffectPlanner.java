@@ -74,15 +74,21 @@ final class WiredEffectPlanner {
         for (int index = 0; index < ordered.size(); index++) {
             IWiredEffect effect = ordered.get(index);
             if (effect instanceof WiredEffectFurniToFurni || effect instanceof WiredEffectSetAltitude) {
-                positionsByDelay.computeIfAbsent(effect.getDelay(), ignored -> new ArrayList<>()).add(index);
+                positionsByDelay
+                        .computeIfAbsent(effect.getDelay(), ignored -> new ArrayList<>())
+                        .add(index);
             }
         }
         for (List<Integer> positions : positionsByDelay.values()) {
-            List<IWiredEffect> placement = positions.stream().map(ordered::get).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+            List<IWiredEffect> placement = positions.stream()
+                    .map(ordered::get)
+                    .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
             if (placement.stream().noneMatch(WiredEffectFurniToFurni.class::isInstance)
                     || placement.stream().noneMatch(WiredEffectSetAltitude.class::isInstance)) continue;
-            placement.sort(java.util.Comparator.comparingInt(effect -> effect instanceof WiredEffectSetAltitude ? 1 : 0));
-            for (int index = 0; index < positions.size(); index++) ordered.set(positions.get(index), placement.get(index));
+            placement.sort(
+                    java.util.Comparator.comparingInt(effect -> effect instanceof WiredEffectSetAltitude ? 1 : 0));
+            for (int index = 0; index < positions.size(); index++)
+                ordered.set(positions.get(index), placement.get(index));
         }
         return ordered;
     }

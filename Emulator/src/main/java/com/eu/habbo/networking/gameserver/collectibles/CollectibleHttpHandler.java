@@ -1,6 +1,5 @@
 package com.eu.habbo.networking.gameserver.collectibles;
 
-import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.collectibles.CollectibleManager;
 import com.eu.habbo.networking.gameserver.auth.AccessTokenService;
 import com.eu.habbo.networking.gameserver.auth.CorsOriginGate;
@@ -18,10 +17,9 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.util.ReferenceCountUtil;
+import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.charset.StandardCharsets;
 
 public class CollectibleHttpHandler extends ChannelInboundHandlerAdapter {
 
@@ -63,10 +61,30 @@ public class CollectibleHttpHandler extends ChannelInboundHandlerAdapter {
         try {
             String path = new QueryStringDecoder(req.uri()).path();
             CollectibleManager manager = new CollectibleManager();
-            if(req.method()==HttpMethod.POST && path.equals(BASE_PATH+"/manage")){sendJson(ctx,req,HttpResponseStatus.OK,manager.manage(userId,parseBody(req)));return;}
-            if(req.method()==HttpMethod.POST && path.equals(BASE_PATH+"/shop/create")){sendJson(ctx,req,HttpResponseStatus.OK,manager.saveShop(userId,parseBody(req)));return;}
-            if(req.method()==HttpMethod.POST && path.equals(BASE_PATH+"/shop/disable")){sendJson(ctx,req,HttpResponseStatus.OK,manager.disableShop(userId,parseBody(req).get("id").getAsInt()));return;}
-            if(req.method()==HttpMethod.POST && path.equals(BASE_PATH+"/shop/buy")){sendJson(ctx,req,HttpResponseStatus.OK,manager.buyShop(userId,parseBody(req).get("id").getAsInt()));return;}
+            if (req.method() == HttpMethod.POST && path.equals(BASE_PATH + "/manage")) {
+                sendJson(ctx, req, HttpResponseStatus.OK, manager.manage(userId, parseBody(req)));
+                return;
+            }
+            if (req.method() == HttpMethod.POST && path.equals(BASE_PATH + "/shop/create")) {
+                sendJson(ctx, req, HttpResponseStatus.OK, manager.saveShop(userId, parseBody(req)));
+                return;
+            }
+            if (req.method() == HttpMethod.POST && path.equals(BASE_PATH + "/shop/disable")) {
+                sendJson(
+                        ctx,
+                        req,
+                        HttpResponseStatus.OK,
+                        manager.disableShop(userId, parseBody(req).get("id").getAsInt()));
+                return;
+            }
+            if (req.method() == HttpMethod.POST && path.equals(BASE_PATH + "/shop/buy")) {
+                sendJson(
+                        ctx,
+                        req,
+                        HttpResponseStatus.OK,
+                        manager.buyShop(userId, parseBody(req).get("id").getAsInt()));
+                return;
+            }
 
             if (req.method() == HttpMethod.GET && path.equals(BASE_PATH)) {
                 sendJson(ctx, req, HttpResponseStatus.OK, manager.state(userId));
@@ -82,7 +100,11 @@ public class CollectibleHttpHandler extends ChannelInboundHandlerAdapter {
                 return;
             }
             if (req.method() == HttpMethod.POST && path.equals(BASE_PATH + "/disable")) {
-                sendJson(ctx, req, HttpResponseStatus.OK, manager.disable(userId, parseBody(req).get("id").getAsInt()));
+                sendJson(
+                        ctx,
+                        req,
+                        HttpResponseStatus.OK,
+                        manager.disable(userId, parseBody(req).get("id").getAsInt()));
                 return;
             }
             if (req.method() == HttpMethod.POST && path.equals(BASE_PATH + "/claim")) {
@@ -95,7 +117,11 @@ public class CollectibleHttpHandler extends ChannelInboundHandlerAdapter {
         } catch (SecurityException e) {
             sendJson(ctx, req, HttpResponseStatus.FORBIDDEN, error(e.getMessage()));
         } catch (IllegalArgumentException | NullPointerException | IllegalStateException e) {
-            sendJson(ctx, req, HttpResponseStatus.BAD_REQUEST, error("Richiesta non valida: " + (e.getMessage() == null ? "dati mancanti" : e.getMessage())));
+            sendJson(
+                    ctx,
+                    req,
+                    HttpResponseStatus.BAD_REQUEST,
+                    error("Richiesta non valida: " + (e.getMessage() == null ? "dati mancanti" : e.getMessage())));
         } catch (Exception e) {
             LOGGER.error("[collectibles] unexpected error", e);
             sendJson(ctx, req, HttpResponseStatus.INTERNAL_SERVER_ERROR, error("Server error."));
@@ -106,7 +132,8 @@ public class CollectibleHttpHandler extends ChannelInboundHandlerAdapter {
         String authorization = req.headers().get(HttpHeaderNames.AUTHORIZATION);
         if (authorization == null || !authorization.startsWith("Bearer ")) return 0;
 
-        return AccessTokenService.verify(authorization.substring("Bearer ".length()).trim());
+        return AccessTokenService.verify(
+                authorization.substring("Bearer ".length()).trim());
     }
 
     private JsonObject parseBody(FullHttpRequest req) {
@@ -124,7 +151,8 @@ public class CollectibleHttpHandler extends ChannelInboundHandlerAdapter {
         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
     }
 
-    private void sendJson(ChannelHandlerContext ctx, FullHttpRequest req, HttpResponseStatus status, JsonObject payload) {
+    private void sendJson(
+            ChannelHandlerContext ctx, FullHttpRequest req, HttpResponseStatus status, JsonObject payload) {
         byte[] bytes = payload.toString().getBytes(StandardCharsets.UTF_8);
         FullHttpResponse response =
                 new DefaultFullHttpResponse(req.protocolVersion(), status, Unpooled.wrappedBuffer(bytes));
@@ -139,11 +167,15 @@ public class CollectibleHttpHandler extends ChannelInboundHandlerAdapter {
         if (origin != null && !origin.isEmpty() && CorsOriginGate.isAllowed(req)) {
             response.headers().set(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, origin);
             response.headers().set(HttpHeaderNames.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
-            response.headers().set(HttpHeaderNames.VARY, "Origin, Access-Control-Request-Headers, Access-Control-Request-Method");
+            response.headers()
+                    .set(HttpHeaderNames.VARY, "Origin, Access-Control-Request-Headers, Access-Control-Request-Method");
         }
 
         response.headers().set(HttpHeaderNames.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, OPTIONS");
-        response.headers().set(HttpHeaderNames.ACCESS_CONTROL_ALLOW_HEADERS, "Authorization, Content-Type, X-Requested-With, X-Nitro-Api");
+        response.headers()
+                .set(
+                        HttpHeaderNames.ACCESS_CONTROL_ALLOW_HEADERS,
+                        "Authorization, Content-Type, X-Requested-With, X-Nitro-Api");
         response.headers().set(HttpHeaderNames.ACCESS_CONTROL_MAX_AGE, "600");
         response.headers().set(HttpHeaderNames.CACHE_CONTROL, "no-store");
     }

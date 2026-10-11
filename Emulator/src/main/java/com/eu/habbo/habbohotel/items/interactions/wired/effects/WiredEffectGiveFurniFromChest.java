@@ -4,7 +4,6 @@ import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
-import com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestStorage;
 import com.eu.habbo.habbohotel.items.interactions.wired.chest.WiredChestConfiguration;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
@@ -16,7 +15,6 @@ import com.eu.habbo.habbohotel.wired.core.WiredManager;
 import com.eu.habbo.habbohotel.wired.core.WiredSourceUtil;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -39,7 +37,8 @@ public class WiredEffectGiveFurniFromChest extends InteractionWiredEffect {
         super(set, baseItem);
     }
 
-    public WiredEffectGiveFurniFromChest(int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
+    public WiredEffectGiveFurniFromChest(
+            int id, int userId, Item item, String extradata, int limitedStack, int limitedSells) {
         super(id, userId, item, extradata, limitedStack, limitedSells);
     }
 
@@ -47,7 +46,8 @@ public class WiredEffectGiveFurniFromChest extends InteractionWiredEffect {
     public void execute(WiredContext ctx) {
         Room room = ctx.room();
         if (room == null) return;
-        WiredChestConfiguration config = this.configuration == null ? new WiredChestConfiguration() : this.configuration;
+        WiredChestConfiguration config =
+                this.configuration == null ? new WiredChestConfiguration() : this.configuration;
         Integer requested = config.amount(ctx, this.amount);
         if (config.rewardingMode != 1 && (requested == null || requested <= 0)) return;
         for (RoomUnit unit : WiredSourceUtil.resolveUsers(ctx, this.userSource)) {
@@ -56,10 +56,15 @@ public class WiredEffectGiveFurniFromChest extends InteractionWiredEffect {
             int remaining = config.rewardingMode == 1 ? Integer.MAX_VALUE : requested;
             int totalGiven = 0;
             for (HabboItem item : config.items(ctx, this.chestIds, config.chestSource)) {
-                if (!(item instanceof com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChestFurni chest) || chest.getContents().isLocked()) continue;
-                int given = com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestWiredFurniUtil.giveFromChestInOrder(habbo, chest, remaining, config.iterationMode);
+                if (!(item
+                                instanceof
+                                com.eu.habbo.habbohotel.items.interactions.wired.chest.InteractionWiredChestFurni chest)
+                        || chest.getContents().isLocked()) continue;
+                int given =
+                        com.eu.habbo.habbohotel.items.interactions.wired.chest.ChestWiredFurniUtil.giveFromChestInOrder(
+                                habbo, chest, remaining, config.iterationMode);
                 remaining -= given;
-                totalGiven = (int)Math.min(Integer.MAX_VALUE, (long)totalGiven + given);
+                totalGiven = (int) Math.min(Integer.MAX_VALUE, (long) totalGiven + given);
                 if (remaining <= 0) break;
             }
             config.notifyReward(habbo, totalGiven);
@@ -79,8 +84,13 @@ public class WiredEffectGiveFurniFromChest extends InteractionWiredEffect {
         if (params.length < 2) throw new WiredSaveException("invalid data");
 
         this.amount = Math.max(1, params[this.configuration != null && params.length >= 6 ? 1 : 0]);
-        this.userSource = this.configuration != null ? (settings.getUserSourceTypes() != null && settings.getUserSourceTypes().length > 0 ? settings.getUserSourceTypes()[0] : params.length >= 7 ? params[6] : 0) : params[1];
-        if (this.configuration != null && params.length >= 6) this.configuration.iterationMode = Math.max(0, Math.min(2, params[5]));
+        this.userSource = this.configuration != null
+                ? (settings.getUserSourceTypes() != null && settings.getUserSourceTypes().length > 0
+                        ? settings.getUserSourceTypes()[0]
+                        : params.length >= 7 ? params[6] : 0)
+                : params[1];
+        if (this.configuration != null && params.length >= 6)
+            this.configuration.iterationMode = Math.max(0, Math.min(2, params[5]));
 
         this.chestIds.clear();
         if (settings.getFurniIds() != null) {
@@ -100,7 +110,8 @@ public class WiredEffectGiveFurniFromChest extends InteractionWiredEffect {
 
     @Override
     public String getWiredData() {
-        return WiredManager.getGson().toJson(new JsonData(this.amount, this.userSource, this.getDelay(), this.chestIds));
+        return WiredManager.getGson()
+                .toJson(new JsonData(this.amount, this.userSource, this.getDelay(), this.chestIds));
     }
 
     @Override
@@ -132,7 +143,8 @@ public class WiredEffectGiveFurniFromChest extends InteractionWiredEffect {
         }
         message.appendInt(this.getBaseItem().getSpriteId());
         message.appendInt(this.getId());
-        message.appendString(this.configuration == null ? "" : WiredManager.getGson().toJson(this.configuration));
+        message.appendString(
+                this.configuration == null ? "" : WiredManager.getGson().toJson(this.configuration));
         if (this.configuration != null) {
             message.appendInt(7);
             message.appendInt(this.configuration.rewardingMode);
@@ -143,9 +155,9 @@ public class WiredEffectGiveFurniFromChest extends InteractionWiredEffect {
             message.appendInt(this.configuration.iterationMode);
             message.appendInt(this.userSource);
         } else {
-        message.appendInt(2);
-        message.appendInt(this.amount);
-        message.appendInt(this.userSource);
+            message.appendInt(2);
+            message.appendInt(this.amount);
+            message.appendInt(this.userSource);
         }
         message.appendInt(0);
         message.appendInt(this.getType().code);

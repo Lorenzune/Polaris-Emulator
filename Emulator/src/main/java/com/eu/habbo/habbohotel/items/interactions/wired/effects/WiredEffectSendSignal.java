@@ -73,8 +73,11 @@ public class WiredEffectSendSignal extends InteractionWiredEffect {
     }
 
     public boolean isNativeSelfFeedback(WiredContext ctx) {
-        return this.nativeSignal && this.nativeAntennaSource == WiredSourceUtil.SOURCE_SELECTED
-                && ctx.triggerItem() instanceof com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerReceiveSignal receiver
+        return this.nativeSignal
+                && this.nativeAntennaSource == WiredSourceUtil.SOURCE_SELECTED
+                && ctx.triggerItem()
+                        instanceof
+                        com.eu.habbo.habbohotel.items.interactions.wired.triggers.WiredTriggerReceiveSignal receiver
                 && this.items.stream().anyMatch(receiver::listensToPickedAntenna);
     }
 
@@ -309,8 +312,9 @@ public class WiredEffectSendSignal extends InteractionWiredEffect {
                 ctx.event().getOriginActor().orElseGet(() -> ctx.actor().orElse(null));
         List<RoomUnit> actors =
                 signalPerUser ? users : Collections.singletonList(ctx.actor().orElse(null));
-        List<HabboItem> sources =
-                signalPerFurni ? furni : Collections.singletonList(ctx.sourceItem().orElse(null));
+        List<HabboItem> sources = signalPerFurni
+                ? furni
+                : Collections.singletonList(ctx.sourceItem().orElse(null));
         long createdAt = System.currentTimeMillis();
         signalEmissionLoop:
         try (WiredRoomUpdateScope ignored = WiredRoomUpdateScope.batchVisualUpdates()) {
