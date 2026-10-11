@@ -28,6 +28,7 @@ public class PetPackageNameEvent extends MessageHandler {
         Room room = this.client.getHabbo().getHabboInfo().getCurrentRoom();
 
         if (room != null) {
+            synchronized (room) {
             HabboItem item = room.getHabboItem(itemId);
             if (item != null) {
                 if (item.getUserId() == this.client.getHabbo().getHabboInfo().getId()) {
@@ -41,33 +42,49 @@ public class PetPackageNameEvent extends MessageHandler {
                         }
 
                         Pet pet = null;
+                        var petManager = Emulator.getGameEnvironment().getPetManager();
 
                         if (item.getBaseItem().getName().equalsIgnoreCase("val11_present")) {
-                            pet = Emulator.getGameEnvironment().getPetManager().createPet(11, name, this.client);
+                            pet = petManager.createPet(11, name, this.client);
                         }
 
                         if (item.getBaseItem().getName().equalsIgnoreCase("gnome_box")) {
-                            pet = Emulator.getGameEnvironment()
-                                    .getPetManager()
+                            pet = petManager
                                     .createGnome(name, room, this.client.getHabbo());
                         }
 
                         if (item.getBaseItem().getName().equalsIgnoreCase("leprechaun_box")) {
-                            pet = Emulator.getGameEnvironment()
-                                    .getPetManager()
+                            pet = petManager
                                     .createLeprechaun(name, room, this.client.getHabbo());
                         }
 
                         if (item.getBaseItem().getName().equalsIgnoreCase("velociraptor_egg")) {
-                            pet = Emulator.getGameEnvironment().getPetManager().createPet(34, name, this.client);
+                            pet = petManager.createPet(34, name, this.client);
                         }
 
                         if (item.getBaseItem().getName().equalsIgnoreCase("pterosaur_egg")) {
-                            pet = Emulator.getGameEnvironment().getPetManager().createPet(33, name, this.client);
+                            pet = petManager.createPet(33, name, this.client);
                         }
 
                         if (item.getBaseItem().getName().equalsIgnoreCase("petbox_epic")) {
-                            pet = Emulator.getGameEnvironment().getPetManager().createPet(32, name, this.client);
+                            pet = petManager.createPet(32, name, this.client);
+                        }
+
+                        if (item.getBaseItem().getName().equalsIgnoreCase("cowbox")) {
+                            pet = petManager.createPet(35, name, this.client);
+                        }
+                        if (item.getBaseItem().getName().equalsIgnoreCase("cowbox_gold")) {
+                            pet = petManager.createPet(35, 28, name, this.client);
+                        }
+
+                        if (item.getBaseItem().getName().equalsIgnoreCase("newbie_cat_package")) {
+                            pet = petManager.createPet(1, name, this.client);
+                        }
+                        if (item.getBaseItem().getName().equalsIgnoreCase("newbie_crocodile_package")) {
+                            pet = petManager.createPet(2, name, this.client);
+                        }
+                        if (item.getBaseItem().getName().equalsIgnoreCase("newbie_present_2014")) {
+                            pet = petManager.createPet(0, name, this.client);
                         }
 
                         if (pet != null) {
@@ -97,6 +114,7 @@ public class PetPackageNameEvent extends MessageHandler {
             }
         }
 
+        }
         this.client.sendResponse(
                 new PetPackageNameValidationComposer(itemId, PetPackageNameValidationComposer.CLOSE_WIDGET, ""));
     }

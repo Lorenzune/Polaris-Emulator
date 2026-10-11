@@ -1731,7 +1731,8 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     }
 
     public void removeHabbo(Habbo habbo) {
-        this.cleanupYoutubeWatcher(habbo);
+        RoomPetBreedingLifecycle.leaving(this, habbo);
+        this.media.removeWatcher(habbo);
         this.itemManager.closeLeavingChestViews(habbo);
         if (habbo != null && habbo.getHabboInfo() != null) {
             if (this.voiceUsers.remove(habbo.getHabboInfo().getId())) {
@@ -1743,7 +1744,8 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
     }
 
     public void removeHabbo(Habbo habbo, boolean sendRemovePacket) {
-        this.cleanupYoutubeWatcher(habbo);
+        RoomPetBreedingLifecycle.leaving(this, habbo);
+        this.media.removeWatcher(habbo);
         this.itemManager.closeLeavingChestViews(habbo);
         if (habbo != null && habbo.getHabboInfo() != null) {
             if (this.voiceUsers.remove(habbo.getHabboInfo().getId())) {
@@ -1774,9 +1776,6 @@ public class Room implements Comparable<Room>, ISerialize, Runnable {
         SearchRoomsEvent.invalidateCachedResults();
     }
 
-    private void cleanupYoutubeWatcher(Habbo habbo) {
-        this.media.removeWatcher(habbo);
-    }
 
     public void addBot(Bot bot) {
         this.unitManager.addBot(bot);

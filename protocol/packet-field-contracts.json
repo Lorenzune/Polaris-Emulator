@@ -16805,6 +16805,120 @@
           "name": "scope"
         }
       ]
+    },
+    {
+      "name": "PET_NEST_BREEDING_SUCCESS",
+      "direction": "server_to_client",
+      "header": 1901,
+      "java": {
+        "symbol": "NestBreedingSuccessComposer",
+        "className": "NestBreedingSuccessComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/pets/breeding/NestBreedingSuccessComposer.java"
+      },
+      "typescript": {
+        "symbol": "PET_NEST_BREEDING_SUCCESS",
+        "className": "NestBreedingSuccessParser",
+        "path": "packages/communication/src/messages/parser/inventory/pets/NestBreedingSuccessParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field0"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field1"
+        }
+      ]
+    },
+    {
+      "name": "PET_BREEDING_RESULT",
+      "direction": "server_to_client",
+      "header": 1553,
+      "java": {
+        "symbol": "UnknownComposer_100",
+        "className": "MonsterplantBreedingResultComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/rooms/pets/breeding/MonsterplantBreedingResultComposer.java"
+      },
+      "typescript": {
+        "symbol": "PET_BREEDING_RESULT",
+        "className": "PetBreedingResultParser",
+        "path": "packages/communication/src/messages/parser/room/pet/PetBreedingResultParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field0"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field1"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "field2"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field3"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "field4"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field5"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "field6"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field7"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field8"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "field9"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field10"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "field11"
+        },
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "field12"
+        },
+        {
+          "kind": "scalar",
+          "type": "boolean",
+          "name": "field13"
+        }
+      ]
     }
   ],
   "unpaired": [
@@ -18118,14 +18232,6 @@
       "header": 1180,
       "symbol": "GROUP_MEMBERSHIP_REQUESTED",
       "path": "packages/communication/src/messages/parser/user/GroupMembershipRequestedMessageParser.ts",
-      "reason": "Header is registered only by the Nitro Renderer packet registry"
-    },
-    {
-      "direction": "server_to_client",
-      "side": "typescript",
-      "header": 1553,
-      "symbol": "PET_BREEDING_RESULT",
-      "path": "packages/communication/src/messages/parser/room/pet/PetBreedingResultParser.ts",
       "reason": "Header is registered only by the Nitro Renderer packet registry"
     },
     {

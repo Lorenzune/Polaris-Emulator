@@ -9,7 +9,9 @@ public class StopBreedingEvent extends MessageHandler {
     public void handle() throws Exception {
         int itemId = this.packet.readInt();
 
-        HabboItem item = this.client.getHabbo().getHabboInfo().getCurrentRoom().getHabboItem(itemId);
+        var room = this.client.getHabbo().getHabboInfo().getCurrentRoom();
+        if (room == null || itemId <= 0) return;
+        HabboItem item = room.getHabboItem(itemId);
 
         if (item instanceof InteractionPetBreedingNest) {
             ((InteractionPetBreedingNest) item).stopBreeding(this.client.getHabbo());

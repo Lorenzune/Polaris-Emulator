@@ -41,46 +41,37 @@ public class PetBreedingResultComposer extends MessageComposer {
 
         this.response.appendInt(4); //Levels
         {
-            int percentage1 = (int) (normalDistribution.cumulativeProbability(10) * 100);
-            int percentage2 = (int) (normalDistribution.cumulativeProbability(15) * 100) - percentage1;
-            int percentage3 = (int) (normalDistribution.cumulativeProbability(18) * 100) - percentage1 - percentage2;
-            int percentage4 = (int) (normalDistribution.cumulativeProbability(20) * 100) - percentage1 - percentage2 - percentage3;
-
-            int dPercentage = 100 - (percentage1 + percentage2 + percentage3 + percentage4);
-            if (dPercentage > 0) {
-                percentage1 += dPercentage;
-            } else {
-                percentage4 -= dPercentage;
-            }
+            int[] odds = com.eu.habbo.habbohotel.pets.breeding.PetBreedingOdds.percentages(normalDistribution);
+            int percentage1 = odds[0], percentage2 = odds[1], percentage3 = odds[2], percentage4 = odds[3];
 
             this.response.appendInt(percentage4); //Percentage
-            this.response.appendInt(rewardBreeds.get(4).size()); //Count
+            this.response.appendInt((rewardBreeds == null || rewardBreeds.get(4) == null ? 0 : rewardBreeds.get(4).size())); //Count
             {
-                for (PetBreedingReward reward : rewardBreeds.get(4)) {
+                for (PetBreedingReward reward : (rewardBreeds == null || rewardBreeds.get(4) == null ? new ArrayList<PetBreedingReward>() : rewardBreeds.get(4))) {
                     this.response.appendInt(reward.breed);
                 }
             }
 
             this.response.appendInt(percentage3); //Percentage
-            this.response.appendInt(rewardBreeds.get(3).size()); //Count
+            this.response.appendInt((rewardBreeds == null || rewardBreeds.get(3) == null ? 0 : rewardBreeds.get(3).size())); //Count
             {
-                for (PetBreedingReward reward : rewardBreeds.get(3)) {
+                for (PetBreedingReward reward : (rewardBreeds == null || rewardBreeds.get(3) == null ? new ArrayList<PetBreedingReward>() : rewardBreeds.get(3))) {
                     this.response.appendInt(reward.breed);
                 }
             }
 
             this.response.appendInt(percentage2); //Percentage
-            this.response.appendInt(rewardBreeds.get(2).size()); //Count
+            this.response.appendInt((rewardBreeds == null || rewardBreeds.get(2) == null ? 0 : rewardBreeds.get(2).size())); //Count
             {
-                for (PetBreedingReward reward : rewardBreeds.get(2)) {
+                for (PetBreedingReward reward : (rewardBreeds == null || rewardBreeds.get(2) == null ? new ArrayList<PetBreedingReward>() : rewardBreeds.get(2))) {
                     this.response.appendInt(reward.breed);
                 }
             }
 
             this.response.appendInt(percentage1); //Percentage
-            this.response.appendInt(rewardBreeds.get(1).size()); //Count
+            this.response.appendInt((rewardBreeds == null || rewardBreeds.get(1) == null ? 0 : rewardBreeds.get(1).size())); //Count
             {
-                for (PetBreedingReward reward : rewardBreeds.get(1)) {
+                for (PetBreedingReward reward : (rewardBreeds == null || rewardBreeds.get(1) == null ? new ArrayList<PetBreedingReward>() : rewardBreeds.get(1))) {
                     this.response.appendInt(reward.breed);
                 }
             }
@@ -105,7 +96,7 @@ public class PetBreedingResultComposer extends MessageComposer {
             message.appendInt(this.pet.getId());
             message.appendString(this.pet.getName());
             message.appendInt(this.pet.getLevel());
-            message.appendString(this.pet.getColor());
+            message.appendString(this.pet.getPetData().getType() + " " + this.pet.getRace() + " " + this.pet.getColor());
             message.appendString(this.ownerName);
         }
 

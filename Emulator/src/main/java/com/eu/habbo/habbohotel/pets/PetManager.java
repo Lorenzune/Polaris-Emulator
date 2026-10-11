@@ -586,7 +586,7 @@ public class PetManager {
 
     public Pet createPet(int type, String name, GameClient client) {
         return this.createPet(
-                type, Emulator.getRandom().nextInt(this.petRaces.get(type).size() + 1), name, client);
+                type, PetBreedSelection.choosePalette(this.petRaces.get(type), Emulator.getRandom()), name, client);
     }
 
     public Pet createPet(int type, int race, String name, GameClient client) {

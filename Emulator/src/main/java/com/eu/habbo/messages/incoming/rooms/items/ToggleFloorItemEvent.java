@@ -28,7 +28,8 @@ public class ToggleFloorItemEvent extends MessageHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(ToggleFloorItemEvent.class);
 
     private static HashSet<String> PET_BOXES = new HashSet<>(Arrays.asList(
-            "val11_present", "gnome_box", "leprechaun_box", "velociraptor_egg", "pterosaur_egg", "petbox_epic"));
+            "val11_present", "gnome_box", "leprechaun_box", "velociraptor_egg", "pterosaur_egg", "petbox_epic", "cowbox", "cowbox_gold",
+            "newbie_cat_package", "newbie_crocodile_package", "newbie_present_2014"));
 
     @Override
     public int getRatelimit() {

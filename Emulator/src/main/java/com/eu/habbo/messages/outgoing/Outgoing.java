@@ -403,6 +403,7 @@ public class Outgoing {
     public static final int SimpleAlertComposer = 5100; // PRODUCTION-201611291003-338511768
     public static final int MessengerErrorComposer = 896; // PRODUCTION-201611291003-338511768
     public static final int CameraPriceComposer = 3878; // PRODUCTION-201611291003-338511768
+    public static final int NestBreedingSuccessComposer = 1901;
     public static final int PetBreedingCompleted = 2527; // PRODUCTION-201611291003-338511768
     public static final int RoomUserUnbannedComposer = 3429; // PRODUCTION-201611291003-338511768
     public static final int HotelViewCommunityGoalComposer = 2525; // PRODUCTION-201611291003-338511768

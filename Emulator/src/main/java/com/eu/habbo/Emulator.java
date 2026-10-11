@@ -144,6 +144,10 @@ public final class Emulator {
     private static final SecureRandom secureRandom = new SecureRandom();
 
     static {
+        com.eu.habbo.habbohotel.pets.breeding.PetBreedingPlatform.install(
+                new com.eu.habbo.habbohotel.pets.breeding.PetBreedingPlatform.Services(
+                        () -> getConfig(), () -> getDatabase(), () -> getGameEnvironment(),
+                        () -> getThreading(), () -> getRandom()));
         WiredPlatform.install(new WiredPlatform.Services(
                 () -> getConfig(),
                 () -> getDatabase(),

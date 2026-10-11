@@ -10,6 +10,7 @@ import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.inventory.AddHabboItemComposer;
 import com.eu.habbo.messages.outgoing.inventory.InventoryRefreshComposer;
+import com.eu.habbo.messages.outgoing.rooms.pets.breeding.MonsterplantBreedingResultComposer;
 import com.eu.habbo.messages.outgoing.rooms.pets.PetStatusUpdateComposer;
 import com.eu.habbo.messages.outgoing.rooms.pets.RoomPetRespectComposer;
 import com.eu.habbo.messages.outgoing.rooms.users.RoomUserStatusComposer;
@@ -314,77 +315,67 @@ public class MonsterplantPet extends Pet implements IPetLook {
     }
 
     public void breed(MonsterplantPet pet) {
-        // Validate both plants can breed
-        if (!this.breedable() || !pet.breedable()) {
-            return;
-        }
-        
-        if (this.canBreed && pet.canBreed) {
-            this.canBreed = false;
-            this.publiclyBreedable = false;
-            this.needsUpdate = true;
-
-            pet.setCanBreed(false);
-            pet.setPubliclyBreedable(false);
-            // pet.needsUpdate is set by setCanBreed and setPubliclyBreedable
-            
-            // Persist changes to database
-            Emulator.getThreading().run(this);
-            Emulator.getThreading().run(pet);
-            
-            this.room.sendComposer(new PetStatusUpdateComposer(pet).compose());
+        if (pet == null || pet == this || this.room == null || pet.getRoom() != this.room) return;
+        synchronized (this.room) {
+            if (!this.breedable() || !pet.breedable()) return;
+            Habbo ownerOne = this.room.getHabbo(this.userId);
+            Habbo ownerTwo = this.room.getHabbo(pet.getUserId());
+            if (ownerOne == null || ownerTwo == null) return;
+            boolean rare = this.getRarity() >= 8 && pet.getRarity() >= 8
+                    && Emulator.getRandom().nextInt(100) <= this.getRarity() + pet.getRarity();
+            Item seedBase = Emulator.getGameEnvironment().getItemManager().getItem(
+                    Emulator.getConfig().getInt(rare ? "monsterplant.seed_rare.item_id" : "monsterplant.seed.item_id"));
+            if (seedBase == null) return;
+            HabboItem one, two = null;
+            try (Connection connection = com.eu.habbo.habbohotel.pets.breeding.PetBreedingPlatform.services().database().get().getDataSource().getConnection()) {
+                connection.setAutoCommit(false);
+                try {
+                    try (PreparedStatement update = connection.prepareStatement(
+                            "UPDATE users_pets SET mp_breedable = 0, mp_allow_breed = 0 WHERE id IN (?, ?) AND room_id = ? AND mp_breedable = 1 AND mp_is_dead = 0")) {
+                        update.setInt(1, this.id); update.setInt(2, pet.getId()); update.setInt(3, this.room.getId());
+                        if (update.executeUpdate() != 2) throw new SQLException("Plants no longer breedable in this room");
+                    }
+                    one = Emulator.getGameEnvironment().getItemManager().createItem(connection, this.userId, seedBase, 0, 0, "");
+                    if (ownerOne != ownerTwo) two = Emulator.getGameEnvironment().getItemManager()
+                            .createItem(connection, pet.getUserId(), seedBase, 0, 0, "");
+                    if (one == null || (ownerOne != ownerTwo && two == null)) throw new SQLException("Unable to create offspring seed");
+                    connection.commit();
+                } catch (Exception failure) { connection.rollback(); throw failure; }
+            } catch (Exception failure) {
+                LOGGER.error("Unable to breed monsterplants {} and {}", this.id, pet.getId(), failure);
+                ownerOne.getClient().sendResponse(new com.eu.habbo.messages.outgoing.rooms.pets.breeding.PetBreedingStartComposer(1, 0, 0));
+                if (ownerOne != ownerTwo) ownerTwo.getClient().sendResponse(new com.eu.habbo.messages.outgoing.rooms.pets.breeding.PetBreedingStartComposer(1, 0, 0));
+                return;
+            }
+            this.canBreed = false; this.publiclyBreedable = false; this.needsUpdate = true;
+            pet.setCanBreed(false); pet.setPubliclyBreedable(false);
             this.room.sendComposer(new PetStatusUpdateComposer(this).compose());
-
-            Habbo owner = Emulator.getGameEnvironment().getHabboManager().getHabbo(this.userId);
-            Habbo otherOwner = Emulator.getGameEnvironment().getHabboManager().getHabbo(pet.userId);
-            AchievementInteractions.progress(owner, "MonsterPlantShapeCollector");
-            AchievementInteractions.progress(owner, "MonsterPlantColorCollector");
-            AchievementInteractions.progress(otherOwner, "MonsterPlantShapeCollector");
-            AchievementInteractions.progress(otherOwner, "MonsterPlantColorCollector");
-
+            this.room.sendComposer(new PetStatusUpdateComposer(pet).compose());
             this.getRoomUnit().setStatus(RoomUnitStatus.GESTURE, "reb");
             pet.getRoomUnit().setStatus(RoomUnitStatus.GESTURE, "reb");
-
             this.room.sendComposer(new RoomUserStatusComposer(this.getRoomUnit()).compose());
             this.room.sendComposer(new RoomUserStatusComposer(pet.getRoomUnit()).compose());
-
             this.getRoomUnit().removeStatus(RoomUnitStatus.GESTURE);
             pet.getRoomUnit().removeStatus(RoomUnitStatus.GESTURE);
-
-            Habbo ownerOne = this.room.getHabbo(this.getUserId());
-            Habbo ownerTwo = null;
-
-            if (this.getUserId() != pet.getUserId()) {
-                ownerTwo = this.room.getHabbo(pet.getUserId());
-            }
-
-            Item seedBase;
-
-            if (this.getRarity() < 8 || pet.getRarity() < 8 || Emulator.getRandom().nextInt(100) > this.getRarity() + pet.getRarity()) {
-                seedBase = Emulator.getGameEnvironment().getItemManager().getItem(Emulator.getConfig().getInt("monsterplant.seed.item_id"));
-            } else {
-                seedBase = Emulator.getGameEnvironment().getItemManager().getItem(Emulator.getConfig().getInt("monsterplant.seed_rare.item_id"));
-            }
-
-            if (seedBase != null) {
-                HabboItem seed;
-                if (ownerOne != null) {
-                    AchievementManager.progressAchievement(ownerOne, Emulator.getGameEnvironment().getAchievementManager().getAchievement("MonsterPlantBreeder"), 5);
-                    seed = Emulator.getGameEnvironment().getItemManager().createItem(ownerOne.getHabboInfo().getId(), seedBase, 0, 0, "");
-                    ownerOne.getInventory().getItemsComponent().addItem(seed);
-                    ownerOne.getClient().sendResponse(new AddHabboItemComposer(seed));
-                    ownerOne.getClient().sendResponse(new InventoryRefreshComposer());
-                }
-
-                if (ownerTwo != null) {
-                    AchievementManager.progressAchievement(ownerTwo, Emulator.getGameEnvironment().getAchievementManager().getAchievement("MonsterPlantBreeder"), 5);
-                    seed = Emulator.getGameEnvironment().getItemManager().createItem(ownerTwo.getHabboInfo().getId(), seedBase, 0, 0, "");
-                    ownerTwo.getInventory().getItemsComponent().addItem(seed);
-                    ownerTwo.getClient().sendResponse(new AddHabboItemComposer(seed));
-                    ownerTwo.getClient().sendResponse(new InventoryRefreshComposer());
-                }
-            }
+            MonsterplantBreedingResultComposer.Seed first = publishSeed(ownerOne, one, this.getRarity(), rare);
+            MonsterplantBreedingResultComposer.Seed second = two == null ? MonsterplantBreedingResultComposer.Seed.NONE
+                    : publishSeed(ownerTwo, two, pet.getRarity(), rare);
+            MonsterplantBreedingResultComposer result = new MonsterplantBreedingResultComposer(first, second);
+            ownerOne.getClient().sendResponse(result);
+            if (ownerOne != ownerTwo) ownerTwo.getClient().sendResponse(result);
         }
+    }
+
+    private static MonsterplantBreedingResultComposer.Seed publishSeed(Habbo owner, HabboItem seed, int rarity, boolean rare) {
+        owner.getInventory().getItemsComponent().addItem(seed);
+        owner.getClient().sendResponse(new AddHabboItemComposer(seed));
+        owner.getClient().sendResponse(new InventoryRefreshComposer());
+        AchievementManager.progressAchievement(owner, Emulator.getGameEnvironment().getAchievementManager()
+                .getAchievement("MonsterPlantBreeder"), 5);
+        AchievementInteractions.progress(owner, "MonsterPlantShapeCollector");
+        AchievementInteractions.progress(owner, "MonsterPlantColorCollector");
+        return new MonsterplantBreedingResultComposer.Seed(seed, owner.getHabboInfo().getId(),
+                owner.getHabboInfo().getUsername(), rarity, rare);
     }
 
     private boolean mayScratch() {
