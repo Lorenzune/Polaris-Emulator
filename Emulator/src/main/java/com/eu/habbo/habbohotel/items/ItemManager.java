@@ -1260,8 +1260,31 @@ public class ItemManager {
         return null;
     }
 
+    /** Exclude a BC loan from progression before INSERT triggers can see it. */
+    public HabboItem createBuildersClubItem(
+            int habboId, Item item, int limitedStack, int limitedSells, String extraData) {
+        try (Connection connection = database().getDataSource().getConnection()) {
+            return createItem(connection, habboId, item, limitedStack, limitedSells, extraData, true);
+        } catch (SQLException exception) {
+            LOGGER.error("Could not create Builders Club item", exception);
+            return null;
+        }
+    }
+
     public HabboItem createItem(
             Connection connection, int habboId, Item item, int limitedStack, int limitedSells, String extraData)
+            throws SQLException {
+        return createItem(connection, habboId, item, limitedStack, limitedSells, extraData, false);
+    }
+
+    private HabboItem createItem(
+            Connection connection,
+            int habboId,
+            Item item,
+            int limitedStack,
+            int limitedSells,
+            String extraData,
+            boolean avatarLevelExcluded)
             throws SQLException {
         if (habboId <= 0 || item == null) {
             return null;
@@ -1270,7 +1293,9 @@ public class ItemManager {
         extraData = ItemDataGuard.normalizeExtraData(extraData);
 
         try (PreparedStatement statement = connection.prepareStatement(
-                "INSERT INTO items (user_id, item_id, extra_data, limited_data) VALUES (?, ?, ?, ?)",
+                avatarLevelExcluded
+                        ? "INSERT INTO items (user_id, item_id, extra_data, limited_data, avatar_level_excluded) VALUES (?, ?, ?, ?, 1)"
+                        : "INSERT INTO items (user_id, item_id, extra_data, limited_data) VALUES (?, ?, ?, ?)",
                 Statement.RETURN_GENERATED_KEYS)) {
             statement.setInt(1, habboId);
             statement.setInt(2, item.getId());

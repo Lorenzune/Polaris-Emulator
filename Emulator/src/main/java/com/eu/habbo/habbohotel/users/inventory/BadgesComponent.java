@@ -4,12 +4,10 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.permissions.Rank;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboBadge;
+import com.eu.habbo.habbohotel.users.levels.AvatarLevelPlatform;
 import com.eu.habbo.messages.outgoing.inventory.InventoryBadgesComposer;
 import com.eu.habbo.messages.outgoing.users.UserBadgesComposer;
 import com.eu.habbo.networking.gameserver.badges.BadgeLeaderboardHttpHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -19,6 +17,8 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BadgesComponent {
     private static final Logger LOGGER = LoggerFactory.getLogger(BadgesComponent.class);
@@ -31,8 +31,12 @@ public class BadgesComponent {
 
     private static Set<HabboBadge> loadBadges(Habbo habbo) {
         Set<HabboBadge> badgesList = new HashSet<>();
-        Set<String> staffBadges = Emulator.getGameEnvironment().getPermissionsManager().getStaffBadges();
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT * FROM users_badges WHERE user_id = ?")) {
+        Set<String> staffBadges =
+                Emulator.getGameEnvironment().getPermissionsManager().getStaffBadges();
+        try (Connection connection =
+                        AvatarLevelPlatform.database().getDataSource().getConnection();
+                PreparedStatement statement =
+                        connection.prepareStatement("SELECT * FROM users_badges WHERE user_id = ?")) {
             statement.setInt(1, habbo.getHabboInfo().getId());
 
             try (ResultSet set = statement.executeQuery()) {
@@ -42,7 +46,9 @@ public class BadgesComponent {
                     if (staffBadges.contains(badge.getCode())) {
                         boolean delete = true;
 
-                        for (Rank rank : Emulator.getGameEnvironment().getPermissionsManager().getRanksByBadgeCode(badge.getCode())) {
+                        for (Rank rank : Emulator.getGameEnvironment()
+                                .getPermissionsManager()
+                                .getRanksByBadgeCode(badge.getCode())) {
                             if (rank.getId() == habbo.getHabboInfo().getRank().getId()) {
                                 delete = false;
                                 break;
@@ -113,7 +119,10 @@ public class BadgesComponent {
 
     public static ArrayList<HabboBadge> getBadgesOfflineHabbo(int userId) {
         ArrayList<HabboBadge> badgesList = new ArrayList<>();
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT * FROM users_badges WHERE slot_id > 0 AND user_id = ? ORDER BY slot_id ASC")) {
+        try (Connection connection =
+                        AvatarLevelPlatform.database().getDataSource().getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        "SELECT * FROM users_badges WHERE slot_id > 0 AND user_id = ? ORDER BY slot_id ASC")) {
             statement.setInt(1, userId);
             try (ResultSet set = statement.executeQuery()) {
                 while (set.next()) {
@@ -128,13 +137,21 @@ public class BadgesComponent {
 
     public static HabboBadge createBadge(String code, Habbo habbo) {
         HabboBadge badge = new HabboBadge(0, code, 0, habbo);
-        badge.run();
+        try (Connection connection =
+                AvatarLevelPlatform.database().getDataSource().getConnection()) {
+            badge.insert(connection);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Badge grant was not committed: " + code, exception);
+        }
         habbo.getInventory().getBadgesComponent().addBadge(badge);
         return badge;
     }
 
     public static void deleteBadge(int userId, String badge) {
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("DELETE users_badges FROM users_badges WHERE user_id = ? AND badge_code LIKE ?")) {
+        try (Connection connection =
+                        AvatarLevelPlatform.database().getDataSource().getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        "DELETE users_badges FROM users_badges WHERE user_id = ? AND badge_code LIKE ?")) {
             statement.setInt(1, userId);
             statement.setString(2, badge);
             if (statement.executeUpdate() > 0) {
@@ -149,8 +166,7 @@ public class BadgesComponent {
         synchronized (this.badges) {
             ArrayList<HabboBadge> badgesList = new ArrayList<>();
             for (HabboBadge badge : this.badges) {
-                if (badge.getSlot() == 0)
-                    continue;
+                if (badge.getSlot() == 0) continue;
 
                 badgesList.add(badge);
             }
@@ -184,8 +200,7 @@ public class BadgesComponent {
     public HabboBadge getBadge(String badgeCode) {
         synchronized (this.badges) {
             for (HabboBadge badge : this.badges) {
-                if (badge.getCode().equalsIgnoreCase(badgeCode))
-                    return badge;
+                if (badge.getCode().equalsIgnoreCase(badgeCode)) return badge;
             }
             return null;
         }

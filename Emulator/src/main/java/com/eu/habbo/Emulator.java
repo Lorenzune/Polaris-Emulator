@@ -144,10 +144,16 @@ public final class Emulator {
     private static final SecureRandom secureRandom = new SecureRandom();
 
     static {
+        com.eu.habbo.habbohotel.users.levels.AvatarLevelPlatform.install(
+                new com.eu.habbo.habbohotel.users.levels.AvatarLevelPlatform.Services(
+                        () -> getDatabase(), () -> getGameEnvironment(), () -> getConfig()));
         com.eu.habbo.habbohotel.pets.breeding.PetBreedingPlatform.install(
                 new com.eu.habbo.habbohotel.pets.breeding.PetBreedingPlatform.Services(
-                        () -> getConfig(), () -> getDatabase(), () -> getGameEnvironment(),
-                        () -> getThreading(), () -> getRandom()));
+                        () -> getConfig(),
+                        () -> getDatabase(),
+                        () -> getGameEnvironment(),
+                        () -> getThreading(),
+                        () -> getRandom()));
         WiredPlatform.install(new WiredPlatform.Services(
                 () -> getConfig(),
                 () -> getDatabase(),
@@ -618,7 +624,8 @@ public final class Emulator {
      * Public compatibility getters still prefer the runtime-owned instances.
      */
     static void synchronizeLegacyFacade(PolarisRuntime services) {
-        if (services.gameEnvironment() != null && services.databaseLogger() != null
+        if (services.gameEnvironment() != null
+                && services.databaseLogger() != null
                 && services.gameEnvironment().getModToolManager() != null) {
             services.gameEnvironment().getModToolManager().setChatlogFlusher(services.databaseLogger()::save);
         }

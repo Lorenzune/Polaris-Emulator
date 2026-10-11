@@ -381,8 +381,8 @@ public class HabboStats implements Runnable {
                     }
                 }
 
-                try (PreparedStatement statement =
-                        connection.prepareStatement("SELECT * FROM users_achievements WHERE user_id = ?")) {
+                try (PreparedStatement statement = connection.prepareStatement(
+                        "SELECT achievement_name, MAX(progress) AS progress FROM users_achievements WHERE user_id = ? GROUP BY achievement_name")) {
                     statement.setInt(1, habboInfo.getId());
                     try (ResultSet set = statement.executeQuery()) {
                         while (set.next()) {

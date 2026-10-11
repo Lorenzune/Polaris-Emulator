@@ -1493,6 +1493,8 @@ public class PacketManager {
     }
 
     void registerEarnings() throws Exception {
+        this.registerHandler(
+                Incoming.RequestAvatarLevelEvent, com.eu.habbo.messages.incoming.users.RequestAvatarLevelEvent.class);
         this.registerHandler(Incoming.RequestEarningsCenterEvent, RequestEarningsCenterEvent.class);
         this.registerHandler(Incoming.ClaimEarningsRewardEvent, ClaimEarningsRewardEvent.class);
         this.registerHandler(Incoming.ClaimAllEarningsRewardsEvent, ClaimAllEarningsRewardsEvent.class);

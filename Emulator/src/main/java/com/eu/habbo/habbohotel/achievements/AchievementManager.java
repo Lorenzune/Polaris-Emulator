@@ -1,15 +1,12 @@
 package com.eu.habbo.habbohotel.achievements;
 
 import com.eu.habbo.Emulator;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboBadge;
-import com.eu.habbo.habbohotel.users.inventory.BadgesComponent;
 import com.eu.habbo.habbohotel.users.HabboItem;
+import com.eu.habbo.habbohotel.users.inventory.BadgesComponent;
+import com.eu.habbo.habbohotel.users.levels.AvatarLevelPlatform;
 import com.eu.habbo.messages.outgoing.achievements.AchievementProgressComposer;
 import com.eu.habbo.messages.outgoing.achievements.AchievementUnlockedComposer;
 import com.eu.habbo.messages.outgoing.achievements.talenttrack.TalentLevelUpdateComposer;
@@ -20,11 +17,10 @@ import com.eu.habbo.messages.outgoing.users.AddUserBadgeComposer;
 import com.eu.habbo.plugin.Event;
 import com.eu.habbo.plugin.events.users.achievements.UserAchievementLeveledEvent;
 import com.eu.habbo.plugin.events.users.achievements.UserAchievementProgressEvent;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -32,10 +28,15 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Locale;
-import java.util.List;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,17 +88,17 @@ public class AchievementManager {
     }
 
     public static void progressAchievement(int habboId, Achievement achievement, int amount) {
-        if (achievement != null) {
-            Habbo habbo = Emulator.getGameEnvironment().getHabboManager().getHabbo(habboId);
+        if (achievement != null && amount > 0) {
+            Habbo habbo = AvatarLevelPlatform.game().getHabboManager().getHabbo(habboId);
 
-            if (habbo != null) {
+            if (habbo != null && habbo.isOnline()) {
                 progressAchievement(habbo, achievement, amount);
             } else {
                 try (Connection connection =
-                                Emulator.getDatabase().getDataSource().getConnection();
+                                AvatarLevelPlatform.database().getDataSource().getConnection();
                         PreparedStatement statement = connection.prepareStatement(""
                                 + "INSERT INTO users_achievements_queue (user_id, achievement_id, amount) VALUES (?, ?, ?) "
-                                + "ON DUPLICATE KEY UPDATE amount = amount + ?")) {
+                                + "ON DUPLICATE KEY UPDATE amount = LEAST(2147483647, CAST(amount AS SIGNED) + ?)")) {
                     statement.setInt(1, habboId);
                     statement.setInt(2, achievement.id);
                     statement.setInt(3, amount);
@@ -115,6 +116,26 @@ public class AchievementManager {
     }
 
     public static void progressAchievement(Habbo habbo, Achievement achievement, int amount) {
+        if (habbo == null || amount < 0) return;
+        if (!habbo.isOnline()) {
+            progressAchievement(habbo.getHabboInfo().getId(), achievement, amount);
+            return;
+        }
+        synchronized (habbo.getHabboStats().getAchievementProgress()) {
+            progressAchievement(habbo, achievement, amount, false);
+        }
+    }
+
+    /** Publish an absolute progress value which has already committed to the database. */
+    public static void publishPersistedProgress(Habbo habbo, Achievement achievement, int progress) {
+        if (habbo == null || achievement == null) return;
+        synchronized (habbo.getHabboStats().getAchievementProgress()) {
+            if (progress <= habbo.getHabboStats().getAchievementProgress(achievement)) return;
+            progressAchievement(habbo, achievement, progress, true);
+        }
+    }
+
+    private static void progressAchievement(Habbo habbo, Achievement achievement, int amount, boolean persisted) {
         if (achievement == null) return;
 
         if (achievement.levels.isEmpty()) return;
@@ -127,11 +148,9 @@ public class AchievementManager {
 
         if (currentProgress == -1) {
             currentProgress = 0;
-            createUserEntry(habbo, achievement);
-            habbo.getHabboStats().setProgress(achievement, 0);
         }
 
-        if (Emulator.getPluginManager().isRegistered(UserAchievementProgressEvent.class, true)) {
+        if (!persisted && Emulator.getPluginManager().isRegistered(UserAchievementProgressEvent.class, true)) {
             Event userAchievementProgressedEvent = new UserAchievementProgressEvent(habbo, achievement, amount);
             Emulator.getPluginManager().fireEvent(userAchievementProgressedEvent);
 
@@ -141,28 +160,48 @@ public class AchievementManager {
         AchievementLevel oldLevel = achievement.getLevelForProgress(currentProgress);
         AchievementLevel finalLevel = achievement.getLastLevel();
 
-        if (oldLevel != null
-                && (finalLevel != null && oldLevel.level == finalLevel.level
-                        && currentProgress >= oldLevel.progress)) // Maximum achievement gotten.
-        return;
-
-        int newProgress = habbo.getHabboStats().incrementProgress(achievement, amount);
+        int newProgress;
+        try {
+            if (persisted) newProgress = amount;
+            else {
+                try (Connection connection =
+                        AvatarLevelPlatform.database().getDataSource().getConnection()) {
+                    connection.setAutoCommit(false);
+                    try {
+                        newProgress = persistIncrement(
+                                connection, habbo.getHabboInfo().getId(), achievement, amount);
+                        connection.commit();
+                    } catch (SQLException exception) {
+                        connection.rollback();
+                        throw exception;
+                    }
+                }
+            }
+        } catch (SQLException exception) {
+            LOGGER.error(
+                    "Achievement progress was not committed for {}",
+                    habbo.getHabboInfo().getId(),
+                    exception);
+            return;
+        }
+        habbo.getHabboStats().setProgress(achievement, newProgress);
+        if (oldLevel != null && finalLevel != null && oldLevel.level == finalLevel.level) return;
 
         AchievementLevel newLevel = achievement.getLevelForProgress(newProgress);
 
         if (AchievementManager.TALENTTRACK_ENABLED) {
             for (TalentTrackType type : TalentTrackType.values()) {
-                if (Emulator.getGameEnvironment()
+                if (AvatarLevelPlatform.game()
                         .getAchievementManager()
                         .talentTrackLevels
                         .containsKey(type)) {
-                    for (Map.Entry<Integer, TalentTrackLevel> entry : Emulator.getGameEnvironment()
+                    for (Map.Entry<Integer, TalentTrackLevel> entry : AvatarLevelPlatform.game()
                             .getAchievementManager()
                             .talentTrackLevels
                             .get(type)
                             .entrySet()) {
                         if (entry.getValue().achievements.containsKey(achievement)) {
-                            Emulator.getGameEnvironment()
+                            AvatarLevelPlatform.game()
                                     .getAchievementManager()
                                     .handleTalentTrackAchievement(habbo, type, achievement);
                             break;
@@ -174,7 +213,9 @@ public class AchievementManager {
 
         if (newLevel == null
                 || (oldLevel != null
-                        && (oldLevel.level == newLevel.level && finalLevel != null && newLevel.level < finalLevel.level))) {
+                        && (oldLevel.level == newLevel.level
+                                && finalLevel != null
+                                && newLevel.level < finalLevel.level))) {
             habbo.getClient().sendResponse(new AchievementProgressComposer(habbo, achievement));
         } else {
             if (Emulator.getPluginManager().isRegistered(UserAchievementLeveledEvent.class, true)) {
@@ -233,13 +274,12 @@ public class AchievementManager {
             BadgesComponent.synchronizeBadgeState(habbo);
 
             if (badge.getId() > 0) {
-                habbo.getClient().sendResponse(
-                        new AddHabboItemComposer(badge.getId(), AddHabboItemComposer.AddHabboItemCategory.BADGE));
+                habbo.getClient()
+                        .sendResponse(new AddHabboItemComposer(
+                                badge.getId(), AddHabboItemComposer.AddHabboItemCategory.BADGE));
             }
 
             habbo.getHabboStats().addAchievementScore(newLevel.points);
-            AchievementInteractions.sync(
-                    habbo, "Profile_Pantheon_", habbo.getHabboStats().getAchievementScore());
 
             if (newLevel.rewardAmount > 0) {
                 habbo.givePoints(newLevel.rewardType, newLevel.rewardAmount, "achievement.reward");
@@ -248,6 +288,70 @@ public class AchievementManager {
             if (habbo.getHabboInfo().getCurrentRoom() != null) {
                 habbo.getHabboInfo().getCurrentRoom().sendComposer(new RoomUserDataComposer(habbo).compose());
             }
+        }
+    }
+
+    private static int persistIncrement(Connection connection, int userId, Achievement achievement, int amount)
+            throws SQLException {
+        try (PreparedStatement update = connection.prepareStatement(
+                "INSERT INTO users_achievements (user_id, achievement_name, progress) VALUES (?, ?, ?) "
+                        + "ON DUPLICATE KEY UPDATE progress = LEAST(2147483647, CAST(progress AS SIGNED) + VALUES(progress))")) {
+            update.setInt(1, userId);
+            update.setString(2, achievement.name);
+            update.setInt(3, amount);
+            update.executeUpdate();
+        }
+        try (PreparedStatement query = connection.prepareStatement(
+                "SELECT COALESCE(MAX(progress), 0) AS progress FROM users_achievements WHERE user_id = ? AND achievement_name = ?")) {
+            query.setInt(1, userId);
+            query.setString(2, achievement.name);
+            try (ResultSet row = query.executeQuery()) {
+                row.next();
+                return row.getInt(1);
+            }
+        }
+    }
+
+    /** Delete the queue and apply it in one transaction, avoiding loss or double counting after a crash. */
+    public static void consumeQueuedProgress(Habbo habbo) throws SQLException {
+        Map<Achievement, Integer> committed = new LinkedHashMap<>();
+        int userId = habbo.getHabboInfo().getId();
+        synchronized (habbo.getHabboStats().getAchievementProgress()) {
+            try (Connection connection =
+                    AvatarLevelPlatform.database().getDataSource().getConnection()) {
+                connection.setAutoCommit(false);
+                try {
+                    Map<Achievement, Integer> pending = new LinkedHashMap<>();
+                    try (PreparedStatement query = connection.prepareStatement(
+                            "SELECT achievement_id, amount FROM users_achievements_queue WHERE user_id = ? FOR UPDATE")) {
+                        query.setInt(1, userId);
+                        try (ResultSet rows = query.executeQuery()) {
+                            while (rows.next()) {
+                                Achievement definition = AvatarLevelPlatform.game()
+                                        .getAchievementManager()
+                                        .getAchievement(rows.getInt(1));
+                                if (definition != null) pending.put(definition, rows.getInt(2));
+                            }
+                        }
+                    }
+                    for (var entry : pending.entrySet()) {
+                        try (PreparedStatement delete = connection.prepareStatement(
+                                "DELETE FROM users_achievements_queue WHERE user_id = ? AND achievement_id = ?")) {
+                            delete.setInt(1, userId);
+                            delete.setInt(2, entry.getKey().id);
+                            delete.executeUpdate();
+                        }
+                        committed.put(
+                                entry.getKey(),
+                                persistIncrement(connection, userId, entry.getKey(), Math.max(0, entry.getValue())));
+                    }
+                    connection.commit();
+                } catch (SQLException exception) {
+                    connection.rollback();
+                    throw exception;
+                }
+            }
+            for (var entry : committed.entrySet()) publishPersistedProgress(habbo, entry.getKey(), entry.getValue());
         }
     }
 
@@ -268,12 +372,13 @@ public class AchievementManager {
     }
 
     public static void createUserEntry(Habbo habbo, Achievement achievement) {
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection =
+                        AvatarLevelPlatform.database().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement(
                         "INSERT INTO users_achievements (user_id, achievement_name, progress) VALUES (?, ?, ?)")) {
             statement.setInt(1, habbo.getHabboInfo().getId());
             statement.setString(2, achievement.name);
-            statement.setInt(3, 1);
+            statement.setInt(3, 0);
             statement.execute();
         } catch (SQLException e) {
             LOGGER.error("Caught SQL exception", e);
@@ -281,12 +386,16 @@ public class AchievementManager {
     }
 
     public static void saveAchievements(Habbo habbo) {
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection =
+                        AvatarLevelPlatform.database().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement(
-                        "UPDATE users_achievements SET progress = ? WHERE achievement_name = ? AND user_id = ? LIMIT 1")) {
+                        "UPDATE users_achievements SET progress = GREATEST(progress, ?) WHERE achievement_name = ? AND user_id = ? LIMIT 1")) {
             statement.setInt(3, habbo.getHabboInfo().getId());
-            for (Map.Entry<Achievement, Integer> map :
-                    habbo.getHabboStats().getAchievementProgress().entrySet()) {
+            Map<Achievement, Integer> copy;
+            synchronized (habbo.getHabboStats().getAchievementProgress()) {
+                copy = new HashMap<>(habbo.getHabboStats().getAchievementProgress());
+            }
+            for (Map.Entry<Achievement, Integer> map : copy.entrySet()) {
                 statement.setInt(1, map.getValue());
                 statement.setString(2, map.getKey().name);
                 statement.addBatch();
@@ -302,9 +411,10 @@ public class AchievementManager {
             return 0;
         }
 
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+        try (Connection connection =
+                        AvatarLevelPlatform.database().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement(
-                        "SELECT progress FROM users_achievements WHERE user_id = ? AND achievement_name = ? LIMIT 1")) {
+                        "SELECT COALESCE(MAX(progress), 0) AS progress FROM users_achievements WHERE user_id = ? AND achievement_name = ?")) {
             statement.setInt(1, userId);
             statement.setString(2, achievement.name);
             try (ResultSet set = statement.executeQuery()) {
@@ -322,7 +432,8 @@ public class AchievementManager {
     public void reload() {
         long millis = System.currentTimeMillis();
         synchronized (this.achievements) {
-            try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+            try (Connection connection =
+                    AvatarLevelPlatform.database().getDataSource().getConnection()) {
                 Map<String, DatabaseAchievement> databaseAchievements = readDatabaseAchievements(connection);
                 Map<String, Achievement> loadedAchievements = loadSwfAchievements(databaseAchievements);
 
@@ -330,12 +441,20 @@ public class AchievementManager {
                     loadedAchievements = new LinkedHashMap<>();
                     for (DatabaseAchievement definition : databaseAchievements.values()) {
                         Achievement achievement = new Achievement(
-                                definition.id, definition.name, definition.category,
-                                definition.state == null ? (short) 1 : definition.state.shortValue(), "", 0);
+                                definition.id,
+                                definition.name,
+                                definition.category,
+                                definition.state == null ? (short) 1 : definition.state.shortValue(),
+                                "",
+                                0);
                         for (Map.Entry<Integer, DatabaseLevel> entry : definition.levels.entrySet()) {
                             DatabaseLevel level = entry.getValue();
                             achievement.addLevel(new AchievementLevel(
-                                    entry.getKey(), level.rewardAmount, level.rewardType, level.points, level.progress));
+                                    entry.getKey(),
+                                    level.rewardAmount,
+                                    level.rewardType,
+                                    level.points,
+                                    level.progress));
                         }
                         loadedAchievements.put(achievement.name, achievement);
                     }
@@ -369,6 +488,10 @@ public class AchievementManager {
             }
         }
 
+        var environment = AvatarLevelPlatform.game();
+        if (environment != null && environment.getAvatarLevelManager() != null) {
+            environment.getAvatarLevelManager().initializeDefinitions();
+        }
         LOGGER.info("Achievement Manager -> Loaded! ({} MS)", System.currentTimeMillis() - millis);
     }
 
@@ -378,11 +501,17 @@ public class AchievementManager {
                 ResultSet set = statement.executeQuery("SELECT * FROM achievements")) {
             while (set.next()) {
                 String name = set.getString("name");
-                DatabaseAchievement definition = result.computeIfAbsent(name,
-                        ignored -> new DatabaseAchievement(setInt(set, "id"), name, setString(set, "category"), setNullableInt(set, "state")));
-                definition.levels.put(set.getInt("level"), new DatabaseLevel(
-                        set.getInt("reward_amount"), set.getInt("reward_type"), set.getInt("points"),
-                        set.getInt("progress_needed")));
+                DatabaseAchievement definition = result.computeIfAbsent(
+                        name,
+                        ignored -> new DatabaseAchievement(
+                                setInt(set, "id"), name, setString(set, "category"), setNullableInt(set, "state")));
+                definition.levels.put(
+                        set.getInt("level"),
+                        new DatabaseLevel(
+                                set.getInt("reward_amount"),
+                                set.getInt("reward_type"),
+                                set.getInt("points"),
+                                set.getInt("progress_needed")));
             }
         }
         return result;
@@ -391,7 +520,8 @@ public class AchievementManager {
     private Map<String, Achievement> loadSwfAchievements(Map<String, DatabaseAchievement> databaseAchievements) {
         Path source = resolveAchievementSource();
         String sourceDescription = source != null && Files.isRegularFile(source)
-                ? source.toString() : "bundled gamedata/achievements.json";
+                ? source.toString()
+                : "bundled gamedata/achievements.json";
 
         try (Reader reader = openAchievementSource(source)) {
             if (reader == null) return null;
@@ -421,10 +551,11 @@ public class AchievementManager {
                 short state = database != null && database.state != null
                         ? database.state.shortValue()
                         : stateOf(metadata.has("state") ? metadata.get("state").getAsString() : "ENABLED");
-                Achievement achievement = new Achievement(
-                        metadata.get("id").getAsInt(), name, category, state, "", 0);
-                JsonArray levels = entry.has("levelRequirements") && entry.get("levelRequirements").isJsonArray()
-                        ? entry.getAsJsonArray("levelRequirements") : new JsonArray();
+                Achievement achievement = new Achievement(metadata.get("id").getAsInt(), name, category, state, "", 0);
+                JsonArray levels = entry.has("levelRequirements")
+                                && entry.get("levelRequirements").isJsonArray()
+                        ? entry.getAsJsonArray("levelRequirements")
+                        : new JsonArray();
                 for (JsonElement levelElement : levels) {
                     if (!levelElement.isJsonObject()) continue;
                     JsonObject levelObject = levelElement.getAsJsonObject();
@@ -443,8 +574,11 @@ public class AchievementManager {
                     for (Map.Entry<Integer, DatabaseLevel> databaseLevel : database.levels.entrySet()) {
                         DatabaseLevel reward = databaseLevel.getValue();
                         achievement.addLevel(new AchievementLevel(
-                                databaseLevel.getKey(), reward.rewardAmount, reward.rewardType,
-                                reward.points, reward.progress));
+                                databaseLevel.getKey(),
+                                reward.rewardAmount,
+                                reward.rewardType,
+                                reward.points,
+                                reward.progress));
                     }
                 }
                 result.put(name, achievement);
@@ -455,8 +589,12 @@ public class AchievementManager {
             for (DatabaseAchievement definition : databaseAchievements.values()) {
                 if (result.containsKey(definition.name)) continue;
                 Achievement achievement = new Achievement(
-                        definition.id, definition.name, definition.category,
-                        definition.state == null ? (short) 2 : definition.state.shortValue(), "", 0);
+                        definition.id,
+                        definition.name,
+                        definition.category,
+                        definition.state == null ? (short) 2 : definition.state.shortValue(),
+                        "",
+                        0);
                 for (Map.Entry<Integer, DatabaseLevel> entry : definition.levels.entrySet()) {
                     DatabaseLevel level = entry.getValue();
                     achievement.addLevel(new AchievementLevel(
@@ -486,13 +624,17 @@ public class AchievementManager {
         if (configuredRoot != null && !configuredRoot.isBlank()) {
             Path configured = Paths.get(configuredRoot);
             candidates.add((configured.isAbsolute() ? configured : workingDirectory.resolve(configured))
-                    .resolve("achievements.json").normalize());
+                    .resolve("achievements.json")
+                    .normalize());
         }
         // The emulator and the shared Nitro checkout are sibling directories in
         // the normal deployment, so accept both the local and repository-level
         // gamedata locations without requiring a second copy of the catalogue.
         for (String relative : List.of("gamedata", "../gamedata", "../../gamedata", "../../../gamedata")) {
-            candidates.add(workingDirectory.resolve(relative).resolve("achievements.json").normalize());
+            candidates.add(workingDirectory
+                    .resolve(relative)
+                    .resolve("achievements.json")
+                    .normalize());
         }
         for (Path candidate : candidates) {
             if (Files.isRegularFile(candidate)) return candidate;
@@ -503,28 +645,44 @@ public class AchievementManager {
     private static short stateOf(String state) {
         if (state == null) return 1;
         switch (state.toUpperCase(Locale.ROOT)) {
-            case "OBSOLETE": return -1;
-            case "DISABLED": return 0;
-            case "ARCHIVED": return 2;
-            case "OFF_SEASON": return 3;
-            case "WIRED": return 4;
-            default: return 1;
+            case "OBSOLETE":
+                return -1;
+            case "DISABLED":
+                return 0;
+            case "ARCHIVED":
+                return 2;
+            case "OFF_SEASON":
+                return 3;
+            case "WIRED":
+                return 4;
+            default:
+                return 1;
         }
     }
 
     private static int setInt(ResultSet set, String column) {
-        try { return set.getInt(column); } catch (SQLException ignored) { return 0; }
+        try {
+            return set.getInt(column);
+        } catch (SQLException ignored) {
+            return 0;
+        }
     }
 
     private static String setString(ResultSet set, String column) {
-        try { return set.getString(column); } catch (SQLException ignored) { return "other"; }
+        try {
+            return set.getString(column);
+        } catch (SQLException ignored) {
+            return "other";
+        }
     }
 
     private static Integer setNullableInt(ResultSet set, String column) {
         try {
             int value = set.getInt(column);
             return set.wasNull() ? null : value;
-        } catch (SQLException ignored) { return null; }
+        } catch (SQLException ignored) {
+            return null;
+        }
     }
 
     public Achievement getAchievement(String name) {
@@ -589,7 +747,7 @@ public class AchievementManager {
                     if (level != null) {
                         if (level.items != null && !level.items.isEmpty()) {
                             for (Item item : level.items) {
-                                HabboItem rewardItem = Emulator.getGameEnvironment()
+                                HabboItem rewardItem = AvatarLevelPlatform.game()
                                         .getItemManager()
                                         .createItem(habbo.getHabboInfo().getId(), item, 0, 0, "");
                                 habbo.getInventory().getItemsComponent().addItem(rewardItem);

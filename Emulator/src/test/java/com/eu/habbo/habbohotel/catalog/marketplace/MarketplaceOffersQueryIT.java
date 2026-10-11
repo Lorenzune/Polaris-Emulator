@@ -89,7 +89,7 @@ class MarketplaceOffersQueryIT {
         assertEquals("0:0", sofa.ltdData());
         assertEquals(30, sofa.minPrice(), "the expired listing at 5 is not offered");
         assertEquals(3, sofa.number(), "three active listings, not multiplied by the two catalog rows");
-        assertEquals(110 / 3.0, sofa.average(), 0.001);
+        assertEquals(36.0, sofa.average(), 0.001, "the average is floored to whole credits");
         assertEquals(1, sofa.soldToday(), "yesterday's sale is not counted");
 
         Offer secondSerial = offers.get(1);

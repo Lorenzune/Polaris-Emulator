@@ -91,6 +91,8 @@ class ThreadPoolingPersistenceRoutingTest {
 
             releaseWorker.countDown();
             assertTrue(itemSaved.await(2, TimeUnit.SECONDS));
+            // The save can start before the submitting scheduler removes the deferred slot.
+            threading.getService().submit(() -> {}).get(2, TimeUnit.SECONDS);
             assertEquals(0, threading.getDeferredHabboItemPersistenceCount());
             verify(item, times(1)).run();
         } finally {
