@@ -128,7 +128,11 @@ public class BadgesComponent {
 
     public static HabboBadge createBadge(String code, Habbo habbo) {
         HabboBadge badge = new HabboBadge(0, code, 0, habbo);
-        badge.run();
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+            badge.insert(connection);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Badge grant was not committed: " + code, exception);
+        }
         habbo.getInventory().getBadgesComponent().addBadge(badge);
         return badge;
     }

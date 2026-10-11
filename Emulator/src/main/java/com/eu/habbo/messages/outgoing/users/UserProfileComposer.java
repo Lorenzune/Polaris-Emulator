@@ -130,6 +130,7 @@ public class UserProfileComposer extends MessageComposer {
         this.response.appendString(customizationData.prefixFont);
         this.response.appendString(customizationData.displayOrder);
         this.response.appendInt(this.getTotalBadges());
+        accountLevel = Emulator.getGameEnvironment().getAvatarLevelManager().getLevel(this.habboInfo.getId());
         this.response.appendInt(accountLevel);
         this.response.appendString(customizationData.nickColor);
         this.response.appendString(customizationData.nickEffect);

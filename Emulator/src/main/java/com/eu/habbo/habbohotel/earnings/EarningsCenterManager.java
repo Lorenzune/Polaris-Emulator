@@ -224,6 +224,12 @@ public class EarningsCenterManager {
             return new CategoryDefinition(enabled, cooldown, List.of());
         }
 
+        // Avatar level rewards are queued exactly once by AvatarLevelManager.
+        // Do not also pay the legacy citizenship/helper-track configured reward.
+        if (category == EarningsCategory.LEVEL_PROGRESS && this.config.usesAvatarLevelRewards()) {
+            return new CategoryDefinition(enabled, cooldown, List.of());
+        }
+
         if (nativeEnabled(category) && this.nativeIntegration.handles(category)) {
             try {
                 rewards.addAll(this.nativeIntegration.rewards(habbo, category));
@@ -340,6 +346,10 @@ public class EarningsCenterManager {
         default boolean usesLoginAssignedDailyGift() {
             return false;
         }
+
+        default boolean usesAvatarLevelRewards() {
+            return false;
+        }
     }
 
     public interface ClaimRepository {
@@ -380,6 +390,11 @@ public class EarningsCenterManager {
 
         @Override
         public boolean usesLoginAssignedDailyGift() {
+            return true;
+        }
+
+        @Override
+        public boolean usesAvatarLevelRewards() {
             return true;
         }
     }

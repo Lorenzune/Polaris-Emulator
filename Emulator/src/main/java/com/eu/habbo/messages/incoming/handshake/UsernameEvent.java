@@ -66,9 +66,6 @@ public class UsernameEvent extends MessageHandler {
             }
         }
 
-        AchievementInteractions.sync(
-                this.client.getHabbo(), "Profile_Pantheon_", this.client.getHabbo().getHabboStats().getAchievementScore());
-
         if (!this.client.getHabbo().getHabboStats().getAchievementProgress().containsKey(Emulator.getGameEnvironment().getAchievementManager().getAchievement("RegistrationDuration"))) {
             AchievementManager.progressAchievement(this.client.getHabbo(), Emulator.getGameEnvironment().getAchievementManager().getAchievement("RegistrationDuration"), 0);
         } else {
@@ -88,20 +85,7 @@ public class UsernameEvent extends MessageHandler {
         }
 
 
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement achievementQueueStatement = connection.prepareStatement("SELECT * FROM users_achievements_queue WHERE user_id = ?")) {
-            achievementQueueStatement.setInt(1, this.client.getHabbo().getHabboInfo().getId());
-
-            try (ResultSet achievementSet = achievementQueueStatement.executeQuery()) {
-                while (achievementSet.next()) {
-                    AchievementManager.progressAchievement(this.client.getHabbo(), Emulator.getGameEnvironment().getAchievementManager().getAchievement(achievementSet.getInt("achievement_id")), achievementSet.getInt("amount"));
-                }
-            }
-
-            try (PreparedStatement deleteStatement = connection.prepareStatement("DELETE FROM users_achievements_queue WHERE user_id = ?")) {
-                deleteStatement.setInt(1, this.client.getHabbo().getHabboInfo().getId());
-                deleteStatement.execute();
-            }
-        }
+        AchievementManager.consumeQueuedProgress(this.client.getHabbo());
         if (Emulator.getConfig().getBoolean("hotel.calendar.enabled")) {
             CalendarCampaign campaign = Emulator.getGameEnvironment().getCalendarManager().getCalendarCampaign(Emulator.getConfig().getValue("hotel.calendar.default"));
             if(campaign != null){

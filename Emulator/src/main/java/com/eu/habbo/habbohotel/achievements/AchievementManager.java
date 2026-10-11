@@ -87,17 +87,17 @@ public class AchievementManager {
     }
 
     public static void progressAchievement(int habboId, Achievement achievement, int amount) {
-        if (achievement != null) {
+        if (achievement != null && amount > 0) {
             Habbo habbo = Emulator.getGameEnvironment().getHabboManager().getHabbo(habboId);
 
-            if (habbo != null) {
+            if (habbo != null && habbo.isOnline()) {
                 progressAchievement(habbo, achievement, amount);
             } else {
                 try (Connection connection =
                                 Emulator.getDatabase().getDataSource().getConnection();
                         PreparedStatement statement = connection.prepareStatement(""
                                 + "INSERT INTO users_achievements_queue (user_id, achievement_id, amount) VALUES (?, ?, ?) "
-                                + "ON DUPLICATE KEY UPDATE amount = amount + ?")) {
+                                + "ON DUPLICATE KEY UPDATE amount = LEAST(2147483647, CAST(amount AS SIGNED) + ?)")) {
                     statement.setInt(1, habboId);
                     statement.setInt(2, achievement.id);
                     statement.setInt(3, amount);
@@ -115,6 +115,26 @@ public class AchievementManager {
     }
 
     public static void progressAchievement(Habbo habbo, Achievement achievement, int amount) {
+        if (habbo == null || amount <= 0) return;
+        if (!habbo.isOnline()) {
+            progressAchievement(habbo.getHabboInfo().getId(), achievement, amount);
+            return;
+        }
+        synchronized (habbo.getHabboStats().getAchievementProgress()) {
+            progressAchievement(habbo, achievement, amount, false);
+        }
+    }
+
+    /** Publish an absolute progress value which has already committed to the database. */
+    public static void publishPersistedProgress(Habbo habbo, Achievement achievement, int progress) {
+        if (habbo == null || achievement == null) return;
+        synchronized (habbo.getHabboStats().getAchievementProgress()) {
+            if (progress <= habbo.getHabboStats().getAchievementProgress(achievement)) return;
+            progressAchievement(habbo, achievement, progress, true);
+        }
+    }
+
+    private static void progressAchievement(Habbo habbo, Achievement achievement, int amount, boolean persisted) {
         if (achievement == null) return;
 
         if (achievement.levels.isEmpty()) return;
@@ -127,11 +147,9 @@ public class AchievementManager {
 
         if (currentProgress == -1) {
             currentProgress = 0;
-            createUserEntry(habbo, achievement);
-            habbo.getHabboStats().setProgress(achievement, 0);
         }
 
-        if (Emulator.getPluginManager().isRegistered(UserAchievementProgressEvent.class, true)) {
+        if (!persisted && Emulator.getPluginManager().isRegistered(UserAchievementProgressEvent.class, true)) {
             Event userAchievementProgressedEvent = new UserAchievementProgressEvent(habbo, achievement, amount);
             Emulator.getPluginManager().fireEvent(userAchievementProgressedEvent);
 
@@ -141,12 +159,24 @@ public class AchievementManager {
         AchievementLevel oldLevel = achievement.getLevelForProgress(currentProgress);
         AchievementLevel finalLevel = achievement.getLastLevel();
 
-        if (oldLevel != null
-                && (finalLevel != null && oldLevel.level == finalLevel.level
-                        && currentProgress >= oldLevel.progress)) // Maximum achievement gotten.
-        return;
-
-        int newProgress = habbo.getHabboStats().incrementProgress(achievement, amount);
+        int newProgress;
+        try {
+            if (persisted) newProgress = amount;
+            else {
+                try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+                    connection.setAutoCommit(false);
+                    try {
+                        newProgress = persistIncrement(connection, habbo.getHabboInfo().getId(), achievement, amount);
+                        connection.commit();
+                    } catch (SQLException exception) { connection.rollback(); throw exception; }
+                }
+            }
+        } catch (SQLException exception) {
+            LOGGER.error("Achievement progress was not committed for {}", habbo.getHabboInfo().getId(), exception);
+            return;
+        }
+        habbo.getHabboStats().setProgress(achievement, newProgress);
+        if (oldLevel != null && finalLevel != null && oldLevel.level == finalLevel.level) return;
 
         AchievementLevel newLevel = achievement.getLevelForProgress(newProgress);
 
@@ -238,8 +268,6 @@ public class AchievementManager {
             }
 
             habbo.getHabboStats().addAchievementScore(newLevel.points);
-            AchievementInteractions.sync(
-                    habbo, "Profile_Pantheon_", habbo.getHabboStats().getAchievementScore());
 
             if (newLevel.rewardAmount > 0) {
                 habbo.givePoints(newLevel.rewardType, newLevel.rewardAmount, "achievement.reward");
@@ -248,6 +276,52 @@ public class AchievementManager {
             if (habbo.getHabboInfo().getCurrentRoom() != null) {
                 habbo.getHabboInfo().getCurrentRoom().sendComposer(new RoomUserDataComposer(habbo).compose());
             }
+        }
+    }
+
+    private static int persistIncrement(Connection connection, int userId, Achievement achievement, int amount) throws SQLException {
+        try (PreparedStatement update = connection.prepareStatement(
+                "INSERT INTO users_achievements (user_id, achievement_name, progress) VALUES (?, ?, ?) "
+                + "ON DUPLICATE KEY UPDATE progress = LEAST(2147483647, CAST(progress AS SIGNED) + VALUES(progress))")) {
+            update.setInt(1, userId); update.setString(2, achievement.name); update.setInt(3, amount); update.executeUpdate();
+        }
+        try (PreparedStatement query = connection.prepareStatement(
+                "SELECT COALESCE(MAX(progress), 0) AS progress FROM users_achievements WHERE user_id = ? AND achievement_name = ?")) {
+            query.setInt(1, userId); query.setString(2, achievement.name);
+            try (ResultSet row = query.executeQuery()) { row.next(); return row.getInt(1); }
+        }
+    }
+
+    /** Delete the queue and apply it in one transaction, avoiding loss or double counting after a crash. */
+    public static void consumeQueuedProgress(Habbo habbo) throws SQLException {
+        Map<Achievement, Integer> committed = new LinkedHashMap<>();
+        int userId = habbo.getHabboInfo().getId();
+        synchronized (habbo.getHabboStats().getAchievementProgress()) {
+            try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
+                connection.setAutoCommit(false);
+                try {
+                    Map<Achievement, Integer> pending = new LinkedHashMap<>();
+                    try (PreparedStatement query = connection.prepareStatement(
+                            "SELECT achievement_id, amount FROM users_achievements_queue WHERE user_id = ? FOR UPDATE")) {
+                        query.setInt(1, userId);
+                        try (ResultSet rows = query.executeQuery()) {
+                            while (rows.next()) {
+                                Achievement definition = Emulator.getGameEnvironment().getAchievementManager().getAchievement(rows.getInt(1));
+                                if (definition != null) pending.put(definition, rows.getInt(2));
+                            }
+                        }
+                    }
+                    for (var entry : pending.entrySet()) {
+                        try (PreparedStatement delete = connection.prepareStatement(
+                                "DELETE FROM users_achievements_queue WHERE user_id = ? AND achievement_id = ?")) {
+                            delete.setInt(1, userId); delete.setInt(2, entry.getKey().id); delete.executeUpdate();
+                        }
+                        committed.put(entry.getKey(), persistIncrement(connection, userId, entry.getKey(), Math.max(0, entry.getValue())));
+                    }
+                    connection.commit();
+                } catch (SQLException exception) { connection.rollback(); throw exception; }
+            }
+            for (var entry : committed.entrySet()) publishPersistedProgress(habbo, entry.getKey(), entry.getValue());
         }
     }
 
@@ -273,7 +347,7 @@ public class AchievementManager {
                         "INSERT INTO users_achievements (user_id, achievement_name, progress) VALUES (?, ?, ?)")) {
             statement.setInt(1, habbo.getHabboInfo().getId());
             statement.setString(2, achievement.name);
-            statement.setInt(3, 1);
+            statement.setInt(3, 0);
             statement.execute();
         } catch (SQLException e) {
             LOGGER.error("Caught SQL exception", e);
@@ -283,10 +357,13 @@ public class AchievementManager {
     public static void saveAchievements(Habbo habbo) {
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement(
-                        "UPDATE users_achievements SET progress = ? WHERE achievement_name = ? AND user_id = ? LIMIT 1")) {
+                        "UPDATE users_achievements SET progress = GREATEST(progress, ?) WHERE achievement_name = ? AND user_id = ? LIMIT 1")) {
             statement.setInt(3, habbo.getHabboInfo().getId());
-            for (Map.Entry<Achievement, Integer> map :
-                    habbo.getHabboStats().getAchievementProgress().entrySet()) {
+            Map<Achievement, Integer> copy;
+            synchronized (habbo.getHabboStats().getAchievementProgress()) {
+                copy = new HashMap<>(habbo.getHabboStats().getAchievementProgress());
+            }
+            for (Map.Entry<Achievement, Integer> map : copy.entrySet()) {
                 statement.setInt(1, map.getValue());
                 statement.setString(2, map.getKey().name);
                 statement.addBatch();
@@ -304,7 +381,7 @@ public class AchievementManager {
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement(
-                        "SELECT progress FROM users_achievements WHERE user_id = ? AND achievement_name = ? LIMIT 1")) {
+                        "SELECT COALESCE(MAX(progress), 0) AS progress FROM users_achievements WHERE user_id = ? AND achievement_name = ?")) {
             statement.setInt(1, userId);
             statement.setString(2, achievement.name);
             try (ResultSet set = statement.executeQuery()) {
@@ -369,6 +446,10 @@ public class AchievementManager {
             }
         }
 
+        var environment = Emulator.getGameEnvironment();
+        if (environment != null && environment.getAvatarLevelManager() != null) {
+            environment.getAvatarLevelManager().initializeDefinitions();
+        }
         LOGGER.info("Achievement Manager -> Loaded! ({} MS)", System.currentTimeMillis() - millis);
     }
 

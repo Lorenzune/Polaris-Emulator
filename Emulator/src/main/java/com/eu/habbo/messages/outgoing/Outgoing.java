@@ -639,6 +639,7 @@ public class Outgoing {
     public static final int WheelAdminPrizesComposer = 9404;
     public static final int SoundboardSettingsComposer = 9405;
     public static final int SoundboardPlayComposer = 9406;
+    public static final int AvatarLevelComposer = 9510;
     public static final int EarningsCenterComposer = 9407;
     public static final int EarningsClaimResultComposer = 9408;
     public static final int HotelViewLandingComposer = 9409;

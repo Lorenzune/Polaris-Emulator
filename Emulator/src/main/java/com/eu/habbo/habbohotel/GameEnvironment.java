@@ -94,6 +94,7 @@ public class GameEnvironment {
     private ModToolSanctions modToolSanctions;
     private PetManager petManager;
     private AchievementManager achievementManager;
+    private com.eu.habbo.habbohotel.users.levels.AvatarLevelManager avatarLevelManager;
     private GuideManager guideManager;
     private WordFilter wordFilter;
     private volatile CraftingManager craftingManager;
@@ -157,6 +158,10 @@ public class GameEnvironment {
         this.modToolSanctions = this.services.create("moderation sanctions", ModToolSanctions::new);
         this.achievementManager = this.services.create("achievement manager", AchievementManager::new);
         this.achievementManager.reload();
+        this.avatarLevelManager = this.services.create("avatar level manager",
+                com.eu.habbo.habbohotel.users.levels.AvatarLevelManager::new,
+                manager -> manager.setDisposed(true));
+        this.avatarLevelManager.initializeDefinitions();
         this.guideManager = this.services.create("guide manager", GuideManager::new);
         this.wordFilter = this.services.create("word filter", WordFilter::new);
         this.craftingManager = this.services.create("crafting manager", CraftingManager::new, ignored -> {
@@ -226,6 +231,7 @@ public class GameEnvironment {
         Emulator.getThreading().run(this.subscriptionScheduler);
 
         this.habboManager.startTemporaryRanks();
+        Emulator.getThreading().run(this.avatarLevelManager);
         var permissionRefresh = this.services.create(
                 "permission live refresh",
                 () -> new com.eu.habbo.habbohotel.permissions.PermissionLiveRefresh(
@@ -693,6 +699,10 @@ public class GameEnvironment {
 
     public MentionManager getMentionManager() {
         return this.mentionManager;
+    }
+
+    public com.eu.habbo.habbohotel.users.levels.AvatarLevelManager getAvatarLevelManager() {
+        return this.avatarLevelManager;
     }
 
     public AchievementManager getAchievementManager() {

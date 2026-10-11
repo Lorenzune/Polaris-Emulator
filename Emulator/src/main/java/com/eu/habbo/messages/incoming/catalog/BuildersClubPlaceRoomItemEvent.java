@@ -93,7 +93,7 @@ public class BuildersClubPlaceRoomItemEvent extends MessageHandler {
 
         HabboItem item = Emulator.getGameEnvironment()
                 .getItemManager()
-                .createItem(
+                .createBuildersClubItem(
                         placementUserId,
                         baseItem,
                         0,
