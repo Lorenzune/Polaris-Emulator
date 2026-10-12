@@ -1,5 +1,6 @@
 package com.eu.habbo.build;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -43,8 +44,10 @@ class MavenBuildEnvironmentContractTest {
 
         assertTrue(Files.isRegularFile(Path.of("mvnw")));
         assertTrue(Files.isRegularFile(Path.of("mvnw.cmd")));
-        assertTrue(properties.getProperty("distributionUrl").contains("apache-maven/3.9.11/"));
-        assertTrue(properties.getProperty("distributionSha256Sum").matches("[a-f0-9]{64}"));
+        assertTrue(properties.getProperty("distributionUrl").contains("apache-maven/3.9.16/"));
+        assertEquals(
+                "5af3b743dd8b876b5c45da33b676251e5f1687712644abb4ee519ca56e1d89ce",
+                properties.getProperty("distributionSha256Sum"));
     }
 
     @Test
