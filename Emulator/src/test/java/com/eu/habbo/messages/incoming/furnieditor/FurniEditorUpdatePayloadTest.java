@@ -1,28 +1,40 @@
 package com.eu.habbo.messages.incoming.furnieditor;
 
-import com.google.gson.JsonParser;
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.gson.JsonParser;
+import org.junit.jupiter.api.Test;
+
 class FurniEditorUpdatePayloadTest {
     @Test
     void validatesRareValueMetadata() {
-        var payload = FurniEditorUpdatePayload.validate(JsonParser.parseString(
-                "{\"value\":100,\"valueType\":5,\"isRare\":true}").getAsJsonObject());
+        var payload = FurniEditorUpdatePayload.validate(
+                JsonParser.parseString("{\"value\":100,\"valueType\":5,\"isRare\":true}")
+                        .getAsJsonObject());
         assertTrue(payload.valid());
         assertEquals(3, payload.values.size());
-        for (String json : new String[]{"{\"value\":-1}", "{\"value\":1.234}",
-                "{\"value\":10000000000}", "{\"value\":\"NaN\"}", "{\"isRare\":2}",
-                "{\"valueType\":-2}"}) {
-            assertFalse(FurniEditorUpdatePayload.validate(JsonParser.parseString(json).getAsJsonObject()).valid(), json);
+        for (String json : new String[] {
+            "{\"value\":-1}",
+            "{\"value\":1.234}",
+            "{\"value\":10000000000}",
+            "{\"value\":\"NaN\"}",
+            "{\"isRare\":2}",
+            "{\"valueType\":-2}"
+        }) {
+            assertFalse(
+                    FurniEditorUpdatePayload.validate(
+                                    JsonParser.parseString(json).getAsJsonObject())
+                            .valid(),
+                    json);
         }
     }
+
     @Test
     void acceptsSafeEditorFields() {
-        FurniEditorUpdatePayload payload = FurniEditorUpdatePayload.validate(JsonParser.parseString("""
+        FurniEditorUpdatePayload payload =
+                FurniEditorUpdatePayload.validate(JsonParser.parseString("""
                 {
                   "publicName": "Rare Chair",
                   "type": "s",
@@ -40,16 +52,26 @@ class FurniEditorUpdatePayloadTest {
 
     @Test
     void rejectsOutOfRangeAndOversizedFields() {
-        assertFalse(FurniEditorUpdatePayload.validate(JsonParser.parseString("{\"width\":-1}").getAsJsonObject()).valid());
-        assertFalse(FurniEditorUpdatePayload.validate(JsonParser.parseString("{\"stackHeight\":1000}").getAsJsonObject()).valid());
-        assertFalse(FurniEditorUpdatePayload.validate(JsonParser.parseString("{\"allowTrade\":2}").getAsJsonObject()).valid());
-        assertFalse(FurniEditorUpdatePayload.validate(JsonParser.parseString("{\"publicName\":\"" + "x".repeat(57) + "\"}").getAsJsonObject()).valid());
+        assertFalse(FurniEditorUpdatePayload.validate(
+                        JsonParser.parseString("{\"width\":-1}").getAsJsonObject())
+                .valid());
+        assertFalse(FurniEditorUpdatePayload.validate(
+                        JsonParser.parseString("{\"stackHeight\":1000}").getAsJsonObject())
+                .valid());
+        assertFalse(FurniEditorUpdatePayload.validate(
+                        JsonParser.parseString("{\"allowTrade\":2}").getAsJsonObject())
+                .valid());
+        assertFalse(
+                FurniEditorUpdatePayload.validate(JsonParser.parseString("{\"publicName\":\"" + "x".repeat(57) + "\"}")
+                                .getAsJsonObject())
+                        .valid());
     }
 
     @Test
     void ignoresUnknownFieldsButRequiresAtLeastOneValidField() {
-        FurniEditorUpdatePayload payload = FurniEditorUpdatePayload.validate(
-                JsonParser.parseString("{\"itemName\":\"blocked\",\"unknown\":true}").getAsJsonObject());
+        FurniEditorUpdatePayload payload =
+                FurniEditorUpdatePayload.validate(JsonParser.parseString("{\"itemName\":\"blocked\",\"unknown\":true}")
+                        .getAsJsonObject());
 
         assertFalse(payload.valid());
         assertEquals("No valid fields to update", payload.error);

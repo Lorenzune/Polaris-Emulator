@@ -1,10 +1,6 @@
 package com.eu.habbo.messages.incoming.housekeeping;
 
 import com.eu.habbo.Emulator;
-import com.eu.habbo.WiredPlatform;
-import com.eu.habbo.habbohotel.GameEnvironment;
-import com.eu.habbo.habbohotel.items.Item;
-
 import com.eu.habbo.messages.outgoing.housekeeping.HousekeepingActionResultComposer;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

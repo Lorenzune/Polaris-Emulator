@@ -3,7 +3,6 @@ package com.eu.habbo.messages.outgoing.furnieditor;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.MessageComposer;
 import com.eu.habbo.messages.outgoing.Outgoing;
-
 import java.util.List;
 import java.util.Map;
 
@@ -14,11 +13,17 @@ public class FurniEditorDetailComposer extends MessageComposer {
     private final String furniDataJson;
     private final String furniDataDiagnosticJson;
 
-    public FurniEditorDetailComposer(Map<String, Object> item, int usageCount, List<Map<String, Object>> catalogItems, String furniDataJson) {
+    public FurniEditorDetailComposer(
+            Map<String, Object> item, int usageCount, List<Map<String, Object>> catalogItems, String furniDataJson) {
         this(item, usageCount, catalogItems, furniDataJson, "{}");
     }
 
-    public FurniEditorDetailComposer(Map<String, Object> item, int usageCount, List<Map<String, Object>> catalogItems, String furniDataJson, String furniDataDiagnosticJson) {
+    public FurniEditorDetailComposer(
+            Map<String, Object> item,
+            int usageCount,
+            List<Map<String, Object>> catalogItems,
+            String furniDataJson,
+            String furniDataDiagnosticJson) {
         this.item = item;
         this.usageCount = usageCount;
         this.catalogItems = catalogItems;
@@ -87,11 +92,12 @@ public class FurniEditorDetailComposer extends MessageComposer {
         this.response.appendString(this.furniDataJson != null ? this.furniDataJson : "{}");
         this.response.appendString(this.furniDataDiagnosticJson != null ? this.furniDataDiagnosticJson : "{}");
         // Optional extension: legacy clients continue reading the established prefix.
-        this.response.appendString(new com.google.gson.Gson().toJson(Map.of(
-            "value", item.getOrDefault("value", 0),
-            "valueType", item.getOrDefault("valueType", -1),
-            "catalogPrice", item.getOrDefault("catalogPrice",0),
-            "isRare", item.getOrDefault("isRare", false))));
+        this.response.appendString(new com.google.gson.Gson()
+                .toJson(Map.of(
+                        "value", item.getOrDefault("value", 0),
+                        "valueType", item.getOrDefault("valueType", -1),
+                        "catalogPrice", item.getOrDefault("catalogPrice", 0),
+                        "isRare", item.getOrDefault("isRare", false))));
 
         return this.response;
     }

@@ -20,7 +20,7 @@ class MarketplaceOffersQueryTest {
 
     private static MarketplaceOffersQuery.Request request(
             int minPrice, int maxPrice, String search, int sort, boolean combineUniques) {
-        return new MarketplaceOffersQuery.Request(minPrice, maxPrice, search, sort, combineUniques,5);
+        return new MarketplaceOffersQuery.Request(minPrice, maxPrice, search, sort, combineUniques, 5);
     }
 
     private static MarketplaceOffersQuery.Request plain(int sort, boolean combineUniques) {

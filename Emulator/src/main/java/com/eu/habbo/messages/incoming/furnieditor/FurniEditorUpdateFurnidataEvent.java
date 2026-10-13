@@ -112,8 +112,8 @@ public class FurniEditorUpdateFurnidataEvent extends MessageHandler {
 
         FurnidataLock.LOCK.lock();
         try {
-            FurnidataWriter writer = new FurnidataWriter(
-                    provider.getSources(), provider.getMaxBytes(), 3 /* backupKeep */);
+            FurnidataWriter writer =
+                    new FurnidataWriter(provider.getSources(), provider.getMaxBytes(), 3 /* backupKeep */);
             written = writer.write(classname, safeName, safeDesc);
             if (!written) {
                 // Upsert: no furnidata entry for this classname yet → create a

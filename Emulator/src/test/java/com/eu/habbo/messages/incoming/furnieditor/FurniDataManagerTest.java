@@ -1,17 +1,19 @@
 package com.eu.habbo.messages.incoming.furnieditor;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.eu.habbo.habbohotel.items.FurnidataSourceResolver;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class FurniDataManagerTest {
 
@@ -19,12 +21,16 @@ class FurniDataManagerTest {
     void editorDetailsUseCustomOverrideAndRefreshAfterSave(@TempDir Path dir) throws Exception {
         Path main = dir.resolve("FurnitureData.json");
         Path custom = dir.resolve("FurnitureData_custom.json");
-        Files.writeString(main, "{\"roomitemtypes\":{\"furnitype\":[{\"id\":1,\"classname\":\"chair\",\"name\":\"Main\"}]}}");
-        Files.writeString(custom, "{\"roomitemtypes\":{\"furnitype\":[{\"id\":1,\"classname\":\"chair\",\"name\":\"Custom\"}]}}");
-        var source = new FurnidataSourceResolver.Source(main, false,
-                FurnidataSourceResolver.Status.RESOLVED, "test", List.of(main, custom));
+        Files.writeString(
+                main, "{\"roomitemtypes\":{\"furnitype\":[{\"id\":1,\"classname\":\"chair\",\"name\":\"Main\"}]}}");
+        Files.writeString(
+                custom, "{\"roomitemtypes\":{\"furnitype\":[{\"id\":1,\"classname\":\"chair\",\"name\":\"Custom\"}]}}");
+        var source = new FurnidataSourceResolver.Source(
+                main, false, FurnidataSourceResolver.Status.RESOLVED, "test", List.of(main, custom));
         assertTrue(FurniDataManager.getItemLookup(source, 1, "chair").itemJson().contains("Custom"));
-        Files.writeString(custom, "{\"roomitemtypes\":{\"furnitype\":[{\"id\":1,\"classname\":\"chair\",\"name\":\"Updated custom name\"}]}}");
+        Files.writeString(
+                custom,
+                "{\"roomitemtypes\":{\"furnitype\":[{\"id\":1,\"classname\":\"chair\",\"name\":\"Updated custom name\"}]}}");
         assertTrue(FurniDataManager.getItemLookup(source, 1, "chair").itemJson().contains("Updated custom name"));
     }
 
@@ -84,9 +90,7 @@ class FurniDataManagerTest {
         Path assetBase = dir.resolve("nitro-assets");
 
         FurnidataSourceResolver.Source source = FurnidataSourceResolver.toLocalSource(
-            assetBase,
-            "http://localhost:5173/nitro-assets/gamedata/FurnitureData.json?t=123"
-        );
+                assetBase, "http://localhost:5173/nitro-assets/gamedata/FurnitureData.json?t=123");
 
         assertNotNull(source);
         assertEquals(assetBase.resolve("gamedata").resolve("FurnitureData.json"), source.path());
@@ -113,9 +117,7 @@ class FurniDataManagerTest {
             """);
 
         FurnidataSourceResolver.Source source = FurnidataSourceResolver.resolveConfigured(
-                legacy.toString(),
-                rendererConfig.toString(),
-                assetBase.toString());
+                legacy.toString(), rendererConfig.toString(), assetBase.toString());
 
         assertTrue(source.ok());
         assertEquals(rendererSource, source.path());

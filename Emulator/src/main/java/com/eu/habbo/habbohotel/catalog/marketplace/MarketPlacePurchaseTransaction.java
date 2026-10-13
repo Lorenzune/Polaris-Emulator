@@ -19,24 +19,55 @@ final class MarketPlacePurchaseTransaction {
     private MarketPlacePurchaseTransaction() {}
 
     static EconomyMutationResult commit(
-            int offerId, int itemId, int buyerId, int currencyType, int charge, int soldTimestamp) {return commit(offerId,itemId,buyerId,currencyType,charge,soldTimestamp,0);}
-
-    static EconomyMutationResult commit(int offerId,int itemId,int buyerId,int currencyType,int charge,int soldTimestamp,int agreedPrice) {
-        return commit(Emulator.getDatabase().getDataSource(),offerId,itemId,buyerId,currencyType,charge,soldTimestamp,agreedPrice);
+            int offerId, int itemId, int buyerId, int currencyType, int charge, int soldTimestamp) {
+        return commit(offerId, itemId, buyerId, currencyType, charge, soldTimestamp, 0);
     }
-    public static EconomyMutationResult commit(javax.sql.DataSource source,int offerId,int itemId,int buyerId,int currencyType,int charge,int soldTimestamp,int agreedPrice) {
+
+    static EconomyMutationResult commit(
+            int offerId, int itemId, int buyerId, int currencyType, int charge, int soldTimestamp, int agreedPrice) {
+        return commit(
+                Emulator.getDatabase().getDataSource(),
+                offerId,
+                itemId,
+                buyerId,
+                currencyType,
+                charge,
+                soldTimestamp,
+                agreedPrice);
+    }
+
+    public static EconomyMutationResult commit(
+            javax.sql.DataSource source,
+            int offerId,
+            int itemId,
+            int buyerId,
+            int currencyType,
+            int charge,
+            int soldTimestamp,
+            int agreedPrice) {
         if (offerId <= 0 || itemId <= 0 || buyerId <= 0 || charge <= 0) return null;
 
         Connection connection = null;
         try {
             connection = source.getConnection();
             connection.setAutoCommit(false);
-            if(agreedPrice>0){
-                if(!MarketPlace.isValidListingPrice(agreedPrice)||MarketPlace.calculateCommision(agreedPrice)!=charge)throw new SQLException("Marketplace charge does not match price");
-                try(var update=connection.prepareStatement("UPDATE marketplace_items SET price=? WHERE id=? AND state=1 AND currency_type=?")){update.setInt(1,agreedPrice);update.setInt(2,offerId);update.setInt(3,currencyType);if(update.executeUpdate()!=1){connection.rollback();return null;}}
+            if (agreedPrice > 0) {
+                if (!MarketPlace.isValidListingPrice(agreedPrice)
+                        || MarketPlace.calculateCommision(agreedPrice) != charge)
+                    throw new SQLException("Marketplace charge does not match price");
+                try (var update = connection.prepareStatement(
+                        "UPDATE marketplace_items SET price=? WHERE id=? AND state=1 AND currency_type=?")) {
+                    update.setInt(1, agreedPrice);
+                    update.setInt(2, offerId);
+                    update.setInt(3, currencyType);
+                    if (update.executeUpdate() != 1) {
+                        connection.rollback();
+                        return null;
+                    }
+                }
             }
 
-            if (!executeOfferSale(connection, offerId, soldTimestamp,currencyType)
+            if (!executeOfferSale(connection, offerId, soldTimestamp, currencyType)
                     || !executeItemTransfer(connection, itemId, buyerId)) {
                 connection.rollback();
                 return null;
@@ -79,11 +110,12 @@ final class MarketPlacePurchaseTransaction {
         }
     }
 
-    private static boolean executeOfferSale(Connection connection, int offerId, int soldTimestamp,int currencyType) throws SQLException {
+    private static boolean executeOfferSale(Connection connection, int offerId, int soldTimestamp, int currencyType)
+            throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(SELL_OFFER)) {
             statement.setInt(1, soldTimestamp);
             statement.setInt(2, offerId);
-            statement.setInt(3,currencyType);
+            statement.setInt(3, currencyType);
             return statement.executeUpdate() == 1;
         }
     }

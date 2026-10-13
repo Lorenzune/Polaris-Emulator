@@ -7,7 +7,6 @@ import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.users.LedgerWalletMutation;
-import com.eu.habbo.habbohotel.users.WalletBalanceMath;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.catalog.marketplace.RequestOffersEvent;
 import com.eu.habbo.messages.outgoing.catalog.marketplace.MarketplaceBuyErrorComposer;
@@ -55,7 +54,9 @@ public class MarketPlace {
     // Currency to use.
     public static volatile int MARKETPLACE_CURRENCY = 0;
 
-    public static int legacyCurrency(){return MARKETPLACE_CURRENCY==0?-1:MARKETPLACE_CURRENCY;}
+    public static int legacyCurrency() {
+        return MARKETPLACE_CURRENCY == 0 ? -1 : MARKETPLACE_CURRENCY;
+    }
 
     public static Set<MarketPlaceOffer> getOwnOffers(Habbo habbo) {
         Set<MarketPlaceOffer> offers = new HashSet<>();
@@ -158,12 +159,14 @@ public class MarketPlace {
         }
     }
 
-    public static List<MarketPlaceOffer> getOffers(int minPrice, int maxPrice, String search, int sort) {return getOffers(minPrice,maxPrice,search,sort,legacyCurrency());}
+    public static List<MarketPlaceOffer> getOffers(int minPrice, int maxPrice, String search, int sort) {
+        return getOffers(minPrice, maxPrice, search, sort, legacyCurrency());
+    }
 
-    public static List<MarketPlaceOffer> getOffers(int minPrice,int maxPrice,String search,int sort,int currency) {
+    public static List<MarketPlaceOffer> getOffers(int minPrice, int maxPrice, String search, int sort, int currency) {
         List<MarketPlaceOffer> offers = new ArrayList<>(10);
         MarketplaceOffersQuery.Request request =
-                new MarketplaceOffersQuery.Request(minPrice, maxPrice, search, sort, false,currency);
+                new MarketplaceOffersQuery.Request(minPrice, maxPrice, search, sort, false, currency);
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
                 PreparedStatement statement = connection.prepareStatement(MarketplaceOffersQuery.sql(request))) {
@@ -182,28 +185,93 @@ public class MarketPlace {
         return offers;
     }
 
-    public static void serializeItemInfo(int itemId,ServerMessage message){serializeItemInfo(itemId,message,legacyCurrency(),1);}
-    public static void serializeItemInfo(int itemId,ServerMessage message,int currency,int type) {
-        String furnitureType=type==2?"i":"s";
-        try(var c=Emulator.getDatabase().getDataSource().getConnection()) {
-            int average=0,count=0;
-            try(var s=c.prepareStatement("SELECT COALESCE(AVG(s.unit_price),0) avg FROM rare_market_sales s JOIN items_base b ON b.id=s.base_item_id WHERE b.sprite_id=? AND b.type=? AND s.currency_type=?")){s.setInt(1,itemId);s.setString(2,furnitureType);s.setInt(3,currency);try(var r=s.executeQuery()){r.next();average=r.getInt(1);}}
-            try(var s=c.prepareStatement("SELECT COUNT(*) FROM marketplace_items m JOIN items i ON i.id=m.item_id JOIN items_base b ON b.id=i.item_id WHERE m.state=1 AND m.timestamp>? AND b.sprite_id=? AND b.type=? AND m.currency_type=?")){s.setInt(1,Emulator.getIntUnixTimestamp()-172800);s.setInt(2,itemId);s.setString(3,furnitureType);s.setInt(4,currency);try(var r=s.executeQuery()){r.next();count=r.getInt(1);}}
-            var days=new ArrayList<int[]>();int length=1;
-            try(var s=c.prepareStatement("SELECT FLOOR(AVG(s.unit_price)) price,COUNT(*) sold,DATEDIFF(NOW(),FROM_UNIXTIME(s.sold_at)) day FROM rare_market_sales s JOIN items_base b ON b.id=s.base_item_id WHERE b.sprite_id=? AND b.type=? AND s.currency_type=? GROUP BY DATE(FROM_UNIXTIME(s.sold_at)) ORDER BY day DESC")){s.setInt(1,itemId);s.setString(2,furnitureType);s.setInt(3,currency);try(var r=s.executeQuery()){while(r.next()){int day=Math.max(0,r.getInt("day"));length=Math.max(length,day+1);days.add(new int[]{day,r.getInt("price"),r.getInt("sold")});}}}
-            message.appendInt(calculateCommision(average));message.appendInt(count);message.appendInt(length);message.appendInt(days.size());
-            for(var day:days){message.appendInt(-day[0]);message.appendInt(calculateCommision(day[1]));message.appendInt(day[2]);}
-            message.appendInt(type);message.appendInt(itemId);
-        }catch(SQLException e){LOGGER.error("Marketplace lifetime statistics failed",e);message.appendInt(0);message.appendInt(0);message.appendInt(1);message.appendInt(0);message.appendInt(type);message.appendInt(itemId);}
+    public static void serializeItemInfo(int itemId, ServerMessage message) {
+        serializeItemInfo(itemId, message, legacyCurrency(), 1);
     }
+
+    public static void serializeItemInfo(int itemId, ServerMessage message, int currency, int type) {
+        String furnitureType = type == 2 ? "i" : "s";
+        try (var c = Emulator.getDatabase().getDataSource().getConnection()) {
+            int average = 0, count = 0;
+            try (var s = c.prepareStatement(
+                    "SELECT COALESCE(AVG(s.unit_price),0) avg FROM rare_market_sales s JOIN items_base b ON b.id=s.base_item_id WHERE b.sprite_id=? AND b.type=? AND s.currency_type=?")) {
+                s.setInt(1, itemId);
+                s.setString(2, furnitureType);
+                s.setInt(3, currency);
+                try (var r = s.executeQuery()) {
+                    r.next();
+                    average = r.getInt(1);
+                }
+            }
+            try (var s = c.prepareStatement(
+                    "SELECT COUNT(*) FROM marketplace_items m JOIN items i ON i.id=m.item_id JOIN items_base b ON b.id=i.item_id WHERE m.state=1 AND m.timestamp>? AND b.sprite_id=? AND b.type=? AND m.currency_type=?")) {
+                s.setInt(1, Emulator.getIntUnixTimestamp() - 172800);
+                s.setInt(2, itemId);
+                s.setString(3, furnitureType);
+                s.setInt(4, currency);
+                try (var r = s.executeQuery()) {
+                    r.next();
+                    count = r.getInt(1);
+                }
+            }
+            var days = new ArrayList<int[]>();
+            int length = 1;
+            try (var s = c.prepareStatement(
+                    "SELECT FLOOR(AVG(s.unit_price)) price,COUNT(*) sold,DATEDIFF(NOW(),FROM_UNIXTIME(s.sold_at)) day FROM rare_market_sales s JOIN items_base b ON b.id=s.base_item_id WHERE b.sprite_id=? AND b.type=? AND s.currency_type=? GROUP BY DATE(FROM_UNIXTIME(s.sold_at)) ORDER BY day DESC")) {
+                s.setInt(1, itemId);
+                s.setString(2, furnitureType);
+                s.setInt(3, currency);
+                try (var r = s.executeQuery()) {
+                    while (r.next()) {
+                        int day = Math.max(0, r.getInt("day"));
+                        length = Math.max(length, day + 1);
+                        days.add(new int[] {day, r.getInt("price"), r.getInt("sold")});
+                    }
+                }
+            }
+            message.appendInt(calculateCommision(average));
+            message.appendInt(count);
+            message.appendInt(length);
+            message.appendInt(days.size());
+            for (var day : days) {
+                message.appendInt(-day[0]);
+                message.appendInt(calculateCommision(day[1]));
+                message.appendInt(day[2]);
+            }
+            message.appendInt(type);
+            message.appendInt(itemId);
+        } catch (SQLException e) {
+            LOGGER.error("Marketplace lifetime statistics failed", e);
+            message.appendInt(0);
+            message.appendInt(0);
+            message.appendInt(1);
+            message.appendInt(0);
+            message.appendInt(type);
+            message.appendInt(itemId);
+        }
+    }
+
     public static int itemsOnSale(int baseItemId) {
-        try(var c=Emulator.getDatabase().getDataSource().getConnection();var s=c.prepareStatement("SELECT COUNT(*) FROM marketplace_items m JOIN items i ON i.id=m.item_id JOIN items_base b ON b.id=i.item_id WHERE m.state=1 AND m.timestamp>? AND b.sprite_id=? AND m.currency_type=?")){s.setInt(1,Emulator.getIntUnixTimestamp()-172800);s.setInt(2,baseItemId);s.setInt(3,legacyCurrency());try(var r=s.executeQuery()){r.next();return r.getInt(1);}}
-        catch(SQLException e){return 0;}
+        try (var c = Emulator.getDatabase().getDataSource().getConnection();
+                var s = c.prepareStatement(
+                        "SELECT COUNT(*) FROM marketplace_items m JOIN items i ON i.id=m.item_id JOIN items_base b ON b.id=i.item_id WHERE m.state=1 AND m.timestamp>? AND b.sprite_id=? AND m.currency_type=?")) {
+            s.setInt(1, Emulator.getIntUnixTimestamp() - 172800);
+            s.setInt(2, baseItemId);
+            s.setInt(3, legacyCurrency());
+            try (var r = s.executeQuery()) {
+                r.next();
+                return r.getInt(1);
+            }
+        } catch (SQLException e) {
+            return 0;
+        }
     }
 
-    public static void buyItem(int offerId, GameClient client) {buyItem(offerId,client,legacyCurrency());}
+    public static void buyItem(int offerId, GameClient client) {
+        buyItem(offerId, client, legacyCurrency());
+    }
 
-    public static void buyItem(int offerId,GameClient client,int expectedCurrency) {
+    public static void buyItem(int offerId, GameClient client, int expectedCurrency) {
         RequestOffersEvent.cachedResults.clear();
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(PURCHASE_OFFER_SQL)) {
@@ -217,8 +285,16 @@ public class MarketPlace {
                                 itemSet.first();
 
                                 if (itemSet.getRow() > 0) {
-                                    int currency=set.getInt("currency_type");
-                                    if(currency!=expectedCurrency || Emulator.getIntUnixTimestamp()-set.getInt("timestamp")>=172800 || set.getInt("user_id")==client.getHabbo().getHabboInfo().getId()){sendErrorMessage(client,set.getInt("item_id"),offerId);return;}
+                                    int currency = set.getInt("currency_type");
+                                    if (currency != expectedCurrency
+                                            || Emulator.getIntUnixTimestamp() - set.getInt("timestamp") >= 172800
+                                            || set.getInt("user_id")
+                                                    == client.getHabbo()
+                                                            .getHabboInfo()
+                                                            .getId()) {
+                                        sendErrorMessage(client, set.getInt("item_id"), offerId);
+                                        return;
+                                    }
                                     int rawPrice = set.getInt("price");
                                     if (!isValidListingPrice(rawPrice)) {
                                         sendErrorMessage(client, set.getInt("item_id"), offerId);
@@ -258,11 +334,11 @@ public class MarketPlace {
                                         }
 
                                         int soldTimestamp = Emulator.getIntUnixTimestamp();
-                                        int agreedPrice=event.price;
+                                        int agreedPrice = event.price;
                                         event.price = calculateCommision(event.price);
 
                                         PreparedCharge charge =
-                                                prepareMarketplaceCharge(client.getHabbo(), event.price,currency);
+                                                prepareMarketplaceCharge(client.getHabbo(), event.price, currency);
                                         if (charge == null) return;
 
                                         EconomyMutationResult walletMutation =
@@ -276,7 +352,8 @@ public class MarketPlace {
                                                                             .getId(),
                                                                     charge.currencyType(),
                                                                     -charge.delta(),
-                                                                    soldTimestamp,agreedPrice);
+                                                                    soldTimestamp,
+                                                                    agreedPrice);
                                                     if (mutation != null) {
                                                         LedgerWalletMutation.applyCommitted(
                                                                 client.getHabbo(),
@@ -335,11 +412,19 @@ public class MarketPlace {
         client.sendResponse(new MarketplaceBuyErrorComposer(MarketplaceBuyErrorComposer.REFRESH, 0, offerId, 0));
     }
 
-    public static boolean sellItem(GameClient client, HabboItem item, int price) {return sellItem(client,item,price,legacyCurrency());}
+    public static boolean sellItem(GameClient client, HabboItem item, int price) {
+        return sellItem(client, item, price, legacyCurrency());
+    }
 
-    public static boolean sellItem(GameClient client,HabboItem item,int price,int currency) {
+    public static boolean sellItem(GameClient client, HabboItem item, int price, int currency) {
         if (item == null || client == null) return false;
-        try { if(!new com.eu.habbo.habbohotel.catalog.RareEconomyRepository(Emulator.getDatabase().getDataSource()).currencyEnabled(currency))return false; }catch(SQLException e){return false;}
+        try {
+            if (!new com.eu.habbo.habbohotel.catalog.RareEconomyRepository(
+                            Emulator.getDatabase().getDataSource())
+                    .currencyEnabled(currency)) return false;
+        } catch (SQLException e) {
+            return false;
+        }
 
         if (!item.getBaseItem().allowMarketplace() || !isValidListingPrice(price)) return false;
 
@@ -355,7 +440,7 @@ public class MarketPlace {
 
         event.item.setFromGift(false);
 
-        MarketPlaceOffer offer = new MarketPlaceOffer(event.item, event.price, client.getHabbo(),currency);
+        MarketPlaceOffer offer = new MarketPlaceOffer(event.item, event.price, client.getHabbo(), currency);
         if (!offer.isPersisted()) {
             LOGGER.warn(
                     "Marketplace offer insert failed for user {} item {}",
@@ -373,22 +458,51 @@ public class MarketPlace {
         return true;
     }
 
-    public static void getCredits(GameClient client) {getCredits(client,legacyCurrency());}
-    public static void getCredits(GameClient client,int currency) {
+    public static void getCredits(GameClient client) {
+        getCredits(client, legacyCurrency());
+    }
+
+    public static void getCredits(GameClient client, int currency) {
         try {
-            var result=LedgerWalletMutation.coordinated(client.getHabbo(),()->{
-                var claim=MarketPlaceClaimTransaction.commit(Emulator.getDatabase().getDataSource(),client.getHabbo().getHabboInfo().getId(),currency,totals->{
-                    for(var entry:totals.entrySet()) {
-                        if(entry.getKey()==-1){var event=new UserCreditsEvent(client.getHabbo(),entry.getValue());if(Emulator.getPluginManager().fireEvent(event).isCancelled()||event.credits!=entry.getValue())return false;}
-                        else {var event=new UserPointsEvent(client.getHabbo(),entry.getValue(),entry.getKey());if(Emulator.getPluginManager().fireEvent(event).isCancelled()||event.points!=entry.getValue()||event.type!=entry.getKey())return false;}
-                    }return true;
-                });
-                for(var entry:claim.wallets().entrySet())LedgerWalletMutation.applyCommitted(client.getHabbo(),entry.getKey(),entry.getValue().balanceAfter());
+            var result = LedgerWalletMutation.coordinated(client.getHabbo(), () -> {
+                var claim = MarketPlaceClaimTransaction.commit(
+                        Emulator.getDatabase().getDataSource(),
+                        client.getHabbo().getHabboInfo().getId(),
+                        currency,
+                        totals -> {
+                            for (var entry : totals.entrySet()) {
+                                if (entry.getKey() == -1) {
+                                    var event = new UserCreditsEvent(client.getHabbo(), entry.getValue());
+                                    if (Emulator.getPluginManager()
+                                                    .fireEvent(event)
+                                                    .isCancelled()
+                                            || event.credits != entry.getValue()) return false;
+                                } else {
+                                    var event =
+                                            new UserPointsEvent(client.getHabbo(), entry.getValue(), entry.getKey());
+                                    if (Emulator.getPluginManager()
+                                                    .fireEvent(event)
+                                                    .isCancelled()
+                                            || event.points != entry.getValue()
+                                            || event.type != entry.getKey()) return false;
+                                }
+                            }
+                            return true;
+                        });
+                for (var entry : claim.wallets().entrySet())
+                    LedgerWalletMutation.applyCommitted(
+                            client.getHabbo(), entry.getKey(), entry.getValue().balanceAfter());
                 return claim;
             });
-            for(int id:result.offerIds()){var offer=client.getHabbo().getInventory().getOffer(id);if(offer!=null)client.getHabbo().getInventory().removeMarketplaceOffer(offer);}
-            for(var entry:result.totals().entrySet())publishMarketplaceCharge(client,new PreparedCharge(entry.getKey(),entry.getValue()));
-        }catch(Exception e){LOGGER.error("Atomic marketplace payout failed",e);}
+            for (int id : result.offerIds()) {
+                var offer = client.getHabbo().getInventory().getOffer(id);
+                if (offer != null) client.getHabbo().getInventory().removeMarketplaceOffer(offer);
+            }
+            for (var entry : result.totals().entrySet())
+                publishMarketplaceCharge(client, new PreparedCharge(entry.getKey(), entry.getValue()));
+        } catch (Exception e) {
+            LOGGER.error("Atomic marketplace payout failed", e);
+        }
     }
 
     public static int calculateCommision(int price) {
@@ -396,7 +510,7 @@ public class MarketPlace {
         return commission > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) commission;
     }
 
-    private static PreparedCharge prepareMarketplaceCharge(Habbo buyer, int price,int currency) {
+    private static PreparedCharge prepareMarketplaceCharge(Habbo buyer, int price, int currency) {
         if (currency == -1) {
             UserCreditsEvent event = new UserCreditsEvent(buyer, -price);
             if (Emulator.getPluginManager().fireEvent(event).isCancelled() || event.credits != -price) return null;

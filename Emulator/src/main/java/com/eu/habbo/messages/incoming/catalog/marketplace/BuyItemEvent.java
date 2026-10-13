@@ -22,7 +22,7 @@ public class BuyItemEvent extends MessageHandler {
             return;
         }
 
-        int currency=this.packet.bytesAvailable()>0?this.packet.readInt():MarketPlace.legacyCurrency();
-        MarketPlace.buyItem(offerId, this.client,currency);
+        int currency = this.packet.bytesAvailable() > 0 ? this.packet.readInt() : MarketPlace.legacyCurrency();
+        MarketPlace.buyItem(offerId, this.client, currency);
     }
 }

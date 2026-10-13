@@ -9,14 +9,25 @@ public class MarketplaceConfigComposer extends MessageComposer {
     protected ServerMessage composeInternal() {
         this.response.init(Outgoing.MarketplaceConfigComposer);
         this.response.appendBoolean(true);
-        this.response.appendInt(1); //Commision Percentage.
-        this.response.appendInt(10); //Credits
-        this.response.appendInt(5); //Advertisements
-        this.response.appendInt(1); //Min price
-        this.response.appendInt(1000000); //Max price
-        this.response.appendInt(48); //Hours in marketplace
-        this.response.appendInt(7); //Days to display
-        try{this.response.appendString(new com.google.gson.Gson().toJson(java.util.Map.of("currencies",new com.eu.habbo.habbohotel.catalog.RareEconomyRepository(com.eu.habbo.Emulator.getDatabase().getDataSource()).currencies(),"defaultCurrency",com.eu.habbo.habbohotel.catalog.marketplace.MarketPlace.legacyCurrency())));}catch(java.sql.SQLException e){this.response.appendString("{}");}
+        this.response.appendInt(1); // Commision Percentage.
+        this.response.appendInt(10); // Credits
+        this.response.appendInt(5); // Advertisements
+        this.response.appendInt(1); // Min price
+        this.response.appendInt(1000000); // Max price
+        this.response.appendInt(48); // Hours in marketplace
+        this.response.appendInt(7); // Days to display
+        try {
+            this.response.appendString(new com.google.gson.Gson()
+                    .toJson(java.util.Map.of(
+                            "currencies",
+                            new com.eu.habbo.habbohotel.catalog.RareEconomyRepository(
+                                            com.eu.habbo.Emulator.getDatabase().getDataSource())
+                                    .currencies(),
+                            "defaultCurrency",
+                            com.eu.habbo.habbohotel.catalog.marketplace.MarketPlace.legacyCurrency())));
+        } catch (java.sql.SQLException e) {
+            this.response.appendString("{}");
+        }
         return this.response;
     }
 }

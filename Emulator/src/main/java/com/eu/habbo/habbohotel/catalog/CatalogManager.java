@@ -389,7 +389,9 @@ public class CatalogManager {
                 : CatalogPageType.NORMAL;
         List<CatalogItem> sorted = this.readIndex().sortedItems(mapType, page.getId());
         if (sorted != null && this.getCatalogPagesMap(mapType).get(page.getId()) == page) {
-            return sorted.stream().filter(RareReleaseService::available).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+            return sorted.stream()
+                    .filter(RareReleaseService::available)
+                    .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
         }
         List<CatalogItem> items = new ArrayList<>(page.getCatalogItems().values());
         Collections.sort(items);
@@ -1426,7 +1428,8 @@ public class CatalogManager {
         }
 
         if (!free && !RareReleaseService.available(item)) {
-            habbo.getClient().sendResponse(new AlertPurchaseUnavailableComposer(AlertPurchaseUnavailableComposer.ILLEGAL));
+            habbo.getClient()
+                    .sendResponse(new AlertPurchaseUnavailableComposer(AlertPurchaseUnavailableComposer.ILLEGAL));
             return;
         }
 
@@ -1454,7 +1457,11 @@ public class CatalogManager {
         int limitedNumber = 0;
 
         try {
-            if(!free&&!RareReleaseService.beginPurchase(item)){habbo.getClient().sendResponse(new AlertPurchaseUnavailableComposer(AlertPurchaseUnavailableComposer.ILLEGAL));return;}
+            if (!free && !RareReleaseService.beginPurchase(item)) {
+                habbo.getClient()
+                        .sendResponse(new AlertPurchaseUnavailableComposer(AlertPurchaseUnavailableComposer.ILLEGAL));
+                return;
+            }
             if (item.isClubOnly()
                     && !habbo.getClient().getHabbo().getHabboStats().hasActiveClub()) {
                 habbo.getClient()

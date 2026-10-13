@@ -4,15 +4,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Neutral furnidata reader. Supports a single JSON/JSON5 file or a split-tier
@@ -79,7 +78,8 @@ public class FurnidataReader {
                 if (!Files.exists(file)) continue;
                 try {
                     String content = readJson5Capped(file);
-                    if (content != null) parseRoot(JsonParser.parseString(content).getAsJsonObject(), out);
+                    if (content != null)
+                        parseRoot(JsonParser.parseString(content).getAsJsonObject(), out);
                 } catch (Exception e) {
                     LOGGER.warn("FurnidataReader: failed to parse {}", file, e);
                 }
@@ -116,14 +116,20 @@ public class FurnidataReader {
             JsonArray types = sectionObj.getAsJsonArray("furnitype");
             for (JsonElement el : types) {
                 JsonObject o = el.getAsJsonObject();
-                if (!o.has("id") || o.get("id").isJsonNull() || !o.has("classname") || o.get("classname").isJsonNull()) continue;
+                if (!o.has("id")
+                        || o.get("id").isJsonNull()
+                        || !o.has("classname")
+                        || o.get("classname").isJsonNull()) continue;
                 out.add(new FurnidataEntry(
-                    o.get("id").getAsInt(),
-                    o.get("classname").getAsString(),
-                    type,
-                    (o.has("name") && !o.get("name").isJsonNull()) ? o.get("name").getAsString() : "",
-                    (o.has("description") && !o.get("description").isJsonNull()) ? o.get("description").getAsString() : ""
-                ));
+                        o.get("id").getAsInt(),
+                        o.get("classname").getAsString(),
+                        type,
+                        (o.has("name") && !o.get("name").isJsonNull())
+                                ? o.get("name").getAsString()
+                                : "",
+                        (o.has("description") && !o.get("description").isJsonNull())
+                                ? o.get("description").getAsString()
+                                : ""));
             }
         }
     }
@@ -165,11 +171,27 @@ public class FurnidataReader {
                 i++;
                 continue;
             }
-            if (c == '"' || c == '\'') { inString = true; stringChar = c; out.append(c); i++; continue; }
+            if (c == '"' || c == '\'') {
+                inString = true;
+                stringChar = c;
+                out.append(c);
+                i++;
+                continue;
+            }
             if (c == '/' && i + 1 < len) {
                 char next = content.charAt(i + 1);
-                if (next == '/') { int eol = content.indexOf('\n', i + 2); if (eol < 0) break; i = eol; continue; }
-                if (next == '*') { int end = content.indexOf("*/", i + 2); if (end < 0) break; i = end + 2; continue; }
+                if (next == '/') {
+                    int eol = content.indexOf('\n', i + 2);
+                    if (eol < 0) break;
+                    i = eol;
+                    continue;
+                }
+                if (next == '*') {
+                    int end = content.indexOf("*/", i + 2);
+                    if (end < 0) break;
+                    i = end + 2;
+                    continue;
+                }
             }
             out.append(c);
             i++;

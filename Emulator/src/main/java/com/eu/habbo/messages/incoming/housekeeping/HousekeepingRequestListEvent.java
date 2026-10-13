@@ -9,7 +9,6 @@ import com.eu.habbo.habbohotel.modtool.ModToolRoomVisit;
 import com.eu.habbo.habbohotel.modtool.ModToolSanctionItem;
 import com.eu.habbo.habbohotel.modtool.WordFilterWord;
 import com.eu.habbo.habbohotel.permissions.PermissionsManager;
-
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboInfo;
@@ -223,10 +222,16 @@ public class HousekeepingRequestListEvent extends HousekeepingHandler {
         rows.addAll(com.eu.habbo.database.SqlQueries.query(
                 "SELECT t.assigned_rank, t.previous_rank, t.expires_at, COALESCE(u.username, '') AS staff, t.reason "
                         + "FROM user_temporary_ranks t LEFT JOIN users u ON u.id=t.actor_id WHERE t.user_id=? AND t.expires_at>?",
-                row -> List.of(String.valueOf(row.getInt("assigned_rank")), rankName(permissions,row.getInt("assigned_rank")),
-                        String.valueOf(row.getInt("previous_rank")), rankName(permissions,row.getInt("previous_rank")),
-                        String.valueOf(row.getLong("expires_at")/1000L),row.getString("staff"),row.getString("reason")),
-                userId,System.currentTimeMillis()));
+                row -> List.of(
+                        String.valueOf(row.getInt("assigned_rank")),
+                        rankName(permissions, row.getInt("assigned_rank")),
+                        String.valueOf(row.getInt("previous_rank")),
+                        rankName(permissions, row.getInt("previous_rank")),
+                        String.valueOf(row.getLong("expires_at") / 1000L),
+                        row.getString("staff"),
+                        row.getString("reason")),
+                userId,
+                System.currentTimeMillis()));
 
         return new HousekeepingListComposer(
                 listKey,

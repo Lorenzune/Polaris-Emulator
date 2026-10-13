@@ -147,7 +147,9 @@ public class GameEnvironment {
             }
         });
         this.rareReleaseService = this.services.create(
-                "rare catalog scheduler", com.eu.habbo.habbohotel.catalog.RareReleaseService::new, com.eu.habbo.habbohotel.catalog.RareReleaseService::dispose);
+                "rare catalog scheduler",
+                com.eu.habbo.habbohotel.catalog.RareReleaseService::new,
+                com.eu.habbo.habbohotel.catalog.RareReleaseService::dispose);
         this.rareReleaseService.init();
         this.roomCycleService = this.services.create(
                 "room cycle workers",

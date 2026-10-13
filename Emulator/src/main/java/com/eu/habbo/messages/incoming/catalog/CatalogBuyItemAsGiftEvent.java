@@ -8,11 +8,11 @@ import com.eu.habbo.habbohotel.catalog.CatalogManager;
 import com.eu.habbo.habbohotel.catalog.CatalogPage;
 import com.eu.habbo.habbohotel.catalog.CatalogPageAccessPolicy;
 import com.eu.habbo.habbohotel.catalog.CatalogPaymentService;
-import com.eu.habbo.habbohotel.catalog.RareReleaseService;
-import com.eu.habbo.habbohotel.catalog.RareEconomyRepository;
 import com.eu.habbo.habbohotel.catalog.CatalogPurchaseLogEntry;
 import com.eu.habbo.habbohotel.catalog.CatalogPurchaseMath;
 import com.eu.habbo.habbohotel.catalog.ClubOffer;
+import com.eu.habbo.habbohotel.catalog.RareEconomyRepository;
+import com.eu.habbo.habbohotel.catalog.RareReleaseService;
 import com.eu.habbo.habbohotel.catalog.layouts.BuildersClubAddonsLayout;
 import com.eu.habbo.habbohotel.catalog.layouts.BuildersClubFrontPageLayout;
 import com.eu.habbo.habbohotel.catalog.layouts.BuildersClubLoyaltyLayout;
@@ -294,7 +294,8 @@ public class CatalogBuyItemAsGiftEvent extends MessageHandler {
                     }
 
                     if (!RareReleaseService.beginPurchase(item)) {
-                        this.client.sendResponse(new AlertPurchaseUnavailableComposer(AlertPurchaseUnavailableComposer.ILLEGAL));
+                        this.client.sendResponse(
+                                new AlertPurchaseUnavailableComposer(AlertPurchaseUnavailableComposer.ILLEGAL));
                         return;
                     }
 
@@ -738,12 +739,20 @@ public class CatalogBuyItemAsGiftEvent extends MessageHandler {
                     createdGiftItems.add(gift);
 
                     // Record the contents, not the wrapper. Opening the package reuses these item IDs.
-                    String purchasedIds = itemsList.stream().filter(i -> i.getId() != gift.getId())
-                            .map(i -> Integer.toString(i.getId())).collect(java.util.stream.Collectors.joining(";"));
+                    String purchasedIds = itemsList.stream()
+                            .filter(i -> i.getId() != gift.getId())
+                            .map(i -> Integer.toString(i.getId()))
+                            .collect(java.util.stream.Collectors.joining(";"));
                     CatalogPurchaseLogEntry purchase = new CatalogPurchaseLogEntry(
-                            Emulator.getIntUnixTimestamp(), this.client.getHabbo().getHabboInfo().getId(),
-                            item.getId(), purchasedIds, item.getName(),
-                            Math.max(0, paidCredits - (paidCredits > 0 ? wrapFee : 0)), paidPoints, paidPointsType, 1);
+                            Emulator.getIntUnixTimestamp(),
+                            this.client.getHabbo().getHabboInfo().getId(),
+                            item.getId(),
+                            purchasedIds,
+                            item.getName(),
+                            Math.max(0, paidCredits - (paidCredits > 0 ? wrapFee : 0)),
+                            paidPoints,
+                            paidPointsType,
+                            1);
                     try (PreparedStatement log = connection.prepareStatement(purchase.getQuery())) {
                         purchase.log(log);
                         log.executeBatch();

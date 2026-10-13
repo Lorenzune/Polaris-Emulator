@@ -5,13 +5,12 @@ import com.eu.habbo.habbohotel.catalog.marketplace.MarketPlaceOffer;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.catalog.marketplace.MarketplaceOffersComposer;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RequestOffersEvent extends MessageHandler {
-    public final static Map<Integer, ServerMessage> cachedResults = new ConcurrentHashMap<>(0);
+    public static final Map<Integer, ServerMessage> cachedResults = new ConcurrentHashMap<>(0);
 
     @Override
     public int getRatelimit() {
@@ -25,9 +24,8 @@ public class RequestOffersEvent extends MessageHandler {
         String query = MarketplaceInputGuard.normalizeSearch(this.packet.readString());
         int type = MarketplaceInputGuard.normalizeSort(this.packet.readInt());
 
-
-        int currency=this.packet.bytesAvailable()>0?this.packet.readInt():MarketPlace.legacyCurrency();
-        boolean tryCache = currency==MarketPlace.legacyCurrency() && min == -1 && max == -1 && query.isEmpty();
+        int currency = this.packet.bytesAvailable() > 0 ? this.packet.readInt() : MarketPlace.legacyCurrency();
+        boolean tryCache = currency == MarketPlace.legacyCurrency() && min == -1 && max == -1 && query.isEmpty();
 
         if (tryCache) {
             ServerMessage message = cachedResults.get(type);
@@ -37,9 +35,9 @@ public class RequestOffersEvent extends MessageHandler {
             }
         }
 
-        List<MarketPlaceOffer> offers = MarketPlace.getOffers(min, max, query, type,currency);
+        List<MarketPlaceOffer> offers = MarketPlace.getOffers(min, max, query, type, currency);
 
-        ServerMessage message = new MarketplaceOffersComposer(offers,currency).compose();
+        ServerMessage message = new MarketplaceOffersComposer(offers, currency).compose();
         if (tryCache) {
             cachedResults.put(type, message);
         }

@@ -40,11 +40,15 @@ class HousekeepingStaffToolsContractTest {
     void aTemporaryRankGoesThroughTemporaryRanksAndKeepsItsTimer() throws Exception {
         String source = Files.readString(BASE.resolve("HousekeepingSetUserRankEvent.java"));
 
-        assertTrue(source.contains("habboManager.grantTemporaryRank("), "a temporary rank is recorded before the rank changes");
+        assertTrue(
+                source.contains("habboManager.grantTemporaryRank("),
+                "a temporary rank is recorded before the rank changes");
         assertTrue(
                 source.contains("durationSeconds * 1000L"),
                 "the change keeps the timer, so the rank comes back when it runs out");
-        assertFalse(source.contains("TemporaryRanks.clear(userId)"), "the local transaction rolls back the lease and rank together");
+        assertFalse(
+                source.contains("TemporaryRanks.clear(userId)"),
+                "the local transaction rolls back the lease and rank together");
         assertTrue(
                 source.contains("HousekeepingTargetRankGuard.canAssignRank(")
                         && source.contains("HousekeepingTargetRankGuard.canTargetRank("),

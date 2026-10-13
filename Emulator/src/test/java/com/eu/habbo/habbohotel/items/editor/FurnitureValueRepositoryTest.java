@@ -1,15 +1,17 @@
 package com.eu.habbo.habbohotel.items.editor;
 
-import org.junit.jupiter.api.Test;
-import javax.sql.DataSource;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.math.BigDecimal;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import javax.sql.DataSource;
+import org.junit.jupiter.api.Test;
 
 class FurnitureValueRepositoryTest {
     @Test
@@ -32,7 +34,6 @@ class FurnitureValueRepositoryTest {
         assertEquals(new BigDecimal("100.00"), value.get("value"));
         assertEquals(5, value.get("valueType"));
         assertEquals(true, value.get("isRare"));
-
     }
 
     @Test

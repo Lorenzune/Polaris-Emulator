@@ -56,7 +56,10 @@ public class RoomCycleManager {
     private long rollerCycle = System.currentTimeMillis();
 
     public RoomCycleManager(Room room) {
-        this(room, (task, delay) -> Emulator.getGameEnvironment().getRoomCycleService().scheduleWalk(task, delay));
+        this(
+                room,
+                (task, delay) ->
+                        Emulator.getGameEnvironment().getRoomCycleService().scheduleWalk(task, delay));
     }
 
     RoomCycleManager(Room room, BiFunction<Runnable, Long, ScheduledFuture<?>> walkScheduler) {
@@ -640,7 +643,8 @@ public class RoomCycleManager {
         public void run() {
             synchronized (room) {
                 if (userWalks.get(this.unit) != this) return;
-                if (!room.isLoaded() || !this.unit.isInRoom()
+                if (!room.isLoaded()
+                        || !this.unit.isInRoom()
                         || this.habbo.getRoomUnit() != this.unit
                         || this.habbo.getHabboInfo().getCurrentRoom() != room
                         || WiredUserMovementHelper.shouldSuppressStatusComposer(this.unit)
@@ -656,7 +660,8 @@ public class RoomCycleManager {
                     }
                     // Keep ownership until the final animation settles, including
                     // a one-tile walk. This prevents the heartbeat clearing mv early.
-                    boolean hasPath = this.unit.isWalking() && this.unit.getPath() != null
+                    boolean hasPath = this.unit.isWalking()
+                            && this.unit.getPath() != null
                             && !this.unit.getPath().isEmpty();
                     if ((hasPath || this.unit.hasStatus(RoomUnitStatus.MOVE))
                             && walkScheduler.apply(this, (long) RoomCycleService.CYCLE_MS) != null) return;

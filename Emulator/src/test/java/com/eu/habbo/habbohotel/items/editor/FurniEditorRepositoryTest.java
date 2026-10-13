@@ -18,37 +18,61 @@ import org.junit.jupiter.api.Test;
 class FurniEditorRepositoryTest {
     @Test
     void rendererAssetNameFindsItsUniqueColourVariantBySprite() throws Exception {
-        DataSource source=mock(DataSource.class);Connection connection=mock(Connection.class);
-        PreparedStatement exact=mock(PreparedStatement.class),fallback=mock(PreparedStatement.class);
-        ResultSet noExact=mock(ResultSet.class),unique=mock(ResultSet.class);
+        DataSource source = mock(DataSource.class);
+        Connection connection = mock(Connection.class);
+        PreparedStatement exact = mock(PreparedStatement.class), fallback = mock(PreparedStatement.class);
+        ResultSet noExact = mock(ResultSet.class), unique = mock(ResultSet.class);
         when(source.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(anyString())).thenReturn(exact,fallback);
+        when(connection.prepareStatement(anyString())).thenReturn(exact, fallback);
         when(exact.executeQuery()).thenReturn(noExact);
         when(fallback.executeQuery()).thenReturn(unique);
-        when(unique.next()).thenReturn(true,false);when(unique.getInt("id")).thenReturn(17004);
-        assertEquals(17004,new FurniEditorRepository(source).findItemIdBySprite(17004,"scifiport").orElseThrow());
-        verify(exact).setString(2,"scifiport");verify(fallback).setInt(1,17004);
+        when(unique.next()).thenReturn(true, false);
+        when(unique.getInt("id")).thenReturn(17004);
+        assertEquals(
+                17004,
+                new FurniEditorRepository(source)
+                        .findItemIdBySprite(17004, "scifiport")
+                        .orElseThrow());
+        verify(exact).setString(2, "scifiport");
+        verify(fallback).setInt(1, 17004);
         verify(connection).prepareStatement("SELECT id FROM items_base WHERE sprite_id = ? ORDER BY id DESC LIMIT 2");
     }
+
     @Test
     void mismatchedNameDoesNotChooseAmongSeveralDefinitionsSharingASprite() throws Exception {
-        DataSource source=mock(DataSource.class);Connection connection=mock(Connection.class);
-        PreparedStatement exact=mock(PreparedStatement.class),fallback=mock(PreparedStatement.class);
-        ResultSet noExact=mock(ResultSet.class),ambiguous=mock(ResultSet.class);
+        DataSource source = mock(DataSource.class);
+        Connection connection = mock(Connection.class);
+        PreparedStatement exact = mock(PreparedStatement.class), fallback = mock(PreparedStatement.class);
+        ResultSet noExact = mock(ResultSet.class), ambiguous = mock(ResultSet.class);
         when(source.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(anyString())).thenReturn(exact,fallback);
-        when(exact.executeQuery()).thenReturn(noExact);when(fallback.executeQuery()).thenReturn(ambiguous);
-        when(ambiguous.next()).thenReturn(true,true);when(ambiguous.getInt("id")).thenReturn(17004);
-        assertEquals(java.util.OptionalInt.empty(),new FurniEditorRepository(source).findItemIdBySprite(17004,"scifiport"));
+        when(connection.prepareStatement(anyString())).thenReturn(exact, fallback);
+        when(exact.executeQuery()).thenReturn(noExact);
+        when(fallback.executeQuery()).thenReturn(ambiguous);
+        when(ambiguous.next()).thenReturn(true, true);
+        when(ambiguous.getInt("id")).thenReturn(17004);
+        assertEquals(
+                java.util.OptionalInt.empty(),
+                new FurniEditorRepository(source).findItemIdBySprite(17004, "scifiport"));
     }
+
     @Test
     void exactColourVariantMatchDoesNotUseTheFallback() throws Exception {
-        DataSource source=mock(DataSource.class);Connection connection=mock(Connection.class);
-        PreparedStatement exact=mock(PreparedStatement.class);ResultSet match=mock(ResultSet.class);
-        when(source.getConnection()).thenReturn(connection);when(connection.prepareStatement(anyString())).thenReturn(exact);
-        when(exact.executeQuery()).thenReturn(match);when(match.next()).thenReturn(true);when(match.getInt("id")).thenReturn(17004);
-        assertEquals(17004,new FurniEditorRepository(source).findItemIdBySprite(17004,"scifiport*11").orElseThrow());
-        verify(connection,never()).prepareStatement("SELECT id FROM items_base WHERE sprite_id = ? ORDER BY id DESC LIMIT 2");
+        DataSource source = mock(DataSource.class);
+        Connection connection = mock(Connection.class);
+        PreparedStatement exact = mock(PreparedStatement.class);
+        ResultSet match = mock(ResultSet.class);
+        when(source.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(anyString())).thenReturn(exact);
+        when(exact.executeQuery()).thenReturn(match);
+        when(match.next()).thenReturn(true);
+        when(match.getInt("id")).thenReturn(17004);
+        assertEquals(
+                17004,
+                new FurniEditorRepository(source)
+                        .findItemIdBySprite(17004, "scifiport*11")
+                        .orElseThrow());
+        verify(connection, never())
+                .prepareStatement("SELECT id FROM items_base WHERE sprite_id = ? ORDER BY id DESC LIMIT 2");
     }
 
     @Test

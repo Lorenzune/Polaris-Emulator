@@ -744,8 +744,10 @@ public class PacketManager {
 
         // Furni Editor
         this.registerHandler(Incoming.FurniEditorSearchEvent, FurniEditorSearchEvent.class);
-        this.registerHandler(Incoming.RequestFurnitureValueEvent, com.eu.habbo.messages.incoming.furnieditor.RequestFurnitureValueEvent.class);
-        this.registerHandler(10410,com.eu.habbo.messages.incoming.furnieditor.RareEconomyCommandEvent.class);
+        this.registerHandler(
+                Incoming.RequestFurnitureValueEvent,
+                com.eu.habbo.messages.incoming.furnieditor.RequestFurnitureValueEvent.class);
+        this.registerHandler(10410, com.eu.habbo.messages.incoming.furnieditor.RareEconomyCommandEvent.class);
         this.registerHandler(Incoming.FurniEditorDetailEvent, FurniEditorDetailEvent.class);
         this.registerHandler(Incoming.FurniEditorBySpriteEvent, FurniEditorBySpriteEvent.class);
         this.registerHandler(Incoming.FurniEditorInteractionsEvent, FurniEditorInteractionsEvent.class);
@@ -1385,7 +1387,7 @@ public class PacketManager {
                 Incoming.YouTubeSearchEvent, com.eu.habbo.messages.incoming.rooms.youtube.YouTubeSearchEvent.class);
 
         // Housekeeping (in-client admin panel)
-        
+
         this.registerHandler(
                 Incoming.HousekeepingSaveRoomSettingsEvent,
                 com.eu.habbo.messages.incoming.housekeeping.HousekeepingSaveRoomSettingsEvent.class);

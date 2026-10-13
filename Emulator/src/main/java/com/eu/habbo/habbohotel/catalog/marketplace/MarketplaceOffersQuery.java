@@ -27,8 +27,10 @@ final class MarketplaceOffersQuery {
      * One search. A price bound is applied when it is positive (the upper one only above the
      * lower one) and compared with the commission-inclusive price the buyer pays.
      */
-    record Request(int minPrice, int maxPrice, String search, int sort, boolean combineUniques,int currency) {
-        Request(int minPrice,int maxPrice,String search,int sort,boolean combineUniques){this(minPrice,maxPrice,search,sort,combineUniques,MarketPlace.legacyCurrency());}
+    record Request(int minPrice, int maxPrice, String search, int sort, boolean combineUniques, int currency) {
+        Request(int minPrice, int maxPrice, String search, int sort, boolean combineUniques) {
+            this(minPrice, maxPrice, search, sort, combineUniques, MarketPlace.legacyCurrency());
+        }
 
         boolean hasMinPrice() {
             return this.minPrice > 0;
@@ -60,7 +62,8 @@ final class MarketplaceOffersQuery {
                 .append(" ',', 1) AS UNSIGNED) AS cheapest_id\n")
                 .append("    FROM marketplace_items l\n")
                 .append("    INNER JOIN items li ON li.id = l.item_id\n")
-                .append("    WHERE l.state = 1 AND l.timestamp > ? AND l.price BETWEEN ? AND ? AND l.currency_type=?\n");
+                .append(
+                        "    WHERE l.state = 1 AND l.timestamp > ? AND l.price BETWEEN ? AND ? AND l.currency_type=?\n");
         if (request.hasMinPrice()) {
             sql.append("        AND CEIL(l.price + (l.price / 100)) >= ?\n");
         }
@@ -92,11 +95,11 @@ final class MarketplaceOffersQuery {
 
         // Permanent completed sales, per currency; cancelled and active offers never set the mean.
         sql.append("LEFT JOIN (SELECT base_item_id,currency_type,AVG(unit_price) average,COUNT(*) sold_today")
-            .append(request.combineUniques()?"":" ,limited_data")
-            .append(" FROM rare_market_sales GROUP BY base_item_id,currency_type")
-            .append(request.combineUniques()?"":" ,limited_data")
-            .append(") s ON s.base_item_id=g.base_item_id AND s.currency_type=m.currency_type")
-            .append(request.combineUniques()?"\n":" AND s.limited_data=mi.limited_data\n");
+                .append(request.combineUniques() ? "" : " ,limited_data")
+                .append(" FROM rare_market_sales GROUP BY base_item_id,currency_type")
+                .append(request.combineUniques() ? "" : " ,limited_data")
+                .append(") s ON s.base_item_id=g.base_item_id AND s.currency_type=m.currency_type")
+                .append(request.combineUniques() ? "\n" : " AND s.limited_data=mi.limited_data\n");
 
         if (request.hasSearch()) {
             sql.append("WHERE (bi.public_name LIKE ? OR cat.name_match = 1)\n");
@@ -121,7 +124,7 @@ final class MarketplaceOffersQuery {
         statement.setInt(index++, nowUnix - LISTING_WINDOW_SECONDS);
         statement.setInt(index++, minListingPrice);
         statement.setInt(index++, maxListingPrice);
-        statement.setInt(index++,request.currency());
+        statement.setInt(index++, request.currency());
         if (request.hasMinPrice()) {
             statement.setInt(index++, request.minPrice());
         }

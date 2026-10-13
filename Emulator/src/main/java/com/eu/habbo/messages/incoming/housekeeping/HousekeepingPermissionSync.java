@@ -24,7 +24,7 @@ final class HousekeepingPermissionSync {
             long next = nextReloadAt.get();
             if (now >= next && nextReloadAt.compareAndSet(next, now + 60_000L)) {
                 var command = new UpdatePermissionsCommand();
-                command.handle(client, new String[] { "update_permissions" });
+                command.handle(client, new String[] {"update_permissions"});
             }
         }
         // Resend actual effective grants; a defined denial never falls back to panel access.

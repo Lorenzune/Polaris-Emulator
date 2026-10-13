@@ -1,12 +1,14 @@
 package com.eu.habbo.habbohotel.items;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class FurnidataCustomSourceTest {
     private static final long MAX_BYTES = 64L * 1024 * 1024;
@@ -54,7 +56,9 @@ class FurnidataCustomSourceTest {
         assertEquals("Nuovo nome", provider.getName("custom_chair"));
         assertEquals("", delta.getFirst().description());
         assertTrue(writer.revertLastBackup("custom_chair"));
-        assertEquals("Old custom", FurnidataReader.readSources(source.paths(), MAX_BYTES).getLast().name());
+        assertEquals(
+                "Old custom",
+                FurnidataReader.readSources(source.paths(), MAX_BYTES).getLast().name());
     }
 
     @Test
@@ -66,7 +70,9 @@ class FurnidataCustomSourceTest {
         FurnidataWriter writer = new FurnidataWriter(source.paths(), MAX_BYTES, 3);
         assertTrue(writer.write("shared_chair", "Winner", "new desc"));
         assertEquals(mainData, Files.readString(main));
-        assertEquals("Winner", FurnidataReader.readSources(source.paths(), MAX_BYTES).getLast().name());
+        assertEquals(
+                "Winner",
+                FurnidataReader.readSources(source.paths(), MAX_BYTES).getLast().name());
         assertTrue(writer.revertLastBackup("shared_chair"));
         assertEquals(mainData, Files.readString(main));
     }
@@ -77,7 +83,11 @@ class FurnidataCustomSourceTest {
         var source = sources(dir, data(1, "main_chair", "Old"), customData);
         assertTrue(new FurnidataWriter(source.paths(), MAX_BYTES, 3).write("main_chair", "New", ""));
         assertEquals(customData, Files.readString(source.paths().getLast()));
-        assertEquals("New", FurnidataReader.readSources(source.paths(), MAX_BYTES).getFirst().name());
+        assertEquals(
+                "New",
+                FurnidataReader.readSources(source.paths(), MAX_BYTES)
+                        .getFirst()
+                        .name());
     }
 
     @Test
@@ -86,37 +96,43 @@ class FurnidataCustomSourceTest {
         var source = sources(dir, mainData, data(2, "custom_chair", "Custom"));
         FurnidataWriter writer = new FurnidataWriter(source.paths(), MAX_BYTES, 3);
         String entry = "{\"id\":3,\"classname\":\"new_chair\",\"name\":\"New\",\"description\":\"\"}";
-        assertEquals(FurnidataWriter.CreateResult.ID_COLLISION,
+        assertEquals(
+                FurnidataWriter.CreateResult.ID_COLLISION,
                 writer.create("new_chair", 1, FurnitureType.FLOOR, entry, "custom"));
-        assertEquals(FurnidataWriter.CreateResult.ALREADY_EXISTS,
+        assertEquals(
+                FurnidataWriter.CreateResult.ALREADY_EXISTS,
                 writer.create("main_chair", 3, FurnitureType.FLOOR, entry, "custom"));
-        assertEquals(FurnidataWriter.CreateResult.CREATED,
+        assertEquals(
+                FurnidataWriter.CreateResult.CREATED,
                 writer.create("new_chair", 3, FurnitureType.FLOOR, entry, "custom"));
         assertEquals(mainData, Files.readString(source.paths().getFirst()));
-        assertTrue(new FurnidataReader(source.paths().getLast(), MAX_BYTES).read().stream()
-                .anyMatch(e -> e.classname().equals("new_chair")));
+        assertTrue(new FurnidataReader(source.paths().getLast(), MAX_BYTES)
+                .read().stream().anyMatch(e -> e.classname().equals("new_chair")));
     }
 
     @Test
     void missingCustomFileDoesNotResolveAsCompleteSource(@TempDir Path dir) throws Exception {
         var source = sources(dir, data(1, "main_chair", "Main"), data(2, "custom_chair", "Custom"));
         Files.delete(source.paths().getLast());
-        var missing = FurnidataSourceResolver.resolveFromRendererConfig(dir.resolve("renderer-config.json"),
-                dir.resolve("gamedata/gamedata"));
+        var missing = FurnidataSourceResolver.resolveFromRendererConfig(
+                dir.resolve("renderer-config.json"), dir.resolve("gamedata/gamedata"));
         assertFalse(missing.ok());
         assertEquals(FurnidataSourceResolver.Status.SOURCE_MISSING, missing.status());
-        var configured = FurnidataSourceResolver.resolveConfigured("", dir.resolve("renderer-config.json").toString(),
+        var configured = FurnidataSourceResolver.resolveConfigured(
+                "",
+                dir.resolve("renderer-config.json").toString(),
                 dir.resolve("gamedata/gamedata").toString());
         assertFalse(configured.ok(), "must not silently fall back to the main file when custom is missing");
     }
 
     @Test
     void mapsSecureCustomUrlAndRejectsTraversal(@TempDir Path dir) {
-        var source = FurnidataSourceResolver.toLocalSource(dir,
+        var source = FurnidataSourceResolver.toLocalSource(
+                dir,
                 "https://ducket.city:2096/nitro-sec/file?kind=gamedata&file=gamedata_custom/FurnitureData_custom.json?t=%timestamp%");
         assertEquals(dir.resolve("gamedata_custom/FurnitureData_custom.json"), source.path());
-        var escape = FurnidataSourceResolver.toLocalSource(dir,
-                "https://ducket.city:2096/nitro-sec/file?kind=gamedata&file=%2E%2E%2Fsecret.json");
+        var escape = FurnidataSourceResolver.toLocalSource(
+                dir, "https://ducket.city:2096/nitro-sec/file?kind=gamedata&file=%2E%2E%2Fsecret.json");
         assertEquals(FurnidataSourceResolver.Status.ERROR, escape.status());
         assertNull(escape.path());
     }

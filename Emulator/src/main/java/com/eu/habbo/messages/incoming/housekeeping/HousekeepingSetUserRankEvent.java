@@ -1,9 +1,9 @@
 package com.eu.habbo.messages.incoming.housekeeping;
 
 import com.eu.habbo.Emulator;
+import com.eu.habbo.habbohotel.permissions.PermissionAuditLog;
 import com.eu.habbo.habbohotel.permissions.PermissionsManager;
 import com.eu.habbo.habbohotel.permissions.Rank;
-import com.eu.habbo.habbohotel.permissions.PermissionAuditLog;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboManager;
 import com.eu.habbo.messages.outgoing.housekeeping.HousekeepingActionResultComposer;
@@ -43,7 +43,11 @@ public class HousekeepingSetUserRankEvent extends HousekeepingHandler {
         int rankId = this.packet.readInt();
         int durationSeconds = this.packet.bytesAvailable() > 0 ? this.packet.readInt() : 0;
 
-        if (userId <= 0 || rankId <= 0 || durationSeconds < 0 || (durationSeconds > 0 && durationSeconds < 60) || durationSeconds > MAX_TEMPORARY_SECONDS) {
+        if (userId <= 0
+                || rankId <= 0
+                || durationSeconds < 0
+                || (durationSeconds > 0 && durationSeconds < 60)
+                || durationSeconds > MAX_TEMPORARY_SECONDS) {
             this.client.sendResponse(
                     new HousekeepingActionResultComposer(ACTION_KEY, false, 0, "housekeeping.error.invalid_input"));
             return;
@@ -123,11 +127,22 @@ public class HousekeepingSetUserRankEvent extends HousekeepingHandler {
 
         try {
             if (temporary) {
-                habboManager.grantTemporaryRank(userId, rank.getId(), durationSeconds * 1000L, operatorId,
-                        "housekeeping", candidate -> HousekeepingTargetRankGuard.canTargetRank(this.client.getHabbo(), candidate));
+                habboManager.grantTemporaryRank(
+                        userId,
+                        rank.getId(),
+                        durationSeconds * 1000L,
+                        operatorId,
+                        "housekeeping",
+                        candidate -> HousekeepingTargetRankGuard.canTargetRank(this.client.getHabbo(), candidate));
             } else {
-                habboManager.setRank(userId, rank.getId(), new PermissionAuditLog.Actor(operatorId, operatorName,
-                        "housekeeping", this.client.getHabbo().getHabboInfo().getIpLogin()));
+                habboManager.setRank(
+                        userId,
+                        rank.getId(),
+                        new PermissionAuditLog.Actor(
+                                operatorId,
+                                operatorName,
+                                "housekeeping",
+                                this.client.getHabbo().getHabboInfo().getIpLogin()));
             }
         } catch (Exception e) {
             this.client.sendResponse(

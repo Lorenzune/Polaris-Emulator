@@ -16,15 +16,30 @@ public class MarketplaceOwnItemsComposer extends MessageComposer {
     private final Habbo habbo;
     private final boolean multi;
 
-    public MarketplaceOwnItemsComposer(Habbo habbo) {this(habbo,false);}
-    public MarketplaceOwnItemsComposer(Habbo habbo,boolean multi) {this.habbo=habbo;this.multi=multi;}
+    public MarketplaceOwnItemsComposer(Habbo habbo) {
+        this(habbo, false);
+    }
+
+    public MarketplaceOwnItemsComposer(Habbo habbo, boolean multi) {
+        this.habbo = habbo;
+        this.multi = multi;
+    }
 
     @Override
     protected ServerMessage composeInternal() {
         this.response.init(Outgoing.MarketplaceOwnItemsComposer);
-        var offers=com.eu.habbo.habbohotel.catalog.marketplace.MarketPlace.getOwnOffers(this.habbo).stream().filter(offer->multi||offer.getCurrencyType()==com.eu.habbo.habbohotel.catalog.marketplace.MarketPlace.legacyCurrency()).toList();
-        long waiting=offers.stream().filter(o->o.getState()==MarketPlaceState.SOLD&&o.getCurrencyType()==com.eu.habbo.habbohotel.catalog.marketplace.MarketPlace.legacyCurrency()).mapToLong(MarketPlaceOffer::getPrice).sum();
-        this.response.appendInt((int)Math.min(Integer.MAX_VALUE,waiting));
+        var offers = com.eu.habbo.habbohotel.catalog.marketplace.MarketPlace.getOwnOffers(this.habbo).stream()
+                .filter(offer -> multi
+                        || offer.getCurrencyType()
+                                == com.eu.habbo.habbohotel.catalog.marketplace.MarketPlace.legacyCurrency())
+                .toList();
+        long waiting = offers.stream()
+                .filter(o -> o.getState() == MarketPlaceState.SOLD
+                        && o.getCurrencyType()
+                                == com.eu.habbo.habbohotel.catalog.marketplace.MarketPlace.legacyCurrency())
+                .mapToLong(MarketPlaceOffer::getPrice)
+                .sum();
+        this.response.appendInt((int) Math.min(Integer.MAX_VALUE, waiting));
         this.response.appendInt(offers.size());
 
         for (MarketPlaceOffer offer : offers) {
@@ -55,8 +70,7 @@ public class MarketplaceOwnItemsComposer extends MessageComposer {
 
                 if (offer.getState() == MarketPlaceState.OPEN)
                     this.response.appendInt((((offer.getTimestamp() + 172800) - Emulator.getIntUnixTimestamp()) / 60));
-                else
-                    this.response.appendInt(0);
+                else this.response.appendInt(0);
 
                 this.response.appendInt(0);
             } catch (Exception e) {
@@ -64,7 +78,8 @@ public class MarketplaceOwnItemsComposer extends MessageComposer {
             }
         }
 
-        var currencies=new java.util.HashMap<Integer,Integer>();for(var offer:offers)currencies.put(offer.getOfferId(),offer.getCurrencyType());
+        var currencies = new java.util.HashMap<Integer, Integer>();
+        for (var offer : offers) currencies.put(offer.getOfferId(), offer.getCurrencyType());
         this.response.appendString(new com.google.gson.Gson().toJson(currencies));
         return this.response;
     }

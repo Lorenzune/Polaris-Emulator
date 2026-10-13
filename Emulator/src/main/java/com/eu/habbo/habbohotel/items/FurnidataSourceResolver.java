@@ -3,9 +3,6 @@ package com.eu.habbo.habbohotel.items;
 import com.eu.habbo.Emulator;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -13,6 +10,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class FurnidataSourceResolver {
 
@@ -36,12 +35,13 @@ public final class FurnidataSourceResolver {
         }
 
         public boolean ok() {
-            return this.status == Status.RESOLVED && !this.paths.isEmpty() && this.paths.stream().allMatch(Files::exists);
+            return this.status == Status.RESOLVED
+                    && !this.paths.isEmpty()
+                    && this.paths.stream().allMatch(Files::exists);
         }
     }
 
-    private FurnidataSourceResolver() {
-    }
+    private FurnidataSourceResolver() {}
 
     public static Source resolve() {
         try {
@@ -58,9 +58,13 @@ public final class FurnidataSourceResolver {
 
     public static Source resolveConfigured(String legacyOverridePath, String rendererConfigPath, String assetBasePath) {
         if (rendererConfigPath != null && !rendererConfigPath.isEmpty()) {
-            Source fromRenderer = resolveFromRendererConfig(Paths.get(rendererConfigPath), assetBasePath == null || assetBasePath.isEmpty() ? null : Paths.get(assetBasePath));
-            if (fromRenderer.ok() || fromRenderer.status() == Status.UNRESOLVED_PLACEHOLDER
-                    || (Files.isRegularFile(Paths.get(rendererConfigPath)) && fromRenderer.status() == Status.SOURCE_MISSING)) return fromRenderer;
+            Source fromRenderer = resolveFromRendererConfig(
+                    Paths.get(rendererConfigPath),
+                    assetBasePath == null || assetBasePath.isEmpty() ? null : Paths.get(assetBasePath));
+            if (fromRenderer.ok()
+                    || fromRenderer.status() == Status.UNRESOLVED_PLACEHOLDER
+                    || (Files.isRegularFile(Paths.get(rendererConfigPath))
+                            && fromRenderer.status() == Status.SOURCE_MISSING)) return fromRenderer;
         }
 
         Source fromAssetBase = resolveFromAssetBase(assetBasePath);
@@ -68,8 +72,10 @@ public final class FurnidataSourceResolver {
 
         if (legacyOverridePath != null && !legacyOverridePath.isEmpty()) {
             Path p = Paths.get(legacyOverridePath);
-            if (Files.exists(p)) return new Source(p, Files.isDirectory(p), Status.RESOLVED, "items.furnidata.path fallback");
-            return new Source(p, Files.isDirectory(p), Status.SOURCE_MISSING, "items.furnidata.path fallback does not exist");
+            if (Files.exists(p))
+                return new Source(p, Files.isDirectory(p), Status.RESOLVED, "items.furnidata.path fallback");
+            return new Source(
+                    p, Files.isDirectory(p), Status.SOURCE_MISSING, "items.furnidata.path fallback does not exist");
         }
 
         if (fromAssetBase != null) return fromAssetBase;
@@ -84,22 +90,31 @@ public final class FurnidataSourceResolver {
             }
 
             String raw = Files.readString(rendererConfig, StandardCharsets.UTF_8);
-            JsonObject rendererObj = JsonParser.parseString(FurnidataReader.stripJson5(raw)).getAsJsonObject();
+            JsonObject rendererObj =
+                    JsonParser.parseString(FurnidataReader.stripJson5(raw)).getAsJsonObject();
             List<String> urls = expandRendererUrls(rendererObj, "furnidata.url");
             if (urls.isEmpty()) return new Source(null, false, Status.CONFIG_MISSING, "furnidata.url is missing");
             List<Path> paths = new ArrayList<>();
             for (String url : urls) {
-                if (hasUnresolvedPathPlaceholder(url)) return new Source(null, false, Status.UNRESOLVED_PLACEHOLDER, url);
+                if (hasUnresolvedPathPlaceholder(url))
+                    return new Source(null, false, Status.UNRESOLVED_PLACEHOLDER, url);
                 Source source = toLocalSource(assetBase, url);
-                if (source == null) return new Source(null, false, Status.CONFIG_MISSING, "furni.editor.asset.base.path is missing");
+                if (source == null)
+                    return new Source(null, false, Status.CONFIG_MISSING, "furni.editor.asset.base.path is missing");
                 if (source.status() != Status.RESOLVED) return source;
-                if (!Files.exists(source.path())) return new Source(source.path(), source.directory(), Status.SOURCE_MISSING, "Resolved source does not exist");
+                if (!Files.exists(source.path()))
+                    return new Source(
+                            source.path(), source.directory(), Status.SOURCE_MISSING, "Resolved source does not exist");
                 if (!paths.contains(source.path())) paths.add(source.path());
             }
             Path first = paths.getFirst();
             return new Source(first, Files.isDirectory(first), Status.RESOLVED, "renderer-config furnidata.url", paths);
         } catch (Exception e) {
-            return new Source(null, false, Status.ERROR, e.getMessage() != null ? e.getMessage() : "renderer-config parse failed");
+            return new Source(
+                    null,
+                    false,
+                    Status.ERROR,
+                    e.getMessage() != null ? e.getMessage() : "renderer-config parse failed");
         }
     }
 
@@ -162,12 +177,18 @@ public final class FurnidataSourceResolver {
             int queryStart = furniUrl.indexOf('?');
             for (String parameter : furniUrl.substring(queryStart + 1).split("&")) {
                 if (!parameter.startsWith("file=")) continue;
-                String relative = java.net.URLDecoder.decode(stripQueryAndFragment(parameter.substring(5)), StandardCharsets.UTF_8);
+                String relative = java.net.URLDecoder.decode(
+                        stripQueryAndFragment(parameter.substring(5)), StandardCharsets.UTF_8);
                 relative = stripQueryAndFragment(relative);
                 Path base = assetBase.toAbsolutePath().normalize();
                 Path candidate = base.resolve(relative).normalize();
-                if (!candidate.startsWith(base)) return new Source(null, false, Status.ERROR, "Furnidata path escapes asset base");
-                return new Source(candidate, Files.isDirectory(candidate), Status.RESOLVED, "renderer-config secure furnidata.url");
+                if (!candidate.startsWith(base))
+                    return new Source(null, false, Status.ERROR, "Furnidata path escapes asset base");
+                return new Source(
+                        candidate,
+                        Files.isDirectory(candidate),
+                        Status.RESOLVED,
+                        "renderer-config secure furnidata.url");
             }
         }
 
@@ -191,7 +212,8 @@ public final class FurnidataSourceResolver {
         }
 
         String normalized = urlPath.replace('\\', '/');
-        String baseName = assetBase.getFileName() != null ? assetBase.getFileName().toString() : "";
+        String baseName =
+                assetBase.getFileName() != null ? assetBase.getFileName().toString() : "";
         String marker = "/" + baseName + "/";
         int markerIndex = baseName.isEmpty() ? -1 : normalized.indexOf(marker);
 
@@ -205,7 +227,8 @@ public final class FurnidataSourceResolver {
             candidate = assetBase.resolve(normalized.substring(normalized.lastIndexOf('/') + 1));
         }
 
-        return new Source(candidate, splitMode || Files.isDirectory(candidate), Status.RESOLVED, "renderer-config furnidata.url");
+        return new Source(
+                candidate, splitMode || Files.isDirectory(candidate), Status.RESOLVED, "renderer-config furnidata.url");
     }
 
     private static boolean hasUnresolvedPathPlaceholder(String value) {

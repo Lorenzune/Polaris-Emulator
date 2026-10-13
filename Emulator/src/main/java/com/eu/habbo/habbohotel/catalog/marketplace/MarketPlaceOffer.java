@@ -5,10 +5,13 @@ import com.eu.habbo.habbohotel.items.FurnitureType;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.sql.*;
 
 public class MarketPlaceOffer implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(MarketPlaceOffer.class);
@@ -51,10 +54,12 @@ public class MarketPlaceOffer implements Runnable {
         }
     }
 
-    public MarketPlaceOffer(HabboItem item, int price, Habbo habbo) { this(item,price,habbo,MarketPlace.legacyCurrency()); }
+    public MarketPlaceOffer(HabboItem item, int price, Habbo habbo) {
+        this(item, price, habbo, MarketPlace.legacyCurrency());
+    }
 
     public MarketPlaceOffer(HabboItem item, int price, Habbo habbo, int currencyType) {
-        this.currencyType=currencyType;
+        this.currencyType = currencyType;
         this.price = price;
         this.baseItem = item.getBaseItem();
         this.itemId = item.getId();
@@ -63,13 +68,16 @@ public class MarketPlaceOffer implements Runnable {
             this.limitedStack = item.getLimitedStack();
         }
 
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("INSERT INTO marketplace_items (item_id, user_id, price, timestamp, state,currency_type) VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        "INSERT INTO marketplace_items (item_id, user_id, price, timestamp, state,currency_type) VALUES (?, ?, ?, ?, ?, ?)",
+                        Statement.RETURN_GENERATED_KEYS)) {
             statement.setInt(1, item.getId());
             statement.setInt(2, habbo.getHabboInfo().getId());
             statement.setInt(3, this.price);
             statement.setInt(4, this.timestamp);
             statement.setString(5, this.state.getState() + "");
-            statement.setInt(6,this.currencyType);
+            statement.setInt(6, this.currencyType);
             statement.execute();
 
             try (ResultSet id = statement.getGeneratedKeys()) {
@@ -83,14 +91,17 @@ public class MarketPlaceOffer implements Runnable {
     }
 
     public static void insert(MarketPlaceOffer offer, Habbo habbo) {
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("INSERT INTO marketplace_items (item_id,user_id,price,timestamp,sold_timestamp,state,currency_type) VALUES (?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        "INSERT INTO marketplace_items (item_id,user_id,price,timestamp,sold_timestamp,state,currency_type) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        Statement.RETURN_GENERATED_KEYS)) {
             statement.setInt(1, offer.getItemId());
             statement.setInt(2, habbo.getHabboInfo().getId());
             statement.setInt(3, offer.getPrice());
             statement.setInt(4, offer.getTimestamp());
             statement.setInt(5, offer.getSoldTimestamp());
             statement.setString(6, offer.getState().getState() + "");
-            statement.setInt(7,offer.getCurrencyType());
+            statement.setInt(7, offer.getCurrencyType());
             statement.execute();
 
             try (ResultSet id = statement.getGeneratedKeys()) {
@@ -119,7 +130,9 @@ public class MarketPlaceOffer implements Runnable {
         return this.baseItem.getSpriteId();
     }
 
-    public int getCurrencyType(){return this.currencyType;}
+    public int getCurrencyType() {
+        return this.currencyType;
+    }
 
     public int getPrice() {
         return this.price;
@@ -173,7 +186,9 @@ public class MarketPlaceOffer implements Runnable {
     public void run() {
         if (this.needsUpdate) {
             this.needsUpdate = false;
-            try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("UPDATE marketplace_items SET state = ?, sold_timestamp = ? WHERE id = ?")) {
+            try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
+                    PreparedStatement statement = connection.prepareStatement(
+                            "UPDATE marketplace_items SET state = ?, sold_timestamp = ? WHERE id = ?")) {
                 statement.setInt(1, this.state.getState());
                 statement.setInt(2, this.soldTimestamp);
                 statement.setInt(3, this.offerId);

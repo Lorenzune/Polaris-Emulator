@@ -623,5 +623,4 @@ public class Incoming {
     public static final int HousekeepingSetPermissionEvent = 9130;
     public static final int HousekeepingUserNoteEvent = 9131;
     public static final int HousekeepingLockdownEvent = 9132;
-
 }

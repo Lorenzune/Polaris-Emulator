@@ -676,5 +676,4 @@ public class Outgoing {
 
     public static final int HousekeepingListComposer = 9206;
     public static final int HousekeepingMaintenanceStatusComposer = 9207;
-
 }

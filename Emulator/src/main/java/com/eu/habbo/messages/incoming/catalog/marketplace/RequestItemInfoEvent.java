@@ -6,13 +6,18 @@ import com.eu.habbo.messages.outgoing.catalog.marketplace.MarketplaceItemInfoCom
 public class RequestItemInfoEvent extends MessageHandler {
     @Override
     public void handle() throws Exception {
-        int type=this.packet.readInt();
+        int type = this.packet.readInt();
         int id = this.packet.readInt();
 
         if (!MarketplaceInputGuard.isPositiveId(id)) {
             return;
         }
 
-        this.client.sendResponse(new MarketplaceItemInfoComposer(id,this.packet.bytesAvailable()>0?this.packet.readInt():com.eu.habbo.habbohotel.catalog.marketplace.MarketPlace.legacyCurrency(),type));
+        this.client.sendResponse(new MarketplaceItemInfoComposer(
+                id,
+                this.packet.bytesAvailable() > 0
+                        ? this.packet.readInt()
+                        : com.eu.habbo.habbohotel.catalog.marketplace.MarketPlace.legacyCurrency(),
+                type));
     }
 }

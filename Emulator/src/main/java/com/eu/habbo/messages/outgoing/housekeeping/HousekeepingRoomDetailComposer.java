@@ -69,8 +69,13 @@ public class HousekeepingRoomDetailComposer extends MessageComposer {
     }
 
     private static int creationDate(int roomId) {
-        try { return com.eu.habbo.database.SqlQueries.queryOne("SELECT date_created FROM rooms WHERE id=?", row -> row.getInt(1), roomId).orElse(0); }
-        catch (com.eu.habbo.database.SqlQueries.DataAccessException unavailable) { return 0; }
+        try {
+            return com.eu.habbo.database.SqlQueries.queryOne(
+                            "SELECT date_created FROM rooms WHERE id=?", row -> row.getInt(1), roomId)
+                    .orElse(0);
+        } catch (com.eu.habbo.database.SqlQueries.DataAccessException unavailable) {
+            return 0;
+        }
     }
 
     private static String safe(String value) {

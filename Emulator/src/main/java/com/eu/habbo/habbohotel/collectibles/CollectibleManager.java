@@ -30,7 +30,10 @@ public final class CollectibleManager {
     private static final Gson GSON = new Gson();
     private final boolean includeUnrewardedCatalogCollections;
 
-    public CollectibleManager() { this(false); }
+    public CollectibleManager() {
+        this(false);
+    }
+
     public CollectibleManager(boolean includeUnrewardedCatalogCollections) {
         this.includeUnrewardedCatalogCollections = includeUnrewardedCatalogCollections;
     }
@@ -117,7 +120,8 @@ public final class CollectibleManager {
     }
 
     public JsonObject state(int userId) throws SQLException {
-        com.eu.habbo.habbohotel.catalog.RareCatalogCollections.refresh(Emulator.getDatabase().getDataSource());
+        com.eu.habbo.habbohotel.catalog.RareCatalogCollections.refresh(
+                Emulator.getDatabase().getDataSource());
         JsonObject result = new JsonObject();
         JsonArray rewards = new JsonArray(),
                 owned = new JsonArray(),
@@ -152,11 +156,13 @@ public final class CollectibleManager {
                     var category = new JsonObject();
                     category.addProperty("id", rs.getInt("id"));
                     category.addProperty("title", rs.getString("title"));
-                    if(rs.getInt("catalog_page_id")>0)category.addProperty("catalogPageId",rs.getInt("catalog_page_id"));
-                    category.addProperty("visible",rs.getInt("catalog_page_id")==0 || rs.getBoolean("catalog_visible"));
-                    category.addProperty("claimable",false);
+                    if (rs.getInt("catalog_page_id") > 0)
+                        category.addProperty("catalogPageId", rs.getInt("catalog_page_id"));
+                    category.addProperty(
+                            "visible", rs.getInt("catalog_page_id") == 0 || rs.getBoolean("catalog_visible"));
+                    category.addProperty("claimable", false);
                     var ids = categoryItems(rs.getString("item_ids"));
-                    if(ids.isEmpty())category.addProperty("visible",false);
+                    if (ids.isEmpty()) category.addProperty("visible", false);
                     var entries = new JsonArray();
                     int count = 0, eligibleCount = 0;
                     for (int id : ids) {
@@ -180,7 +186,7 @@ public final class CollectibleManager {
                     category.addProperty("complete", count == ids.size());
                     category.addProperty("eligibleCount", eligibleCount);
                     category.addProperty("rewardComplete", eligibleCount == ids.size());
-                    if(rs.getInt("reward_id")>0)categoryByReward.put(rs.getInt("reward_id"), category);
+                    if (rs.getInt("reward_id") > 0) categoryByReward.put(rs.getInt("reward_id"), category);
                     categories.add(category);
                 }
             }
@@ -228,18 +234,21 @@ public final class CollectibleManager {
                 var visibleCategories = new JsonArray();
                 for (var entry : categories) {
                     var category = entry.getAsJsonObject();
-                    if (category.get("visible").getAsBoolean() && (category.has("catalogPageId")
-                            || (category.has("reward") && category.getAsJsonObject("reward").get("enabled").getAsBoolean())))
-                        visibleCategories.add(category);
+                    if (category.get("visible").getAsBoolean()
+                            && (category.has("catalogPageId")
+                                    || (category.has("reward")
+                                            && category.getAsJsonObject("reward")
+                                                    .get("enabled")
+                                                    .getAsBoolean()))) visibleCategories.add(category);
                 }
                 categories = visibleCategories;
             }
             // Older clients require category.reward. Keep their established response
             // shape; updated clients explicitly opt in to catalogue sets without prizes.
-            if(!includeUnrewardedCatalogCollections) {
-                var supportedCategories=new JsonArray();
-                for(var entry:categories)if(entry.getAsJsonObject().has("reward"))supportedCategories.add(entry);
-                categories=supportedCategories;
+            if (!includeUnrewardedCatalogCollections) {
+                var supportedCategories = new JsonArray();
+                for (var entry : categories) if (entry.getAsJsonObject().has("reward")) supportedCategories.add(entry);
+                categories = supportedCategories;
             }
             result.addProperty("serverTime", now);
             var shop = new JsonArray();
@@ -628,9 +637,9 @@ public final class CollectibleManager {
                         s.setInt(1, id);
                         try (var rs = s.executeQuery()) {
                             if (rs.next()) {
-                                if(rs.getInt("catalog_page_id")>0 && !rs.getBoolean("rare_visible"))
+                                if (rs.getInt("catalog_page_id") > 0 && !rs.getBoolean("rare_visible"))
                                     throw new IllegalArgumentException("Questa collezione non è disponibile.");
-                                if(!new CollectibleCategory(rs.getString(1), categoryItems(rs.getString(2)))
+                                if (!new CollectibleCategory(rs.getString(1), categoryItems(rs.getString(2)))
                                         .complete(eligibleItems(c, userId, true)))
                                     throw new IllegalArgumentException(
                                             "Per riscattare il premio devi possedere tutti gli articoli come primo proprietario, senza trasferimenti precedenti.");

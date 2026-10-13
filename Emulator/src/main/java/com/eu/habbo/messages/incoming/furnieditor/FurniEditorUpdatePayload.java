@@ -3,7 +3,6 @@ package com.eu.habbo.messages.incoming.furnieditor;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -72,8 +71,15 @@ public class FurniEditorUpdatePayload {
             case "type" -> itemType(primitive);
             case "width", "length" -> boundedInt(primitive, 0, 64);
             case "stack_height" -> boundedDouble(primitive, 0.0D, 99.99D);
-            case "allow_stack", "allow_walk", "allow_sit", "allow_lay", "allow_gift",
-                 "allow_trade", "allow_recycle", "allow_marketplace_sell", "allow_inventory_stack" -> booleanFlag(primitive);
+            case "allow_stack",
+                    "allow_walk",
+                    "allow_sit",
+                    "allow_lay",
+                    "allow_gift",
+                    "allow_trade",
+                    "allow_recycle",
+                    "allow_marketplace_sell",
+                    "allow_inventory_stack" -> booleanFlag(primitive);
             case "interaction_type" -> boundedString(primitive, 0, 500);
             case "interaction_modes_count" -> boundedInt(primitive, 0, 100);
             case "vending_ids", "clothing_on_walk" -> boundedString(primitive, 0, 255);
@@ -96,7 +102,8 @@ public class FurniEditorUpdatePayload {
         if (!primitive.isNumber()) return null;
         try {
             var value = new java.math.BigDecimal(primitive.getAsString());
-            if (value.signum() < 0 || value.compareTo(new java.math.BigDecimal("9999999999.99")) > 0
+            if (value.signum() < 0
+                    || value.compareTo(new java.math.BigDecimal("9999999999.99")) > 0
                     || value.stripTrailingZeros().scale() > 2) return null;
             return value.doubleValue();
         } catch (NumberFormatException invalid) {

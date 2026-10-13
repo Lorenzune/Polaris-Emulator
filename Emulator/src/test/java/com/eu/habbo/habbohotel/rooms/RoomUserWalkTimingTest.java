@@ -1,8 +1,13 @@
 package com.eu.habbo.habbohotel.rooms;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.achievements.AchievementInteractions;
@@ -54,14 +59,16 @@ class RoomUserWalkTimingTest {
         when(this.room.getHabbo(this.unit)).thenReturn(null);
         // Real RoomUnit movement and posture; only the empty-room geometry is stubbed.
         when(this.layout.getTile(anyShort(), anyShort())).thenAnswer(i -> tile(i.getArgument(0, Short.class)));
-        when(this.layout.getPathfinder().findPath(any(), any(), any(), same(this.unit))).thenAnswer(i -> {
-            RoomTile target = i.getArgument(1);
-            ArrayDeque<RoomTile> path = new ArrayDeque<>();
-            int direction = Integer.compare(target.x, this.unit.getX());
-            for (int x = this.unit.getX() + direction; direction != 0 && x != target.x + direction; x += direction)
-                path.add(tile(x));
-            return path;
-        });
+        when(this.layout.getPathfinder().findPath(any(), any(), any(), same(this.unit)))
+                .thenAnswer(i -> {
+                    RoomTile target = i.getArgument(1);
+                    ArrayDeque<RoomTile> path = new ArrayDeque<>();
+                    int direction = Integer.compare(target.x, this.unit.getX());
+                    for (int x = this.unit.getX() + direction;
+                            direction != 0 && x != target.x + direction;
+                            x += direction) path.add(tile(x));
+                    return path;
+                });
         this.manager = new TestManager();
     }
 
@@ -149,7 +156,9 @@ class RoomUserWalkTimingTest {
     void wiredMovementTakesOwnershipWithoutAnExtraWalkingStep() {
         this.manager.startUserWalk(this.habbo, tile(3));
         try (var movements = mockStatic(WiredUserMovementHelper.class)) {
-            movements.when(() -> WiredUserMovementHelper.shouldSuppressStatusComposer(this.unit)).thenReturn(true);
+            movements
+                    .when(() -> WiredUserMovementHelper.shouldSuppressStatusComposer(this.unit))
+                    .thenReturn(true);
             this.pending.removeFirst().run();
             assertEquals(1, this.unit.getX());
             assertTrue(this.pending.isEmpty());

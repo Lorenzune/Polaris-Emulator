@@ -39,8 +39,10 @@ public class FurniEditorUpdateEvent extends MessageHandler {
             return;
         }
 
-        if (json.has("valueType") && !new com.eu.habbo.habbohotel.catalog.RareEconomyRepository(
-                Emulator.getDatabase().getDataSource()).currencyEnabled(json.get("valueType").getAsInt())) {
+        if (json.has("valueType")
+                && !new com.eu.habbo.habbohotel.catalog.RareEconomyRepository(
+                                Emulator.getDatabase().getDataSource())
+                        .currencyEnabled(json.get("valueType").getAsInt())) {
             this.client.sendResponse(new FurniEditorResultComposer(false, "Valuta non abilitata"));
             return;
         }
@@ -53,7 +55,7 @@ public class FurniEditorUpdateEvent extends MessageHandler {
 
         // Reload emulator item definitions
         Emulator.getGameEnvironment().getItemManager().loadItems();
-        if(json.has("isRare"))com.eu.habbo.habbohotel.catalog.RareReleaseService.requestHistoryBackfill();
+        if (json.has("isRare")) com.eu.habbo.habbohotel.catalog.RareReleaseService.requestHistoryBackfill();
 
         this.client.sendResponse(new FurniEditorResultComposer(true, "Item updated", id));
     }
