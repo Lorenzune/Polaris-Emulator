@@ -36,6 +36,19 @@ public class HousekeepingSetPermissionEvent extends HousekeepingHandler {
         int rankId = this.packet.readInt();
         int value = this.packet.readInt();
 
+        // Optional extension; legacy three-field rank packets retain their layout and behavior.
+        if (this.packet.bytesAvailable() > 0) {
+            String scope = this.packet.readString();
+            if (!"user".equals(scope) || rankId != 0) {
+                this.fail("housekeeping.error.invalid_input");
+                return;
+            }
+            int userId = this.packet.readInt();
+            this.client.sendResponse(
+                    HousekeepingUserPermissions.change(this.client.getHabbo(), userId, permissionKey, value));
+            return;
+        }
+
         if (!this.client.getHabbo().hasPermission(PERMISSION)) {
             this.fail(HousekeepingAccess.DENIED_MESSAGE);
             return;

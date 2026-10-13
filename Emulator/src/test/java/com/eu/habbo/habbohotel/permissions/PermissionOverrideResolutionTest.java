@@ -25,6 +25,46 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class PermissionOverrideResolutionTest {
+    @Test
+    void personalGrantEnablesOnlyTheSelectedUserWhenRankSevenDeniesIt() throws Exception {
+        try (var fixture =
+                new Fixture(List.of(row(PermissionSetting.ALLOWED, 0)), PermissionSetting.DISALLOWED, false, 7)) {
+            Habbo other = mock(Habbo.class);
+            HabboInfo otherInfo = mock(HabboInfo.class);
+            when(otherInfo.getId()).thenReturn(43);
+            Rank sameRank = fixture.habbo.getHabboInfo().getRank();
+            when(otherInfo.getRank()).thenReturn(sameRank);
+            when(other.getHabboInfo()).thenReturn(otherInfo);
+            assertTrue(fixture.manager.hasPermission(fixture.habbo, "acc_test"));
+            assertFalse(fixture.manager.hasPermission(other, "acc_test"));
+            assertFalse(sameRank.hasPermission("acc_test", false));
+            assertEquals(
+                    1, fixture.manager.getEffectivePermissions(fixture.habbo).get("acc_test"));
+        }
+    }
+
+    @Test
+    void twoUsersOfRankSevenHaveIndependentPermissionsAndInheritanceRestoresOnlyOne() throws Exception {
+        var overrides = new java.util.ArrayList<UserPermissionOverrides.UserOverride>();
+        overrides.add(row(PermissionSetting.DISALLOWED, 0));
+        try (var fixture = new Fixture(overrides, PermissionSetting.ALLOWED, false, 7)) {
+            Habbo other = mock(Habbo.class);
+            HabboInfo otherInfo = mock(HabboInfo.class);
+            when(otherInfo.getId()).thenReturn(43);
+            Rank sameRank = fixture.habbo.getHabboInfo().getRank();
+            when(otherInfo.getRank()).thenReturn(sameRank);
+            when(other.getHabboInfo()).thenReturn(otherInfo);
+            assertFalse(fixture.manager.hasPermission(fixture.habbo, "acc_test"));
+            assertTrue(fixture.manager.hasPermission(other, "acc_test"));
+            assertEquals(7, sameRank.getId());
+            assertTrue(sameRank.hasPermission("acc_test", false));
+            overrides.clear();
+            fixture.manager.getOverrides().invalidate(42);
+            assertTrue(fixture.manager.hasPermission(fixture.habbo, "acc_test"));
+            assertTrue(fixture.manager.hasPermission(other, "acc_test"));
+        }
+    }
+
     private UserPermissionOverrides.UserOverride row(PermissionSetting setting, long expiry) {
         return new UserPermissionOverrides.UserOverride("acc_test", setting, expiry, "", 99, "actor");
     }
@@ -103,6 +143,15 @@ class PermissionOverrideResolutionTest {
 
         Fixture(List<UserPermissionOverrides.UserOverride> rows, PermissionSetting base, boolean pluginGrant)
                 throws Exception {
+            this(rows, base, pluginGrant, 1);
+        }
+
+        Fixture(
+                List<UserPermissionOverrides.UserOverride> rows,
+                PermissionSetting base,
+                boolean pluginGrant,
+                int rankId)
+                throws Exception {
             Database database = mock(Database.class);
             HikariDataSource source = mock(HikariDataSource.class);
             when(database.getDataSource()).thenReturn(source);
@@ -115,15 +164,15 @@ class PermissionOverrideResolutionTest {
             var service = new UserPermissionOverrides(
                     id -> {
                         if (rows == null) throw new IllegalStateException("database unavailable");
-                        return rows;
+                        return id == 42 ? rows : List.of();
                     },
                     System::currentTimeMillis);
             manager = new PermissionsManager(service);
-            Rank rank = new Rank(1);
+            Rank rank = new Rank(rankId);
             rank.loadNormalizedMetadata(mock(java.sql.ResultSet.class));
             rank.setPermission("acc_test", base);
             var loaded = new Int2ObjectOpenHashMap<Rank>();
-            loaded.put(1, rank);
+            loaded.put(rankId, rank);
             var publish = PermissionsManager.class.getDeclaredMethod(
                     "publish", it.unimi.dsi.fastutil.ints.Int2ObjectMap.class);
             publish.setAccessible(true);

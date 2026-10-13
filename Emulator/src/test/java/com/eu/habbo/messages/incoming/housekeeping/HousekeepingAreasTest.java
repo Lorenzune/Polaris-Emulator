@@ -58,6 +58,7 @@ class HousekeepingAreasTest {
 
     @Test
     void listsFollowTheirKey() {
+        assertEquals("acc_hk_user_permissions", HousekeepingAreas.forList("user.permissions"));
         assertEquals("acc_hk_users", HousekeepingAreas.forList("user.chatlog"));
         assertEquals("acc_hk_users", HousekeepingAreas.forList("user.private"));
         assertEquals("acc_hk_rooms", HousekeepingAreas.forList("room.visits"));

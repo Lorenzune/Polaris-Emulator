@@ -11,6 +11,7 @@ final class HousekeepingAreas {
     static final String ECONOMY = "acc_hk_economy";
     static final String ROOMS = "acc_hk_rooms";
     static final String PERMISSIONS = "acc_hk_permissions";
+    static final String USER_PERMISSIONS = "acc_hk_user_permissions";
     static final String HOTEL = "acc_hk_hotel";
 
     private HousekeepingAreas() {}
@@ -18,6 +19,7 @@ final class HousekeepingAreas {
     /** The area a list belongs to, or null for the overview lists every operator sees. */
     static String forList(String listKey) {
         if (listKey == null) return null;
+        if (listKey.equals("user.permissions")) return USER_PERMISSIONS;
         if (listKey.startsWith("user.")) return USERS;
         if (listKey.startsWith("room.")) return ROOMS;
 

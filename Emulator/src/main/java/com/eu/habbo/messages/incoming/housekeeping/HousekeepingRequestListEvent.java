@@ -124,6 +124,11 @@ public class HousekeepingRequestListEvent extends HousekeepingHandler {
             return;
         }
 
+        if ("user.permissions".equals(listKey)) {
+            this.client.sendResponse(HousekeepingUserPermissions.list(listKey, targetId, this.client.getHabbo()));
+            return;
+        }
+
         if (HOTEL_PERMISSIONS.equals(listKey)) {
             this.client.sendResponse(HousekeepingPermissionMatrix.list(listKey, this.client.getHabbo()));
             return;

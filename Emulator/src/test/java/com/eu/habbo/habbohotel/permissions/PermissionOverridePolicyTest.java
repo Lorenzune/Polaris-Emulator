@@ -12,6 +12,44 @@ import org.junit.jupiter.api.Test;
 
 class PermissionOverridePolicyTest {
     @Test
+    void temporaryHousekeepingCapabilityCannotAuthorizePermanentGrant() {
+        Habbo actor = mock(Habbo.class);
+        HabboInfo info = mock(HabboInfo.class);
+        PermissionsManager manager = mock(PermissionsManager.class);
+        when(actor.getHabboInfo()).thenReturn(info);
+        when(info.getRank()).thenReturn(mock(Rank.class));
+        when(manager.hasBasePermission(actor, "acc_test", false)).thenReturn(true);
+        var lease = new UserPermissionOverrides.UserOverride(
+                "acc_hk_user_permissions", PermissionSetting.ALLOWED, 2000, "", 1, "");
+        var personal =
+                new UserPermissionOverrides.Snapshot(true, java.util.Map.of("acc_hk_user_permissions", lease), 1000, 0);
+        assertThrows(
+                SecurityException.class,
+                () -> PermissionOverridePolicy.authorizeGrant(
+                        actor,
+                        manager,
+                        "acc_test",
+                        PermissionSetting.ALLOWED,
+                        0,
+                        1000,
+                        personal,
+                        "acc_housekeeping",
+                        "acc_hk_permissions",
+                        "acc_hk_user_permissions"));
+        assertDoesNotThrow(() -> PermissionOverridePolicy.authorizeGrant(
+                actor,
+                manager,
+                "acc_test",
+                PermissionSetting.ALLOWED,
+                2000,
+                1000,
+                personal,
+                "acc_housekeeping",
+                "acc_hk_permissions",
+                "acc_hk_user_permissions"));
+    }
+
+    @Test
     void roomScopeCannotBeDelegatedAsGlobal() {
         Habbo actor = mock(Habbo.class);
         HabboInfo info = mock(HabboInfo.class);

@@ -3,7 +3,6 @@ package com.eu.habbo.habbohotel.commands;
 import com.eu.habbo.WiredPlatform;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.permissions.PermissionAuditLog;
-import com.eu.habbo.habbohotel.permissions.PermissionOverridePolicy;
 import com.eu.habbo.habbohotel.permissions.PermissionSetting;
 import com.eu.habbo.habbohotel.permissions.PermissionsManager;
 import com.eu.habbo.habbohotel.permissions.Rank;
@@ -162,66 +161,9 @@ public final class PermissionCommand extends Command {
         String reason = params.length > reasonIndex
                 ? String.join(" ", Arrays.copyOfRange(params, reasonIndex, params.length))
                 : "";
-        var auditActor = new PermissionAuditLog.Actor(
-                actor.getHabboInfo().getId(), actor.getHabboInfo().getUsername(), "perm", reason);
-        final PermissionSetting requested = setting;
-        final long expiry = expires;
-        try (var connection = WiredPlatform.database().getDataSource().getConnection()) {
-            boolean changed = manager.getOverrides()
-                    .change(
-                            connection,
-                            info.getId(),
-                            key,
-                            setting,
-                            expires,
-                            auditActor,
-                            (actorRank, targetRank, previous) -> {
-                                // Revalidate against locked persistent ranks as well as live permissions.
-                                var verified = manager.getOverrides()
-                                        .readForAdministration(
-                                                connection, actor.getHabboInfo().getId());
-                                if (actorRank != actor.getHabboInfo().getRank().getId()
-                                        || !manager.hasPermission(actor, "cmd_perm_edit", false, verified)
-                                        || !manager.hasPermission(actor, "cmd_perm", false, verified)
-                                        || !manager.isPermissionDefined(key)
-                                        || !CommandTargetGuard.canAssignRank(actor, manager.getRank(targetRank)))
-                                    throw new SecurityException("Autorizzazione o gerarchia cambiata");
-                                if (requested != null)
-                                    PermissionOverridePolicy.authorizeGrant(
-                                            actor,
-                                            manager,
-                                            key,
-                                            requested,
-                                            expiry,
-                                            System.currentTimeMillis(),
-                                            verified);
-                                else {
-                                    Rank rank = manager.getRank(targetRank);
-                                    PermissionSetting restored = rank.hasPermission(key, false)
-                                            ? PermissionSetting.ALLOWED
-                                            : rank.hasPermission(key, true)
-                                                    ? PermissionSetting.ROOM_OWNER
-                                                    : PermissionSetting.DISALLOWED;
-                                    // Plugin grants must also be considered when removing a denial.
-                                    Habbo online = WiredPlatform.gameEnvironment()
-                                            .getHabboManager()
-                                            .getHabbo(info.getId());
-                                    if (online != null && manager.hasBasePermission(online, key, false))
-                                        restored = PermissionSetting.ALLOWED;
-                                    if (online == null
-                                            && !WiredPlatform.pluginManager()
-                                                    .getPlugins()
-                                                    .isEmpty()) {
-                                        // Offline plugins cannot be evaluated safely; require the
-                                        // full scope rather than silently lifting a stronger denial.
-                                        restored = PermissionSetting.ALLOWED;
-                                    }
-                                    PermissionOverridePolicy.authorizeGrant(
-                                            actor, manager, key, restored, 0, System.currentTimeMillis(), verified);
-                                }
-                            });
-            actor.whisper(changed ? "Override aggiornato e registrato nell'audit." : "Nessun override da rimuovere.");
-        }
+        boolean changed = PermissionOverrideAdministration.change(
+                actor, info, key, setting, expires, "perm", reason, "cmd_perm", "cmd_perm_edit");
+        actor.whisper(changed ? "Override aggiornato e registrato nell'audit." : "Nessun override da rimuovere.");
         Habbo online = WiredPlatform.gameEnvironment().getHabboManager().getHabbo(info.getId());
         if (online != null && online.getClient() != null) {
             online.getClient().sendResponse(new UserPermissionsComposer(online));

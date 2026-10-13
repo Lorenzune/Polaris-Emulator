@@ -26,6 +26,18 @@ public final class PermissionOverridePolicy {
             long expiresAt,
             long now,
             UserPermissionOverrides.Snapshot personal) {
+        authorizeGrant(actor, manager, key, setting, expiresAt, now, personal, "cmd_perm_edit", "cmd_perm");
+    }
+
+    public static void authorizeGrant(
+            Habbo actor,
+            PermissionsManager manager,
+            String key,
+            PermissionSetting setting,
+            long expiresAt,
+            long now,
+            UserPermissionOverrides.Snapshot personal,
+            String... requiredPermissions) {
         if (!personal.available()) throw new SecurityException("Permessi non verificabili");
         if (setting == PermissionSetting.DISALLOWED) return;
         boolean scoped = setting == PermissionSetting.ROOM_OWNER;
@@ -34,7 +46,9 @@ public final class PermissionOverridePolicy {
                 ? manager.hasBasePermission(actor, key, scoped)
                 : own.setting() == PermissionSetting.ALLOWED || own.setting() == PermissionSetting.ROOM_OWNER && scoped;
         if (!allowed) throw new SecurityException("Non possiedi questo permesso con lo scope richiesto");
-        for (String source : new String[] {key, "cmd_perm_edit", "cmd_perm"}) {
+        for (String source : java.util.stream.Stream.concat(
+                        java.util.stream.Stream.of(key), java.util.Arrays.stream(requiredPermissions))
+                .toList()) {
             var override = personal.active(source, now);
             if (override != null && override.expiresAt() > 0) limit(expiresAt, override.expiresAt());
             long lease = actor.getHabboInfo().getTemporaryRankExpiresAt();
