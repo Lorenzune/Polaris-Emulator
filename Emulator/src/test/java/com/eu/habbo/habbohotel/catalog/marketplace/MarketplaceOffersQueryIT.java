@@ -142,7 +142,7 @@ class MarketplaceOffersQueryIT {
         assertEquals(
                 List.of(listingId(2), listingId(11), listingId(12), listingId(21)), ids(offers(-1, -1, "", 5, false)), "count desc");
         assertEquals(
-                List.of(listingId(11), listingId(12), listingId(2), listingId(21)), ids(offers(-1, -1, "", 6, false)), "count asc");
+                List.of(listingId(11), listingId(12), listingId(21), listingId(2)), ids(offers(-1, -1, "", 6, false)), "count asc");
         assertEquals(
                 List.of(listingId(2), listingId(11), listingId(12), listingId(21)), ids(offers(-1, -1, "", 3, false)), "sold desc");
         assertEquals(

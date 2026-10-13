@@ -95,7 +95,10 @@ class AvatarRepairMigrationRecoveryIT {
         assertEquals(0, backups.get(), "unrelated checksum errors must abort before any recovery");
         execute(ds, "UPDATE flyway_schema_history SET checksum=checksum-1 WHERE version='20261011140000'");
         MigrationRunner.migrate(ds, pending -> {
-            assertEquals(List.of("20261011170000", "20261011180000"), pending);
+            assertEquals(
+                    List.of("20261011170000", "20261011180000"),
+                    pending.subList(0, 2),
+                    "avatar recovery migrations remain first; later migrations are also backed up");
             backups.incrementAndGet();
         });
         assertEquals(1, backups.get());
