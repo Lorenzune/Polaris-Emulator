@@ -131,14 +131,17 @@ public class CatalogItem implements ISerialize, Runnable, Comparable<CatalogItem
     }
 
     public int getCredits() {
+        var release=RareReleaseService.active(this);if(release!=null)return release.currency()==-1?release.price():0;
         return this.credits;
     }
 
     public int getPoints() {
+        var release=RareReleaseService.active(this);if(release!=null)return release.currency()>=0?release.price():0;
         return this.points;
     }
 
     public int getPointsType() {
+        var release=RareReleaseService.active(this);if(release!=null&&release.currency()>=0)return release.currency();
         return this.pointsType;
     }
 

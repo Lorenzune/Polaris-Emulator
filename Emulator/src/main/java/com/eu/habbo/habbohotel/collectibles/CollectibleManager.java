@@ -28,6 +28,12 @@ import org.slf4j.LoggerFactory;
 
 public final class CollectibleManager {
     private static final Gson GSON = new Gson();
+    private final boolean includeUnrewardedCatalogCollections;
+
+    public CollectibleManager() { this(false); }
+    public CollectibleManager(boolean includeUnrewardedCatalogCollections) {
+        this.includeUnrewardedCatalogCollections = includeUnrewardedCatalogCollections;
+    }
 
     public boolean canEdit(int userId) {
         Habbo user = Emulator.getGameEnvironment().getHabboManager().getHabbo(userId);
@@ -111,6 +117,7 @@ public final class CollectibleManager {
     }
 
     public JsonObject state(int userId) throws SQLException {
+        com.eu.habbo.habbohotel.catalog.RareCatalogCollections.refresh(Emulator.getDatabase().getDataSource());
         JsonObject result = new JsonObject();
         JsonArray rewards = new JsonArray(),
                 owned = new JsonArray(),
@@ -139,13 +146,17 @@ public final class CollectibleManager {
             var eligibleIds = eligibleItems(c, userId, false);
             var categoryByReward = new HashMap<Integer, JsonObject>();
             try (var s = c.prepareStatement(
-                            "SELECT * FROM collectible_categories WHERE reward_id IN (SELECT id FROM collectible_rewards WHERE deleted=0) ORDER BY id");
+                            "SELECT cc.*,p.rare_visible AS catalog_visible FROM collectible_categories cc LEFT JOIN catalog_pages p ON p.id=cc.catalog_page_id WHERE cc.catalog_page_id IS NOT NULL OR cc.reward_id IN (SELECT id FROM collectible_rewards WHERE deleted=0) ORDER BY cc.id");
                     var rs = s.executeQuery()) {
                 while (rs.next()) {
                     var category = new JsonObject();
                     category.addProperty("id", rs.getInt("id"));
                     category.addProperty("title", rs.getString("title"));
+                    if(rs.getInt("catalog_page_id")>0)category.addProperty("catalogPageId",rs.getInt("catalog_page_id"));
+                    category.addProperty("visible",rs.getInt("catalog_page_id")==0 || rs.getBoolean("catalog_visible"));
+                    category.addProperty("claimable",false);
                     var ids = categoryItems(rs.getString("item_ids"));
+                    if(ids.isEmpty())category.addProperty("visible",false);
                     var entries = new JsonArray();
                     int count = 0, eligibleCount = 0;
                     for (int id : ids) {
@@ -169,7 +180,7 @@ public final class CollectibleManager {
                     category.addProperty("complete", count == ids.size());
                     category.addProperty("eligibleCount", eligibleCount);
                     category.addProperty("rewardComplete", eligibleCount == ids.size());
-                    categoryByReward.put(rs.getInt("reward_id"), category);
+                    if(rs.getInt("reward_id")>0)categoryByReward.put(rs.getInt("reward_id"), category);
                     categories.add(category);
                 }
             }
@@ -202,6 +213,7 @@ public final class CollectibleManager {
                             category.addProperty(
                                     "claimable",
                                     category.get("rewardComplete").getAsBoolean()
+                                            && category.get("visible").getAsBoolean()
                                             && reward.availableTo(
                                                     userId, CollectibleReward.level(xp), now, enabled, claimed));
                         } else {
@@ -216,11 +228,18 @@ public final class CollectibleManager {
                 var visibleCategories = new JsonArray();
                 for (var entry : categories) {
                     var category = entry.getAsJsonObject();
-                    if (category.has("reward")
-                            && category.getAsJsonObject("reward").get("enabled").getAsBoolean())
+                    if (category.get("visible").getAsBoolean() && (category.has("catalogPageId")
+                            || (category.has("reward") && category.getAsJsonObject("reward").get("enabled").getAsBoolean())))
                         visibleCategories.add(category);
                 }
                 categories = visibleCategories;
+            }
+            // Older clients require category.reward. Keep their established response
+            // shape; updated clients explicitly opt in to catalogue sets without prizes.
+            if(!includeUnrewardedCatalogCollections) {
+                var supportedCategories=new JsonArray();
+                for(var entry:categories)if(entry.getAsJsonObject().has("reward"))supportedCategories.add(entry);
+                categories=supportedCategories;
             }
             result.addProperty("serverTime", now);
             var shop = new JsonArray();
@@ -464,7 +483,7 @@ public final class CollectibleManager {
                 int rewardId;
                 try (var s = c.prepareStatement(
                         body.has("id")
-                                ? "UPDATE collectible_rewards SET configuration=?,expires_at=?,created_by=?,created_at=? WHERE id=? AND deleted=0 AND id IN (SELECT reward_id FROM collectible_categories)"
+                                ? "UPDATE collectible_rewards SET configuration=?,expires_at=?,created_by=?,created_at=? WHERE id=? AND deleted=0 AND id IN (SELECT reward_id FROM collectible_categories WHERE catalog_page_id IS NULL)"
                                 : "INSERT INTO collectible_rewards(configuration,expires_at,created_by,created_at) VALUES(?,?,?,?)",
                         Statement.RETURN_GENERATED_KEYS)) {
                     s.setString(1, GSON.toJson(reward));
@@ -605,14 +624,17 @@ public final class CollectibleManager {
                         }
                     }
                     try (var s = c.prepareStatement(
-                            "SELECT title,item_ids FROM collectible_categories WHERE reward_id=? FOR UPDATE")) {
+                            "SELECT cc.title,cc.item_ids,cc.catalog_page_id,COALESCE(p.rare_visible,0) rare_visible FROM collectible_categories cc LEFT JOIN catalog_pages p ON p.id=cc.catalog_page_id WHERE cc.reward_id=? FOR UPDATE")) {
                         s.setInt(1, id);
                         try (var rs = s.executeQuery()) {
-                            if (rs.next()
-                                    && !new CollectibleCategory(rs.getString(1), categoryItems(rs.getString(2)))
-                                            .complete(eligibleItems(c, userId, true)))
-                                throw new IllegalArgumentException(
-                                        "Per riscattare il premio devi possedere tutti gli articoli come primo proprietario, senza trasferimenti precedenti.");
+                            if (rs.next()) {
+                                if(rs.getInt("catalog_page_id")>0 && !rs.getBoolean("rare_visible"))
+                                    throw new IllegalArgumentException("Questa collezione non è disponibile.");
+                                if(!new CollectibleCategory(rs.getString(1), categoryItems(rs.getString(2)))
+                                        .complete(eligibleItems(c, userId, true)))
+                                    throw new IllegalArgumentException(
+                                            "Per riscattare il premio devi possedere tutti gli articoli come primo proprietario, senza trasferimenti precedenti.");
+                            }
                         }
                     }
                     if ("currency".equals(reward.kind())) {

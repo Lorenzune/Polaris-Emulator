@@ -14,18 +14,20 @@ public class MarketplaceOwnItemsComposer extends MessageComposer {
     private static final Logger LOGGER = LoggerFactory.getLogger(MarketplaceOwnItemsComposer.class);
 
     private final Habbo habbo;
+    private final boolean multi;
 
-    public MarketplaceOwnItemsComposer(Habbo habbo) {
-        this.habbo = habbo;
-    }
+    public MarketplaceOwnItemsComposer(Habbo habbo) {this(habbo,false);}
+    public MarketplaceOwnItemsComposer(Habbo habbo,boolean multi) {this.habbo=habbo;this.multi=multi;}
 
     @Override
     protected ServerMessage composeInternal() {
         this.response.init(Outgoing.MarketplaceOwnItemsComposer);
-        this.response.appendInt(this.habbo.getInventory().getSoldPriceTotal());
-        this.response.appendInt(this.habbo.getInventory().getMarketplaceItems().size());
+        var offers=com.eu.habbo.habbohotel.catalog.marketplace.MarketPlace.getOwnOffers(this.habbo).stream().filter(offer->multi||offer.getCurrencyType()==com.eu.habbo.habbohotel.catalog.marketplace.MarketPlace.legacyCurrency()).toList();
+        long waiting=offers.stream().filter(o->o.getState()==MarketPlaceState.SOLD&&o.getCurrencyType()==com.eu.habbo.habbohotel.catalog.marketplace.MarketPlace.legacyCurrency()).mapToLong(MarketPlaceOffer::getPrice).sum();
+        this.response.appendInt((int)Math.min(Integer.MAX_VALUE,waiting));
+        this.response.appendInt(offers.size());
 
-        for (MarketPlaceOffer offer : this.habbo.getInventory().getMarketplaceItems()) {
+        for (MarketPlaceOffer offer : offers) {
             try {
                 if (offer.getState() == MarketPlaceState.OPEN) {
                     if ((offer.getTimestamp() + 172800) - Emulator.getIntUnixTimestamp() <= 0) {
@@ -62,6 +64,8 @@ public class MarketplaceOwnItemsComposer extends MessageComposer {
             }
         }
 
+        var currencies=new java.util.HashMap<Integer,Integer>();for(var offer:offers)currencies.put(offer.getOfferId(),offer.getCurrencyType());
+        this.response.appendString(new com.google.gson.Gson().toJson(currencies));
         return this.response;
     }
 

@@ -6,6 +6,6 @@ import com.eu.habbo.messages.outgoing.catalog.marketplace.MarketplaceOwnItemsCom
 public class RequestOwnItemsEvent extends MessageHandler {
     @Override
     public void handle() throws Exception {
-        this.client.sendResponse(new MarketplaceOwnItemsComposer(this.client.getHabbo()));
+        this.client.sendResponse(new MarketplaceOwnItemsComposer(this.client.getHabbo(),this.packet.bytesAvailable()>0&&this.packet.readBoolean()));
     }
 }

@@ -26,7 +26,8 @@ public class RequestOffersEvent extends MessageHandler {
         int type = MarketplaceInputGuard.normalizeSort(this.packet.readInt());
 
 
-        boolean tryCache = min == -1 && max == -1 && query.isEmpty();
+        int currency=this.packet.bytesAvailable()>0?this.packet.readInt():MarketPlace.legacyCurrency();
+        boolean tryCache = currency==MarketPlace.legacyCurrency() && min == -1 && max == -1 && query.isEmpty();
 
         if (tryCache) {
             ServerMessage message = cachedResults.get(type);
@@ -36,9 +37,9 @@ public class RequestOffersEvent extends MessageHandler {
             }
         }
 
-        List<MarketPlaceOffer> offers = MarketPlace.getOffers(min, max, query, type);
+        List<MarketPlaceOffer> offers = MarketPlace.getOffers(min, max, query, type,currency);
 
-        ServerMessage message = new MarketplaceOffersComposer(offers).compose();
+        ServerMessage message = new MarketplaceOffersComposer(offers,currency).compose();
         if (tryCache) {
             cachedResults.put(type, message);
         }

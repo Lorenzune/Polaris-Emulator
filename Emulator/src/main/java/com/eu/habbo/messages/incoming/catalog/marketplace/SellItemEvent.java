@@ -33,6 +33,7 @@ public class SellItemEvent extends MessageHandler {
         final int credits = this.packet.readInt();
         final int furniType = this.packet.readInt(); // 1 = FLOOR_TYPE, 2 = WALL_TYPE
         final int itemId = this.packet.readInt();
+        final int currency=this.packet.bytesAvailable()>0?this.packet.readInt():MarketPlace.legacyCurrency();
 
         if (!MarketplaceInputGuard.isPositiveId(itemId)) return;
         if (furniType != 1 && furniType != 2) return;
@@ -55,7 +56,7 @@ public class SellItemEvent extends MessageHandler {
                 return;
             }
 
-            if (MarketPlace.sellItem(this.client, item, credits)) {
+            if (MarketPlace.sellItem(this.client, item, credits,currency)) {
                 this.client.sendResponse(new MarketplaceItemPostedComposer(MarketplaceItemPostedComposer.POST_SUCCESS));
             } else {
                 this.client.sendResponse(new MarketplaceItemPostedComposer(MarketplaceItemPostedComposer.FAILED_TECHNICAL_ERROR));

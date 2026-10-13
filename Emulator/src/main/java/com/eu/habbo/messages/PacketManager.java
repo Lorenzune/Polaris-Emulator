@@ -744,6 +744,8 @@ public class PacketManager {
 
         // Furni Editor
         this.registerHandler(Incoming.FurniEditorSearchEvent, FurniEditorSearchEvent.class);
+        this.registerHandler(Incoming.RequestFurnitureValueEvent, com.eu.habbo.messages.incoming.furnieditor.RequestFurnitureValueEvent.class);
+        this.registerHandler(10410,com.eu.habbo.messages.incoming.furnieditor.RareEconomyCommandEvent.class);
         this.registerHandler(Incoming.FurniEditorDetailEvent, FurniEditorDetailEvent.class);
         this.registerHandler(Incoming.FurniEditorBySpriteEvent, FurniEditorBySpriteEvent.class);
         this.registerHandler(Incoming.FurniEditorInteractionsEvent, FurniEditorInteractionsEvent.class);
@@ -1383,6 +1385,42 @@ public class PacketManager {
                 Incoming.YouTubeSearchEvent, com.eu.habbo.messages.incoming.rooms.youtube.YouTubeSearchEvent.class);
 
         // Housekeeping (in-client admin panel)
+        
+        this.registerHandler(
+                Incoming.HousekeepingSaveRoomSettingsEvent,
+                com.eu.habbo.messages.incoming.housekeeping.HousekeepingSaveRoomSettingsEvent.class);
+
+        this.registerHandler(
+                Incoming.HousekeepingRequestListEvent,
+                com.eu.habbo.messages.incoming.housekeeping.HousekeepingRequestListEvent.class);
+
+        this.registerHandler(
+                Incoming.HousekeepingReloadEvent,
+                com.eu.habbo.messages.incoming.housekeeping.HousekeepingReloadEvent.class);
+
+        this.registerHandler(
+                Incoming.HousekeepingRevokeBanEvent,
+                com.eu.habbo.messages.incoming.housekeeping.HousekeepingRevokeBanEvent.class);
+
+        this.registerHandler(
+                Incoming.HousekeepingMaintenanceEvent,
+                com.eu.habbo.messages.incoming.housekeeping.HousekeepingMaintenanceEvent.class);
+
+        this.registerHandler(
+                Incoming.HousekeepingWordFilterEvent,
+                com.eu.habbo.messages.incoming.housekeeping.HousekeepingWordFilterEvent.class);
+
+        this.registerHandler(
+                Incoming.HousekeepingSetPermissionEvent,
+                com.eu.habbo.messages.incoming.housekeeping.HousekeepingSetPermissionEvent.class);
+
+        this.registerHandler(
+                Incoming.HousekeepingUserNoteEvent,
+                com.eu.habbo.messages.incoming.housekeeping.HousekeepingUserNoteEvent.class);
+
+        this.registerHandler(
+                Incoming.HousekeepingLockdownEvent,
+                com.eu.habbo.messages.incoming.housekeeping.HousekeepingLockdownEvent.class);
         this.registerHandler(
                 Incoming.HousekeepingFindUserByNameEvent,
                 com.eu.habbo.messages.incoming.housekeeping.HousekeepingFindUserByNameEvent.class);

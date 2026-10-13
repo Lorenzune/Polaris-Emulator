@@ -106,6 +106,12 @@ public final class RoomCycleService {
                 () -> this.runCycle(room), CYCLE_MS, CYCLE_MS, TimeUnit.MILLISECONDS);
     }
 
+    /** Click-driven steps use the room workers rather than the shared WIRED task pool. */
+    public ScheduledFuture<?> scheduleWalk(Runnable task, long delayMs) {
+        if (this.disposed) return null;
+        return this.roomWorkers.schedule(task, delayMs, TimeUnit.MILLISECONDS);
+    }
+
     void runCycle(Room room) {
         long started = this.nanoTime.getAsLong();
         try {

@@ -9,6 +9,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FurniEditorUpdatePayloadTest {
     @Test
+    void validatesRareValueMetadata() {
+        var payload = FurniEditorUpdatePayload.validate(JsonParser.parseString(
+                "{\"value\":100,\"valueType\":5,\"isRare\":true}").getAsJsonObject());
+        assertTrue(payload.valid());
+        assertEquals(3, payload.values.size());
+        for (String json : new String[]{"{\"value\":-1}", "{\"value\":1.234}",
+                "{\"value\":10000000000}", "{\"value\":\"NaN\"}", "{\"isRare\":2}",
+                "{\"valueType\":-2}"}) {
+            assertFalse(FurniEditorUpdatePayload.validate(JsonParser.parseString(json).getAsJsonObject()).valid(), json);
+        }
+    }
+    @Test
     void acceptsSafeEditorFields() {
         FurniEditorUpdatePayload payload = FurniEditorUpdatePayload.validate(JsonParser.parseString("""
                 {

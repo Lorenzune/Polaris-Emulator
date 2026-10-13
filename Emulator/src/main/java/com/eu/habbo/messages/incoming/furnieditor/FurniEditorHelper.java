@@ -48,6 +48,7 @@ public class FurniEditorHelper {
      */
     public static Map<String, Object> readFullItem(ResultSet set) throws SQLException {
         Map<String, Object> item = readBaseItem(set);
+        item.putAll(com.eu.habbo.habbohotel.items.editor.FurnitureValueRepository.read(set));
         item.put("allow_gift", set.getString("allow_gift"));
         item.put("allow_trade", set.getString("allow_trade"));
         item.put("allow_recycle", set.getString("allow_recycle"));
@@ -96,7 +97,7 @@ public class FurniEditorHelper {
         "allow_gift", "allow_trade", "allow_recycle", "allow_marketplace_sell",
         "allow_inventory_stack", "interaction_type", "interaction_modes_count",
         "vending_ids", "customparams", "effect_id_male", "effect_id_female",
-        "clothing_on_walk", "multiheight", "description"
+        "clothing_on_walk", "multiheight", "description", "value", "catalog_price", "value_type", "is_rare"
     );
 
     /**
@@ -127,6 +128,10 @@ public class FurniEditorHelper {
         Map.entry("effectIdFemale", "effect_id_female"),
         Map.entry("clothingOnWalk", "clothing_on_walk"),
         Map.entry("multiheight", "multiheight"),
-        Map.entry("description", "description")
+        Map.entry("description", "description"),
+        Map.entry("value", "catalog_price"),
+        Map.entry("catalogPrice", "catalog_price"),
+        Map.entry("valueType", "value_type"),
+        Map.entry("isRare", "is_rare")
     );
 }

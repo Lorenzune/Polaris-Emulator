@@ -9,10 +9,24 @@ import com.google.gson.JsonParser;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class FurniDataManagerTest {
+
+    @Test
+    void editorDetailsUseCustomOverrideAndRefreshAfterSave(@TempDir Path dir) throws Exception {
+        Path main = dir.resolve("FurnitureData.json");
+        Path custom = dir.resolve("FurnitureData_custom.json");
+        Files.writeString(main, "{\"roomitemtypes\":{\"furnitype\":[{\"id\":1,\"classname\":\"chair\",\"name\":\"Main\"}]}}");
+        Files.writeString(custom, "{\"roomitemtypes\":{\"furnitype\":[{\"id\":1,\"classname\":\"chair\",\"name\":\"Custom\"}]}}");
+        var source = new FurnidataSourceResolver.Source(main, false,
+                FurnidataSourceResolver.Status.RESOLVED, "test", List.of(main, custom));
+        assertTrue(FurniDataManager.getItemLookup(source, 1, "chair").itemJson().contains("Custom"));
+        Files.writeString(custom, "{\"roomitemtypes\":{\"furnitype\":[{\"id\":1,\"classname\":\"chair\",\"name\":\"Updated custom name\"}]}}");
+        assertTrue(FurniDataManager.getItemLookup(source, 1, "chair").itemJson().contains("Updated custom name"));
+    }
 
     @Test
     void findsItemByClassnameBeforeDbId(@TempDir Path dir) throws Exception {

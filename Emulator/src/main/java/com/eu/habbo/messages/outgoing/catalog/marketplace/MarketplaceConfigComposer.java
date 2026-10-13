@@ -16,6 +16,7 @@ public class MarketplaceConfigComposer extends MessageComposer {
         this.response.appendInt(1000000); //Max price
         this.response.appendInt(48); //Hours in marketplace
         this.response.appendInt(7); //Days to display
+        try{this.response.appendString(new com.google.gson.Gson().toJson(java.util.Map.of("currencies",new com.eu.habbo.habbohotel.catalog.RareEconomyRepository(com.eu.habbo.Emulator.getDatabase().getDataSource()).currencies(),"defaultCurrency",com.eu.habbo.habbohotel.catalog.marketplace.MarketPlace.legacyCurrency())));}catch(java.sql.SQLException e){this.response.appendString("{}");}
         return this.response;
     }
 }

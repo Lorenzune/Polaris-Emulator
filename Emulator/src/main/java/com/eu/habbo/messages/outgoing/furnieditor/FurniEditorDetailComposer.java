@@ -86,6 +86,12 @@ public class FurniEditorDetailComposer extends MessageComposer {
         // furnidata JSON string
         this.response.appendString(this.furniDataJson != null ? this.furniDataJson : "{}");
         this.response.appendString(this.furniDataDiagnosticJson != null ? this.furniDataDiagnosticJson : "{}");
+        // Optional extension: legacy clients continue reading the established prefix.
+        this.response.appendString(new com.google.gson.Gson().toJson(Map.of(
+            "value", item.getOrDefault("value", 0),
+            "valueType", item.getOrDefault("valueType", -1),
+            "catalogPrice", item.getOrDefault("catalogPrice",0),
+            "isRare", item.getOrDefault("isRare", false))));
 
         return this.response;
     }

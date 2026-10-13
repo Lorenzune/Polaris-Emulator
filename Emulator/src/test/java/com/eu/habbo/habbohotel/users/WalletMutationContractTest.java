@@ -52,6 +52,6 @@ class WalletMutationContractTest {
                 habbo.contains("event.type!=type||event.points!=-points"),
                 "a successful exact points debit must preserve currency type and amount");
         assertTrue(marketplace.contains("event.credits!=-price"));
-        assertTrue(marketplace.contains("event.type!=MARKETPLACE_CURRENCY||event.points!=-price"));
+        assertTrue(marketplace.contains("event.type!=currency||event.points!=-price"));
     }
 }

@@ -8,6 +8,9 @@ import com.eu.habbo.habbohotel.catalog.CatalogManager;
 import com.eu.habbo.habbohotel.catalog.CatalogPage;
 import com.eu.habbo.habbohotel.catalog.CatalogPageAccessPolicy;
 import com.eu.habbo.habbohotel.catalog.CatalogPaymentService;
+import com.eu.habbo.habbohotel.catalog.RareReleaseService;
+import com.eu.habbo.habbohotel.catalog.RareEconomyRepository;
+import com.eu.habbo.habbohotel.catalog.CatalogPurchaseLogEntry;
 import com.eu.habbo.habbohotel.catalog.CatalogPurchaseMath;
 import com.eu.habbo.habbohotel.catalog.ClubOffer;
 import com.eu.habbo.habbohotel.catalog.layouts.BuildersClubAddonsLayout;
@@ -287,6 +290,11 @@ public class CatalogBuyItemAsGiftEvent extends MessageHandler {
                         LOGGER.debug("item requires club -> itemId={}", itemId);
                         this.client.sendResponse(
                                 new AlertPurchaseUnavailableComposer(AlertPurchaseUnavailableComposer.REQUIRES_CLUB));
+                        return;
+                    }
+
+                    if (!RareReleaseService.beginPurchase(item)) {
+                        this.client.sendResponse(new AlertPurchaseUnavailableComposer(AlertPurchaseUnavailableComposer.ILLEGAL));
                         return;
                     }
 
@@ -573,6 +581,9 @@ public class CatalogBuyItemAsGiftEvent extends MessageHandler {
                                                 .getItemManager()
                                                 .createItem(userId, baseItem, limitedStack, limitedNumber, extraData);
 
+                                        if (teleportOne != null) itemsList.add(teleportOne);
+                                        if (teleportTwo != null) itemsList.add(teleportTwo);
+
                                         if (teleportOne == null || teleportTwo == null) {
                                             LOGGER.debug(
                                                     "teleport creation failed. baseItemId={}, teleportOneNull={}, teleportTwoNull={}",
@@ -726,8 +737,21 @@ public class CatalogBuyItemAsGiftEvent extends MessageHandler {
                     }
                     createdGiftItems.add(gift);
 
+                    // Record the contents, not the wrapper. Opening the package reuses these item IDs.
+                    String purchasedIds = itemsList.stream().filter(i -> i.getId() != gift.getId())
+                            .map(i -> Integer.toString(i.getId())).collect(java.util.stream.Collectors.joining(";"));
+                    CatalogPurchaseLogEntry purchase = new CatalogPurchaseLogEntry(
+                            Emulator.getIntUnixTimestamp(), this.client.getHabbo().getHabboInfo().getId(),
+                            item.getId(), purchasedIds, item.getName(),
+                            Math.max(0, paidCredits - (paidCredits > 0 ? wrapFee : 0)), paidPoints, paidPointsType, 1);
+                    try (PreparedStatement log = connection.prepareStatement(purchase.getQuery())) {
+                        purchase.log(log);
+                        log.executeBatch();
+                    }
+
                     if (limitedConfiguration != null) {
                         for (HabboItem itm : itemsList) {
+                            if (itm == gift) continue;
                             if (itm == null) {
                                 // Trip the catch path so the deduction is refunded.
                                 throw new IllegalStateException("null item before limitedSold()");
@@ -802,8 +826,10 @@ public class CatalogBuyItemAsGiftEvent extends MessageHandler {
                 try {
                     if (!giftDelivered) {
                         for (HabboItem createdItem : createdGiftItems) {
-                            if (createdItem != null)
+                            if (createdItem != null) {
+                                RareEconomyRepository.cancelEmission(createdItem.getId());
                                 Emulator.getGameEnvironment().getItemManager().deleteItem(createdItem);
+                            }
                         }
                         if (paidCredits > 0 || paidPoints > 0) {
                             CatalogPaymentService.refund(
@@ -811,6 +837,7 @@ public class CatalogBuyItemAsGiftEvent extends MessageHandler {
                         }
                     }
                 } finally {
+                    RareReleaseService.endPurchase();
                     synchronized (this.client.getHabbo().getHabboStats()) {
                         this.client.getHabbo().getHabboStats().isPurchasingFurniture = false;
                     }

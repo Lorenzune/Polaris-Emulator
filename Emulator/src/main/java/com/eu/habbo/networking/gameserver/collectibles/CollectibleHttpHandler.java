@@ -60,7 +60,7 @@ public class CollectibleHttpHandler extends ChannelInboundHandlerAdapter {
 
         try {
             String path = new QueryStringDecoder(req.uri()).path();
-            CollectibleManager manager = new CollectibleManager();
+            CollectibleManager manager = new CollectibleManager("rare-collections-v1".equals(req.headers().get("X-Nitro-Api")));
             if (req.method() == HttpMethod.POST && path.equals(BASE_PATH + "/manage")) {
                 sendJson(ctx, req, HttpResponseStatus.OK, manager.manage(userId, parseBody(req)));
                 return;

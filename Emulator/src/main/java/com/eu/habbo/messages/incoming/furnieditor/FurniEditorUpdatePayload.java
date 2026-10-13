@@ -65,6 +65,9 @@ public class FurniEditorUpdatePayload {
 
         JsonPrimitive primitive = element.getAsJsonPrimitive();
         return switch (dbColumn) {
+            case "value", "catalog_price" -> rareValue(primitive);
+            case "value_type" -> boundedInt(primitive, -1, Integer.MAX_VALUE);
+            case "is_rare" -> booleanFlag(primitive);
             case "public_name" -> boundedString(primitive, 0, 56);
             case "type" -> itemType(primitive);
             case "width", "length" -> boundedInt(primitive, 0, 64);
@@ -89,6 +92,18 @@ public class FurniEditorUpdatePayload {
         return value;
     }
 
+    private static Double rareValue(JsonPrimitive primitive) {
+        if (!primitive.isNumber()) return null;
+        try {
+            var value = new java.math.BigDecimal(primitive.getAsString());
+            if (value.signum() < 0 || value.compareTo(new java.math.BigDecimal("9999999999.99")) > 0
+                    || value.stripTrailingZeros().scale() > 2) return null;
+            return value.doubleValue();
+        } catch (NumberFormatException invalid) {
+            return null;
+        }
+    }
+
     private static String itemType(JsonPrimitive primitive) {
         String value = boundedString(primitive, 1, 3);
         if (value == null) return null;
@@ -97,7 +112,7 @@ public class FurniEditorUpdatePayload {
 
     private static Integer boundedInt(JsonPrimitive primitive, int min, int max) {
         try {
-            int value = primitive.getAsInt();
+            int value = primitive.getAsBigDecimal().intValueExact();
             return value >= min && value <= max ? value : null;
         } catch (Exception e) {
             return null;
@@ -119,8 +134,8 @@ public class FurniEditorUpdatePayload {
         }
 
         if (primitive.isNumber()) {
-            int value = primitive.getAsInt();
-            return value == 0 || value == 1 ? String.valueOf(value) : null;
+            Integer value = boundedInt(primitive, 0, 1);
+            return value == null ? null : String.valueOf(value);
         }
 
         if (primitive.isString()) {

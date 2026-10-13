@@ -1,14 +1,5 @@
 # Frozen Polaris architecture violations.
 # U=direct Emulator usage, M=mutable static, P=source outside owned packages, D=incoming handler JDBC acquisition.
-# Reviewed on 2026-09-26: current additions cover room-cycle startup config, catalog admin sync,
-# Wired config/slow-path diagnostics, furniture report and moderation handlers, and Builders Tools
-# height persistence. These are accepted service lookups for the reviewed features; future increases
-# remain blocked by FrozenArchitectureBaselineTest.
-# Reviewed on 2026-09-28: catalog page text/media editor handlers use the established emulator
-# services and JDBC connection pattern for this feature.
-# Reviewed 2026-10-09: snapshot includes existing collectibles, quests, native WIRED
-# settings, signal/transaction sources and persistent WIRED log repository.
-# No runtime lookup or lifetime is changed to satisfy this snapshot; future growth stays blocked.
 U|com/eu/habbo/Emulator.java|CALL|dispose|1
 U|com/eu/habbo/Emulator.java|CALL|getConfig|6
 U|com/eu/habbo/Emulator.java|CALL|getPluginManager|1
@@ -79,11 +70,13 @@ U|com/eu/habbo/habbohotel/GameEnvironment.java|CALL|getConfig|1
 U|com/eu/habbo/habbohotel/GameEnvironment.java|CALL|getGameServer|1
 U|com/eu/habbo/habbohotel/GameEnvironment.java|CALL|getThreading|8
 U|com/eu/habbo/habbohotel/GameEnvironment.java|FIELD|isShuttingDown|3
+U|com/eu/habbo/habbohotel/MaintenanceCountdown.java|CALL|getGameEnvironment|1
+U|com/eu/habbo/habbohotel/MaintenanceCountdown.java|CALL|getGameServer|1
+U|com/eu/habbo/habbohotel/MaintenanceCountdown.java|CALL|getThreading|1
+U|com/eu/habbo/habbohotel/MaintenanceMode.java|CALL|getConfig|4
 U|com/eu/habbo/habbohotel/achievements/AchievementInteractions.java|CALL|getDatabase|1
 U|com/eu/habbo/habbohotel/achievements/AchievementInteractions.java|CALL|getGameEnvironment|3
 U|com/eu/habbo/habbohotel/achievements/AchievementManager.java|CALL|getConfig|1
-U|com/eu/habbo/habbohotel/achievements/AchievementManager.java|CALL|getDatabase|5
-U|com/eu/habbo/habbohotel/achievements/AchievementManager.java|CALL|getGameEnvironment|5
 U|com/eu/habbo/habbohotel/achievements/AchievementManager.java|CALL|getPluginManager|4
 U|com/eu/habbo/habbohotel/achievements/AchievementManager.java|CALL|getThreading|1
 U|com/eu/habbo/habbohotel/achievements/TalentTrackLevel.java|CALL|getGameEnvironment|2
@@ -138,6 +131,14 @@ U|com/eu/habbo/habbohotel/catalog/CatalogManager.java|CALL|getThreading|6
 U|com/eu/habbo/habbohotel/catalog/CatalogPurchaseLogEntry.java|CALL|getDatabaseLogger|1
 U|com/eu/habbo/habbohotel/catalog/CatalogPurchaseTransaction.java|CALL|getDatabase|1
 U|com/eu/habbo/habbohotel/catalog/ClubOffer.java|CALL|getIntUnixTimestamp|2
+U|com/eu/habbo/habbohotel/catalog/RareEconomyRepository.java|CALL|getDatabase|1
+U|com/eu/habbo/habbohotel/catalog/RareEconomyRepository.java|CALL|getGameEnvironment|1
+U|com/eu/habbo/habbohotel/catalog/RareManagerService.java|CALL|getGameEnvironment|3
+U|com/eu/habbo/habbohotel/catalog/RareManagerService.java|CALL|getThreading|2
+U|com/eu/habbo/habbohotel/catalog/RareManagerService.java|FIELD|isShuttingDown|1
+U|com/eu/habbo/habbohotel/catalog/RareReleaseService.java|CALL|getDatabase|5
+U|com/eu/habbo/habbohotel/catalog/RareReleaseService.java|CALL|getGameEnvironment|2
+U|com/eu/habbo/habbohotel/catalog/RareReleaseService.java|CALL|getThreading|3
 U|com/eu/habbo/habbohotel/catalog/RecyclerBoxOpener.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/habbohotel/catalog/RecyclerBoxOpener.java|CALL|getTexts|1
 U|com/eu/habbo/habbohotel/catalog/TargetOffer.java|CALL|getIntUnixTimestamp|1
@@ -148,17 +149,17 @@ U|com/eu/habbo/habbohotel/catalog/layouts/RoomBundleLayout.java|CALL|getConfig|1
 U|com/eu/habbo/habbohotel/catalog/layouts/RoomBundleLayout.java|CALL|getDatabase|1
 U|com/eu/habbo/habbohotel/catalog/layouts/RoomBundleLayout.java|CALL|getGameEnvironment|5
 U|com/eu/habbo/habbohotel/catalog/layouts/RoomBundleLayout.java|CALL|getIntUnixTimestamp|2
-U|com/eu/habbo/habbohotel/catalog/marketplace/MarketPlace.java|CALL|getDatabase|9
+U|com/eu/habbo/habbohotel/catalog/marketplace/MarketPlace.java|CALL|getDatabase|8
 U|com/eu/habbo/habbohotel/catalog/marketplace/MarketPlace.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/habbohotel/catalog/marketplace/MarketPlace.java|CALL|getGameServer|1
-U|com/eu/habbo/habbohotel/catalog/marketplace/MarketPlace.java|CALL|getIntUnixTimestamp|4
-U|com/eu/habbo/habbohotel/catalog/marketplace/MarketPlace.java|CALL|getPluginManager|5
-U|com/eu/habbo/habbohotel/catalog/marketplace/MarketPlace.java|CALL|getThreading|3
+U|com/eu/habbo/habbohotel/catalog/marketplace/MarketPlace.java|CALL|getIntUnixTimestamp|5
+U|com/eu/habbo/habbohotel/catalog/marketplace/MarketPlace.java|CALL|getPluginManager|7
+U|com/eu/habbo/habbohotel/catalog/marketplace/MarketPlace.java|CALL|getThreading|2
 U|com/eu/habbo/habbohotel/catalog/marketplace/MarketPlaceOffer.java|CALL|getDatabase|3
 U|com/eu/habbo/habbohotel/catalog/marketplace/MarketPlaceOffer.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/habbohotel/catalog/marketplace/MarketPlaceOffer.java|CALL|getIntUnixTimestamp|1
 U|com/eu/habbo/habbohotel/catalog/marketplace/MarketPlacePurchaseTransaction.java|CALL|getDatabase|1
-U|com/eu/habbo/habbohotel/collectibles/CollectibleManager.java|CALL|getDatabase|1
+U|com/eu/habbo/habbohotel/collectibles/CollectibleManager.java|CALL|getDatabase|2
 U|com/eu/habbo/habbohotel/collectibles/CollectibleManager.java|CALL|getGameEnvironment|13
 U|com/eu/habbo/habbohotel/commands/AddYoutubePlaylistCommand.java|CALL|getDatabase|1
 U|com/eu/habbo/habbohotel/commands/AddYoutubePlaylistCommand.java|CALL|getGameEnvironment|3
@@ -610,8 +611,6 @@ U|com/eu/habbo/habbohotel/items/interactions/games/tag/icetag/InteractionIceTagF
 U|com/eu/habbo/habbohotel/items/interactions/games/tag/rollerskate/InteractionRollerskateField.java|CALL|getGameEnvironment|3
 U|com/eu/habbo/habbohotel/items/interactions/games/tag/rollerskate/InteractionRollerskateField.java|CALL|getIntUnixTimestamp|2
 U|com/eu/habbo/habbohotel/items/interactions/pets/InteractionMonsterPlantSeed.java|CALL|getRandom|2
-U|com/eu/habbo/habbohotel/items/interactions/pets/InteractionPetBreedingNest.java|CALL|getGameEnvironment|2
-U|com/eu/habbo/habbohotel/items/interactions/pets/InteractionPetBreedingNest.java|CALL|getThreading|2
 U|com/eu/habbo/habbohotel/items/interactions/pets/InteractionPetDrink.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/habbohotel/items/interactions/pets/InteractionPetDrink.java|CALL|getThreading|3
 U|com/eu/habbo/habbohotel/items/interactions/pets/InteractionPetFood.java|CALL|getThreading|1
@@ -887,12 +886,12 @@ U|com/eu/habbo/habbohotel/permissions/PermissionsManager.java|CALL|getPluginMana
 U|com/eu/habbo/habbohotel/pets/GnomePet.java|CALL|getDatabase|1
 U|com/eu/habbo/habbohotel/pets/GnomePet.java|CALL|getGameEnvironment|11
 U|com/eu/habbo/habbohotel/pets/HorsePet.java|CALL|getDatabase|1
-U|com/eu/habbo/habbohotel/pets/MonsterplantPet.java|CALL|getConfig|2
+U|com/eu/habbo/habbohotel/pets/MonsterplantPet.java|CALL|getConfig|1
 U|com/eu/habbo/habbohotel/pets/MonsterplantPet.java|CALL|getDatabase|1
-U|com/eu/habbo/habbohotel/pets/MonsterplantPet.java|CALL|getGameEnvironment|12
+U|com/eu/habbo/habbohotel/pets/MonsterplantPet.java|CALL|getGameEnvironment|8
 U|com/eu/habbo/habbohotel/pets/MonsterplantPet.java|CALL|getIntUnixTimestamp|9
 U|com/eu/habbo/habbohotel/pets/MonsterplantPet.java|CALL|getRandom|2
-U|com/eu/habbo/habbohotel/pets/MonsterplantPet.java|CALL|getThreading|3
+U|com/eu/habbo/habbohotel/pets/MonsterplantPet.java|CALL|getThreading|1
 U|com/eu/habbo/habbohotel/pets/Pet.java|CALL|getConfig|3
 U|com/eu/habbo/habbohotel/pets/Pet.java|CALL|getDatabase|1
 U|com/eu/habbo/habbohotel/pets/Pet.java|CALL|getGameEnvironment|8
@@ -968,7 +967,7 @@ U|com/eu/habbo/habbohotel/rooms/RoomChatMessage.java|CALL|getDatabaseLogger|1
 U|com/eu/habbo/habbohotel/rooms/RoomChatMessage.java|CALL|getGameEnvironment|3
 U|com/eu/habbo/habbohotel/rooms/RoomChatMessage.java|CALL|getIntUnixTimestamp|1
 U|com/eu/habbo/habbohotel/rooms/RoomCycleManager.java|CALL|getConfig|4
-U|com/eu/habbo/habbohotel/rooms/RoomCycleManager.java|CALL|getGameEnvironment|5
+U|com/eu/habbo/habbohotel/rooms/RoomCycleManager.java|CALL|getGameEnvironment|6
 U|com/eu/habbo/habbohotel/rooms/RoomCycleManager.java|CALL|getPluginManager|1
 U|com/eu/habbo/habbohotel/rooms/RoomCycleManager.java|CALL|getThreading|1
 U|com/eu/habbo/habbohotel/rooms/RoomDependencies.java|CALL|getDatabase|1
@@ -1026,7 +1025,7 @@ U|com/eu/habbo/habbohotel/rooms/RoomWordQuizManager.java|CALL|getIntUnixTimestam
 U|com/eu/habbo/habbohotel/rooms/TraxManager.java|CALL|getGameEnvironment|13
 U|com/eu/habbo/habbohotel/rooms/TraxManager.java|CALL|getIntUnixTimestamp|6
 U|com/eu/habbo/habbohotel/rooms/TraxManager.java|CALL|getThreading|3
-U|com/eu/habbo/habbohotel/rooms/pathfinding/impl/PathfinderImpl.java|CALL|getConfig|2
+U|com/eu/habbo/habbohotel/rooms/pathfinding/impl/PathfinderImpl.java|CALL|getConfig|1
 U|com/eu/habbo/habbohotel/soundboard/SoundboardManager.java|CALL|getDatabase|3
 U|com/eu/habbo/habbohotel/translations/GoogleTranslateManager.java|CALL|getConfig|1
 U|com/eu/habbo/habbohotel/traxeditor/TraxEditorManager.java|CALL|getConfig|5
@@ -1042,7 +1041,7 @@ U|com/eu/habbo/habbohotel/users/Habbo.java|CALL|getTexts|1
 U|com/eu/habbo/habbohotel/users/Habbo.java|FIELD|isShuttingDown|1
 U|com/eu/habbo/habbohotel/users/HabboBadge.java|CALL|getDatabase|2
 U|com/eu/habbo/habbohotel/users/HabboInfo.java|CALL|getConfig|1
-U|com/eu/habbo/habbohotel/users/HabboInfo.java|CALL|getDatabase|2
+U|com/eu/habbo/habbohotel/users/HabboInfo.java|CALL|getDatabase|1
 U|com/eu/habbo/habbohotel/users/HabboInfo.java|CALL|getGameEnvironment|3
 U|com/eu/habbo/habbohotel/users/HabboInfo.java|CALL|getIntUnixTimestamp|1
 U|com/eu/habbo/habbohotel/users/HabboItem.java|CALL|getDatabase|1
@@ -1069,7 +1068,6 @@ U|com/eu/habbo/habbohotel/users/cache/HabboOfferPurchase.java|CALL|getDatabase|1
 U|com/eu/habbo/habbohotel/users/custombadge/CustomBadgeManager.java|CALL|getDatabase|10
 U|com/eu/habbo/habbohotel/users/custombadge/CustomBadgeManager.java|CALL|getGameServer|5
 U|com/eu/habbo/habbohotel/users/infostand/InfostandBackgroundManager.java|CALL|getDatabase|1
-U|com/eu/habbo/habbohotel/users/inventory/BadgesComponent.java|CALL|getDatabase|3
 U|com/eu/habbo/habbohotel/users/inventory/BadgesComponent.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/habbohotel/users/inventory/BotsComponent.java|CALL|getDatabase|1
 U|com/eu/habbo/habbohotel/users/inventory/BotsComponent.java|CALL|getGameEnvironment|1
@@ -1134,7 +1132,7 @@ U|com/eu/habbo/habbohotel/wired/highscores/WiredHighscoreManager.java|CALL|getTh
 U|com/eu/habbo/habbohotel/wired/highscores/WiredHighscoreMidnightUpdater.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/habbohotel/wired/highscores/WiredHighscoreMidnightUpdater.java|CALL|getIntUnixTimestamp|1
 U|com/eu/habbo/habbohotel/wired/highscores/WiredHighscoreMidnightUpdater.java|CALL|getThreading|1
-U|com/eu/habbo/habbohotel/wired/tick/WiredTickService.java|CALL|getConfig|4
+U|com/eu/habbo/habbohotel/wired/tick/WiredTickService.java|CALL|getConfig|1
 U|com/eu/habbo/habbohotel/wired/tick/WiredTickService.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/habbohotel/wired/tick/WiredTickService.java|CALL|getThreading|3
 U|com/eu/habbo/habbohotel/wired/tick/WiredTickService.java|FIELD|isShuttingDown|2
@@ -1164,13 +1162,13 @@ U|com/eu/habbo/messages/incoming/camera/CameraRoomThumbnailEvent.java|CALL|getCo
 U|com/eu/habbo/messages/incoming/camera/CameraRoomThumbnailEvent.java|CALL|getIntUnixTimestamp|1
 U|com/eu/habbo/messages/incoming/camera/CameraRoomThumbnailEvent.java|CALL|getTexts|9
 U|com/eu/habbo/messages/incoming/camera/RequestCameraConfigurationEvent.java|CALL|getConfig|3
-U|com/eu/habbo/messages/incoming/catalog/BuildersClubPlaceRoomItemEvent.java|CALL|getGameEnvironment|7
+U|com/eu/habbo/messages/incoming/catalog/BuildersClubPlaceRoomItemEvent.java|CALL|getGameEnvironment|4
 U|com/eu/habbo/messages/incoming/catalog/BuildersClubPlaceWallItemEvent.java|CALL|getGameEnvironment|6
 U|com/eu/habbo/messages/incoming/catalog/CatalogBuyClubDiscountEvent.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/messages/incoming/catalog/CatalogBuyItemAsGiftEvent.java|CALL|getConfig|5
 U|com/eu/habbo/messages/incoming/catalog/CatalogBuyItemAsGiftEvent.java|CALL|getDatabase|3
 U|com/eu/habbo/messages/incoming/catalog/CatalogBuyItemAsGiftEvent.java|CALL|getGameEnvironment|25
-U|com/eu/habbo/messages/incoming/catalog/CatalogBuyItemAsGiftEvent.java|CALL|getIntUnixTimestamp|5
+U|com/eu/habbo/messages/incoming/catalog/CatalogBuyItemAsGiftEvent.java|CALL|getIntUnixTimestamp|6
 U|com/eu/habbo/messages/incoming/catalog/CatalogBuyItemAsGiftEvent.java|CALL|getRandom|1
 U|com/eu/habbo/messages/incoming/catalog/CatalogBuyItemAsGiftEvent.java|CALL|getTexts|8
 U|com/eu/habbo/messages/incoming/catalog/CatalogBuyItemAsGiftEvent.java|CALL|getThreading|2
@@ -1285,15 +1283,18 @@ U|com/eu/habbo/messages/incoming/furnieditor/FurniEditorRevertFurnidataEvent.jav
 U|com/eu/habbo/messages/incoming/furnieditor/FurniEditorRevertFurnidataEvent.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/messages/incoming/furnieditor/FurniEditorSearchEvent.java|CALL|getDatabase|1
 U|com/eu/habbo/messages/incoming/furnieditor/FurniEditorSearchEvent.java|CALL|getGameEnvironment|1
-U|com/eu/habbo/messages/incoming/furnieditor/FurniEditorUpdateEvent.java|CALL|getDatabase|1
+U|com/eu/habbo/messages/incoming/furnieditor/FurniEditorUpdateEvent.java|CALL|getDatabase|2
 U|com/eu/habbo/messages/incoming/furnieditor/FurniEditorUpdateEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/furnieditor/FurniEditorUpdateFurnidataEvent.java|CALL|getConfig|2
 U|com/eu/habbo/messages/incoming/furnieditor/FurniEditorUpdateFurnidataEvent.java|CALL|getDatabase|2
 U|com/eu/habbo/messages/incoming/furnieditor/FurniEditorUpdateFurnidataEvent.java|CALL|getGameEnvironment|4
 U|com/eu/habbo/messages/incoming/furnieditor/FurnidataAuditLog.java|CALL|getDatabase|1
 U|com/eu/habbo/messages/incoming/furnieditor/FurnidataAuditLog.java|CALL|getIntUnixTimestamp|1
+U|com/eu/habbo/messages/incoming/furnieditor/RareEconomyCommandEvent.java|CALL|getDatabase|2
+U|com/eu/habbo/messages/incoming/furnieditor/RequestFurnitureValueEvent.java|CALL|getDatabase|1
 U|com/eu/habbo/messages/incoming/furniturereport/FurnitureReportSubmitEvent.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/messages/incoming/furniturereport/FurnitureReportSupport.java|CALL|getDatabase|1
+U|com/eu/habbo/messages/incoming/furniturereport/FurnitureReportSupport.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/furniturereport/FurnitureReportUpdateEvent.java|CALL|getDatabase|1
 U|com/eu/habbo/messages/incoming/furniturereport/FurnitureReportUpdateEvent.java|CALL|getGameEnvironment|3
 U|com/eu/habbo/messages/incoming/gamecenter/GameCenterJoinGameEvent.java|CALL|getConfig|1
@@ -1390,14 +1391,13 @@ U|com/eu/habbo/messages/incoming/handshake/SecureLoginEvent.java|CALL|getCrypto|
 U|com/eu/habbo/messages/incoming/handshake/SecureLoginEvent.java|CALL|getDatabase|1
 U|com/eu/habbo/messages/incoming/handshake/SecureLoginEvent.java|CALL|getDate|1
 U|com/eu/habbo/messages/incoming/handshake/SecureLoginEvent.java|CALL|getGameEnvironment|5
-U|com/eu/habbo/messages/incoming/handshake/SecureLoginEvent.java|CALL|getGameServer|15
+U|com/eu/habbo/messages/incoming/handshake/SecureLoginEvent.java|CALL|getGameServer|16
 U|com/eu/habbo/messages/incoming/handshake/SecureLoginEvent.java|CALL|getIntUnixTimestamp|6
 U|com/eu/habbo/messages/incoming/handshake/SecureLoginEvent.java|CALL|getPluginManager|1
 U|com/eu/habbo/messages/incoming/handshake/SecureLoginEvent.java|CALL|getThreading|3
 U|com/eu/habbo/messages/incoming/handshake/SecureLoginEvent.java|FIELD|isReady|1
 U|com/eu/habbo/messages/incoming/handshake/UsernameEvent.java|CALL|getConfig|2
-U|com/eu/habbo/messages/incoming/handshake/UsernameEvent.java|CALL|getDatabase|1
-U|com/eu/habbo/messages/incoming/handshake/UsernameEvent.java|CALL|getGameEnvironment|13
+U|com/eu/habbo/messages/incoming/handshake/UsernameEvent.java|CALL|getGameEnvironment|12
 U|com/eu/habbo/messages/incoming/handshake/UsernameEvent.java|CALL|getIntUnixTimestamp|3
 U|com/eu/habbo/messages/incoming/helper/RequestTalentTrackEvent.java|CALL|getConfig|1
 U|com/eu/habbo/messages/incoming/hotelview/HotelViewClaimBadgeRewardEvent.java|CALL|getConfig|2
@@ -1413,7 +1413,7 @@ U|com/eu/habbo/messages/incoming/hotelview/HotelViewRequestSecondsUntilEvent.jav
 U|com/eu/habbo/messages/incoming/hotelview/RequestNewsListEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingBanUserEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingDeleteRoomEvent.java|CALL|getDatabase|1
-U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingDeleteRoomEvent.java|CALL|getGameEnvironment|2
+U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingDeleteRoomEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingFindRoomByIdEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingFindUserByIdEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingFindUserByNameEvent.java|CALL|getGameEnvironment|1
@@ -1431,15 +1431,18 @@ U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingMutationGuard.java|CAL
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingMutationGuard.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingMuteRoomEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingMuteUserEvent.java|CALL|getGameEnvironment|1
+U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingPermissionSync.java|CALL|getGameEnvironment|1
+U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingRequestListEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingResetUserPasswordEvent.java|CALL|getDatabase|1
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingRoomStateEvent.java|CALL|getGameEnvironment|1
+U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingSaveRoomSettingsEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingSearchRoomsEvent.java|CALL|getDatabase|1
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingSearchRoomsEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingSendHotelAlertEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingSetHcSubscriptionEvent.java|CALL|getDatabase|1
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingSetHcSubscriptionEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingSetHcSubscriptionEvent.java|CALL|getIntUnixTimestamp|1
-U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingSetUserRankEvent.java|CALL|getDatabase|2
+U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingSetUserRankEvent.java|CALL|getDatabase|1
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingSetUserRankEvent.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingTargetRankGuard.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/messages/incoming/housekeeping/HousekeepingTradeLockUserEvent.java|CALL|getDatabase|1
@@ -1566,7 +1569,7 @@ U|com/eu/habbo/messages/incoming/rooms/HandleDoorbellEvent.java|CALL|getGameServ
 U|com/eu/habbo/messages/incoming/rooms/RequestHeightmapEvent.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/messages/incoming/rooms/RequestRoomDataEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/rooms/RequestRoomHeightmapEvent.java|CALL|getGameEnvironment|2
-U|com/eu/habbo/messages/incoming/rooms/RequestRoomLoadEvent.java|CALL|getGameEnvironment|6
+U|com/eu/habbo/messages/incoming/rooms/RequestRoomLoadEvent.java|CALL|getGameEnvironment|4
 U|com/eu/habbo/messages/incoming/rooms/RequestRoomSettingsEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/rooms/RequestRoomWordFilterEvent.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/messages/incoming/rooms/RoomBackgroundEvent.java|CALL|getPluginManager|1
@@ -1641,7 +1644,7 @@ U|com/eu/habbo/messages/incoming/rooms/pets/CompostMonsterplantEvent.java|CALL|g
 U|com/eu/habbo/messages/incoming/rooms/pets/HorseRemoveSaddleEvent.java|CALL|getDatabase|1
 U|com/eu/habbo/messages/incoming/rooms/pets/HorseRemoveSaddleEvent.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/messages/incoming/rooms/pets/HorseRemoveSaddleEvent.java|CALL|getThreading|1
-U|com/eu/habbo/messages/incoming/rooms/pets/PetPackageNameEvent.java|CALL|getGameEnvironment|6
+U|com/eu/habbo/messages/incoming/rooms/pets/PetPackageNameEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/rooms/pets/PetPackageNameEvent.java|CALL|getThreading|1
 U|com/eu/habbo/messages/incoming/rooms/pets/PetPickupEvent.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/incoming/rooms/pets/PetPickupEvent.java|CALL|getTexts|1
@@ -1759,6 +1762,7 @@ U|com/eu/habbo/messages/outgoing/catalog/GiftConfigurationComposer.java|CALL|get
 U|com/eu/habbo/messages/outgoing/catalog/GiftConfigurationComposer.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/outgoing/catalog/RecyclerLogicComposer.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/outgoing/catalog/ReloadRecyclerComposer.java|CALL|getGameEnvironment|1
+U|com/eu/habbo/messages/outgoing/catalog/marketplace/MarketplaceConfigComposer.java|CALL|getDatabase|1
 U|com/eu/habbo/messages/outgoing/catalog/marketplace/MarketplaceOwnItemsComposer.java|CALL|getIntUnixTimestamp|2
 U|com/eu/habbo/messages/outgoing/catalog/marketplace/MarketplaceOwnItemsComposer.java|CALL|getThreading|1
 U|com/eu/habbo/messages/outgoing/commands/AvailableCommandsComposer.java|CALL|getTexts|1
@@ -1780,6 +1784,7 @@ U|com/eu/habbo/messages/outgoing/guilds/forums/GuildForumDataComposer.java|CALL|
 U|com/eu/habbo/messages/outgoing/guilds/forums/GuildForumDataComposer.java|CALL|getIntUnixTimestamp|1
 U|com/eu/habbo/messages/outgoing/hotelview/BonusRareComposer.java|CALL|getConfig|4
 U|com/eu/habbo/messages/outgoing/hotelview/NewsListComposer.java|CALL|getGameEnvironment|1
+U|com/eu/habbo/messages/outgoing/housekeeping/HousekeepingUserDetailComposer.java|CALL|getDatabase|1
 U|com/eu/habbo/messages/outgoing/housekeeping/HousekeepingUserDetailComposer.java|CALL|getGameEnvironment|1
 U|com/eu/habbo/messages/outgoing/inventory/InventoryAchievementsComposer.java|CALL|getGameEnvironment|2
 U|com/eu/habbo/messages/outgoing/inventory/UserEffectsListComposer.java|CALL|getIntUnixTimestamp|1
@@ -1816,7 +1821,6 @@ U|com/eu/habbo/messages/outgoing/users/UserClubComposer.java|CALL|getGameEnviron
 U|com/eu/habbo/messages/outgoing/users/UserClubComposer.java|CALL|getIntUnixTimestamp|2
 U|com/eu/habbo/messages/outgoing/users/UserCurrencyComposer.java|CALL|getConfig|1
 U|com/eu/habbo/messages/outgoing/users/UserPerksComposer.java|CALL|getGameEnvironment|5
-U|com/eu/habbo/messages/outgoing/users/UserPermissionsComposer.java|CALL|getPluginManager|1
 U|com/eu/habbo/messages/outgoing/users/UserProfileComposer.java|CALL|getDatabase|3
 U|com/eu/habbo/messages/outgoing/users/UserProfileComposer.java|CALL|getGameEnvironment|4
 U|com/eu/habbo/messages/outgoing/users/UserProfileComposer.java|CALL|getIntUnixTimestamp|1
@@ -2365,7 +2369,6 @@ D|com/eu/habbo/messages/incoming/guilds/forums/GuildForumListEvent.java|2
 D|com/eu/habbo/messages/incoming/guilds/forums/GuildForumMarkAsReadEvent.java|1
 D|com/eu/habbo/messages/incoming/guilds/forums/GuildForumModerateThreadEvent.java|1
 D|com/eu/habbo/messages/incoming/handshake/SecureLoginEvent.java|1
-D|com/eu/habbo/messages/incoming/handshake/UsernameEvent.java|1
 D|com/eu/habbo/messages/incoming/housekeeping/HousekeepingDeleteRoomEvent.java|1
 D|com/eu/habbo/messages/incoming/housekeeping/HousekeepingGetDashboardEvent.java|1
 D|com/eu/habbo/messages/incoming/housekeeping/HousekeepingGrantItemEvent.java|1
@@ -2374,7 +2377,7 @@ D|com/eu/habbo/messages/incoming/housekeeping/HousekeepingMutationGuard.java|1
 D|com/eu/habbo/messages/incoming/housekeeping/HousekeepingResetUserPasswordEvent.java|1
 D|com/eu/habbo/messages/incoming/housekeeping/HousekeepingSearchRoomsEvent.java|1
 D|com/eu/habbo/messages/incoming/housekeeping/HousekeepingSetHcSubscriptionEvent.java|1
-D|com/eu/habbo/messages/incoming/housekeeping/HousekeepingSetUserRankEvent.java|2
+D|com/eu/habbo/messages/incoming/housekeeping/HousekeepingSetUserRankEvent.java|1
 D|com/eu/habbo/messages/incoming/housekeeping/HousekeepingTradeLockUserEvent.java|1
 D|com/eu/habbo/messages/incoming/housekeeping/HousekeepingTransferRoomOwnershipEvent.java|1
 D|com/eu/habbo/messages/incoming/inventory/chatbubbles/PurchaseChatBubbleEvent.java|1
@@ -2395,6 +2398,3 @@ D|com/eu/habbo/messages/incoming/users/ChangeChatBubbleEvent.java|1
 D|com/eu/habbo/messages/incoming/users/ConfirmChangeNameEvent.java|1
 D|com/eu/habbo/messages/incoming/users/GetBlockedUsersEvent.java|1
 D|com/eu/habbo/messages/incoming/users/GetIgnoredUsersEvent.java|1
-
-# 2026-10-10: existing furniture-report public-offer lookup, already present in snapshot 2c61b947.
-U|com/eu/habbo/messages/incoming/furniturereport/FurnitureReportSupport.java|CALL|getGameEnvironment|1

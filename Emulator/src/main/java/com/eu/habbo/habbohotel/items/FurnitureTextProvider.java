@@ -27,6 +27,7 @@ public class FurnitureTextProvider {
     private final boolean enabled;
     private volatile Map<String, FurniText> index = Map.of();
     private volatile Path source;
+    private volatile List<Path> sources = List.of();
     private volatile String sourceDescription = "unknown";
     private FurnidataWatcher watcher;
 
@@ -47,7 +48,7 @@ public class FurnitureTextProvider {
                 LOGGER.warn("FurnitureTextProvider: no furnidata source resolved - names fall back to public_name");
                 return;
             }
-            reindex(new FurnidataReader(this.source, DEFAULT_MAX_BYTES).read());
+            reindex(FurnidataReader.readSources(this.sources, DEFAULT_MAX_BYTES));
             LOGGER.info("Furniture Text Provider -> Indexed! ({} names, source: {})", this.index.size(), this.sourceDescription);
 
             if (Boolean.parseBoolean(Emulator.getConfig().getValue("items.furnidata.watch.enabled", "true"))) {
@@ -62,6 +63,10 @@ public class FurnitureTextProvider {
 
     public Path getSource() {
         return this.source;
+    }
+
+    public List<Path> getSources() {
+        return this.sources;
     }
 
     /** Returns {@code true} when the resolved source is a directory (split-tier layout). */
@@ -82,7 +87,7 @@ public class FurnitureTextProvider {
     public java.util.List<FurnidataEntry> reindexFromSource() {
         try {
             if (this.source == null) return java.util.List.of();
-            return reindex(new FurnidataReader(this.source, DEFAULT_MAX_BYTES).read());
+            return reindex(FurnidataReader.readSources(this.sources, DEFAULT_MAX_BYTES));
         } catch (Exception e) {
             LOGGER.warn("FurnitureTextProvider.reindexFromSource failed", e);
             return java.util.List.of();
@@ -93,8 +98,10 @@ public class FurnitureTextProvider {
         FurnidataSourceResolver.Source source = FurnidataSourceResolver.resolve();
         if (source.ok()) {
             this.sourceDescription = source.message();
+            this.sources = source.paths();
             return source.path();
         }
+        this.sources = List.of();
         LOGGER.warn("FurnitureTextProvider: no furnidata source resolved ({}) - {}", source.status(), source.message());
         return null;
     }

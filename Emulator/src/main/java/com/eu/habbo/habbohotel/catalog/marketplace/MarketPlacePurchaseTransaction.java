@@ -13,21 +13,30 @@ import org.slf4j.LoggerFactory;
 final class MarketPlacePurchaseTransaction {
     private static final Logger LOGGER = LoggerFactory.getLogger(MarketPlacePurchaseTransaction.class);
     private static final String SELL_OFFER =
-            "UPDATE marketplace_items SET state = 2, sold_timestamp = ? WHERE id = ? AND state = 1";
+            "UPDATE marketplace_items SET state = 2, sold_timestamp = ? WHERE id = ? AND state = 1 AND currency_type=?";
     private static final String TRANSFER_ITEM = "UPDATE items SET user_id = ? WHERE id = ? AND user_id = -1";
 
     private MarketPlacePurchaseTransaction() {}
 
     static EconomyMutationResult commit(
-            int offerId, int itemId, int buyerId, int currencyType, int charge, int soldTimestamp) {
+            int offerId, int itemId, int buyerId, int currencyType, int charge, int soldTimestamp) {return commit(offerId,itemId,buyerId,currencyType,charge,soldTimestamp,0);}
+
+    static EconomyMutationResult commit(int offerId,int itemId,int buyerId,int currencyType,int charge,int soldTimestamp,int agreedPrice) {
+        return commit(Emulator.getDatabase().getDataSource(),offerId,itemId,buyerId,currencyType,charge,soldTimestamp,agreedPrice);
+    }
+    public static EconomyMutationResult commit(javax.sql.DataSource source,int offerId,int itemId,int buyerId,int currencyType,int charge,int soldTimestamp,int agreedPrice) {
         if (offerId <= 0 || itemId <= 0 || buyerId <= 0 || charge <= 0) return null;
 
         Connection connection = null;
         try {
-            connection = Emulator.getDatabase().getDataSource().getConnection();
+            connection = source.getConnection();
             connection.setAutoCommit(false);
+            if(agreedPrice>0){
+                if(!MarketPlace.isValidListingPrice(agreedPrice)||MarketPlace.calculateCommision(agreedPrice)!=charge)throw new SQLException("Marketplace charge does not match price");
+                try(var update=connection.prepareStatement("UPDATE marketplace_items SET price=? WHERE id=? AND state=1 AND currency_type=?")){update.setInt(1,agreedPrice);update.setInt(2,offerId);update.setInt(3,currencyType);if(update.executeUpdate()!=1){connection.rollback();return null;}}
+            }
 
-            if (!executeOfferSale(connection, offerId, soldTimestamp)
+            if (!executeOfferSale(connection, offerId, soldTimestamp,currencyType)
                     || !executeItemTransfer(connection, itemId, buyerId)) {
                 connection.rollback();
                 return null;
@@ -48,7 +57,7 @@ final class MarketPlacePurchaseTransaction {
 
             connection.commit();
             return walletMutation;
-        } catch (SQLException e) {
+        } catch (SQLException | RuntimeException e) {
             if (connection != null) {
                 try {
                     connection.rollback();
@@ -70,10 +79,11 @@ final class MarketPlacePurchaseTransaction {
         }
     }
 
-    private static boolean executeOfferSale(Connection connection, int offerId, int soldTimestamp) throws SQLException {
+    private static boolean executeOfferSale(Connection connection, int offerId, int soldTimestamp,int currencyType) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(SELL_OFFER)) {
             statement.setInt(1, soldTimestamp);
             statement.setInt(2, offerId);
+            statement.setInt(3,currencyType);
             return statement.executeUpdate() == 1;
         }
     }

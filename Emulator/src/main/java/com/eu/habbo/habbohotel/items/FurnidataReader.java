@@ -35,6 +35,13 @@ public class FurnidataReader {
         this.maxBytes = maxBytes;
     }
 
+    /** Read configured sources in client override order (later files win). */
+    public static List<FurnidataEntry> readSources(List<Path> sources, long maxBytes) {
+        List<FurnidataEntry> entries = new ArrayList<>();
+        for (Path source : sources) entries.addAll(new FurnidataReader(source, maxBytes).read());
+        return entries;
+    }
+
     public List<FurnidataEntry> read() {
         List<FurnidataEntry> out = new ArrayList<>();
         try {

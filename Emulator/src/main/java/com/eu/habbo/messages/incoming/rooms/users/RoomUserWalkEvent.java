@@ -28,8 +28,6 @@ public class RoomUserWalkEvent extends MessageHandler {
 
     private static final String WALK_FLOOD_COUNT_KEY = "__walkFloodCount";
     private static final String WALK_FLOOD_WINDOW_KEY = "__walkFloodWindow";
-    private static final String WALK_LAST_X_KEY = "__walkLastX";
-    private static final String WALK_LAST_Y_KEY = "__walkLastY";
 
     private static final int MAX_WALKS_PER_SECOND = 15;
 
@@ -79,18 +77,7 @@ public class RoomUserWalkEvent extends MessageHandler {
             unit.getCacheable().put(WALK_FLOOD_COUNT_KEY, count);
 
             if (count > MAX_WALKS_PER_SECOND) {
-                unit.getCacheable().put(WALK_LAST_X_KEY, x);
-                unit.getCacheable().put(WALK_LAST_Y_KEY, y);
                 return;
-            }
-
-            Object lastX = unit.getCacheable().get(WALK_LAST_X_KEY);
-            Object lastY = unit.getCacheable().get(WALK_LAST_Y_KEY);
-            if (lastX != null && lastY != null) {
-                x = (Integer) lastX;
-                y = (Integer) lastY;
-                unit.getCacheable().remove(WALK_LAST_X_KEY);
-                unit.getCacheable().remove(WALK_LAST_Y_KEY);
             }
         }
 
@@ -207,7 +194,7 @@ public class RoomUserWalkEvent extends MessageHandler {
                         WiredUserMovementHelper.clearStatusComposerSuppression(roomUnit);
                     }
 
-                    roomUnit.setGoalLocation(tile);
+                    room.getCycleManager().startUserWalk(habbo, tile);
                 }
             }
         } catch (Exception e) {
@@ -227,7 +214,8 @@ public class RoomUserWalkEvent extends MessageHandler {
             }
 
             if (pillow != null && room.canLayAt(pillow.x, pillow.y)) {
-                roomUnit.setGoalLocation(pillow);
+                Habbo habbo = room.getHabbo(roomUnit);
+                if (habbo != null) room.getCycleManager().startUserWalk(habbo, pillow);
                 return true;
             }
         }

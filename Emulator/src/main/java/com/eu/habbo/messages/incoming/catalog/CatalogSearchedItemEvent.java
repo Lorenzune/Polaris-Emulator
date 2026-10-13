@@ -23,7 +23,7 @@ public class CatalogSearchedItemEvent extends MessageHandler {
 
             if (page != null) {
                 for (CatalogItem item : page.getCatalogItems().values()) {
-                    if (item.getSearchOfferId() == offerId) {
+                    if (item.getSearchOfferId() == offerId && com.eu.habbo.habbohotel.catalog.RareReleaseService.available(item)) {
                         this.client.sendResponse(new CatalogSearchResultComposer(item));
                         return;
                     }

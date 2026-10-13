@@ -10,10 +10,10 @@ import java.util.List;
 
 public class MarketplaceOffersComposer extends MessageComposer {
     private final List<MarketPlaceOffer> offers;
+    private final int currency;
 
-    public MarketplaceOffersComposer(List<MarketPlaceOffer> offers) {
-        this.offers = offers;
-    }
+    public MarketplaceOffersComposer(List<MarketPlaceOffer> offers) {this(offers,MarketPlace.legacyCurrency());}
+    public MarketplaceOffersComposer(List<MarketPlaceOffer> offers,int currency){this.offers=offers;this.currency=currency;}
 
     @Override
     protected ServerMessage composeInternal() {
@@ -40,6 +40,9 @@ public class MarketplaceOffersComposer extends MessageComposer {
             this.response.appendInt(offer.count);
         }
         this.response.appendInt(this.offers.size());
+        var currencies=new java.util.HashMap<Integer,Integer>();for(var offer:this.offers)currencies.put(offer.getOfferId(),offer.getCurrencyType());
+        var sales=new java.util.HashMap<Integer,Integer>();for(var offer:this.offers)sales.put(offer.getOfferId(),offer.salesCount);
+        this.response.appendString(new com.google.gson.Gson().toJson(java.util.Map.of("currencies",currencies,"currency",currency,"sales",sales)));
         return this.response;
     }
 

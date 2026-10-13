@@ -72,6 +72,10 @@ public class FurniDataManager {
 
     public static LookupResult getItemLookup(int itemId, String classname) {
         FurnidataSourceResolver.Source source = FurnidataSourceResolver.resolve();
+        return getItemLookup(source, itemId, classname);
+    }
+
+    static LookupResult getItemLookup(FurnidataSourceResolver.Source source, int itemId, String classname) {
         if (source == null || !source.ok()) {
             return new LookupResult("{}", diagnostic(source, itemId, classname, "source_missing"));
         }
@@ -111,8 +115,9 @@ public class FurniDataManager {
     }
 
     private static CachedIndex indexFor(FurnidataSourceResolver.Source source) {
-        long signature = sourceSignature(source.path());
-        String sourceKey = source.path().toAbsolutePath().normalize().toString();
+        long signature = 17L;
+        for (Path path : source.paths()) signature = signature * 31L + sourceSignature(path);
+        String sourceKey = source.paths().stream().map(path -> path.toAbsolutePath().normalize().toString()).toList().toString();
         CachedIndex current = cachedIndex;
         if (current != null && current.sourceKey.equals(sourceKey) && current.signature == signature) return current;
 
@@ -125,14 +130,16 @@ public class FurniDataManager {
         Map<Integer, String> byId = new HashMap<>();
         Map<String, String> byClassname = new HashMap<>();
 
-        if (source.directory()) {
-            indexSplitDir(source.path(), byId, byClassname);
-        } else {
-            try {
-                String content = readJson5(source.path());
-                indexRoot(JsonParser.parseString(content).getAsJsonObject(), byId, byClassname);
-            } catch (Exception e) {
-                LOGGER.warn("Failed to parse furnidata source {}", source.path(), e);
+        for (Path path : source.paths()) {
+            if (Files.isDirectory(path)) {
+                indexSplitDir(path, byId, byClassname);
+            } else {
+                try {
+                    String content = readJson5(path);
+                    indexRoot(JsonParser.parseString(content).getAsJsonObject(), byId, byClassname);
+                } catch (Exception e) {
+                    LOGGER.warn("Failed to parse furnidata source {}", path, e);
+                }
             }
         }
 

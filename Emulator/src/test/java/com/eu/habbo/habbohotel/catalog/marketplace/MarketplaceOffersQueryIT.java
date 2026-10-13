@@ -82,24 +82,24 @@ class MarketplaceOffersQueryIT {
     void representsEachFurniByItsCheapestListingAndCountsEveryActiveListingOnce() throws Exception {
         List<Offer> offers = offers(-1, -1, "", 2, false);
 
-        assertEquals(List.of(listingId(2), listingId(12), listingId(11)), ids(offers), "cheapest first, lamp not sold");
+        assertEquals(List.of(listingId(21), listingId(2), listingId(12), listingId(11)), ids(offers), "cheapest first, lamp not sold");
 
-        Offer sofa = offers.get(0);
+        Offer sofa = offers.get(1);
         assertEquals(SOFA, sofa.furni());
         assertEquals("0:0", sofa.ltdData());
         assertEquals(30, sofa.minPrice(), "the expired listing at 5 is not offered");
         assertEquals(3, sofa.number(), "three active listings, not multiplied by the two catalog rows");
-        assertEquals(36.0, sofa.average(), 0.001, "the average is floored to whole credits");
-        assertEquals(1, sofa.soldToday(), "yesterday's sale is not counted");
+        assertEquals(45.0, sofa.average(), 0.001, "completed sale average");
+        assertEquals(2, sofa.soldToday(), "all completed sales count");
 
-        Offer secondSerial = offers.get(1);
+        Offer secondSerial = offers.get(2);
         assertEquals(THRONE, secondSerial.furni());
         assertEquals("2:5", secondSerial.ltdData());
         assertEquals(400, secondSerial.minPrice());
         assertEquals(1, secondSerial.number());
         assertEquals(0, secondSerial.soldToday());
 
-        Offer firstSerial = offers.get(2);
+        Offer firstSerial = offers.get(3);
         assertEquals("1:5", firstSerial.ltdData());
         assertEquals(500, firstSerial.minPrice());
     }
@@ -108,12 +108,12 @@ class MarketplaceOffersQueryIT {
     void combinesTheSerialsOfALimitedEditionWhenAsked() throws Exception {
         List<Offer> offers = offers(-1, -1, "", 2, true);
 
-        assertEquals(List.of(listingId(2), listingId(12)), ids(offers));
-        Offer throne = offers.get(1);
+        assertEquals(List.of(listingId(21), listingId(2), listingId(12)), ids(offers));
+        Offer throne = offers.get(2);
         assertEquals("2:5", throne.ltdData(), "the cheapest serial represents the furni");
         assertEquals(400, throne.minPrice());
         assertEquals(2, throne.number());
-        assertEquals(450.0, throne.average(), 0.001);
+        assertEquals(0.0, throne.average(), 0.001, "no completed sales yet");
     }
 
     @Test
@@ -131,22 +131,22 @@ class MarketplaceOffersQueryIT {
         assertEquals(List.of(listingId(2)), ids(offers(-1, -1, "sofa", 2, false)), "furni name");
         assertEquals(
                 List.of(listingId(12), listingId(11)), ids(offers(-1, -1, "throne_page", 2, false)), "catalog name");
-        assertEquals(List.of(), ids(offers(-1, -1, "lamp", 2, false)), "furni the catalog does not sell");
+        assertEquals(List.of(listingId(21)), ids(offers(-1, -1, "lamp", 2, false)), "generated furni without a catalog offer");
         assertEquals(List.of(), ids(offers(-1, -1, "%", 2, false)), "a wildcard is matched literally");
     }
 
     @Test
     void ordersTheFinalRowsAsRequested() throws Exception {
         assertEquals(
-                List.of(listingId(11), listingId(12), listingId(2)), ids(offers(-1, -1, "", 1, false)), "price desc");
+                List.of(listingId(11), listingId(12), listingId(2), listingId(21)), ids(offers(-1, -1, "", 1, false)), "price desc");
         assertEquals(
-                List.of(listingId(2), listingId(11), listingId(12)), ids(offers(-1, -1, "", 5, false)), "count desc");
+                List.of(listingId(2), listingId(11), listingId(12), listingId(21)), ids(offers(-1, -1, "", 5, false)), "count desc");
         assertEquals(
-                List.of(listingId(11), listingId(12), listingId(2)), ids(offers(-1, -1, "", 6, false)), "count asc");
+                List.of(listingId(11), listingId(12), listingId(2), listingId(21)), ids(offers(-1, -1, "", 6, false)), "count asc");
         assertEquals(
-                List.of(listingId(2), listingId(11), listingId(12)), ids(offers(-1, -1, "", 3, false)), "sold desc");
+                List.of(listingId(2), listingId(11), listingId(12), listingId(21)), ids(offers(-1, -1, "", 3, false)), "sold desc");
         assertEquals(
-                List.of(listingId(11), listingId(12), listingId(2)), ids(offers(-1, -1, "", 4, false)), "sold asc");
+                List.of(listingId(11), listingId(12), listingId(2), listingId(21)), ids(offers(-1, -1, "", 4, false)), "sold asc");
     }
 
     @Test
@@ -171,7 +171,7 @@ class MarketplaceOffersQueryIT {
 
     @Test
     void exposesEveryColumnTheOfferReads() throws Exception {
-        MarketplaceOffersQuery.Request request = new MarketplaceOffersQuery.Request(-1, -1, "", 1, false);
+        MarketplaceOffersQuery.Request request = new MarketplaceOffersQuery.Request(-1, -1, "", 1, false,-1);
         Set<String> labels = new HashSet<>();
         try (Connection connection = this.dataSource.getConnection();
                 PreparedStatement statement = connection.prepareStatement(MarketplaceOffersQuery.sql(request))) {
@@ -203,7 +203,7 @@ class MarketplaceOffersQueryIT {
     private List<Offer> offers(int minPrice, int maxPrice, String search, int sort, boolean combineUniques)
             throws Exception {
         MarketplaceOffersQuery.Request request =
-                new MarketplaceOffersQuery.Request(minPrice, maxPrice, search, sort, combineUniques);
+                new MarketplaceOffersQuery.Request(minPrice, maxPrice, search, sort, combineUniques,-1);
         List<Offer> offers = new ArrayList<>();
         try (Connection connection = this.dataSource.getConnection();
                 PreparedStatement statement = connection.prepareStatement(MarketplaceOffersQuery.sql(request))) {
@@ -337,6 +337,9 @@ class MarketplaceOffersQueryIT {
                 listedAt,
                 soldAt,
                 state);
+        if(state==SOLD) execute(connection,
+                "INSERT INTO rare_market_sales(offer_id,item_id,base_item_id,seller_id,currency_type,unit_price,sold_at,limited_data) VALUES(?,?,?,1,-1,?,?,?)",
+                listingId(fixture),itemId(fixture),furni,price,soldAt,limitedData);
     }
 
     private static void runIndexMigration(Connection connection) throws Exception {

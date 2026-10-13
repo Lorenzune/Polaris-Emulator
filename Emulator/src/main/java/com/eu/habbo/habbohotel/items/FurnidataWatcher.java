@@ -16,6 +16,8 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * Watches the furnidata source on a single daemon thread. On change (debounced),
@@ -43,7 +45,7 @@ public class FurnidataWatcher {
     public FurnidataWatcher(FurnitureTextProvider provider, Path source, long maxBytes) {
         this.provider = provider;
         this.sourceIsDir = Files.isDirectory(source);
-        this.watchDir = this.sourceIsDir ? source : source.getParent();
+        this.watchDir = this.sourceIsDir ? source : source.toAbsolutePath().getParent();
         this.maxBytes = maxBytes;
         this.debounceMs = Long.parseLong(Emulator.getConfig().getValue("items.furnidata.watch.debounce.ms", "750"));
         this.minIntervalMs = Long.parseLong(Emulator.getConfig().getValue("items.furnidata.watch.min.interval.ms", "5000"));
@@ -101,17 +103,25 @@ public class FurnidataWatcher {
 
     /** Register the base dir, plus one level of subdirectories for the split-tier layout. */
     private void registerDirs(WatchService service) throws IOException {
-        this.watchDir.register(service, StandardWatchEventKinds.ENTRY_MODIFY,
-            StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
-        if (this.sourceIsDir) {
-            try (DirectoryStream<Path> ds = Files.newDirectoryStream(this.watchDir)) {
-                for (Path child : ds) {
-                    if (Files.isDirectory(child)) {
-                        child.register(service, StandardWatchEventKinds.ENTRY_MODIFY,
-                            StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
+        Set<Path> dirs = new LinkedHashSet<>();
+        List<Path> sources = this.provider.getSources();
+        if (sources.isEmpty()) sources = List.of(this.watchDir);
+        for (Path source : sources) {
+            boolean directory = Files.isDirectory(source);
+            Path parent = directory ? source : source.toAbsolutePath().getParent();
+            if (parent == null) continue;
+            dirs.add(parent.toAbsolutePath().normalize());
+            if (directory) {
+                try (DirectoryStream<Path> ds = Files.newDirectoryStream(parent)) {
+                    for (Path child : ds) {
+                        if (Files.isDirectory(child)) dirs.add(child.toAbsolutePath().normalize());
                     }
                 }
             }
+        }
+        for (Path dir : dirs) {
+            dir.register(service, StandardWatchEventKinds.ENTRY_MODIFY,
+                StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
         }
     }
 
@@ -124,7 +134,7 @@ public class FurnidataWatcher {
         try {
             Path source = this.provider.getSource();
             if (source == null) return;
-            delta = this.provider.reindex(new FurnidataReader(source, this.maxBytes).read());
+            delta = this.provider.reindex(FurnidataReader.readSources(this.provider.getSources(), this.maxBytes));
         } finally {
             FurnidataLock.LOCK.unlock();
         }

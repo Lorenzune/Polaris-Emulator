@@ -66,12 +66,11 @@ public class FurniEditorRevertFurnidataEvent extends MessageHandler {
         FurnidataLock.LOCK.lock();
         try {
             FurnidataWriter writer = new FurnidataWriter(
-                provider.getSource(),
-                provider.isSourceDirectory(),
+                provider.getSources(),
                 provider.getMaxBytes(),
                 3 /* backupKeep */
             );
-            reverted = writer.revertLastBackup();
+            reverted = writer.revertLastBackup(classname);
             if (!reverted) {
                 this.client.sendResponse(new FurniEditorResultComposer(false, "No backup found to revert"));
                 return;

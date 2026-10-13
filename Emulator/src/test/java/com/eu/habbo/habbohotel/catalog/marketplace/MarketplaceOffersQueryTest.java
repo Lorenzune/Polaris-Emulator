@@ -20,7 +20,7 @@ class MarketplaceOffersQueryTest {
 
     private static MarketplaceOffersQuery.Request request(
             int minPrice, int maxPrice, String search, int sort, boolean combineUniques) {
-        return new MarketplaceOffersQuery.Request(minPrice, maxPrice, search, sort, combineUniques);
+        return new MarketplaceOffersQuery.Request(minPrice, maxPrice, search, sort, combineUniques,5);
     }
 
     private static MarketplaceOffersQuery.Request plain(int sort, boolean combineUniques) {
@@ -48,8 +48,8 @@ class MarketplaceOffersQueryTest {
         String sql = MarketplaceOffersQuery.sql(plain(1, false));
 
         assertFalse(sql.contains("from_unixtime"), "the sale time is compared as stored, so an index can serve it");
-        assertTrue(sql.contains("sl.sold_timestamp >= UNIX_TIMESTAMP(CURDATE())"), sql);
-        assertTrue(sql.contains("sl.sold_timestamp < UNIX_TIMESTAMP(CURDATE() + INTERVAL 1 DAY)"), sql);
+        assertTrue(sql.contains("FROM rare_market_sales GROUP BY base_item_id,currency_type"), sql);
+        assertFalse(sql.contains("CURDATE()"), sql);
         assertTrue(sql.contains("COALESCE(s.sold_today, 0) AS sold_count_today"), sql);
     }
 
@@ -124,11 +124,11 @@ class MarketplaceOffersQueryTest {
 
     @Test
     void bindsOneValuePerPlaceholder() throws Exception {
-        assertBindCount(plain(1, false), 3);
-        assertBindCount(request(40, 60, "", 1, false), 5);
-        assertBindCount(request(40, 30, "", 1, false), 4);
-        assertBindCount(request(40, 60, "sofa", 1, false), 7);
-        assertBindCount(request(-1, -1, "sofa", 1, true), 5);
+        assertBindCount(plain(1, false), 4);
+        assertBindCount(request(40, 60, "", 1, false), 6);
+        assertBindCount(request(40, 30, "", 1, false), 5);
+        assertBindCount(request(40, 60, "sofa", 1, false), 8);
+        assertBindCount(request(-1, -1, "sofa", 1, true), 6);
     }
 
     private static void assertBindCount(MarketplaceOffersQuery.Request request, int expected) throws Exception {
@@ -155,10 +155,11 @@ class MarketplaceOffersQueryTest {
         order.verify(statement).setInt(1, NOW - MarketplaceOffersQuery.LISTING_WINDOW_SECONDS);
         order.verify(statement).setInt(2, MIN_LISTING_PRICE);
         order.verify(statement).setInt(3, MAX_LISTING_PRICE);
-        order.verify(statement).setInt(4, 40);
-        order.verify(statement).setInt(5, 60);
-        order.verify(statement).setString(6, pattern);
+        order.verify(statement).setInt(4, 5);
+        order.verify(statement).setInt(5, 40);
+        order.verify(statement).setInt(6, 60);
         order.verify(statement).setString(7, pattern);
+        order.verify(statement).setString(8, pattern);
         verifyNoMoreInteractions(statement);
     }
 }

@@ -83,6 +83,7 @@ public class GameEnvironment {
     private GuildManager guildManager;
     private ItemManager itemManager;
     private FurnitureTextProvider furnitureTextProvider;
+    private com.eu.habbo.habbohotel.catalog.RareReleaseService rareReleaseService;
     private volatile CatalogManager catalogManager;
     private HotelViewManager hotelViewManager;
     private RoomManager roomManager;
@@ -145,6 +146,9 @@ public class GameEnvironment {
                 current.dispose();
             }
         });
+        this.rareReleaseService = this.services.create(
+                "rare catalog scheduler", com.eu.habbo.habbohotel.catalog.RareReleaseService::new, com.eu.habbo.habbohotel.catalog.RareReleaseService::dispose);
+        this.rareReleaseService.init();
         this.roomCycleService = this.services.create(
                 "room cycle workers",
                 () -> RoomCycleService.fromConfig(Emulator.getConfig()),

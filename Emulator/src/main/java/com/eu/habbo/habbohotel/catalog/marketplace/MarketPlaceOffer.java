@@ -15,10 +15,12 @@ public class MarketPlaceOffer implements Runnable {
 
     public int avarage;
     public int count;
+    public int salesCount;
     private int offerId;
     private Item baseItem;
     private int itemId;
     private int price;
+    private int currencyType;
     private int limitedStack;
     private int limitedNumber;
     private int timestamp = Emulator.getIntUnixTimestamp();
@@ -29,6 +31,7 @@ public class MarketPlaceOffer implements Runnable {
     public MarketPlaceOffer(ResultSet set, boolean privateOffer) throws SQLException {
         this.offerId = set.getInt("id");
         this.price = set.getInt("price");
+        this.currencyType = set.getInt("currency_type");
         this.timestamp = set.getInt("timestamp");
         this.soldTimestamp = set.getInt("sold_timestamp");
         this.baseItem = Emulator.getGameEnvironment().getItemManager().getItem(set.getInt("base_item_id"));
@@ -43,11 +46,15 @@ public class MarketPlaceOffer implements Runnable {
         if (!privateOffer) {
             this.avarage = set.getInt("avg");
             this.count = set.getInt("number");
+            this.salesCount = set.getInt("sold_count_today");
             this.price = set.getInt("minPrice");
         }
     }
 
-    public MarketPlaceOffer(HabboItem item, int price, Habbo habbo) {
+    public MarketPlaceOffer(HabboItem item, int price, Habbo habbo) { this(item,price,habbo,MarketPlace.legacyCurrency()); }
+
+    public MarketPlaceOffer(HabboItem item, int price, Habbo habbo, int currencyType) {
+        this.currencyType=currencyType;
         this.price = price;
         this.baseItem = item.getBaseItem();
         this.itemId = item.getId();
@@ -56,12 +63,13 @@ public class MarketPlaceOffer implements Runnable {
             this.limitedStack = item.getLimitedStack();
         }
 
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("INSERT INTO marketplace_items (item_id, user_id, price, timestamp, state) VALUES (?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("INSERT INTO marketplace_items (item_id, user_id, price, timestamp, state,currency_type) VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
             statement.setInt(1, item.getId());
             statement.setInt(2, habbo.getHabboInfo().getId());
             statement.setInt(3, this.price);
             statement.setInt(4, this.timestamp);
             statement.setString(5, this.state.getState() + "");
+            statement.setInt(6,this.currencyType);
             statement.execute();
 
             try (ResultSet id = statement.getGeneratedKeys()) {
@@ -75,13 +83,14 @@ public class MarketPlaceOffer implements Runnable {
     }
 
     public static void insert(MarketPlaceOffer offer, Habbo habbo) {
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("INSERT INTO marketplace_items VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection(); PreparedStatement statement = connection.prepareStatement("INSERT INTO marketplace_items (item_id,user_id,price,timestamp,sold_timestamp,state,currency_type) VALUES (?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
             statement.setInt(1, offer.getItemId());
             statement.setInt(2, habbo.getHabboInfo().getId());
             statement.setInt(3, offer.getPrice());
             statement.setInt(4, offer.getTimestamp());
             statement.setInt(5, offer.getSoldTimestamp());
             statement.setString(6, offer.getState().getState() + "");
+            statement.setInt(7,offer.getCurrencyType());
             statement.execute();
 
             try (ResultSet id = statement.getGeneratedKeys()) {
@@ -109,6 +118,8 @@ public class MarketPlaceOffer implements Runnable {
     public int getItemId() {
         return this.baseItem.getSpriteId();
     }
+
+    public int getCurrencyType(){return this.currencyType;}
 
     public int getPrice() {
         return this.price;

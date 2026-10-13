@@ -38,7 +38,21 @@ public final class FurniEditorRepository {
             statement.setInt(1, spriteId);
             if (!normalizedItemName.isEmpty()) statement.setString(2, normalizedItemName);
             try (ResultSet set = statement.executeQuery()) {
-                return set.next() ? OptionalInt.of(set.getInt("id")) : OptionalInt.empty();
+                if (set.next()) return OptionalInt.of(set.getInt("id"));
+            }
+            if (normalizedItemName.isEmpty()) return OptionalInt.empty();
+            // The renderer's room-object type is the asset name (scifiport),
+            // while items_base retains its colour variant (scifiport*11).
+            // A sprite is authoritative when it identifies exactly one row.
+            // Keep exact classname matching for sprites shared by several definitions.
+            try (PreparedStatement fallback = connection.prepareStatement(
+                    "SELECT id FROM items_base WHERE sprite_id = ? ORDER BY id DESC LIMIT 2")) {
+                fallback.setInt(1, spriteId);
+                try (ResultSet candidates = fallback.executeQuery()) {
+                    if (!candidates.next()) return OptionalInt.empty();
+                    int id = candidates.getInt("id");
+                    return candidates.next() ? OptionalInt.empty() : OptionalInt.of(id);
+                }
             }
         }
     }
@@ -335,6 +349,7 @@ public final class FurniEditorRepository {
 
     private static Map<String, Object> readFullItem(ResultSet set) throws SQLException {
         Map<String, Object> item = new HashMap<>(readBaseItem(set));
+        item.putAll(FurnitureValueRepository.read(set));
         item.put("allow_gift", set.getString("allow_gift"));
         item.put("allow_trade", set.getString("allow_trade"));
         item.put("allow_recycle", set.getString("allow_recycle"));

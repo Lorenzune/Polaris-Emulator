@@ -2532,6 +2532,17 @@
           "kind": "scalar",
           "type": "int",
           "name": "offerId"
+        },
+        {
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "int",
+              "name": "currencyType"
+            }
+          ]
         }
       ]
     },
@@ -3087,7 +3098,19 @@
         "className": "GetMarketplaceOwnOffersMessageComposer",
         "path": "packages/communication/src/messages/outgoing/marketplace/GetMarketplaceOwnOffersMessageComposer.ts"
       },
-      "fields": []
+      "fields": [
+        {
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "boolean",
+              "name": "includeCurrencyDetails"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "APPROVE_NAME",
@@ -3631,6 +3654,17 @@
           "kind": "scalar",
           "type": "int",
           "name": "type"
+        },
+        {
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "int",
+              "name": "currencyType"
+            }
+          ]
         }
       ]
     },
@@ -3911,7 +3945,19 @@
         "className": "RedeemMarketplaceOfferCreditsMessageComposer",
         "path": "packages/communication/src/messages/outgoing/marketplace/RedeemMarketplaceOfferCreditsMessageComposer.ts"
       },
-      "fields": []
+      "fields": [
+        {
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "int",
+              "name": "currencyType"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "FURNITURE_GROUP_INFO",
@@ -5124,6 +5170,17 @@
           "kind": "scalar",
           "type": "int",
           "name": "id"
+        },
+        {
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "int",
+              "name": "currencyType"
+            }
+          ]
         }
       ]
     },
@@ -5477,6 +5534,17 @@
           "kind": "scalar",
           "type": "int",
           "name": "itemId"
+        },
+        {
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "int",
+              "name": "currencyType"
+            }
+          ]
         }
       ]
     },
@@ -7243,6 +7311,17 @@
           "kind": "scalar",
           "type": "int",
           "name": "rankId"
+        },
+        {
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "int",
+              "name": "durationSeconds"
+            }
+          ]
         }
       ]
     },
@@ -7616,6 +7695,17 @@
           "kind": "scalar",
           "type": "string",
           "name": "message"
+        },
+        {
+          "kind": "optional",
+          "controller": "bytesAvailable",
+          "fields": [
+            {
+              "kind": "scalar",
+              "type": "string",
+              "name": "recipient"
+            }
+          ]
         }
       ]
     },
@@ -12284,6 +12374,11 @@
           "kind": "scalar",
           "type": "int",
           "name": ""
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "currencies"
         }
       ]
     },
@@ -24675,6 +24770,102 @@
         "path": "packages/communication/src/messages/parser/roomevents/WiredHighlightParser.ts"
       },
       "reason": "Bounded room-scoped highlight collection; dedicated tests validate payload bounds, lifecycle and wire format."
+    },
+    {
+      "name": "HOUSEKEEPING_SAVE_ROOM_SETTINGS",
+      "direction": "client_to_server",
+      "header": 9124,
+      "java": { "symbol": "HousekeepingSaveRoomSettingsEvent", "className": "HousekeepingSaveRoomSettingsEvent", "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/housekeeping/HousekeepingSaveRoomSettingsEvent.java" },
+      "typescript": { "symbol": "HOUSEKEEPING_SAVE_ROOM_SETTINGS", "className": "HousekeepingSaveRoomSettingsComposer", "path": "packages/communication/src/messages/outgoing/housekeeping/HousekeepingSaveRoomSettingsComposer.ts" },
+      "reason": "Polaris housekeeping settings payload is custom to the in-client admin panel and remains paired in the communication package."
+    },
+    {
+      "name": "HOUSEKEEPING_REQUEST_LIST",
+      "direction": "client_to_server",
+      "header": 9125,
+      "java": { "symbol": "HousekeepingRequestListEvent", "className": "HousekeepingRequestListEvent", "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/housekeeping/HousekeepingRequestListEvent.java" },
+      "typescript": { "symbol": "HOUSEKEEPING_REQUEST_LIST", "className": "HousekeepingRequestListComposer", "path": "packages/communication/src/messages/outgoing/housekeeping/HousekeepingRequestListComposer.ts" },
+      "reason": "Polaris housekeeping list selectors are custom to the in-client admin panel and remain paired in the communication package."
+    },
+    {
+      "name": "HOUSEKEEPING_RELOAD",
+      "direction": "client_to_server",
+      "header": 9126,
+      "java": { "symbol": "HousekeepingReloadEvent", "className": "HousekeepingReloadEvent", "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/housekeeping/HousekeepingReloadEvent.java" },
+      "typescript": { "symbol": "HOUSEKEEPING_RELOAD", "className": "HousekeepingReloadComposer", "path": "packages/communication/src/messages/outgoing/housekeeping/HousekeepingReloadComposer.ts" },
+      "reason": "Polaris housekeeping reload controls are custom to the in-client admin panel and remain paired in the communication package."
+    },
+    {
+      "name": "HOUSEKEEPING_REVOKE_BAN",
+      "direction": "client_to_server",
+      "header": 9127,
+      "java": { "symbol": "HousekeepingRevokeBanEvent", "className": "HousekeepingRevokeBanEvent", "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/housekeeping/HousekeepingRevokeBanEvent.java" },
+      "typescript": { "symbol": "HOUSEKEEPING_REVOKE_BAN", "className": "HousekeepingRevokeBanComposer", "path": "packages/communication/src/messages/outgoing/housekeeping/HousekeepingRevokeBanComposer.ts" },
+      "reason": "Polaris ban-revocation controls are custom to the in-client admin panel and remain paired in the communication package."
+    },
+    {
+      "name": "HOUSEKEEPING_MAINTENANCE",
+      "direction": "client_to_server",
+      "header": 9128,
+      "java": { "symbol": "HousekeepingMaintenanceEvent", "className": "HousekeepingMaintenanceEvent", "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/housekeeping/HousekeepingMaintenanceEvent.java" },
+      "typescript": { "symbol": "HOUSEKEEPING_MAINTENANCE", "className": "HousekeepingMaintenanceComposer", "path": "packages/communication/src/messages/outgoing/housekeeping/HousekeepingMaintenanceComposer.ts" },
+      "reason": "Polaris maintenance controls are custom to the in-client admin panel and remain paired in the communication package."
+    },
+    {
+      "name": "HOUSEKEEPING_WORD_FILTER",
+      "direction": "client_to_server",
+      "header": 9129,
+      "java": { "symbol": "HousekeepingWordFilterEvent", "className": "HousekeepingWordFilterEvent", "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/housekeeping/HousekeepingWordFilterEvent.java" },
+      "typescript": { "symbol": "HOUSEKEEPING_WORD_FILTER", "className": "HousekeepingWordFilterComposer", "path": "packages/communication/src/messages/outgoing/housekeeping/HousekeepingWordFilterComposer.ts" },
+      "reason": "Polaris word-filter controls are custom to the in-client admin panel and remain paired in the communication package."
+    },
+    {
+      "name": "HOUSEKEEPING_SET_PERMISSION",
+      "direction": "client_to_server",
+      "header": 9130,
+      "java": { "symbol": "HousekeepingSetPermissionEvent", "className": "HousekeepingSetPermissionEvent", "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/housekeeping/HousekeepingSetPermissionEvent.java" },
+      "typescript": { "symbol": "HOUSEKEEPING_SET_PERMISSION", "className": "HousekeepingSetPermissionComposer", "path": "packages/communication/src/messages/outgoing/housekeeping/HousekeepingSetPermissionComposer.ts" },
+      "reason": "Polaris permission-matrix controls are custom to the in-client admin panel and remain paired in the communication package."
+    },
+    {
+      "name": "HOUSEKEEPING_USER_NOTE",
+      "direction": "client_to_server",
+      "header": 9131,
+      "java": { "symbol": "HousekeepingUserNoteEvent", "className": "HousekeepingUserNoteEvent", "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/housekeeping/HousekeepingUserNoteEvent.java" },
+      "typescript": { "symbol": "HOUSEKEEPING_USER_NOTE", "className": "HousekeepingUserNoteComposer", "path": "packages/communication/src/messages/outgoing/housekeeping/HousekeepingUserNoteComposer.ts" },
+      "reason": "Polaris staff-note controls are custom to the in-client admin panel and remain paired in the communication package."
+    },
+    {
+      "name": "HOUSEKEEPING_LOCKDOWN",
+      "direction": "client_to_server",
+      "header": 9132,
+      "java": { "symbol": "HousekeepingLockdownEvent", "className": "HousekeepingLockdownEvent", "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/housekeeping/HousekeepingLockdownEvent.java" },
+      "typescript": { "symbol": "HOUSEKEEPING_LOCKDOWN", "className": "HousekeepingLockdownComposer", "path": "packages/communication/src/messages/outgoing/housekeeping/HousekeepingLockdownComposer.ts" },
+      "reason": "Polaris hotel-lockdown controls are custom to the in-client admin panel and remain paired in the communication package."
+    },
+    {
+      "name": "HOUSEKEEPING_LIST",
+      "direction": "server_to_client",
+      "header": 9206,
+      "java": { "symbol": "HousekeepingListComposer", "className": "HousekeepingListComposer", "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/housekeeping/HousekeepingListComposer.java" },
+      "typescript": { "symbol": "HOUSEKEEPING_LIST", "className": "HousekeepingListParser", "path": "packages/communication/src/messages/parser/housekeeping/HousekeepingListParser.ts" },
+      "reason": "Polaris housekeeping list rows are variable-length table payloads handled by the paired parser and compatibility tests."
+    },
+    {
+      "name": "HOUSEKEEPING_MAINTENANCE_STATUS",
+      "direction": "server_to_client",
+      "header": 9207,
+      "java": { "symbol": "HousekeepingMaintenanceStatusComposer", "className": "HousekeepingMaintenanceStatusComposer", "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/housekeeping/HousekeepingMaintenanceStatusComposer.java" },
+      "typescript": { "symbol": "HOUSEKEEPING_MAINTENANCE_STATUS", "className": "HousekeepingMaintenanceStatusParser", "path": "packages/communication/src/messages/parser/housekeeping/HousekeepingMaintenanceStatusParser.ts" },
+      "reason": "Polaris maintenance status has a custom admin payload handled by the paired communication parser."
+    },
+    {
+      "name": "REQUEST_FURNITURE_VALUE",
+      "direction": "client_to_server",
+      "header": 10400,
+      "java": { "symbol": "RequestFurnitureValueEvent", "className": "RequestFurnitureValueEvent", "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/furnieditor/RequestFurnitureValueEvent.java" },
+      "typescript": { "symbol": "REQUEST_FURNITURE_VALUE", "className": "RequestFurnitureValueComposer", "path": "packages/communication/src/messages/FurnitureValues.ts" },
+      "reason": "Polaris furniture valuation is a custom integration packet defined by its dedicated paired communication module."
     }
   ]
 }

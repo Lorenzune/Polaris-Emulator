@@ -27,7 +27,8 @@ final class MarketplaceOffersQuery {
      * One search. A price bound is applied when it is positive (the upper one only above the
      * lower one) and compared with the commission-inclusive price the buyer pays.
      */
-    record Request(int minPrice, int maxPrice, String search, int sort, boolean combineUniques) {
+    record Request(int minPrice, int maxPrice, String search, int sort, boolean combineUniques,int currency) {
+        Request(int minPrice,int maxPrice,String search,int sort,boolean combineUniques){this(minPrice,maxPrice,search,sort,combineUniques,MarketPlace.legacyCurrency());}
 
         boolean hasMinPrice() {
             return this.minPrice > 0;
@@ -47,7 +48,7 @@ final class MarketplaceOffersQuery {
 
         sql.append("SELECT m.id, m.item_id, m.user_id, m.price, m.timestamp, m.sold_timestamp, m.state,")
                 .append(" g.base_item_id, mi.limited_data AS ltd_data,")
-                .append(" g.avg, g.minPrice, g.maxPrice, g.number,")
+                .append(" COALESCE(s.average,0) AS avg, g.minPrice, g.maxPrice, g.number, m.currency_type,")
                 .append(" COALESCE(s.sold_today, 0) AS sold_count_today\n");
 
         // Every active listing of a furni, in the listing window and the price band. The average is
@@ -59,7 +60,7 @@ final class MarketplaceOffersQuery {
                 .append(" ',', 1) AS UNSIGNED) AS cheapest_id\n")
                 .append("    FROM marketplace_items l\n")
                 .append("    INNER JOIN items li ON li.id = l.item_id\n")
-                .append("    WHERE l.state = 1 AND l.timestamp > ? AND l.price BETWEEN ? AND ?\n");
+                .append("    WHERE l.state = 1 AND l.timestamp > ? AND l.price BETWEEN ? AND ? AND l.currency_type=?\n");
         if (request.hasMinPrice()) {
             sql.append("        AND CEIL(l.price + (l.price / 100)) >= ?\n");
         }
@@ -76,7 +77,7 @@ final class MarketplaceOffersQuery {
         // The furni the catalog sells. item_ids is text: its numeric value is the furni it
         // links, which is how a listing has always been matched to the catalog. Grouping keeps
         // a furni sold on several catalog rows from multiplying its listings.
-        sql.append("INNER JOIN (\n").append("    SELECT (ci.item_ids + 0) AS base_item_id");
+        sql.append("LEFT JOIN (\n").append("    SELECT (ci.item_ids + 0) AS base_item_id");
         if (request.hasSearch()) {
             sql.append(", MAX(ci.catalog_name LIKE ?) AS name_match");
         }
@@ -89,15 +90,13 @@ final class MarketplaceOffersQuery {
         sql.append("INNER JOIN marketplace_items m ON m.id = g.cheapest_id\n")
                 .append("INNER JOIN items mi ON mi.id = m.item_id\n");
 
-        // Sales of the day, per furni, whatever the serial.
-        sql.append("LEFT JOIN (\n")
-                .append("    SELECT si.item_id AS base_item_id, COUNT(*) AS sold_today\n")
-                .append("    FROM marketplace_items sl\n")
-                .append("    INNER JOIN items si ON si.id = sl.item_id\n")
-                .append("    WHERE sl.state = 2 AND sl.sold_timestamp >= UNIX_TIMESTAMP(CURDATE())")
-                .append(" AND sl.sold_timestamp < UNIX_TIMESTAMP(CURDATE() + INTERVAL 1 DAY)\n")
-                .append("    GROUP BY si.item_id\n")
-                .append(") s ON s.base_item_id = g.base_item_id\n");
+        // Permanent completed sales, per currency; cancelled and active offers never set the mean.
+        sql.append("LEFT JOIN (SELECT base_item_id,currency_type,AVG(unit_price) average,COUNT(*) sold_today")
+            .append(request.combineUniques()?"":" ,limited_data")
+            .append(" FROM rare_market_sales GROUP BY base_item_id,currency_type")
+            .append(request.combineUniques()?"":" ,limited_data")
+            .append(") s ON s.base_item_id=g.base_item_id AND s.currency_type=m.currency_type")
+            .append(request.combineUniques()?"\n":" AND s.limited_data=mi.limited_data\n");
 
         if (request.hasSearch()) {
             sql.append("WHERE (bi.public_name LIKE ? OR cat.name_match = 1)\n");
@@ -122,6 +121,7 @@ final class MarketplaceOffersQuery {
         statement.setInt(index++, nowUnix - LISTING_WINDOW_SECONDS);
         statement.setInt(index++, minListingPrice);
         statement.setInt(index++, maxListingPrice);
+        statement.setInt(index++,request.currency());
         if (request.hasMinPrice()) {
             statement.setInt(index++, request.minPrice());
         }

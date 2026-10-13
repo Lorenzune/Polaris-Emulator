@@ -11,6 +11,7 @@ public class Permission {
     public static String ACC_SEE_TENTCHAT = "acc_see_tentchat";
     public static String ACC_SUPERWIRED = "acc_superwired";
     public static String ACC_HOUSEKEEPING = "acc_housekeeping";
+    public static final String ACC_RARE_MANAGER = "acc_rare_manager";
     public static String ACC_SUPPORTTOOL = "acc_supporttool";
     public static String ACC_UNKICKABLE = "acc_unkickable";
     public static String ACC_GUILDGATE = "acc_guildgate";

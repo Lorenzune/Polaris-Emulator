@@ -294,6 +294,21 @@ public class HabboManager {
         }
     }
 
+    public List<HabboInfo> getCloneAccounts(HabboInfo info, int limit) {
+        try {
+            return SqlQueries.query(
+                    "SELECT * FROM users WHERE (ip_register = ? OR ip_current = ?) AND id != ? ORDER BY id DESC LIMIT ?",
+                    HabboInfo::new,
+                    info.getIpRegister(),
+                    info.getIpLogin(),
+                    info.getId(),
+                    limit);
+        } catch (SqlQueries.DataAccessException e) {
+            LOGGER.error("Caught SQL exception", e);
+            return new ArrayList<>();
+        }
+    }
+
     public List<Map.Entry<Integer, String>> getNameChanges(int userId, int limit) {
         try {
             return SqlQueries.query(

@@ -1,6 +1,7 @@
 package com.eu.habbo.messages.incoming;
 
 public class Incoming {
+    public static final int RequestFurnitureValueEvent = 10400;
     public static final int SaveWiredLabelEvent = 10091;
     public static final int RequestWiredLabelEditorEvent = 10092;
     public static final int SaveWiredLabelCardEvent = 10093;
@@ -533,7 +534,7 @@ public class Incoming {
     public static final int MusicPartyRoomPlayEvent = 8007;
     public static final int YouTubeSearchEvent = 8006;
 
-    // Housekeeping (in-client admin panel) — IDs 9100..9199 reserved
+    // Housekeeping (in-client admin panel) â€” IDs 9100..9199 reserved
     public static final int HousekeepingFindUserByNameEvent = 9100;
     public static final int HousekeepingFindUserByIdEvent = 9101;
     public static final int HousekeepingBanUserEvent = 9102;
@@ -559,7 +560,7 @@ public class Incoming {
     public static final int HousekeepingGetDashboardEvent = 9122;
     public static final int HousekeepingListActionLogEvent = 9123;
 
-    // Custom features — IDs 9300+ reserved
+    // Custom features â€” IDs 9300+ reserved
     public static final int RequestRareValuesEvent = 9300;
     public static final int WheelOpenEvent = 9301;
     public static final int WheelSpinEvent = 9302;
@@ -612,4 +613,15 @@ public class Incoming {
     public static final int GetBlockedUsersEvent = 4810;
     public static final int BlockRoomUserEvent = 4811;
     public static final int UnblockRoomUserEvent = 4812;
+
+    public static final int HousekeepingSaveRoomSettingsEvent = 9124;
+    public static final int HousekeepingRequestListEvent = 9125;
+    public static final int HousekeepingReloadEvent = 9126;
+    public static final int HousekeepingRevokeBanEvent = 9127;
+    public static final int HousekeepingMaintenanceEvent = 9128;
+    public static final int HousekeepingWordFilterEvent = 9129;
+    public static final int HousekeepingSetPermissionEvent = 9130;
+    public static final int HousekeepingUserNoteEvent = 9131;
+    public static final int HousekeepingLockdownEvent = 9132;
+
 }

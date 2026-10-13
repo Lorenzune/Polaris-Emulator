@@ -12,8 +12,8 @@ import java.util.regex.Pattern;
 
 /**
  * Comment-preserving, atomic, backed-up writer for furnidata name/description, keyed by
- * classname. Supports single-file and split-tier (writes the tier that currently resolves
- * the classname). Edit-only: refuses classnames absent from the furnidata.
+ * classname. Supports configured file lists and split-tier sources (writes the last
+ * source that resolves the classname). Missing entries can be created separately.
  */
 public class FurnidataWriter {
 
@@ -24,13 +24,23 @@ public class FurnidataWriter {
     private static final List<String> MANIFEST_NAMES = Arrays.asList("manifest.json5", "manifest.json");
 
     private final Path source;        // file (single) or base dir (split-tier)
+    private final List<Path> sources;
     private final boolean directory;  // true => split-tier
     private final long maxBytes;
     private final int backupKeep;
 
     public FurnidataWriter(Path source, boolean directory, long maxBytes, int backupKeep) {
         this.source = source;
+        this.sources = source == null ? List.of() : List.of(source);
         this.directory = directory;
+        this.maxBytes = maxBytes;
+        this.backupKeep = Math.max(1, backupKeep);
+    }
+
+    public FurnidataWriter(List<Path> sources, long maxBytes, int backupKeep) {
+        this.sources = List.copyOf(sources);
+        this.source = sources.isEmpty() ? null : sources.getLast();
+        this.directory = this.source != null && Files.isDirectory(this.source);
         this.maxBytes = maxBytes;
         this.backupKeep = Math.max(1, backupKeep);
     }
@@ -78,7 +88,7 @@ public class FurnidataWriter {
         if (cn.isEmpty() || entryJson5 == null || entryJson5.isBlank()) return CreateResult.NO_TARGET;
 
         // Guard: duplicate classname / id collision (scan the whole source).
-        for (FurnidataEntry e : new FurnidataReader(source, maxBytes).read()) {
+        for (FurnidataEntry e : FurnidataReader.readSources(sources, maxBytes)) {
             String ecn = e.classname() == null ? "" : e.classname().trim().toLowerCase(java.util.Locale.ROOT);
             if (ecn.equals(cn)) return CreateResult.ALREADY_EXISTS;
             if (e.id() == id) return CreateResult.ID_COLLISION;
@@ -102,7 +112,7 @@ public class FurnidataWriter {
         }
     }
 
-    /** Single-file: the source. Split-tier: the create-tier file (created with a shell if absent). */
+    /** File lists: the last source. Split-tier: the create-tier file (created with a shell if absent). */
     private Path resolveCreateTarget(String createTier) throws IOException {
         if (!directory) return source;
         String tier = (createTier == null || createTier.isBlank()) ? "custom" : createTier.trim();
@@ -150,6 +160,14 @@ public class FurnidataWriter {
 
     /** For single-file just returns the file; for split-tier, the tier file that contains cn. */
     private Path locateFile(String cn) throws IOException {
+        if (sources.size() > 1) {
+            Path winner = null;
+            for (Path candidate : sources) {
+                Path found = new FurnidataWriter(candidate, Files.isDirectory(candidate), maxBytes, backupKeep).locateFile(cn);
+                if (found != null) winner = found;
+            }
+            return winner;
+        }
         if (!directory) {
             // confirm existence via the reader (size-guarded, parses the same way)
             return containsClassname(source, cn) ? source : null;
@@ -341,8 +359,22 @@ public class FurnidataWriter {
 
     /** Restore the most recent backup of the (single-file) target. @return true if restored. */
     public boolean revertLastBackup() throws IOException {
+        if (sources.size() > 1) {
+            boolean any = false;
+            for (Path candidate : sources) {
+                any |= new FurnidataWriter(candidate, Files.isDirectory(candidate), maxBytes, backupKeep).revertLastBackup();
+            }
+            return any;
+        }
         if (directory) return revertSplitTier();
         return revertFile(source);
+    }
+
+    /** Restore the backup of the file that owns this classname. */
+    public boolean revertLastBackup(String classname) throws IOException {
+        if (classname == null) return false;
+        Path target = locateFile(classname.trim().toLowerCase(java.util.Locale.ROOT));
+        return target != null && revertFile(target);
     }
 
     private boolean revertFile(Path target) throws IOException {

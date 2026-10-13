@@ -1,6 +1,7 @@
 package com.eu.habbo.messages.outgoing;
 
 public class Outgoing {
+    public static final int FurnitureValueComposer = 10401;
     public static final int WiredHighlightComposer = 5117;
     public static final int WiredUserOpacityComposer = 5116;
     public static final int WiredLabelEditorComposer = 5115;
@@ -623,7 +624,7 @@ public class Outgoing {
     public static final int MusicPartyRoomBroadcastComposer = 8005;
     public static final int YouTubeSearchResultsComposer = 8006;
 
-    // Housekeeping (in-client admin panel) — IDs 9200..9299 reserved
+    // Housekeeping (in-client admin panel) â€” IDs 9200..9299 reserved
     public static final int HousekeepingUserDetailComposer = 9200;
     public static final int HousekeepingActionResultComposer = 9201;
     public static final int HousekeepingRoomDetailComposer = 9202;
@@ -631,7 +632,7 @@ public class Outgoing {
     public static final int HousekeepingDashboardComposer = 9204;
     public static final int HousekeepingActionLogComposer = 9205;
 
-    // Custom features — IDs 9400+ reserved
+    // Custom features â€” IDs 9400+ reserved
     public static final int RareValuesComposer = 9400;
     public static final int WheelDataComposer = 9401;
     public static final int WheelResultComposer = 9402;
@@ -672,4 +673,8 @@ public class Outgoing {
 
     // ExternalTexts Live Reload
     public static final int ExternalTextsReloadComposer = 10048;
+
+    public static final int HousekeepingListComposer = 9206;
+    public static final int HousekeepingMaintenanceStatusComposer = 9207;
+
 }

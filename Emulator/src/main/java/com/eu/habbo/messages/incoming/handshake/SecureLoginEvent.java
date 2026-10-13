@@ -145,6 +145,13 @@ public class SecureLoginEvent extends MessageHandler {
                 LOGGER.error("Caught exception looking up user for session resume", e);
             }
 
+            if (lookupUserId > 0 && !com.eu.habbo.habbohotel.MaintenanceMode.canLogin(lookupRankId)) {
+                this.client.sendResponse(new com.eu.habbo.messages.outgoing.handshake.DisconnectReasonComposer(
+                        com.eu.habbo.messages.outgoing.handshake.DisconnectReasonComposer.MAINTENANCE));
+                Emulator.getGameServer().getGameClientManager().forceDisposeClient(this.client);
+                return;
+            }
+
             // Check if this user has a ghost session (disconnected within grace period)
             Habbo habbo = null;
             boolean isSessionResume = false;

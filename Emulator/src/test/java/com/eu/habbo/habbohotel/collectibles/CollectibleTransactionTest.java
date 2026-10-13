@@ -34,6 +34,29 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 class CollectibleTransactionTest {
+    @Test void hiddenCatalogueCollectionCannotBeClaimedEvenWithAForgedRewardRequest() throws Exception {
+        var manager=new CollectibleManager();var user=mock(Habbo.class,RETURNS_DEEP_STUBS);
+        when(user.getHabboInfo().getId()).thenReturn(7);
+        var database=mock(Database.class,RETURNS_DEEP_STUBS);var c=mock(Connection.class);
+        when(database.getDataSource().getConnection()).thenReturn(c);
+        var reward=new CollectibleReward("P","Set","currency",0,-1,100,0,200,List.of());
+        when(c.prepareStatement(anyString())).thenAnswer(call->{
+            String sql=call.getArgument(0);var s=mock(PreparedStatement.class);var rs=mock(ResultSet.class);
+            when(s.executeQuery()).thenReturn(rs);when(rs.next()).thenReturn(true,false);
+            if(sql.startsWith("SELECT UNIX_TIMESTAMP"))when(rs.getLong(1)).thenReturn(100L);
+            if(sql.startsWith("SELECT r.configuration")){when(rs.getString(1)).thenReturn(new Gson().toJson(reward));when(rs.getBoolean(2)).thenReturn(true);}
+            if(sql.startsWith("SELECT cc.title")){when(rs.getInt("catalog_page_id")).thenReturn(20004634);when(rs.getBoolean("rare_visible")).thenReturn(false);}
+            return s;
+        });
+        var method=CollectibleManager.class.getDeclaredMethod("claimLocked",Habbo.class,List.class);method.setAccessible(true);
+        try(var emulator=mockStatic(Emulator.class);var ledger=mockStatic(EconomyLedger.class)) {
+            emulator.when(Emulator::getDatabase).thenReturn(database);
+            var failure=assertThrows(InvocationTargetException.class,()->method.invoke(manager,user,List.of(1)));
+            assertInstanceOf(IllegalArgumentException.class,failure.getCause());
+            verify(c).rollback();verify(c,never()).commit();ledger.verifyNoInteractions();
+            verify(c,never()).prepareStatement(startsWith("INSERT INTO collectible_claims"));
+        }
+    }
     @Test
     void categoryClaimLocksAndChecksOwnershipBeforeGrantingTheReward() throws Exception {
         var manager = new CollectibleManager();
@@ -54,7 +77,7 @@ class CollectibleTransactionTest {
                 when(rs.getString(1)).thenReturn(new Gson().toJson(reward));
                 when(rs.getBoolean(2)).thenReturn(true);
             }
-            if (sql.startsWith("SELECT title,item_ids")) {
+            if (sql.startsWith("SELECT cc.title,cc.item_ids")) {
                 when(rs.getString(1)).thenReturn("C");
                 when(rs.getString(2)).thenReturn("[42,43]");
             }
@@ -163,7 +186,8 @@ class CollectibleTransactionTest {
         method.setAccessible(true);
         try (var emulator = mockStatic(Emulator.class);
                 var ledger = mockStatic(EconomyLedger.class);
-                var wallet = mockStatic(com.eu.habbo.habbohotel.users.LedgerWalletMutation.class)) {
+                var wallet = mockStatic(com.eu.habbo.habbohotel.users.LedgerWalletMutation.class);
+                var catalogCollections = mockStatic(com.eu.habbo.habbohotel.catalog.RareCatalogCollections.class)) {
             emulator.when(Emulator::getDatabase).thenReturn(database);
             emulator.when(Emulator::getGameEnvironment).thenReturn(environment);
             ledger.when(() -> EconomyLedger.apply(eq(c), any(EconomyOperation.class)))

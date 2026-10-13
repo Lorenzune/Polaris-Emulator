@@ -13,6 +13,7 @@ import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.users.levels.AvatarLevelPlatform;
 import com.eu.habbo.habbohotel.wired.core.WiredMoveCarryHelper;
+import com.eu.habbo.habbohotel.wired.core.WiredUserMovementHelper;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.rooms.RoomAccessDeniedComposer;
 import com.eu.habbo.messages.outgoing.rooms.items.ItemsDataUpdateComposer;
@@ -27,6 +28,8 @@ import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
+import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +37,9 @@ public class RoomCycleManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(RoomCycleManager.class);
 
     private final Room room;
+    // Accessed under the room monitor, shared with the normal room cycle.
+    private final java.util.Map<RoomUnit, UserWalk> userWalks = new java.util.IdentityHashMap<>();
+    private final BiFunction<Runnable, Long, ScheduledFuture<?>> walkScheduler;
     private boolean cycleOdd;
     private long cycleTimestamp;
     private final ConcurrentHashMap<Integer, Long> hostingVisitorLastCountedAt;
@@ -50,7 +56,12 @@ public class RoomCycleManager {
     private long rollerCycle = System.currentTimeMillis();
 
     public RoomCycleManager(Room room) {
+        this(room, (task, delay) -> Emulator.getGameEnvironment().getRoomCycleService().scheduleWalk(task, delay));
+    }
+
+    RoomCycleManager(Room room, BiFunction<Runnable, Long, ScheduledFuture<?>> walkScheduler) {
         this.room = room;
+        this.walkScheduler = walkScheduler;
         this.cycleOdd = false;
         this.cycleTimestamp = 0;
         this.hostingVisitorLastCountedAt = new ConcurrentHashMap<>();
@@ -121,19 +132,7 @@ public class RoomCycleManager {
                 processRollers(updatedUnit);
 
                 if (!updatedUnit.isEmpty()) {
-                    ServerMessage statusComposer = new RoomUserStatusComposer(updatedUnit, true).compose();
-                    WiredMoveCarryHelper.beginMovementCollection();
-                    WiredMoveCarryHelper.processUserFollowers(this.room, updatedUnit);
-                    ServerMessage wiredMovementsComposer = WiredMoveCarryHelper.finishMovementCollection();
-
-                    if (wiredMovementsComposer != null) {
-                        ArrayList<ServerMessage> batchedMessages = new ArrayList<>(2);
-                        batchedMessages.add(statusComposer);
-                        batchedMessages.add(wiredMovementsComposer);
-                        this.room.sendComposers(batchedMessages);
-                    } else {
-                        this.room.sendComposer(statusComposer);
-                    }
+                    this.publishUnitUpdates(updatedUnit);
                 }
 
                 if (this.room.getTraxManager() != null) {
@@ -595,6 +594,81 @@ public class RoomCycleManager {
     }
 
     public boolean cycleRoomUnit(RoomUnit unit, RoomUnitType type, Habbo habbo) {
+        synchronized (this.room) {
+            // Click-driven walking has its own 500ms phase. The room heartbeat
+            // must not take an extra step or replay a partial movement.
+            if (this.userWalks.containsKey(unit)) return false;
+            return this.cycleRoomUnitInternal(unit, type, habbo);
+        }
+    }
+
+    /** Start a validated click immediately; subsequent clicks only replace its path. */
+    public void startUserWalk(Habbo habbo, RoomTile target) {
+        synchronized (this.room) {
+            RoomUnit unit = habbo.getRoomUnit();
+            if (!this.room.isLoaded() || habbo.getHabboInfo().getCurrentRoom() != this.room || !unit.isInRoom()) return;
+            unit.setGoalLocation(target);
+            if (!target.equals(unit.getGoal()) || this.userWalks.containsKey(unit) || !unit.isWalking()) return;
+            UserWalk walk = new UserWalk(habbo, unit);
+            this.userWalks.put(unit, walk);
+            walk.run();
+        }
+    }
+
+    protected void publishUnitUpdates(Set<RoomUnit> updatedUnit) {
+        ServerMessage statusComposer = new RoomUserStatusComposer(updatedUnit, true).compose();
+        WiredMoveCarryHelper.beginMovementCollection();
+        WiredMoveCarryHelper.processUserFollowers(this.room, updatedUnit);
+        ServerMessage wiredMovementsComposer = WiredMoveCarryHelper.finishMovementCollection();
+        if (wiredMovementsComposer != null) {
+            this.room.sendComposers(java.util.List.of(statusComposer, wiredMovementsComposer));
+        } else {
+            this.room.sendComposer(statusComposer);
+        }
+    }
+
+    private final class UserWalk implements Runnable {
+        private final Habbo habbo;
+        private final RoomUnit unit;
+
+        private UserWalk(Habbo habbo, RoomUnit unit) {
+            this.habbo = habbo;
+            this.unit = unit;
+        }
+
+        @Override
+        public void run() {
+            synchronized (room) {
+                if (userWalks.get(this.unit) != this) return;
+                if (!room.isLoaded() || !this.unit.isInRoom()
+                        || this.habbo.getRoomUnit() != this.unit
+                        || this.habbo.getHabboInfo().getCurrentRoom() != room
+                        || WiredUserMovementHelper.shouldSuppressStatusComposer(this.unit)
+                        || WiredMoveCarryHelper.shouldSuppressStatusComposer(this.unit)) {
+                    userWalks.remove(this.unit);
+                    return;
+                }
+                try (GameClientFlushBatch ignored = GameClientFlushBatch.open()) {
+                    if (cycleRoomUnitInternal(this.unit, RoomUnitType.USER, this.habbo)) {
+                        Set<RoomUnit> updated = new HashSet<>();
+                        updated.add(this.unit);
+                        publishUnitUpdates(updated);
+                    }
+                    // Keep ownership until the final animation settles, including
+                    // a one-tile walk. This prevents the heartbeat clearing mv early.
+                    boolean hasPath = this.unit.isWalking() && this.unit.getPath() != null
+                            && !this.unit.getPath().isEmpty();
+                    if ((hasPath || this.unit.hasStatus(RoomUnitStatus.MOVE))
+                            && walkScheduler.apply(this, (long) RoomCycleService.CYCLE_MS) != null) return;
+                } catch (Exception e) {
+                    LOGGER.error("Click-driven walk failed in room {}", room.getId(), e);
+                }
+                userWalks.remove(this.unit);
+            }
+        }
+    }
+
+    protected boolean cycleRoomUnitInternal(RoomUnit unit, RoomUnitType type, Habbo habbo) {
         boolean update = unit.needsStatusUpdate();
         boolean isRiding = type == RoomUnitType.USER
                 && habbo != null

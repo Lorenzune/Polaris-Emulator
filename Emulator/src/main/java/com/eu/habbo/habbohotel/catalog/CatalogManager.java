@@ -389,10 +389,11 @@ public class CatalogManager {
                 : CatalogPageType.NORMAL;
         List<CatalogItem> sorted = this.readIndex().sortedItems(mapType, page.getId());
         if (sorted != null && this.getCatalogPagesMap(mapType).get(page.getId()) == page) {
-            return new ArrayList<>(sorted);
+            return sorted.stream().filter(RareReleaseService::available).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
         }
         List<CatalogItem> items = new ArrayList<>(page.getCatalogItems().values());
         Collections.sort(items);
+        items.removeIf(item -> !RareReleaseService.available(item));
         return items;
     }
 
@@ -1424,6 +1425,11 @@ public class CatalogManager {
             return;
         }
 
+        if (!free && !RareReleaseService.available(item)) {
+            habbo.getClient().sendResponse(new AlertPurchaseUnavailableComposer(AlertPurchaseUnavailableComposer.ILLEGAL));
+            return;
+        }
+
         synchronized (habbo.getHabboStats()) {
             if (habbo.getHabboStats().isPurchasingFurniture) {
                 habbo.getClient()
@@ -1448,6 +1454,7 @@ public class CatalogManager {
         int limitedNumber = 0;
 
         try {
+            if(!free&&!RareReleaseService.beginPurchase(item)){habbo.getClient().sendResponse(new AlertPurchaseUnavailableComposer(AlertPurchaseUnavailableComposer.ILLEGAL));return;}
             if (item.isClubOnly()
                     && !habbo.getClient().getHabbo().getHabboStats().hasActiveClub()) {
                 habbo.getClient()
@@ -2097,8 +2104,10 @@ public class CatalogManager {
             try {
                 if (!purchaseDelivered) {
                     for (HabboItem createdItem : createdItems) {
-                        if (createdItem != null)
+                        if (createdItem != null) {
+                            RareEconomyRepository.cancelEmission(createdItem.getId());
                             Emulator.getGameEnvironment().getItemManager().deleteItem(createdItem);
+                        }
                     }
                     for (Bot bot : createdBots) {
                         habbo.getInventory().getBotsComponent().removeBot(bot);
@@ -2120,6 +2129,7 @@ public class CatalogManager {
                 }
             } finally {
                 synchronized (habbo.getHabboStats()) {
+                    RareReleaseService.endPurchase();
                     habbo.getHabboStats().isPurchasingFurniture = false;
                 }
             }
