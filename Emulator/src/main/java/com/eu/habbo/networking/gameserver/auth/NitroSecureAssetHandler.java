@@ -7,26 +7,42 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.util.ReferenceCountUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
+import java.util.HexFormat;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.zip.GZIPOutputStream;
 import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.IOException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.*;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NitroSecureAssetHandler extends ChannelInboundHandlerAdapter {
     private static final Logger LOGGER = LoggerFactory.getLogger(NitroSecureAssetHandler.class);
@@ -34,12 +50,14 @@ public class NitroSecureAssetHandler extends ChannelInboundHandlerAdapter {
     private static final String ENABLED_CONFIG = "nitro.secure.assets.enabled";
     private static final String BOOTSTRAP_PATH = "/nitro-sec/bootstrap";
     private static final String FILE_PATH = "/nitro-sec/file";
+    private static final String GZIP_CONTENT_TYPE = "application/vnd.nitro.secure-gzip";
     private static final int MAX_BOOTSTRAP_BODY_BYTES = 4096;
     private static final int DEFAULT_MAX_CONFIG_BYTES = 2 * 1024 * 1024;
-    private static final int DEFAULT_MAX_GAMEDATA_BYTES = 16 * 1024 * 1024;
+    private static final int DEFAULT_MAX_GAMEDATA_BYTES = 64 * 1024 * 1024;
     private static final SecureRandom RNG = new SecureRandom();
     private static final KeyPair SERVER_KEYPAIR = createServerKeyPair();
-    private static final String SERVER_KEY_FINGERPRINT = fingerprint(SERVER_KEYPAIR.getPublic().getEncoded());
+    private static final String SERVER_KEY_FINGERPRINT =
+            fingerprint(SERVER_KEYPAIR.getPublic().getEncoded());
     private static final Map<String, CacheEntry> CACHE = new ConcurrentHashMap<>();
 
     @Override
@@ -81,12 +99,18 @@ public class NitroSecureAssetHandler extends ChannelInboundHandlerAdapter {
         }
 
         if (req.content().readableBytes() > MAX_BOOTSTRAP_BODY_BYTES) {
-            sendText(ctx, req, HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, "Payload too large.", "text/plain; charset=utf-8");
+            sendText(
+                    ctx,
+                    req,
+                    HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE,
+                    "Payload too large.",
+                    "text/plain; charset=utf-8");
             return;
         }
 
         try {
-            JsonObject body = JsonParser.parseString(req.content().toString(StandardCharsets.UTF_8)).getAsJsonObject();
+            JsonObject body = JsonParser.parseString(req.content().toString(StandardCharsets.UTF_8))
+                    .getAsJsonObject();
             String clientKey = body.has("key") ? body.get("key").getAsString() : "";
             if (clientKey.isEmpty()) {
                 sendText(ctx, req, HttpResponseStatus.BAD_REQUEST, "Missing key.", "text/plain; charset=utf-8");
@@ -94,7 +118,10 @@ public class NitroSecureAssetHandler extends ChannelInboundHandlerAdapter {
             }
 
             JsonObject response = new JsonObject();
-            response.addProperty("key", Base64.getEncoder().encodeToString(SERVER_KEYPAIR.getPublic().getEncoded()));
+            response.addProperty(
+                    "key",
+                    Base64.getEncoder()
+                            .encodeToString(SERVER_KEYPAIR.getPublic().getEncoded()));
             sendText(ctx, req, HttpResponseStatus.OK, response.toString(), "application/json; charset=utf-8");
         } catch (Exception e) {
             LOGGER.warn("Nitro secure bootstrap failed", e);
@@ -123,10 +150,25 @@ public class NitroSecureAssetHandler extends ChannelInboundHandlerAdapter {
         }
 
         try {
+            long started = System.nanoTime();
             SecretKey sessionKey = deriveSessionKey(Base64.getDecoder().decode(clientKey));
-            byte[] clear = readAsset(kind, file);
-            byte[] encrypted = encrypt(sessionKey, clear);
-            sendText(ctx, req, HttpResponseStatus.OK, toHex(encrypted), "text/plain; charset=utf-8", true, fingerprint(sessionKey.getEncoded()));
+            long keyReady = System.nanoTime();
+            byte[] compressed = readAsset(kind, file);
+            long assetReady = System.nanoTime();
+            byte[] encrypted = encrypt(sessionKey, compressed);
+            long encryptedReady = System.nanoTime();
+            String timing = "key;dur=" + (keyReady - started) / 1_000_000.0
+                    + ", asset;dur=" + (assetReady - keyReady) / 1_000_000.0
+                    + ", encrypt;dur=" + (encryptedReady - assetReady) / 1_000_000.0;
+            sendBytes(
+                    ctx,
+                    req,
+                    HttpResponseStatus.OK,
+                    encrypted,
+                    GZIP_CONTENT_TYPE,
+                    true,
+                    fingerprint(sessionKey.getEncoded()),
+                    timing);
         } catch (IllegalArgumentException e) {
             sendText(ctx, req, HttpResponseStatus.BAD_REQUEST, e.getMessage(), "text/plain; charset=utf-8");
         } catch (IOException e) {
@@ -141,9 +183,16 @@ public class NitroSecureAssetHandler extends ChannelInboundHandlerAdapter {
         String normalized = normalizeFile(file);
         String rootConfigKey = kind.equals("config") ? "nitro.secure.config.root" : "nitro.secure.gamedata.root";
         String fallback = kind.equals("config") ? "Nitro-V3/public" : "Nitro-V3/public/nitro/gamedata";
-        Path root = resolveRoot(rootConfigKey, fallback, kind.equals("config")
-                ? new String[] { "../Nitro-V3/public", "../../Nitro-V3/public", "Nitro-V3/public" }
-                : new String[] { "../Nitro-V3/public/nitro/gamedata", "../../Nitro-V3/public/nitro/gamedata", "Nitro-V3/public/nitro/gamedata" });
+        Path root = resolveRoot(
+                rootConfigKey,
+                fallback,
+                kind.equals("config")
+                        ? new String[] {"../Nitro-V3/public", "../../Nitro-V3/public", "Nitro-V3/public"}
+                        : new String[] {
+                            "../Nitro-V3/public/nitro/gamedata",
+                            "../../Nitro-V3/public/nitro/gamedata",
+                            "Nitro-V3/public/nitro/gamedata"
+                        });
         Path target = root.resolve(normalized).normalize();
 
         if (!target.startsWith(root)) throw new IllegalArgumentException("Invalid file.");
@@ -155,12 +204,22 @@ public class NitroSecureAssetHandler extends ChannelInboundHandlerAdapter {
         String cacheKey = kind + ":" + target;
         long modified = Files.getLastModifiedTime(target).toMillis();
         CacheEntry cached = CACHE.get(cacheKey);
-        if (cached != null && cached.modified == modified) return cached.bytes;
+        if (cached != null && cached.modified == modified && cached.size == size) return cached.bytes;
 
-        byte[] bytes = Files.readAllBytes(target);
-        if (normalized.toLowerCase().endsWith(".json")) bytes = minifyJson(bytes);
-        CACHE.put(cacheKey, new CacheEntry(modified, bytes));
-        return bytes;
+        try {
+            // Only one cold read per file, even when several clients enter together.
+            CacheEntry entry = CACHE.compute(cacheKey, (key, previous) -> {
+                if (previous != null && previous.modified == modified && previous.size == size) return previous;
+                try {
+                    return new CacheEntry(modified, size, gzip(Files.readAllBytes(target)));
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            });
+            return entry.bytes;
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
+        }
     }
 
     static int maxAssetBytes(String kind) {
@@ -179,21 +238,24 @@ public class NitroSecureAssetHandler extends ChannelInboundHandlerAdapter {
         int fragmentIndex = value.indexOf('#');
         if (fragmentIndex >= 0) value = value.substring(0, fragmentIndex);
         while (value.startsWith("/")) value = value.substring(1);
-        if (value.isEmpty() || value.contains("..") || value.contains(":")) throw new IllegalArgumentException("Invalid file.");
+        if (value.isEmpty() || value.contains("..") || value.contains(":"))
+            throw new IllegalArgumentException("Invalid file.");
         return value;
     }
 
-    private static byte[] minifyJson(byte[] bytes) {
-        try {
-            return JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8)).toString().getBytes(StandardCharsets.UTF_8);
-        } catch (Exception ignored) {
-            return bytes;
+    private static byte[] gzip(byte[] bytes) throws IOException {
+        // Compression removes JSON whitespace without building a large Gson tree.
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        try (GZIPOutputStream stream = new GZIPOutputStream(buffer)) {
+            stream.write(bytes);
         }
+        return buffer.toByteArray();
     }
 
     private static Path resolveRoot(String configKey, String fallback, String[] alternatives) {
         String configured = Emulator.getConfig().getValue(configKey, "");
-        if (configured != null && !configured.isEmpty()) return Path.of(configured).toAbsolutePath().normalize();
+        if (configured != null && !configured.isEmpty())
+            return Path.of(configured).toAbsolutePath().normalize();
 
         for (String alternative : alternatives) {
             Path path = Path.of(alternative).toAbsolutePath().normalize();
@@ -275,26 +337,66 @@ public class NitroSecureAssetHandler extends ChannelInboundHandlerAdapter {
         return query.parameters().get(key).get(0);
     }
 
-    private static void sendText(ChannelHandlerContext ctx, FullHttpRequest req, HttpResponseStatus status, String text, String contentType) {
+    private static void sendText(
+            ChannelHandlerContext ctx,
+            FullHttpRequest req,
+            HttpResponseStatus status,
+            String text,
+            String contentType) {
         sendBytes(ctx, req, status, text.getBytes(StandardCharsets.UTF_8), contentType, false, null);
     }
 
-    private static void sendText(ChannelHandlerContext ctx, FullHttpRequest req, HttpResponseStatus status, String text, String contentType, boolean encrypted, String deriveFingerprint) {
+    private static void sendText(
+            ChannelHandlerContext ctx,
+            FullHttpRequest req,
+            HttpResponseStatus status,
+            String text,
+            String contentType,
+            boolean encrypted,
+            String deriveFingerprint) {
         sendBytes(ctx, req, status, text.getBytes(StandardCharsets.UTF_8), contentType, encrypted, deriveFingerprint);
     }
 
-    private static void sendBytes(ChannelHandlerContext ctx, FullHttpRequest req, HttpResponseStatus status, byte[] bytes, String contentType, boolean encrypted) {
+    private static void sendBytes(
+            ChannelHandlerContext ctx,
+            FullHttpRequest req,
+            HttpResponseStatus status,
+            byte[] bytes,
+            String contentType,
+            boolean encrypted) {
         sendBytes(ctx, req, status, bytes, contentType, encrypted, null);
     }
 
-    private static void sendBytes(ChannelHandlerContext ctx, FullHttpRequest req, HttpResponseStatus status, byte[] bytes, String contentType, boolean encrypted, String deriveFingerprint) {
-        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, Unpooled.wrappedBuffer(bytes));
+    private static void sendBytes(
+            ChannelHandlerContext ctx,
+            FullHttpRequest req,
+            HttpResponseStatus status,
+            byte[] bytes,
+            String contentType,
+            boolean encrypted,
+            String deriveFingerprint) {
+        sendBytes(ctx, req, status, bytes, contentType, encrypted, deriveFingerprint, null);
+    }
+
+    private static void sendBytes(
+            ChannelHandlerContext ctx,
+            FullHttpRequest req,
+            HttpResponseStatus status,
+            byte[] bytes,
+            String contentType,
+            boolean encrypted,
+            String deriveFingerprint,
+            String timing) {
+        FullHttpResponse response =
+                new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, Unpooled.wrappedBuffer(bytes));
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, contentType);
         response.headers().setInt(HttpHeaderNames.CONTENT_LENGTH, bytes.length);
         response.headers().set(HttpHeaderNames.CACHE_CONTROL, "no-store, no-cache, must-revalidate");
         if (encrypted) response.headers().set("X-Nitro-Sec", "1");
         response.headers().set("X-Nitro-Key-Fp", SERVER_KEY_FINGERPRINT);
-        if (deriveFingerprint != null && !deriveFingerprint.isEmpty()) response.headers().set("X-Nitro-Derive-Fp", deriveFingerprint);
+        if (deriveFingerprint != null && !deriveFingerprint.isEmpty())
+            response.headers().set("X-Nitro-Derive-Fp", deriveFingerprint);
+        if (timing != null) response.headers().set("Server-Timing", timing);
         applyCors(req, response);
         boolean keepAlive = isKeepAlive(req);
         if (keepAlive) response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
@@ -313,6 +415,7 @@ public class NitroSecureAssetHandler extends ChannelInboundHandlerAdapter {
 
         if (origin != null && !origin.isEmpty() && CorsOriginGate.isAllowed(req)) {
             response.headers().set("Access-Control-Allow-Origin", origin);
+            response.headers().set("Timing-Allow-Origin", origin);
         }
         response.headers().set("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS");
 
@@ -325,7 +428,8 @@ public class NitroSecureAssetHandler extends ChannelInboundHandlerAdapter {
 
         response.headers().set("Vary", "Origin, Access-Control-Request-Headers, Access-Control-Request-Method");
         response.headers().set("Access-Control-Max-Age", "600");
-        response.headers().set("Access-Control-Expose-Headers", "X-Nitro-Sec, X-Nitro-Key-Fp, X-Nitro-Derive-Fp");
+        response.headers()
+                .set("Access-Control-Expose-Headers", "X-Nitro-Sec, X-Nitro-Key-Fp, X-Nitro-Derive-Fp, Server-Timing");
     }
 
     private static boolean isKeepAlive(FullHttpRequest req) {
@@ -352,11 +456,9 @@ public class NitroSecureAssetHandler extends ChannelInboundHandlerAdapter {
     }
 
     static String toHex(byte[] bytes) {
-        StringBuilder builder = new StringBuilder(bytes.length * 2);
-        for (byte value : bytes) {
-            builder.append(String.format("%02x", value & 0xff));
-        }
-        return builder.toString();
+        // Secure gamedata can contain millions of bytes. Avoid constructing a
+        // Formatter for each byte while preserving the existing lowercase wire format.
+        return HexFormat.of().formatHex(bytes);
     }
 
     static byte[] fromHex(String hex) {
@@ -373,5 +475,5 @@ public class NitroSecureAssetHandler extends ChannelInboundHandlerAdapter {
         return out;
     }
 
-    private record CacheEntry(long modified, byte[] bytes) {}
+    private record CacheEntry(long modified, long size, byte[] bytes) {}
 }

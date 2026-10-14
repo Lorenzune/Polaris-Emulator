@@ -508,7 +508,7 @@ public final class Emulator {
                 "Maximum furniture opacity updates emitted in one packet.");
         Emulator.config.register("nitro.secure.api.max_payload_bytes", "65536");
         Emulator.config.register("nitro.secure.config.max_file_bytes", "2097152");
-        Emulator.config.register("nitro.secure.gamedata.max_file_bytes", "16777216");
+        Emulator.config.register("nitro.secure.gamedata.max_file_bytes", "67108864");
         registerEarningsSettings();
     }
 
