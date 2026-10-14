@@ -1421,6 +1421,12 @@ public class PacketManager {
                 com.eu.habbo.messages.incoming.housekeeping.HousekeepingUserNoteEvent.class);
 
         this.registerHandler(
+                Incoming.ToolbarConfigurationRequestEvent,
+                com.eu.habbo.messages.incoming.toolbar.ToolbarConfigurationRequestEvent.class);
+        this.registerHandler(
+                Incoming.HousekeepingSaveToolbarEvent,
+                com.eu.habbo.messages.incoming.housekeeping.HousekeepingSaveToolbarEvent.class);
+        this.registerHandler(
                 Incoming.HousekeepingLockdownEvent,
                 com.eu.habbo.messages.incoming.housekeeping.HousekeepingLockdownEvent.class);
         this.registerHandler(

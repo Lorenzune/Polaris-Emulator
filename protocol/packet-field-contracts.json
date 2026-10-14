@@ -2,6 +2,76 @@
   "schemaVersion": 1,
   "contracts": [
     {
+      "name": "TOOLBAR_CONFIGURATION_REQUEST",
+      "direction": "client_to_server",
+      "header": 9133,
+      "java": {
+        "symbol": "ToolbarConfigurationRequestEvent",
+        "className": "ToolbarConfigurationRequestEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/toolbar/ToolbarConfigurationRequestEvent.java"
+      },
+      "typescript": {
+        "symbol": "TOOLBAR_CONFIGURATION_REQUEST",
+        "className": "ToolbarConfigurationRequestComposer",
+        "path": "packages/communication/src/messages/outgoing/housekeeping/ToolbarConfigurationRequestComposer.ts"
+      },
+      "fields": []
+    },
+    {
+      "name": "HOUSEKEEPING_SAVE_TOOLBAR",
+      "direction": "client_to_server",
+      "header": 9134,
+      "java": {
+        "symbol": "HousekeepingSaveToolbarEvent",
+        "className": "HousekeepingSaveToolbarEvent",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/incoming/housekeeping/HousekeepingSaveToolbarEvent.java"
+      },
+      "typescript": {
+        "symbol": "HOUSEKEEPING_SAVE_TOOLBAR",
+        "className": "HousekeepingSaveToolbarComposer",
+        "path": "packages/communication/src/messages/outgoing/housekeeping/HousekeepingSaveToolbarComposer.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "revision"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "configuration"
+        }
+      ]
+    },
+    {
+      "name": "TOOLBAR_CONFIGURATION",
+      "direction": "server_to_client",
+      "header": 9208,
+      "java": {
+        "symbol": "ToolbarConfigurationComposer",
+        "className": "ToolbarConfigurationComposer",
+        "path": "Emulator/src/main/java/com/eu/habbo/messages/outgoing/housekeeping/ToolbarConfigurationComposer.java"
+      },
+      "typescript": {
+        "symbol": "TOOLBAR_CONFIGURATION",
+        "className": "ToolbarConfigurationParser",
+        "path": "packages/communication/src/messages/parser/housekeeping/ToolbarConfigurationParser.ts"
+      },
+      "fields": [
+        {
+          "kind": "scalar",
+          "type": "int",
+          "name": "revision"
+        },
+        {
+          "kind": "scalar",
+          "type": "string",
+          "name": "configuration"
+        }
+      ]
+    },
+    {
       "name": "AVATAR_LEVEL_REQUEST",
       "direction": "client_to_server",
       "header": 9510,

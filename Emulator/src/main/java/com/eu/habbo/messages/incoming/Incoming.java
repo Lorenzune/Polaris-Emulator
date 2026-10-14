@@ -623,4 +623,6 @@ public class Incoming {
     public static final int HousekeepingSetPermissionEvent = 9130;
     public static final int HousekeepingUserNoteEvent = 9131;
     public static final int HousekeepingLockdownEvent = 9132;
+    public static final int ToolbarConfigurationRequestEvent = 9133;
+    public static final int HousekeepingSaveToolbarEvent = 9134;
 }

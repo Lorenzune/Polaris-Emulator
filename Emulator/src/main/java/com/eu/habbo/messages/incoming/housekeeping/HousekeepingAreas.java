@@ -12,6 +12,7 @@ final class HousekeepingAreas {
     static final String ROOMS = "acc_hk_rooms";
     static final String PERMISSIONS = "acc_hk_permissions";
     static final String USER_PERMISSIONS = "acc_hk_user_permissions";
+    static final String TOOLBAR = "acc_hk_toolbar";
     static final String HOTEL = "acc_hk_hotel";
 
     private HousekeepingAreas() {}

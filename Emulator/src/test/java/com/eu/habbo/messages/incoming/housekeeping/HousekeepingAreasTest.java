@@ -43,6 +43,7 @@ class HousekeepingAreasTest {
             Map.entry("Reload", "HOTEL"),
             Map.entry("Maintenance", "HOTEL"),
             Map.entry("WordFilter", "HOTEL"),
+            Map.entry("SaveToolbar", "TOOLBAR"),
             Map.entry("Lockdown", "HOTEL"));
 
     @Test
