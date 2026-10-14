@@ -2,6 +2,7 @@ package com.eu.habbo.database;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import java.util.Map;
 import org.testcontainers.containers.MariaDBContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -37,6 +38,9 @@ public final class TestDatabase {
                 .withDatabaseName("habbo_test")
                 .withUsername("polaris")
                 .withPassword("polaris");
+        if (Boolean.parseBoolean(System.getenv("POLARIS_TEST_MARIADB_TMPFS"))) {
+            c.withTmpFs(Map.of("/var/lib/mysql", "rw,size=1g"));
+        }
         c.start();
         container = c;
 

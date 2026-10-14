@@ -19,6 +19,8 @@ public final class WiredInternalVariableMonitor {
 
     private record Key(int target, Object entity, String token) {}
 
+    private record Subscription(int target, String token) {}
+
     public synchronized void clear() {
         values.clear();
     }
@@ -32,15 +34,27 @@ public final class WiredInternalVariableMonitor {
                 room.getUserVariableManager()
                         .refreshDailyTaskVariables(habbo.getHabboInfo().getId());
         }
+        var triggers = room.getRoomSpecialTypes().getTriggers(WiredTriggerType.VARIABLE_CHANGED);
+        if (triggers.isEmpty()) {
+            clear();
+            return;
+        }
+        Set<Subscription> subscriptions = new HashSet<>();
+        Set<RoomUnit> units = null;
+        Set<HabboItem> furniture = null;
         Set<Key> live = new HashSet<>();
         var changes = new ArrayList<WiredEvent>();
-        for (var trigger : room.getRoomSpecialTypes().getTriggers(WiredTriggerType.VARIABLE_CHANGED)) {
+        for (var trigger : triggers) {
             if (!(trigger instanceof WiredTriggerVariableChanged variable) || !variable.isInternalVariable()) continue;
             int target = variable.getVariableTargetType();
             String token = variable.getVariableToken();
+            // Identical watchers share one observation, and each entity collection
+            // is captured at most once. Events are still dispatched after polling.
+            if (!subscriptions.add(new Subscription(target, token))) continue;
             String name = token.substring(9);
             if (target == 0) {
-                for (RoomUnit unit : room.getRoomUnits()) {
+                if (units == null) units = room.getRoomUnits();
+                for (RoomUnit unit : units) {
                     Key key = new Key(target, unit, token);
                     if (!live.add(key)) continue;
                     Integer next = WiredInternalVariableSupport.hasUserValue(room, unit, name)
@@ -49,7 +63,8 @@ public final class WiredInternalVariableMonitor {
                     collect(room, key, next, unit, null, changes);
                 }
             } else if (target == 1) {
-                for (HabboItem item : room.getFloorItems()) {
+                if (furniture == null) furniture = room.getFloorItems();
+                for (HabboItem item : furniture) {
                     Key key = new Key(target, item.getId(), token);
                     if (!live.add(key)) continue;
                     collect(

@@ -149,7 +149,8 @@ final class PolarisBootstrap {
 
     private boolean initializeHotel() throws Exception {
         new CleanerThread();
-        GameEnvironment environment = new GameEnvironment(runtime.persistenceExecutor()::execute);
+        GameEnvironment environment =
+                new GameEnvironment(runtime.persistenceExecutor()::execute, runtime.persistenceExecutor()::tryExecute);
         runtime.installGameEnvironment(environment);
         Emulator.synchronizeLegacyFacade(runtime);
         environment.load();

@@ -43,8 +43,7 @@ public class FurniEditorDeleteEvent extends MessageHandler {
             }
         }
 
-        // Reload emulator item definitions
-        Emulator.getGameEnvironment().getItemManager().loadItems();
+        Emulator.getGameEnvironment().getItemManager().reloadItem(id);
 
         this.client.sendResponse(new FurniEditorResultComposer(true, "Item deleted"));
     }

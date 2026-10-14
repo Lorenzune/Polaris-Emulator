@@ -129,6 +129,11 @@ public class AvatarLevelManager extends Scheduler {
                     config.executeUpdate();
                 }
                 try (var mark = connection.createStatement()) {
+                    // All component caches must be coherent before live grants can
+                    // use independent trigger routines. This uses three grouped updates.
+                    try (var initialize = connection.prepareCall("{CALL avatar_levels_initialize_components()}")) {
+                        initialize.execute();
+                    }
                     mark.executeUpdate("UPDATE users_avatar_levels SET dirty = 1, revision = revision + 1");
                 }
                 connection.commit();
@@ -148,7 +153,7 @@ public class AvatarLevelManager extends Scheduler {
             hosting.drain(200);
             // Dirty rows survive shutdown and include offline users. High-water marks
             // are captured in the originating transaction, including short-lived gains.
-            java.util.List<Integer> users = new java.util.ArrayList<>();
+            java.util.Set<Integer> users = new java.util.LinkedHashSet<>();
             try (Connection connection = database.getConnection();
                     var query = connection.prepareStatement(
                             "SELECT user_id FROM users_avatar_levels WHERE dirty = 1 ORDER BY user_id LIMIT 200")) {
@@ -168,7 +173,7 @@ public class AvatarLevelManager extends Scheduler {
             }
             for (int id : users) {
                 try {
-                    refresh(id, environment.getHabboManager().getHabbo(id));
+                    refresh(id, environment.getHabboManager().getHabbo(id), false);
                 } catch (SQLException exception) {
                     LOGGER.error("Could not refresh avatar levels for {}", id, exception);
                 }
@@ -241,7 +246,16 @@ public class AvatarLevelManager extends Scheduler {
         return refresh(habbo.getHabboInfo().getId(), habbo);
     }
 
+    /** Client requests need current progress, without rebuilding recently audited ownership. */
+    public AvatarLevelSnapshot refreshCurrent(Habbo habbo) throws SQLException {
+        return refresh(habbo.getHabboInfo().getId(), habbo, false);
+    }
+
     private AvatarLevelSnapshot refresh(int userId, Habbo habbo) throws SQLException {
+        return refresh(userId, habbo, true);
+    }
+
+    private AvatarLevelSnapshot refresh(int userId, Habbo habbo, boolean forceReconcile) throws SQLException {
         synchronized (locks[Math.floorMod(userId, locks.length)]) {
             AvatarLevelSnapshot snapshot;
             int rewarded, pantheon;
@@ -249,7 +263,7 @@ public class AvatarLevelManager extends Scheduler {
             try (Connection connection = database.getConnection()) {
                 connection.setAutoCommit(false);
                 try {
-                    AvatarLevelReconciler.reconcile(connection, userId);
+                    AvatarLevelReconciler.reconcile(connection, userId, forceReconcile);
                     recalculate(connection, userId);
                     // Materialize Pantheon from the durable high-water mark. Its earned levels
                     // can contribute new avatar points: converge without recursion or memory state.
@@ -434,7 +448,12 @@ public class AvatarLevelManager extends Scheduler {
                         update.setString(2, sessionId);
                         update.executeUpdate();
                     }
-                    recalculate(connection, ownerId);
+                    // Only hosting changed. Ownership/badge/achievement triggers already
+                    // maintain their components, so a half-second checkpoint need not scan them.
+                    try (var refresh = connection.prepareCall("{CALL avatar_levels_publish(?)}")) {
+                        refresh.setInt(1, ownerId);
+                        refresh.execute();
+                    }
                 }
                 connection.commit();
                 return true;

@@ -12,7 +12,7 @@ public class RequestAvatarLevelEvent extends MessageHandler {
 
     @Override
     public void handle() throws Exception {
-        var snapshot = AvatarLevelPlatform.game().getAvatarLevelManager().refresh(this.client.getHabbo());
+        var snapshot = AvatarLevelPlatform.game().getAvatarLevelManager().refreshCurrent(this.client.getHabbo());
         this.client.sendResponse(new AvatarLevelComposer(snapshot));
     }
 }

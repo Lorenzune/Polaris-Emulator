@@ -172,7 +172,7 @@ public class FurniEditorUpdateFurnidataEvent extends MessageHandler {
                 new FurniEditorRepository(Emulator.getDatabase().getDataSource())
                         .updatePublicName(itemId, FurnitureTextProvider.sanitize(safeName));
                 // Refresh the in-memory Item cache (Item.fullName) in place — no restart needed.
-                Emulator.getGameEnvironment().getItemManager().loadItems();
+                Emulator.getGameEnvironment().getItemManager().reloadItem(itemId);
             } catch (Exception e) {
                 LOGGER.warn("Failed to mirror furnidata name into items_base.public_name for item {}", itemId, e);
             }

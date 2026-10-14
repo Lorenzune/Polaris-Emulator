@@ -133,66 +133,73 @@ public class DailyTaskManager {
     public int addProgress(int userId, String actionType, int amount) {
         if (userId <= 0 || actionType == null || actionType.isBlank() || amount <= 0) return 0;
 
+        int updated;
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
-            connection.setAutoCommit(false);
-            try {
-                int updatedTasks = addProgressToMatchingTasks(connection, userId, actionType, amount);
-                if (updatedTasks > 0) {
-                    connection.commit();
-                    LOGGER.debug(
-                            "DailyTaskManager -> Progress action={} user={} amount={} updatedTasks={}",
-                            actionType,
-                            userId,
-                            amount,
-                            updatedTasks);
-                    syncAchievements(userId);
-                    return updatedTasks;
-                }
-
-                Task current = loadCurrentForUpdate(connection, userId);
-                List<Integer> assignedTaskIds = loadAssignedTaskIds(connection, userId);
-                if (current == null
-                        || current.completedAt > 0
-                        || !actionType.equals(current.actionType)
-                        || !assignedTaskIds.contains(current.id)) {
-                    connection.commit();
-                    return 0;
-                }
-
-                int progress = Math.min(current.target, current.progress + amount);
-                int now = Emulator.getIntUnixTimestamp();
-                boolean completed = current.progress < current.target && progress >= current.target;
-
-                try (PreparedStatement update = connection.prepareStatement(
-                        "UPDATE user_daily_task_progress SET progress = ?, updated_at = ?, completed_at = ?, reward_claimed_at = ? WHERE user_id = ? AND task_id = ? AND task_date = ?")) {
-                    update.setInt(1, progress);
-                    update.setInt(2, now);
-                    update.setInt(3, completed ? now : current.completedAt);
-                    update.setInt(4, current.rewardClaimedAt);
-                    update.setInt(5, userId);
-                    update.setInt(6, current.id);
-                    update.setDate(7, Date.valueOf(LocalDate.now()));
-                    update.executeUpdate();
-                }
-
-                connection.commit();
-                LOGGER.debug(
-                        "DailyTaskManager -> Progress action={} user={} amount={} completed={}",
-                        actionType,
-                        userId,
-                        amount,
-                        completed);
-                syncAchievements(userId);
-                return 1;
-            } catch (SQLException e) {
-                connection.rollback();
-                throw e;
-            } finally {
-                connection.setAutoCommit(true);
-            }
+            updated = addProgress(connection, userId, actionType, amount);
         } catch (SQLException e) {
             LOGGER.warn("DailyTaskManager -> Could not add progress for user {} action {}", userId, actionType, e);
             return 0;
+        }
+        // Notifications and achievements can acquire their own connections.
+        // Release the committed write connection before invoking them.
+        if (updated > 0) syncAchievements(userId);
+        return updated;
+    }
+
+    private int addProgress(Connection connection, int userId, String actionType, int amount) throws SQLException {
+        connection.setAutoCommit(false);
+        try {
+            int updatedTasks = addProgressToMatchingTasks(connection, userId, actionType, amount);
+            if (updatedTasks > 0) {
+                connection.commit();
+                LOGGER.debug(
+                        "DailyTaskManager -> Progress action={} user={} amount={} updatedTasks={}",
+                        actionType,
+                        userId,
+                        amount,
+                        updatedTasks);
+                return updatedTasks;
+            }
+
+            Task current = loadCurrentForUpdate(connection, userId);
+            List<Integer> assignedTaskIds = loadAssignedTaskIds(connection, userId);
+            if (current == null
+                    || current.completedAt > 0
+                    || !actionType.equals(current.actionType)
+                    || !assignedTaskIds.contains(current.id)) {
+                connection.commit();
+                return 0;
+            }
+
+            int progress = Math.min(current.target, current.progress + amount);
+            int now = Emulator.getIntUnixTimestamp();
+            boolean completed = current.progress < current.target && progress >= current.target;
+
+            try (PreparedStatement update = connection.prepareStatement(
+                    "UPDATE user_daily_task_progress SET progress = ?, updated_at = ?, completed_at = ?, reward_claimed_at = ? WHERE user_id = ? AND task_id = ? AND task_date = ?")) {
+                update.setInt(1, progress);
+                update.setInt(2, now);
+                update.setInt(3, completed ? now : current.completedAt);
+                update.setInt(4, current.rewardClaimedAt);
+                update.setInt(5, userId);
+                update.setInt(6, current.id);
+                update.setDate(7, Date.valueOf(LocalDate.now()));
+                update.executeUpdate();
+            }
+
+            connection.commit();
+            LOGGER.debug(
+                    "DailyTaskManager -> Progress action={} user={} amount={} completed={}",
+                    actionType,
+                    userId,
+                    amount,
+                    completed);
+            return 1;
+        } catch (SQLException e) {
+            connection.rollback();
+            throw e;
+        } finally {
+            connection.setAutoCommit(true);
         }
     }
 
@@ -208,28 +215,34 @@ public class DailyTaskManager {
         notifyWiredProgress(userId);
         Habbo habbo = Emulator.getGameEnvironment().getHabboManager().getHabbo(userId);
         if (habbo == null) return;
-        try (Connection connection = Emulator.getDatabase().getDataSource().getConnection()) {
-            try (PreparedStatement statement = connection.prepareStatement(
-                    "SELECT COUNT(*) FROM user_daily_task_progress WHERE user_id = ? AND completed_at > 0")) {
+        var dataSource = Emulator.getDatabase().getDataSource();
+        try {
+            Integer completed = null;
+            try (Connection connection = dataSource.getConnection();
+                    PreparedStatement statement = connection.prepareStatement(
+                            "SELECT COUNT(*) FROM user_daily_task_progress WHERE user_id = ? AND completed_at > 0")) {
                 statement.setInt(1, userId);
                 try (ResultSet set = statement.executeQuery()) {
-                    if (set.next()) AchievementInteractions.sync(habbo, "DailyTasksCompleted", set.getInt(1));
+                    if (set.next()) completed = set.getInt(1);
                 }
             }
+            if (completed != null) AchievementInteractions.sync(habbo, "DailyTasksCompleted", completed);
 
             int streak = 0;
             LocalDate day = LocalDate.now();
-            while (true) {
-                try (PreparedStatement statement = connection.prepareStatement(
-                        "SELECT 1 FROM user_daily_task_progress WHERE user_id = ? AND task_date = ? AND completed_at > 0 LIMIT 1")) {
-                    statement.setInt(1, userId);
-                    statement.setDate(2, Date.valueOf(day));
-                    try (ResultSet set = statement.executeQuery()) {
-                        if (!set.next()) break;
+            try (Connection connection = dataSource.getConnection();
+                    PreparedStatement statement = connection.prepareStatement(
+                            "SELECT DISTINCT task_date FROM user_daily_task_progress WHERE user_id = ? AND task_date <= ? AND completed_at > 0 ORDER BY task_date DESC")) {
+                statement.setInt(1, userId);
+                statement.setDate(2, Date.valueOf(day));
+                statement.setFetchSize(128);
+                try (ResultSet set = statement.executeQuery()) {
+                    while (set.next()) {
+                        if (!set.getDate(1).toLocalDate().equals(day)) break;
+                        streak++;
+                        day = day.minusDays(1);
                     }
                 }
-                streak++;
-                day = day.minusDays(1);
             }
             AchievementInteractions.sync(habbo, "DailyTaskStreakDays", streak);
         } catch (SQLException e) {

@@ -10,12 +10,27 @@ final class AvatarLevelReconciler {
     private AvatarLevelReconciler() {}
 
     static void reconcile(Connection connection, int userId) throws SQLException {
+        reconcile(connection, userId, true);
+    }
+
+    /** Normal dirty delivery uses the transactional projections; periodically audit their sources. */
+    static void reconcile(Connection connection, int userId, boolean force) throws SQLException {
         // This must be the first operation in a fresh transaction: take the owner
         // lock BEFORE establishing the consistent source snapshot. Grant triggers
         // cannot commit that owner's changes until this transaction finishes.
         try (var lock = connection.prepareCall("{CALL avatar_levels_lock(?, 0)}")) {
             lock.setInt(1, userId);
             lock.execute();
+        }
+        if (!force) {
+            try (var query =
+                    connection.prepareStatement("SELECT last_reconciled_at <= CURRENT_TIMESTAMP - INTERVAL 5 MINUTE "
+                            + "FROM users_avatar_levels WHERE user_id = ?")) {
+                query.setInt(1, userId);
+                try (var row = query.executeQuery()) {
+                    if (row.next() && !row.getBoolean(1)) return;
+                }
+            }
         }
         // Plain SELECTs intentionally do not lock source records. A concurrent
         // grant may already own a source record while waiting for our owner lock.

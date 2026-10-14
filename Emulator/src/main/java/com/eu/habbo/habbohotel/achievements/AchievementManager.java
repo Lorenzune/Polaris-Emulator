@@ -38,6 +38,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,8 +50,17 @@ public class AchievementManager {
 
     private final Map<String, Achievement> achievements;
     private final Map<TalentTrackType, LinkedHashMap<Integer, TalentTrackLevel>> talentTrackLevels;
+    private final Predicate<Runnable> persistence;
 
     public AchievementManager() {
+        this(task -> {
+            task.run();
+            return true;
+        });
+    }
+
+    public AchievementManager(Predicate<Runnable> persistence) {
+        this.persistence = Objects.requireNonNull(persistence);
         this.achievements = new HashMap<>();
         this.talentTrackLevels = new HashMap<>();
     }
@@ -85,6 +96,22 @@ public class AchievementManager {
 
     public static void progressAchievement(int habboId, Achievement achievement) {
         progressAchievement(habboId, achievement, 1);
+    }
+
+    /** Room timers retain their elapsed time if the bounded persistence queue is full. */
+    public static boolean queueProgressAchievement(int habboId, Achievement achievement, int amount) {
+        if (habboId <= 0 || achievement == null || amount <= 0) return true;
+        return AvatarLevelPlatform.game()
+                .getAchievementManager()
+                .persistence
+                .test(() -> progressAchievement(habboId, achievement, amount));
+    }
+
+    /** Final room exits must preserve their last minutes even during queue saturation/shutdown. */
+    public static void flushProgressAchievement(int habboId, Achievement achievement, int amount) {
+        if (!queueProgressAchievement(habboId, achievement, amount)) {
+            progressAchievement(habboId, achievement, amount);
+        }
     }
 
     public static void progressAchievement(int habboId, Achievement achievement, int amount) {

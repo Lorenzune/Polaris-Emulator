@@ -53,8 +53,7 @@ public class FurniEditorUpdateEvent extends MessageHandler {
             return;
         }
 
-        // Reload emulator item definitions
-        Emulator.getGameEnvironment().getItemManager().loadItems();
+        Emulator.getGameEnvironment().getItemManager().reloadItem(id);
         if (json.has("isRare")) com.eu.habbo.habbohotel.catalog.RareReleaseService.requestHistoryBackfill();
 
         this.client.sendResponse(new FurniEditorResultComposer(true, "Item updated", id));

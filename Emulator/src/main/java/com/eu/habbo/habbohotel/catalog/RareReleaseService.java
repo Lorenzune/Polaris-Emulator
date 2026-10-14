@@ -44,7 +44,7 @@ public final class RareReleaseService implements Runnable {
     public static void requestHistoryBackfill() {
         historyRequested.set(true);
         if (!historyRunning.compareAndSet(false, true)) return;
-        Emulator.getThreading().run(() -> {
+        Runnable backfill = () -> {
             try {
                 do {
                     historyRequested.set(false);
@@ -57,7 +57,8 @@ public final class RareReleaseService implements Runnable {
                 historyRunning.set(false);
                 if (historyRequested.get()) requestHistoryBackfill();
             }
-        });
+        };
+        Emulator.getThreading().runPersistence(backfill);
     }
 
     public static Release active(int offerId, long now) {

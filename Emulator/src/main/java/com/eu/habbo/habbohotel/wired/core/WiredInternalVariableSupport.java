@@ -73,9 +73,6 @@ public final class WiredInternalVariableSupport {
             return false;
         }
 
-        Habbo habbo = room.getHabbo(roomUnit);
-        Bot bot = room.getBot(roomUnit);
-        Pet pet = room.getPet(roomUnit);
         String normalized = normalizeKey(key);
 
         return switch (normalized) {
@@ -88,6 +85,22 @@ public final class WiredInternalVariableSupport {
                     "@position_y",
                     "@direction",
                     "@altitude" -> true;
+            case "@is_frozen" -> WiredFreezeUtil.isFrozen(roomUnit);
+            case "@effect_id" -> roomUnit.getEffectId() > 0;
+            case "@team_score", "@team_color", "@team_type" -> getTeamEffectData(roomUnit.getEffectId()) != null;
+            case "@sign" -> roomUnit.hasStatus(RoomUnitStatus.SIGN);
+            case "@dance" -> roomUnit.getDanceType() != null && roomUnit.getDanceType() != DanceType.NONE;
+            case "@is_idle" -> roomUnit.isIdle();
+            case "@handitem_id" -> roomUnit.getHandItem() > 0;
+            default -> hasUserEntityValue(room, roomUnit, normalized);
+        };
+    }
+
+    private static boolean hasUserEntityValue(Room room, RoomUnit roomUnit, String normalized) {
+        Habbo habbo = room.getHabbo(roomUnit);
+        Bot bot = room.getBot(roomUnit);
+        Pet pet = room.getPet(roomUnit);
+        return switch (normalized) {
             case "@gender" -> habbo != null || bot != null;
             case "@is_hc" -> habbo != null && habbo.getHabboStats().hasActiveClub();
             case "@has_rights" ->
@@ -99,13 +112,6 @@ public final class WiredInternalVariableSupport {
             case "@is_owner" -> habbo != null && room.isOwner(habbo);
             case "@is_muted" -> (habbo != null && room.isMuted(habbo)) || (pet != null && pet.isMuted());
             case "@is_trading" -> habbo != null && room.getActiveTradeForHabbo(habbo) != null;
-            case "@is_frozen" -> WiredFreezeUtil.isFrozen(roomUnit);
-            case "@effect_id" -> roomUnit.getEffectId() > 0;
-            case "@team_score", "@team_color", "@team_type" -> getTeamEffectData(roomUnit.getEffectId()) != null;
-            case "@sign" -> roomUnit.hasStatus(RoomUnitStatus.SIGN);
-            case "@dance" -> roomUnit.getDanceType() != null && roomUnit.getDanceType() != DanceType.NONE;
-            case "@is_idle" -> roomUnit.isIdle();
-            case "@handitem_id" -> roomUnit.getHandItem() > 0;
             case "@favourite_group_id" -> habbo != null && habbo.getHabboStats().guild > 0;
             case "@room_entry.method" -> habbo != null && hasRoomEntryMethod(habbo);
             case "@room_entry.teleport_id" ->
@@ -167,17 +173,40 @@ public final class WiredInternalVariableSupport {
             return null;
         }
 
-        Habbo habbo = room.getHabbo(roomUnit);
-        Bot bot = room.getBot(roomUnit);
-        Pet pet = room.getPet(roomUnit);
         String normalized = normalizeKey(key);
 
         return switch (normalized) {
             case "@opacity" -> roomUnit.getWiredOpacity();
             case "@index" -> roomUnit.getId();
+            case "@level" -> (roomUnit.getRightsLevel() != null) ? roomUnit.getRightsLevel().level : 0;
+            case "@is_frozen" -> WiredFreezeUtil.isFrozen(roomUnit) ? 1 : 0;
+            case "@effect_id" -> roomUnit.getEffectId();
+            case "@team_color" -> getTeamColorId(roomUnit.getEffectId());
+            case "@team_type" -> getTeamTypeId(roomUnit.getEffectId());
+            case "@sign" -> parseStatusInteger(roomUnit, RoomUnitStatus.SIGN);
+            case "@dance" ->
+                (roomUnit.getDanceType() != null) ? roomUnit.getDanceType().getType() : 0;
+            case "@is_idle" -> roomUnit.isIdle() ? 1 : 0;
+            case "@handitem_id" -> roomUnit.getHandItem();
+            case "@position_x" -> (int) roomUnit.getX();
+            case "@position_y" -> (int) roomUnit.getY();
+            case "@direction" ->
+                (roomUnit.getBodyRotation() != null)
+                        ? (int) roomUnit.getBodyRotation().getValue()
+                        : 0;
+            case "@altitude" -> (int) Math.round(roomUnit.getZ() * 100);
+            default -> readUserEntityValue(room, roomUnit, normalized);
+        };
+    }
+
+    /** Resolve account/bot/pet identity only for properties that actually use it. */
+    private static Integer readUserEntityValue(Room room, RoomUnit roomUnit, String normalized) {
+        Habbo habbo = room.getHabbo(roomUnit);
+        Bot bot = room.getBot(roomUnit);
+        Pet pet = room.getPet(roomUnit);
+        return switch (normalized) {
             case "@type" -> getUserTypeValue(habbo, bot, pet);
             case "@gender" -> getGenderValue(habbo, bot);
-            case "@level" -> (roomUnit.getRightsLevel() != null) ? roomUnit.getRightsLevel().level : 0;
             case "@achievement_score" -> (habbo != null) ? habbo.getHabboStats().getAchievementScore() : null;
             case "@is_hc" -> (habbo != null && habbo.getHabboStats().hasActiveClub()) ? 1 : 0;
             case "@has_rights" ->
@@ -194,23 +223,7 @@ public final class WiredInternalVariableSupport {
             case "@is_owner" -> (habbo != null && room.isOwner(habbo)) ? 1 : 0;
             case "@is_muted" -> ((habbo != null && room.isMuted(habbo)) || (pet != null && pet.isMuted())) ? 1 : 0;
             case "@is_trading" -> (habbo != null && room.getActiveTradeForHabbo(habbo) != null) ? 1 : 0;
-            case "@is_frozen" -> WiredFreezeUtil.isFrozen(roomUnit) ? 1 : 0;
-            case "@effect_id" -> roomUnit.getEffectId();
             case "@team_score" -> getUserTeamScore(room, habbo);
-            case "@team_color" -> getTeamColorId(roomUnit.getEffectId());
-            case "@team_type" -> getTeamTypeId(roomUnit.getEffectId());
-            case "@sign" -> parseStatusInteger(roomUnit, RoomUnitStatus.SIGN);
-            case "@dance" ->
-                (roomUnit.getDanceType() != null) ? roomUnit.getDanceType().getType() : 0;
-            case "@is_idle" -> roomUnit.isIdle() ? 1 : 0;
-            case "@handitem_id" -> roomUnit.getHandItem();
-            case "@position_x" -> (int) roomUnit.getX();
-            case "@position_y" -> (int) roomUnit.getY();
-            case "@direction" ->
-                (roomUnit.getBodyRotation() != null)
-                        ? (int) roomUnit.getBodyRotation().getValue()
-                        : 0;
-            case "@altitude" -> (int) Math.round(roomUnit.getZ() * 100);
             case "@favourite_group_id" -> (habbo != null) ? habbo.getHabboStats().guild : null;
             case "@room_entry.method" -> getRoomEntryMethodValue(habbo);
             case "@room_entry.teleport_id" ->

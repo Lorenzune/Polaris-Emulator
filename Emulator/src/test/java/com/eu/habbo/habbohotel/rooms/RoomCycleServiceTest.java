@@ -159,6 +159,42 @@ class RoomCycleServiceTest {
     }
 
     @Test
+    void roomReturnsToNormalWorkersAfterAStableRecoveryWithoutOverlappingCycles() throws Exception {
+        var clock = new java.util.concurrent.atomic.AtomicLong();
+        RoomCycleService service = new RoomCycleService(2, 250, clock::get);
+        var recovered = new CountDownLatch(1);
+        var runs = new AtomicInteger();
+        var active = new AtomicInteger();
+        var maximum = new AtomicInteger();
+        var isolated = new java.util.concurrent.atomic.AtomicBoolean();
+        Room room = mock(Room.class);
+        when(room.getId()).thenReturn(42);
+        doAnswer(ignored -> {
+                    maximum.accumulateAndGet(active.incrementAndGet(), Math::max);
+                    try {
+                        int run = runs.incrementAndGet();
+                        if (run == 1) clock.addAndGet(TimeUnit.MILLISECONDS.toNanos(300));
+                        else if (Thread.currentThread().getName().startsWith("RoomCycleSlow-")) isolated.set(true);
+                        else if (isolated.get()) recovered.countDown();
+                    } finally {
+                        active.decrementAndGet();
+                    }
+                    return null;
+                })
+                .when(room)
+                .run();
+        ScheduledFuture<?> future = service.schedule(room);
+        try {
+            assertTrue(recovered.await(10, TimeUnit.SECONDS));
+            assertEquals(1, maximum.get());
+            assertTrue(isolated.get());
+        } finally {
+            future.cancel(false);
+            service.dispose();
+        }
+    }
+
+    @Test
     void cancellingBeforeFirstCyclePreventsExecutionAndDisposalCancelsOutstandingFutures() {
         RoomCycleService service = new RoomCycleService(2, 250);
         Room room = mock(Room.class);

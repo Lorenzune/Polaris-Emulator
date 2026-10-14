@@ -60,6 +60,7 @@ import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,6 +72,7 @@ public class GameEnvironment {
 
     private final HotelServiceRegistry services = new HotelServiceRegistry();
     private final Executor persistenceExecutor;
+    private final Predicate<Runnable> tryPersistence;
 
     public CreditsScheduler creditsScheduler;
     public PixelScheduler pixelScheduler;
@@ -122,7 +124,15 @@ public class GameEnvironment {
     }
 
     public GameEnvironment(Executor persistenceExecutor) {
+        this(persistenceExecutor, task -> {
+            persistenceExecutor.execute(task);
+            return true;
+        });
+    }
+
+    public GameEnvironment(Executor persistenceExecutor, Predicate<Runnable> tryPersistence) {
         this.persistenceExecutor = Objects.requireNonNull(persistenceExecutor, "persistenceExecutor");
+        this.tryPersistence = Objects.requireNonNull(tryPersistence, "tryPersistence");
     }
 
     public void load() throws Exception {
@@ -162,7 +172,8 @@ public class GameEnvironment {
         this.commandHandler = this.services.create("command handler", CommandHandler::new, CommandHandler::dispose);
         this.modToolManager = this.services.create("moderation tools", ModToolManager::new);
         this.modToolSanctions = this.services.create("moderation sanctions", ModToolSanctions::new);
-        this.achievementManager = this.services.create("achievement manager", AchievementManager::new);
+        this.achievementManager =
+                this.services.create("achievement manager", () -> new AchievementManager(this.tryPersistence));
         this.achievementManager.reload();
         this.avatarLevelManager = this.services.create(
                 "avatar level manager",

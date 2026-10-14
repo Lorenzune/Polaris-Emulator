@@ -28,6 +28,7 @@ public final class RoomCycleService {
     private static final Logger LOGGER = LoggerFactory.getLogger(RoomCycleService.class);
     private static final long SLOW_WARNING_INTERVAL_MS = 30_000L;
     private static final int MAX_SLOW_WARNING_KEYS = 10_000;
+    private static final int HEALTHY_CYCLES_TO_RECOVER = 10;
 
     private final ScheduledExecutorService[] workers;
     private final ScheduledThreadPoolExecutor roomWorkers;
@@ -164,6 +165,7 @@ public final class RoomCycleService {
         private long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(CYCLE_MS);
         private ScheduledFuture<?> task;
         private boolean slow;
+        private int healthyCycles;
 
         RoomSchedule(Room room) {
             this.room = room;
@@ -199,7 +201,15 @@ public final class RoomCycleService {
             }
             synchronized (this) {
                 if (completion.isDone() || disposed) return;
-                slow |= nanoTime.getAsLong() - started > slowNanos;
+                if (nanoTime.getAsLong() - started > slowNanos) {
+                    slow = true;
+                    healthyCycles = 0;
+                } else if (slow && ++healthyCycles >= HEALTHY_CYCLES_TO_RECOVER) {
+                    // A transient database stall must not permanently crowd every
+                    // recovered room onto the small slow-worker pool.
+                    slow = false;
+                    healthyCycles = 0;
+                }
                 deadline += TimeUnit.MILLISECONDS.toNanos(CYCLE_MS);
                 start();
             }

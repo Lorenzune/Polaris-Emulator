@@ -2,6 +2,7 @@ package com.eu.habbo.database;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.eu.habbo.habbohotel.items.ItemManager;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -112,8 +113,9 @@ class HotQueryProjectionCoverageTest {
 
     @Test
     void baseItemPreloadCoversEveryItemMapperColumn() throws Exception {
-        assertProjectionCovers(
-                source("habbohotel/items/ItemManager.java"), "items_base", "ORDER BY id DESC", BASE_ITEM_COLUMNS);
+        var query = ItemManager.class.getDeclaredField("BASE_ITEMS_SQL");
+        query.setAccessible(true);
+        assertProjectionCovers((String) query.get(null), "items_base", "ORDER BY id DESC", BASE_ITEM_COLUMNS);
     }
 
     @Test

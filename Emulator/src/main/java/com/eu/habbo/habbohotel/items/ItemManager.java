@@ -427,7 +427,7 @@ import org.slf4j.LoggerFactory;
 public class ItemManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ItemManager.class);
-    private static final String BASE_ITEMS_SQL = """
+    private static final String BASE_ITEMS_SELECT = """
             SELECT id, sprite_id, public_name, item_name, type, width, length,
                    stack_height, allow_stack, allow_sit, allow_lay, allow_walk,
                    allow_gift, allow_trade, allow_recycle,
@@ -436,8 +436,8 @@ public class ItemManager {
                    multiheight, customparams, effect_id_male, effect_id_female,
                    clothing_on_walk
             FROM items_base
-            ORDER BY id DESC
             """;
+    private static final String BASE_ITEMS_SQL = BASE_ITEMS_SELECT + " ORDER BY id DESC";
 
     // Configuration. Loaded from database & updated accordingly.
     public static volatile boolean RECYCLER_ENABLED = true;
@@ -1144,10 +1144,12 @@ public class ItemManager {
                 ResultSet set = statement.executeQuery(BASE_ITEMS_SQL)) {
             while (set.next()) {
                 try {
-                    // Item proxyItem =
                     int id = set.getInt("id");
-                    if (!this.items.containsKey(id)) this.items.put(id, new Item(set));
-                    else this.items.get(id).update(set);
+                    synchronized (this.items) {
+                        Item existing = this.items.get(id);
+                        if (existing == null) this.items.put(id, new Item(set));
+                        else existing.update(set);
+                    }
                 } catch (Exception e) {
                     LOGGER.error("Failed to load Item ({})", set.getInt("id"));
                     LOGGER.error("Caught exception", e);
@@ -1155,6 +1157,26 @@ public class ItemManager {
             }
         } catch (SQLException e) {
             LOGGER.error("Caught SQL exception", e);
+        }
+    }
+
+    /** Update the existing definition so placed items keep their reference to it. */
+    public void reloadItem(int itemId) throws SQLException {
+        try (Connection connection = database().getDataSource().getConnection();
+                PreparedStatement statement = connection.prepareStatement(BASE_ITEMS_SELECT + " WHERE id = ?")) {
+            statement.setInt(1, itemId);
+            try (ResultSet set = statement.executeQuery()) {
+                boolean exists = set.next();
+                synchronized (this.items) {
+                    if (!exists) {
+                        this.items.remove(itemId);
+                    } else {
+                        Item existing = this.items.get(itemId);
+                        if (existing == null) this.items.put(itemId, new Item(set));
+                        else existing.update(set);
+                    }
+                }
+            }
         }
     }
 
