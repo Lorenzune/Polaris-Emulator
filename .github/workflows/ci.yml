@@ -156,7 +156,7 @@ jobs:
 
       - name: Verify backup, drop and restore
         env:
-          MIGRATION_TEST_DB_HOST: 127.0.0.1
+          MIGRATION_TEST_DB_HOST: host.docker.internal
           MIGRATION_TEST_DB_PORT: 3306
           MIGRATION_TEST_DB_USER: root
           MIGRATION_TEST_DB_PASSWORD: root
