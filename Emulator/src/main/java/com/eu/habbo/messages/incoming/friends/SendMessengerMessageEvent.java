@@ -11,8 +11,12 @@ import com.eu.habbo.messages.incoming.MessageHandler;
 import com.eu.habbo.messages.outgoing.friends.MessengerMessageAckComposer;
 import com.eu.habbo.messages.outgoing.friends.MessengerMessageFailedComposer;
 import com.eu.habbo.messages.outgoing.friends.MessengerMessageComposer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class SendMessengerMessageEvent extends MessageHandler {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SendMessengerMessageEvent.class);
+
     @Override
     public void handle() {
         int conversationId = packet.readInt();
@@ -50,6 +54,7 @@ public final class SendMessengerMessageEvent extends MessageHandler {
         } catch (IllegalArgumentException exception) {
             client.sendResponse(new MessengerMessageFailedComposer(confirmationId, 1));
         } catch (RuntimeException exception) {
+            LOGGER.error("Failed to store Messenger message for user {} in conversation {}", senderId, conversationId, exception);
             client.sendResponse(new MessengerMessageFailedComposer(confirmationId, 7));
         }
     }
