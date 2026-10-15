@@ -128,7 +128,7 @@ jobs:
         env:
           MARIADB_ROOT_PASSWORD: root
         ports:
-          - 3306:3306
+          - 3306/tcp
         options: >-
           --health-cmd="healthcheck.sh --connect --innodb_initialized"
           --health-interval=5s
@@ -157,7 +157,7 @@ jobs:
       - name: Verify backup, drop and restore
         env:
           MIGRATION_TEST_DB_HOST: host.docker.internal
-          MIGRATION_TEST_DB_PORT: 3306
+          MIGRATION_TEST_DB_PORT: ${{ job.services.mariadb.ports['3306'] }}
           MIGRATION_TEST_DB_USER: root
           MIGRATION_TEST_DB_PASSWORD: root
         run: ./mvnw -B -Dtest=MariaDbMigrationBackupIntegrationTest test
