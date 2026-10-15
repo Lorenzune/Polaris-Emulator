@@ -15,7 +15,9 @@ permissions:
 jobs:
   build:
     name: Build + unit + integration
-    runs-on: ubuntu-latest
+    runs-on:
+      group: ducket-ci
+      labels: [self-hosted, linux, x64]
     timeout-minutes: 45
     defaults:
       run:
@@ -58,7 +60,9 @@ jobs:
 
   jdk26-package:
     name: JDK 26 package compatibility
-    runs-on: ubuntu-latest
+    runs-on:
+      group: ducket-ci
+      labels: [self-hosted, linux, x64]
     timeout-minutes: 20
     defaults:
       run:
@@ -80,7 +84,9 @@ jobs:
 
   migration-matrix:
     name: Migrations on MariaDB ${{ matrix.mariadb }}
-    runs-on: ubuntu-latest
+    runs-on:
+      group: ducket-ci
+      labels: [self-hosted, linux, x64]
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -112,7 +118,9 @@ jobs:
 
   backup-restore:
     name: Migration backup + restore
-    runs-on: ubuntu-latest
+    runs-on:
+      group: ducket-ci
+      labels: [self-hosted, linux, x64]
     timeout-minutes: 30
     services:
       mariadb:

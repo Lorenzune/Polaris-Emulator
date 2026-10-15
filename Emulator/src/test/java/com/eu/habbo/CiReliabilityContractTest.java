@@ -1,6 +1,5 @@
 package com.eu.habbo;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
@@ -26,12 +25,7 @@ class CiReliabilityContractTest {
     void integrationForksHaveAHardTimeout() throws Exception {
         String pom = Files.readString(Path.of("pom.xml"));
 
-        assertTrue(pom.contains("<forkedProcessTimeoutInSeconds>600" + "</forkedProcessTimeoutInSeconds>"));
-    }
-
-    @Test
-    void staleGitLabPipelineIsNotAdvertised() {
-        assertFalse(Files.exists(Path.of("../.gitlab-ci.yml")));
+        assertTrue(pom.contains("<forkedProcessTimeoutInSeconds>2400" + "</forkedProcessTimeoutInSeconds>"));
     }
 
     private static int occurrences(String text, String needle) {

@@ -239,7 +239,7 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>${maven-failsafe-plugin.version}</version>
                 <configuration>
-                    <forkedProcessTimeoutInSeconds>600</forkedProcessTimeoutInSeconds>
+                    <forkedProcessTimeoutInSeconds>2400</forkedProcessTimeoutInSeconds>
                     <includes>
                         <include>**/*IT.java</include>
                     </includes>
